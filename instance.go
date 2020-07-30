@@ -146,7 +146,7 @@ func NewInstance() *Instance {
 
 	rl.History = new(ExampleHistory)
 	rl.HistoryAutoWrite = true
-	rl.MaxTabCompleterRows = 4
+	rl.MaxTabCompleterRows = 100
 	rl.prompt = ">>> "
 	rl.promptLen = 4
 	rl.HintFormatting = seqFgBlue

@@ -14,7 +14,8 @@ import "fmt"
 // agetTabCompletion - This root function sets up all completion items and engines.
 func (rl *Instance) agetTabCompletion() {
 	rl.tcOffset = 0
-	if rl.TabCompleter == nil {
+
+	if rl.Completer == nil {
 		return
 	}
 
@@ -32,7 +33,7 @@ func (rl *Instance) agetTabCompletion() {
 	// Init/Setup all groups
 	// This tells what each group is able to do and what not, etc...
 	for _, group := range rl.atcGroups {
-		group.init(rl)
+		(*group).init(rl)
 	}
 }
 
@@ -46,9 +47,9 @@ func (rl *Instance) amoveTabCompletionHighlight(x, y int) {
 // awriteTabCompletion - Prints all completion groups and their items
 func (rl *Instance) awriteTabCompletion() {
 
-	if !rl.modeTabCompletion {
-		return
-	}
+	// if !rl.modeTabCompletion {
+	//         return
+	// }
 
 	// This is the final string, with all completions of all groups, to be printed
 	var completions string
