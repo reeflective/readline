@@ -32,7 +32,13 @@ func (rl *Instance) getTabCompletion() {
 		return
 	}
 
-	rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+	// Here we handle the population of completion differently depending on what
+	// is asked for completion (history, or command completion)
+	if rl.regexpMode == HistoryFind && rl.modeTabFind {
+		rl.tcGroups = rl.completeHistory()
+	} else {
+		rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+	}
 
 	// If no completions available, return
 	if len(rl.tcGroups) == 0 {
@@ -59,7 +65,7 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 	g := rl.getCurrentGroup()
 
 	// We keep track of these values
-	ty := &g.tcPosY
+	// ty := &g.tcPosY
 
 	// This is triggered when we need to cycle through the next group
 	var done bool
@@ -73,12 +79,10 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 		done = g.aMoveTabMapHighlight(x, y)
 
 	case TabDisplayMap:
-		for *ty <= g.tcMaxY {
-			g.aMoveTabMapHighlight(x, y)
-		}
+		done = g.aMoveTabMapHighlight(x, y)
 	}
 
-	// Cycle to next group
+	// Cycle to next group: we tell them who is the next one to handle highlighting
 	if done {
 		for i, g := range rl.tcGroups {
 			if g.isCurrent {
@@ -130,7 +134,7 @@ func (rl *Instance) writeTabCompletion() {
 // getScreenCleanSize - not used
 func (rl *Instance) getScreenCleanSize() (size int) {
 	for _, g := range rl.tcGroups {
-		size += 1 // Group title
+		size++ // Group title
 		size += g.tcPosY
 	}
 	return

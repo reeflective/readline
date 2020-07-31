@@ -30,14 +30,8 @@ type Instance struct {
 	HistoryAutoWrite bool // = true
 
 	// TabCompleter is a simple function that offers completion suggestions.
-	// It takes the readline line ([]rune) and cursor pos. Returns a prefix
-	// string, an array of suggestions and a map of definitions (optional).
-	TabCompleter func([]rune, int) (string, []string, map[string]string, TabDisplayType)
-
-	// ALTERNATIVE TAB COMPLETION
-	// TabCompleter is a simple function that offers completion suggestions.
 	// It takes the readline line ([]rune) and cursor pos.
-	// Returns a prefix string,
+	// Returns a prefix string, and several completion groups with their items and description
 	Completer func([]rune, int) (string, []*CompletionGroup)
 
 	// MaxTabCompletionRows is the maximum number of rows to display in the tab

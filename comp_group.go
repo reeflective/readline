@@ -37,6 +37,7 @@ func (g *CompletionGroup) init(rl *Instance) {
 	// Details common to all displays
 	rl.modeTabCompletion = true
 	g.checkCycle(rl) // Based on the number of groups given to the shell, allows cycling or not
+	g.checkMaxLength(rl)
 
 	// Details specific to tab display modes
 	switch g.DisplayType {
@@ -82,6 +83,11 @@ func (g *CompletionGroup) initGrid(rl *Instance) {
 // initMap - Map display details
 func (g *CompletionGroup) initMap(rl *Instance) {
 
+	// We make the map anyway, especially if we need to use it later
+	if g.Descriptions == nil {
+		g.Descriptions = make(map[string]string)
+	}
+
 	// Max number of suggestions per line, for this group
 	// Here, we have decided that tcMaxLength is managed by group, and not rl
 	// Therefore we might have made a mistake. Keep that in mind
@@ -105,12 +111,9 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 
 	g.tcMaxX = 1
 	if len(g.Suggestions) > g.MaxLength {
-		// if len(suggestions) > rl.MaxTabCompleterRows {
 		g.tcMaxY = g.MaxLength
-		// rl.tcMaxY = rl.MaxTabCompleterRows
 	} else {
 		g.tcMaxY = len(g.Suggestions)
-		// rl.tcMaxY = len(suggestions)
 	}
 }
 
@@ -126,4 +129,20 @@ func (g *CompletionGroup) checkCycle(rl *Instance) {
 		g.allowCycle = false
 	}
 
+}
+
+// checkMaxLength - Based on the number of groups given to the shell, check/set MaxLength defaults
+func (g *CompletionGroup) checkMaxLength(rl *Instance) {
+
+	// This means the user forgot to set it
+	if g.MaxLength == 0 {
+		if len(rl.tcGroups) < 5 {
+			g.MaxLength = 10
+		}
+
+		// 5 different groups might be a good but conservative beginning.
+		if len(rl.tcGroups) >= 5 {
+			g.MaxLength = 7
+		}
+	}
 }

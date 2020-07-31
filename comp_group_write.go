@@ -201,5 +201,6 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	} else {
 		rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
 	}
+
 	return
 }

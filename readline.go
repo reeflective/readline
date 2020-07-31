@@ -144,8 +144,6 @@ func (rl *Instance) Readline() (string, error) {
 			rl.modeAutoFind = true
 			rl.tcOffset = 0
 			rl.modeTabCompletion = true
-			rl.tcDisplayType = TabDisplayMap
-			rl.tcSuggestions, rl.tcDescriptions = rl.autocompleteHistory()
 			rl.getTabCompletion()
 
 			rl.modeTabFind = true

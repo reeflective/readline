@@ -118,18 +118,26 @@ func (rl *Instance) walkHistory(i int) {
 	rl.updateHelpers()
 }
 
-func (rl *Instance) autocompleteHistory() ([]string, map[string]string) {
-	var (
-		items []string
-		descs = make(map[string]string)
+// completeHistory - Populates a CompletionGroup with history and returns it the shell
+// we populate only one group, so as to pass it to the main completion engine.
+func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 
+	hist = make([]*CompletionGroup, 1)
+	hist[0] = &CompletionGroup{
+		Name:        "Command History",
+		Description: "All commands entered by the user, in all its consoles.",
+		DisplayType: TabDisplayMap,
+	}
+	hist[0].init(rl)
+
+	var (
 		line string
 		num  string
 		err  error
 	)
 
-	rl.tcPrefix = string(rl.line)
-	//for i := 0; i < rl.History.Len(); i++ {
+	rl.tcPrefix = string(rl.line) // We use the current full line for filtering
+
 	for i := rl.History.Len() - 1; i >= 0; i-- {
 		line, err = rl.History.GetLine(i)
 		if err != nil {
@@ -142,15 +150,15 @@ func (rl *Instance) autocompleteHistory() ([]string, map[string]string) {
 
 		line = strings.Replace(line, "\n", ` `, -1)[len(rl.line):]
 
-		if descs[line] != "" {
+		if hist[0].Descriptions[line] != "" {
 			continue
 		}
 
-		items = append(items, line)
+		hist[0].Suggestions = append(hist[0].Suggestions, line)
 		num = strconv.Itoa(i)
 
-		descs[line] = num
+		hist[0].Descriptions[line] = num
 	}
 
-	return items, descs
+	return
 }

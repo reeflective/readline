@@ -60,7 +60,7 @@ func (g *CompletionGroup) aMoveTabMapHighlight(x, y int) (done bool) {
 	g.tcPosY += y
 
 	if g.tcPosY < 1 {
-		// g.tcPosY = 1
+		g.tcPosY = 1 // We had suppressed it for some time, don't know why.
 		g.tcOffset--
 	}
 
@@ -85,47 +85,3 @@ func (g *CompletionGroup) aMoveTabMapHighlight(x, y int) (done bool) {
 	}
 	return false
 }
-
-// aMoveTabGridHighlight - Moves the highlighting for currently selected completion item (grid display)
-// func (g *CompletionGroup) aMoveTabGridHighlight(x, y int) {
-
-// g.tcPosX += x
-// g.tcPosY += y
-//
-// if g.tcPosX < 1 {
-//         g.tcPosX = g.tcMaxX
-//         g.tcPosY--
-// }
-//
-// if g.tcPosX > g.tcMaxX {
-//         g.tcPosX = 1
-//         g.tcPosY++
-// }
-//
-// if g.tcPosY < 1 {
-//         g.tcPosY = rl.tcUsedY
-// }
-//
-// if g.tcPosY > rl.tcUsedY {
-//         g.tcPosY = 1
-// }
-//
-// if g.tcPosY == rl.tcUsedY && (g.tcMaxX*(g.tcPosY-1))+g.tcPosX > len(g.Suggestions) {
-//         if x < 0 {
-//                 g.tcPosX = len(g.Suggestions) - (g.tcMaxX * (g.tcPosY - 1))
-//         }
-//
-//         if x > 0 {
-//                 g.tcPosX = 1
-//                 g.tcPosY = 1
-//         }
-//
-//         if y < 0 {
-//                 g.tcPosY--
-//         }
-//
-//         if y > 0 {
-//                 g.tcPosY = 1
-//         }
-// }
-// }
