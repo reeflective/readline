@@ -114,6 +114,7 @@ type Instance struct {
 	// Tab Find
 	// We will have to elaborate the system for suggestions in find mode, because it just supports list mode.
 	// Therefore we just pass the same completion groups to this, until we don't need this element anymore.
+	regexpMode     FindMode // Used for varying hints, and underlying functions called
 	atfSuggestions []*CompletionGroup
 
 	// ------------------------------------------------------------------------------------------------------

@@ -129,15 +129,18 @@ func (rl *Instance) Readline() (string, error) {
 
 		case charCtrlF:
 			if !rl.modeTabCompletion {
+				rl.regexpMode = CompletionFind
 				rl.modeAutoFind = true
 				rl.getTabCompletion()
 			}
 
 			rl.modeTabFind = true
+			rl.regexpMode = CompletionFind
 			rl.updateTabFind([]rune{})
 			rl.viUndoSkipAppend = true
 
 		case charCtrlR:
+			rl.regexpMode = HistoryFind
 			rl.modeAutoFind = true
 			rl.tcOffset = 0
 			rl.modeTabCompletion = true

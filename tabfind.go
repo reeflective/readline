@@ -2,6 +2,17 @@ package readline
 
 import "regexp"
 
+// FindMode defines how the autocomplete suggestions display
+type FindMode int
+
+const (
+	// HistoryFind - Searching through history
+	HistoryFind = iota
+
+	// CompletionFind - Searching through completion items
+	CompletionFind
+)
+
 func (rl *Instance) backspaceTabFind() {
 	if len(rl.tfLine) > 0 {
 		rl.tfLine = rl.tfLine[:len(rl.tfLine)-1]
@@ -10,8 +21,15 @@ func (rl *Instance) backspaceTabFind() {
 }
 
 func (rl *Instance) updateTabFind(r []rune) {
+
+	// Depending on search type, we give different hints
 	rl.tfLine = append(rl.tfLine, r...)
-	rl.hintText = append([]rune("regexp find: "), rl.tfLine...)
+	switch rl.regexpMode {
+	case HistoryFind:
+		rl.hintText = append([]rune("History search: "), rl.tfLine...)
+	case CompletionFind:
+		rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
+	}
 
 	defer func() {
 		rl.clearHelpers()
