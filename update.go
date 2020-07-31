@@ -156,7 +156,7 @@ func (rl *Instance) resetHelpers() {
 	rl.modeAutoFind = false
 	rl.clearHelpers()
 	rl.resetHintText()
-	rl.aResetTabCompletion()
+	rl.resetTabCompletion()
 }
 
 func (rl *Instance) clearHelpers() {
@@ -167,7 +167,7 @@ func (rl *Instance) clearHelpers() {
 
 func (rl *Instance) renderHelpers() {
 	rl.writeHintText()
-	rl.awriteTabCompletion()
+	rl.writeTabCompletion()
 
 	moveCursorUp(rl.hintY + rl.tcUsedY)
 	moveCursorBackwards(GetTermWidth())
@@ -178,7 +178,7 @@ func (rl *Instance) updateHelpers() {
 	rl.tcOffset = 0
 	rl.getHintText()
 	if rl.modeTabCompletion {
-		rl.agetTabCompletion()
+		rl.getTabCompletion()
 	}
 	rl.clearHelpers()
 	rl.renderHelpers()

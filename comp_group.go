@@ -28,7 +28,7 @@ type CompletionGroup struct {
 	// Might be the case of things like remote processes .
 	allowCycle bool
 
-	current bool // This is to say we are currently cycling through this group, for highlighting choice
+	isCurrent bool // This is to say we are currently cycling through this group, for highlighting choice
 }
 
 // Because the group might have different display types, we have to init and setup for the one desired
@@ -116,12 +116,12 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 // checkCycle - Based on the number of groups given to the shell, allows cycling or not
 func (g *CompletionGroup) checkCycle(rl *Instance) {
 
-	if len(rl.atcGroups) == 1 {
+	if len(rl.tcGroups) == 1 {
 		g.allowCycle = true
 	}
 
 	// 5 different groups might be a good but conservative beginning.
-	if len(rl.atcGroups) >= 5 {
+	if len(rl.tcGroups) >= 5 {
 		g.allowCycle = false
 	}
 

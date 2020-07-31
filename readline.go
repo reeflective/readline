@@ -26,7 +26,7 @@ func (rl *Instance) Readline() (string, error) {
 	rl.histPos = rl.History.Len()
 	rl.modeViMode = vimInsert
 	rl.resetHintText()
-	rl.aResetTabCompletion()
+	rl.resetTabCompletion()
 
 	if len(rl.multisplit) > 0 {
 		r := []rune(rl.multisplit[0])
@@ -130,7 +130,7 @@ func (rl *Instance) Readline() (string, error) {
 		case charCtrlF:
 			if !rl.modeTabCompletion {
 				rl.modeAutoFind = true
-				rl.agetTabCompletion()
+				rl.getTabCompletion()
 			}
 
 			rl.modeTabFind = true
@@ -143,7 +143,7 @@ func (rl *Instance) Readline() (string, error) {
 			rl.modeTabCompletion = true
 			rl.tcDisplayType = TabDisplayMap
 			rl.tcSuggestions, rl.tcDescriptions = rl.autocompleteHistory()
-			rl.agetTabCompletion()
+			rl.getTabCompletion()
 
 			rl.modeTabFind = true
 			rl.updateTabFind([]rune{})
@@ -157,7 +157,7 @@ func (rl *Instance) Readline() (string, error) {
 			if rl.modeTabCompletion {
 				rl.moveTabCompletionHighlight(1, 0)
 			} else {
-				rl.agetTabCompletion()
+				rl.getTabCompletion()
 			}
 
 			rl.renderHelpers()
@@ -176,7 +176,7 @@ func (rl *Instance) Readline() (string, error) {
 			if rl.modeTabCompletion && len(suggestions) > 0 {
 				cell := (rl.tcMaxX * (rl.tcPosY - 1)) + rl.tcOffset + rl.tcPosX - 1
 				rl.clearHelpers()
-				rl.aResetTabCompletion()
+				rl.resetTabCompletion()
 				rl.renderHelpers()
 				rl.insert([]rune(suggestions[cell]))
 				continue
@@ -222,7 +222,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 		case rl.modeAutoFind:
 			rl.resetTabFind()
 			rl.clearHelpers()
-			rl.aResetTabCompletion()
+			rl.resetTabCompletion()
 			rl.renderHelpers()
 
 		case rl.modeTabFind:
@@ -230,7 +230,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 
 		case rl.modeTabCompletion:
 			rl.clearHelpers()
-			rl.aResetTabCompletion()
+			rl.resetTabCompletion()
 			rl.renderHelpers()
 
 		default:

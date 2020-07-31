@@ -54,7 +54,6 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 				break
 			} else {
 				comp += "\r\n"
-				// print("\r\n")
 			}
 		}
 
@@ -62,14 +61,14 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 		// "we are currently selecting an option in this one, so highlight according to x & y"
 		// We use tcPosX and tcPosY because we don't care about the other groups, they don't
 		// print anything important to us right now.
-		if (x == g.tcPosX && y == g.tcPosY) && (g.current) {
+		if (x == g.tcPosX && y == g.tcPosY) && (g.isCurrent) {
 			comp += seqBgWhite + seqFgBlack
 		}
 		comp += fmt.Sprintf(" %-"+cellWidth+"s %s", rl.tcPrefix+g.Suggestions[i], seqReset)
 	}
 
-	// Devise what to do with this.
-	// rl.tcUsedY = y
+	// Add the equivalent of this group's size to final screen clearing
+	rl.tcUsedY += y + 1 // + 1 for title
 
 	return
 }
@@ -101,7 +100,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 
 	// Highlighting function
 	highlight := func(y int) string {
-		if y == g.tcPosY && g.current {
+		if y == g.tcPosY && g.isCurrent {
 			return seqBgWhite + seqFgBlack
 		}
 		return ""
@@ -129,13 +128,12 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 			highlight(y), item, seqReset, description)
 	}
 
-	// Devise what to do with this.
-	// We are using the Instance coordinates. Check this
-	// if len(g.Suggestions) < g.tcMaxX {
-	//         rl.tcUsedY = len(g.Suggestions)
-	// } else {
-	//         rl.tcUsedY = g.tcMaxY
-	// }
+	// Add the equivalent of this group's size to final screen clearing
+	if len(g.Suggestions) < g.tcMaxX {
+		rl.tcUsedY += len(g.Suggestions) + 1 // + 1 for title
+	} else {
+		rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+	}
 
 	return
 }
@@ -168,7 +166,7 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 
 	// Highlighting function
 	highlight := func(y int) string {
-		if y == g.tcPosY && g.current {
+		if y == g.tcPosY && g.isCurrent {
 			return seqBgWhite + seqFgBlack
 		}
 		return ""
@@ -197,12 +195,11 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 			description, highlight(y), item, seqReset)
 	}
 
-	// Devise what to do with this.
-	// We are using the Instance coordinates. Check this
-	// if len(g.Suggestions) < g.tcMaxX {
-	//         rl.tcUsedY = len(g.Suggestions)
-	// } else {
-	//         rl.tcUsedY = g.tcMaxY
-	// }
+	// Add the equivalent of this group's size to final screen clearing
+	if len(g.Suggestions) < g.tcMaxX {
+		rl.tcUsedY += len(g.Suggestions) + 1 // + 1 for title
+	} else {
+		rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+	}
 	return
 }

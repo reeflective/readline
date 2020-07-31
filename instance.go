@@ -109,15 +109,7 @@ type Instance struct {
 
 	// ALTERNATE COMPLETION SYSTEM --------------------------------------------------------------------------
 
-	atcGroups []*CompletionGroup // All of our suggestions tree is in here
-	atcPrefix string             // Not changed
-
-	atcOffset int
-	atcPosX   int
-	atcPosY   int
-	atcMaxX   int
-	atcMaxY   int
-	atcUsedY  int
+	tcGroups []*CompletionGroup // All of our suggestions tree is in here
 
 	// Tab Find
 	// We will have to elaborate the system for suggestions in find mode, because it just supports list mode.

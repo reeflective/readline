@@ -1,5 +1,10 @@
 package readline
 
+import "fmt"
+
+// This file gathers all alterative tab completion functions, therefore is not separated in files like
+// tabgrid.go, tabmap.go, etc., because in this new setup such a structure and distinction is now irrelevant.
+
 // TabDisplayType defines how the autocomplete suggestions display
 type TabDisplayType int
 
@@ -19,67 +24,116 @@ const (
 	TabDisplayMap
 )
 
+// getTabCompletion - This root function sets up all completion items and engines.
 func (rl *Instance) getTabCompletion() {
 	rl.tcOffset = 0
-	if rl.TabCompleter == nil {
+
+	if rl.Completer == nil {
 		return
 	}
 
-	rl.tcPrefix, rl.tcSuggestions, rl.tcDescriptions, rl.tcDisplayType = rl.TabCompleter(rl.line, rl.pos)
-	if len(rl.tcSuggestions) == 0 {
+	rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+
+	// If no completions available, return
+	if len(rl.tcGroups) == 0 {
 		return
 	}
+	// Add here, if all groups are empty, don't display them
 
-	if len(rl.tcDescriptions) == 0 {
-		// probably not needed, but just in case someone doesn't initialise the map in their API call.
-		rl.tcDescriptions = make(map[string]string)
+	// Avoid nil maps in groups
+	rl.tcGroups = checkNilItems(rl.tcGroups)
+
+	// Init/Setup all groups
+	// This tells what each group is able to do and what not, etc...
+	for _, group := range rl.tcGroups {
+		(*group).init(rl)
 	}
 
-	/*if len(rl.tcSuggestions) == 1 && !rl.modeTabCompletion {
-		if len(rl.tcSuggestions[0]) == 0 || rl.tcSuggestions[0] == " " || rl.tcSuggestions[0] == "\t" {
-			return
-		}
-		rl.insert([]byte(rl.tcSuggestions[0]))
-		return
-	}*/
-
-	rl.initTabCompletion()
+	// Here we initialize some values for moving completion selection
+	rl.tcGroups[0].isCurrent = true
 }
 
-func (rl *Instance) initTabCompletion() {
-	if rl.tcDisplayType == TabDisplayGrid {
-		rl.initTabGrid()
-	} else {
-		rl.initTabMap()
-	}
-}
-
+// moveTabCompletionHighlight - This function is in charge of highlighting the current completion item.
 func (rl *Instance) moveTabCompletionHighlight(x, y int) {
-	if rl.tcDisplayType == TabDisplayGrid {
-		rl.moveTabGridHighlight(x, y)
-	} else {
-		rl.moveTabMapHighlight(x, y)
+
+	g := rl.getCurrentGroup()
+
+	// We keep track of these values
+	ty := &g.tcPosY
+
+	// This is triggered when we need to cycle through the next group
+	var done bool
+
+	switch g.DisplayType {
+	// Depending on the display, we only keep track of x or (x and y)
+	case TabDisplayGrid:
+		done = g.aMoveTabGridHighlight(rl, x, y)
+
+	case TabDisplayList:
+		done = g.aMoveTabMapHighlight(x, y)
+
+	case TabDisplayMap:
+		for *ty <= g.tcMaxY {
+			g.aMoveTabMapHighlight(x, y)
+		}
 	}
+
+	// Cycle to next group
+	if done {
+		for i, g := range rl.tcGroups {
+			if g.isCurrent {
+				g.isCurrent = false
+				if i == len(rl.tcGroups)-1 {
+					rl.tcGroups[0].isCurrent = true
+				} else {
+					rl.tcGroups[i+1].isCurrent = true
+				}
+				break
+			}
+		}
+	}
+
 }
 
+func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
+	for _, g := range rl.tcGroups {
+		if g.isCurrent {
+			return g
+		}
+	}
+	return
+}
+
+// writeTabCompletion - Prints all completion groups and their items
 func (rl *Instance) writeTabCompletion() {
+
+	// This stablizes the completion printing just beyond the input line
+	rl.tcUsedY -= rl.tcUsedY
+
 	if !rl.modeTabCompletion {
 		return
 	}
 
-	switch rl.tcDisplayType {
-	case TabDisplayGrid:
-		rl.writeTabGrid()
+	// This is the final string, with all completions of all groups, to be printed
+	var completions string
 
-	case TabDisplayMap:
-		rl.writeTabMap()
-
-	case TabDisplayList:
-		rl.writeTabMap()
-
-	default:
-		rl.writeTabGrid()
+	// Each group produces its own string, added to the main one
+	for _, group := range rl.tcGroups {
+		completions += group.writeCompletion(rl)
 	}
+
+	// Then we print it
+	fmt.Printf(completions)
+
+}
+
+// getScreenCleanSize - not used
+func (rl *Instance) getScreenCleanSize() (size int) {
+	for _, g := range rl.tcGroups {
+		size += 1 // Group title
+		size += g.tcPosY
+	}
+	return
 }
 
 func (rl *Instance) resetTabCompletion() {
@@ -88,4 +142,26 @@ func (rl *Instance) resetTabCompletion() {
 	rl.tcUsedY = 0
 	rl.modeTabFind = false
 	rl.tfLine = []rune{}
+
+	// Reset tab highlighting
+	if len(rl.tcGroups) > 0 {
+		for _, g := range rl.tcGroups {
+			g.isCurrent = false
+		}
+		rl.tcGroups[0].isCurrent = true
+
+	}
+}
+
+// checkNilItems - For each completion group we avoid nil maps and possibly other items
+func checkNilItems(groups []*CompletionGroup) (checked []*CompletionGroup) {
+
+	for _, grp := range groups {
+		if grp.Descriptions == nil || len(grp.Descriptions) == 0 {
+			grp.Descriptions = make(map[string]string)
+		}
+		checked = append(checked, grp)
+	}
+
+	return
 }

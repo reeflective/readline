@@ -15,7 +15,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 
 	defer func() {
 		rl.clearHelpers()
-		rl.initTabCompletion()
+		rl.getTabCompletion()
 		rl.renderHelpers()
 	}()
 
@@ -52,6 +52,6 @@ func (rl *Instance) resetTabFind() {
 	}
 
 	rl.clearHelpers()
-	rl.initTabCompletion()
+	rl.getTabCompletion()
 	rl.renderHelpers()
 }
