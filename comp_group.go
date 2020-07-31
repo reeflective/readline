@@ -1,5 +1,7 @@
 package readline
 
+import "fmt"
+
 // CompletionGroup - A group of items offered to completion, by category.
 // The output, if there are multiple groups available for a given completion input,
 // will look like ZSH's completion system.
@@ -27,94 +29,39 @@ type CompletionGroup struct {
 	// This is set by the shell when it has detected this group is alone in the suggestions.
 	// Might be the case of things like remote processes .
 	allowCycle bool
+	isCurrent  bool // This is to say we are currently cycling through this group, for highlighting choice
 
-	isCurrent bool // This is to say we are currently cycling through this group, for highlighting choice
+	// Tab find
 }
 
-// Because the group might have different display types, we have to init and setup for the one desired
-func (g *CompletionGroup) init(rl *Instance) {
+// updateTabFind - When searching through all completion groups (whether it be command history or not),
+// we ask each of them to filter its own items and return the results to the shell for aggregating them.
+// The rx parameter is passed, as the shell already checked that the search pattern is valid.
+func (g *CompletionGroup) updateTabFind(rl *Instance) {
 
-	// Details common to all displays
-	rl.modeTabCompletion = true
-	g.checkCycle(rl) // Based on the number of groups given to the shell, allows cycling or not
-	g.checkMaxLength(rl)
+	fmt.Println("------------------")
+	fmt.Println(g.Suggestions)
 
-	// Details specific to tab display modes
-	switch g.DisplayType {
+	suggs := make([]string, 0)
 
-	case TabDisplayGrid:
-		g.initGrid(rl)
-
-	case TabDisplayMap:
-		g.initMap(rl)
-
-	case TabDisplayList:
-		g.initMap(rl)
-	}
-
-	// Here, handle all things for completion search functions
-}
-
-// initGrid - Grid display details
-func (g *CompletionGroup) initGrid(rl *Instance) {
-
-	// Max number of suggestions per line, for this group
-	tcMaxLength := 1
 	for i := range g.Suggestions {
-		if len(rl.tcPrefix+g.Suggestions[i]) > tcMaxLength {
-			tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
+		fmt.Println(g.Suggestions[i])
+		if rl.regexSearch.MatchString(g.Suggestions[i]) {
+			suggs = append(suggs, g.Suggestions[i])
+
+			// If map or list we keep the description as well (MAYBE NOT NEEDED)
+
+		} else if g.DisplayType == TabDisplayList && rl.regexSearch.MatchString(g.Descriptions[g.Suggestions[i]]) {
+			// this is a list so lets also check the descriptions
+			suggs = append(suggs, g.Suggestions[i])
 		}
 	}
 
-	g.tcPosX = 1
-	g.tcPosY = 1
-	g.tcOffset = 0
+	// We overwrite the group's items, (will be refreshed as soon as something is typed in the search)
+	g.Suggestions = suggs
 
-	g.tcMaxX = GetTermWidth() / (tcMaxLength + 2)
-	if rl.tcMaxX < 1 {
-		rl.tcMaxX = 1 // avoid a divide by zero error
-	}
-	if g.MaxLength == 0 {
-		g.MaxLength = 10 // Handle default value if not set
-	}
-	g.tcMaxY = g.MaxLength
-}
-
-// initMap - Map display details
-func (g *CompletionGroup) initMap(rl *Instance) {
-
-	// We make the map anyway, especially if we need to use it later
-	if g.Descriptions == nil {
-		g.Descriptions = make(map[string]string)
-	}
-
-	// Max number of suggestions per line, for this group
-	// Here, we have decided that tcMaxLength is managed by group, and not rl
-	// Therefore we might have made a mistake. Keep that in mind
-	g.tcMaxLength = 1
-	for i := range g.Suggestions {
-		if g.DisplayType == TabDisplayList {
-			if len(rl.tcPrefix+g.Suggestions[i]) > g.tcMaxLength {
-				g.tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
-			}
-
-		} else {
-			if len(g.Descriptions[g.Suggestions[i]]) > g.tcMaxLength {
-				g.tcMaxLength = len(g.Descriptions[g.Suggestions[i]])
-			}
-		}
-	}
-
-	g.tcPosX = 1
-	g.tcPosY = 1
-	g.tcOffset = 0
-
-	g.tcMaxX = 1
-	if len(g.Suggestions) > g.MaxLength {
-		g.tcMaxY = g.MaxLength
-	} else {
-		g.tcMaxY = len(g.Suggestions)
-	}
+	// Finally, the group computes its new printing settings
+	g.init(rl)
 }
 
 // checkCycle - Based on the number of groups given to the shell, allows cycling or not

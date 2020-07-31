@@ -29,15 +29,41 @@ func (rl *Instance) getTabCompletion() {
 	rl.tcOffset = 0
 
 	if rl.Completer == nil {
-		return
+		return // No completions to offer
 	}
 
-	// Here we handle the population of completion differently depending on what
-	// is asked for completion (history, or command completion)
-	if rl.regexpMode == HistoryFind && rl.modeTabFind {
-		rl.tcGroups = rl.completeHistory()
-	} else {
+	// Populate for History search if in this mode
+	if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == HistoryFind {
+
+		rl.tcGroups = rl.completeHistory()         // Refresh full list each time
+		rl.tcGroups[0].DisplayType = TabDisplayMap // History is always shown as map
+
+		if rl.regexSearch.String() != "(?i)" {
+			rl.tcGroups[0].updateTabFind(rl) // Refresh filtered candidates
+		}
+	}
+
+	// Populate for completion search if in this mode
+	if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == CompletionFind {
+
+		// for _, g := range rl.tcGroups {
+		//         fmt.Println(g)
+		// }
+
 		rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+
+		for _, g := range rl.tcGroups {
+			// fmt.Println(g.Suggestions)
+			g.updateTabFind(rl)
+		}
+	}
+
+	// Not in either search mode, just yield completions
+	if !rl.modeAutoFind {
+		rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+
+		// Here we initialize some values for moving completion selection
+		rl.tcGroups[0].isCurrent = true
 	}
 
 	// If no completions available, return
@@ -52,7 +78,7 @@ func (rl *Instance) getTabCompletion() {
 	// Init/Setup all groups
 	// This tells what each group is able to do and what not, etc...
 	for _, group := range rl.tcGroups {
-		(*group).init(rl)
+		group.init(rl)
 	}
 
 	// Here we initialize some values for moving completion selection

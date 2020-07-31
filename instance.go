@@ -2,6 +2,7 @@ package readline
 
 import (
 	"os"
+	"regexp"
 )
 
 // Instance is used to encapsulate the parameter group and run time of any given
@@ -108,7 +109,8 @@ type Instance struct {
 	// Tab Find
 	// We will have to elaborate the system for suggestions in find mode, because it just supports list mode.
 	// Therefore we just pass the same completion groups to this, until we don't need this element anymore.
-	regexpMode     FindMode // Used for varying hints, and underlying functions called
+	regexpMode     FindMode       // Used for varying hints, and underlying functions called
+	regexSearch    *regexp.Regexp // Holds the current search regex match
 	atfSuggestions []*CompletionGroup
 
 	// ------------------------------------------------------------------------------------------------------

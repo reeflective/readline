@@ -129,10 +129,10 @@ func (rl *Instance) Readline() (string, error) {
 
 		case charCtrlF:
 			if !rl.modeTabCompletion {
-				rl.regexpMode = CompletionFind
 				rl.modeAutoFind = true
 				rl.getTabCompletion()
 			}
+			rl.regexpMode = CompletionFind
 
 			rl.modeTabFind = true
 			rl.regexpMode = CompletionFind

@@ -1,6 +1,10 @@
 package readline
 
-import "regexp"
+import (
+	"regexp"
+
+	"github.com/evilsocket/islazy/tui"
+)
 
 // FindMode defines how the autocomplete suggestions display
 type FindMode int
@@ -22,8 +26,9 @@ func (rl *Instance) backspaceTabFind() {
 
 func (rl *Instance) updateTabFind(r []rune) {
 
-	// Depending on search type, we give different hints
 	rl.tfLine = append(rl.tfLine, r...)
+
+	// Depending on search type, we give different hints
 	switch rl.regexpMode {
 	case HistoryFind:
 		rl.hintText = append([]rune("History search: "), rl.tfLine...)
@@ -31,33 +36,17 @@ func (rl *Instance) updateTabFind(r []rune) {
 		rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
 	}
 
-	defer func() {
-		rl.clearHelpers()
-		rl.getTabCompletion()
-		rl.renderHelpers()
-	}()
-
-	if len(rl.tfLine) == 0 {
-		rl.tfSuggestions = append(rl.tcSuggestions, []string{}...)
-		return
-	}
-
-	rx, err := regexp.Compile("(?i)" + string(rl.tfLine))
+	// The search regex is common to all search modes
+	var err error
+	rl.regexSearch, err = regexp.Compile("(?i)" + string(rl.tfLine))
 	if err != nil {
-		rl.tfSuggestions = []string{err.Error()}
+		rl.hintText = []rune(tui.Red("Failed to match search regexp"))
 		return
 	}
 
-	rl.tfSuggestions = make([]string, 0)
-	for i := range rl.tcSuggestions {
-		if rx.MatchString(rl.tcSuggestions[i]) {
-			rl.tfSuggestions = append(rl.tfSuggestions, rl.tcSuggestions[i])
-
-		} else if rl.tcDisplayType == TabDisplayList && rx.MatchString(rl.tcDescriptions[rl.tcSuggestions[i]]) {
-			// this is a list so lets also check the descriptions
-			rl.tfSuggestions = append(rl.tfSuggestions, rl.tcSuggestions[i])
-		}
-	}
+	rl.clearHelpers()
+	rl.getTabCompletion()
+	rl.renderHelpers()
 }
 
 func (rl *Instance) resetTabFind() {
@@ -68,6 +57,8 @@ func (rl *Instance) resetTabFind() {
 	} else {
 		rl.hintText = []rune("Cancelled regexp suggestion find.")
 	}
+
+	rl.modeAutoFind = false // Added, because otherwise it gets stuck on search completions
 
 	rl.clearHelpers()
 	rl.getTabCompletion()
