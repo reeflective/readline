@@ -35,6 +35,7 @@ type CompletionGroup struct {
 func (g *CompletionGroup) init(rl *Instance) {
 
 	// Details common to all displays
+	rl.modeTabCompletion = true
 	g.checkCycle(rl) // Based on the number of groups given to the shell, allows cycling or not
 
 	// Details specific to tab display modes

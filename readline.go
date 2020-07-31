@@ -166,19 +166,24 @@ func (rl *Instance) Readline() (string, error) {
 		case '\r':
 			fallthrough
 		case '\n':
-			var suggestions []string
-			if rl.modeTabFind {
-				suggestions = rl.tfSuggestions
-			} else {
-				suggestions = rl.tcSuggestions
-			}
+			// var suggestions []string
+			// if rl.modeTabFind {
+			//         suggestions = rl.tfSuggestions
+			// } else {
+			//         suggestions = rl.tcSuggestions
+			// }
 
-			if rl.modeTabCompletion && len(suggestions) > 0 {
-				cell := (rl.tcMaxX * (rl.tcPosY - 1)) + rl.tcOffset + rl.tcPosX - 1
+			if rl.modeTabCompletion {
+				// if rl.modeTabCompletion && len(suggestions) > 0 {
+				// Add code for getting the current selected item
+				cur := rl.getCurrentGroup()
+				cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
+				// cell := (rl.tcMaxX * (rl.tcPosY - 1)) + rl.tcOffset + rl.tcPosX - 1
 				rl.clearHelpers()
 				rl.resetTabCompletion()
 				rl.renderHelpers()
-				rl.insert([]rune(suggestions[cell]))
+				rl.insert([]rune(cur.Suggestions[cell]))
+
 				continue
 			}
 			rl.carridgeReturn()
