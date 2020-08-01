@@ -1,4 +1,4 @@
-# Readline: A enhanced version [lmorg/readline](https://github.com/lmorg/readline) console.
+# Readline - Enhanced version of [readline](https://github.com/lmorg/readline) console
 
 The original project by lmorg is absolutely great. The console already has superb capabilities,
 and many thanks go to its author: it was both simple and fast to add the various enhancements:
