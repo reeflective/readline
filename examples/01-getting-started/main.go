@@ -23,7 +23,7 @@ func main() {
 
 	// Set multiline prompt and Vim status in it
 	rl.Multiline = true
-	rl.VimModePrompt = true
+	rl.ShowVimMode = true
 
 	for {
 		// Call readline - which will put the terminal into a pseudo-raw mode

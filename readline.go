@@ -28,9 +28,7 @@ func (rl *Instance) Readline() (string, error) {
 	rl.histPos = rl.History.Len()
 	rl.modeViMode = vimInsert
 
-	rl.computePrompt()
-
-	rl.promptLen = len(rl.computePrompt()) // We always use this
+	rl.computePrompt() // initialise the prompt for first print
 
 	rl.resetHintText()
 	rl.resetTabCompletion()

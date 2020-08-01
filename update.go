@@ -13,7 +13,7 @@ func (rl *Instance) computePrompt() (prompt []rune) {
 	}
 
 	// If ModeVimEnabled, append it.
-	if rl.VimModePrompt {
+	if rl.ShowVimMode {
 
 		switch rl.modeViMode {
 		case vimKeys:
@@ -85,7 +85,7 @@ func moveCursorToLinePos(rl *Instance) {
 	}
 
 	// If the user wants Vim status
-	if rl.VimModePrompt {
+	if rl.ShowVimMode {
 		length += 3                // 3 for [N]
 		length += len(rl.mlnArrow) // 3: ' > '
 	}

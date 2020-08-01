@@ -11,12 +11,6 @@ This fork is version of the console that enhances various things:
 
 ## TODO 
 
-- Multiline prompt: rl.Multiline = true
-                    rl.MultilinePrompt = ">"
-
 - A simple function for refreshing the input line *ONLY FOR THOSE KNOWING WHAT THEY DO*
     instance.RefreshPrompt([]rune{})
 
-- Prompt refresh with Vim status
-    instance.VimModePrompt = true
-    This adds a [N] / [V] / [I] > to the MultilinePrompt variable

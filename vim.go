@@ -235,7 +235,7 @@ func (rl *Instance) getViIterations() int {
 
 func (rl *Instance) refreshVimStatus() {
 
-	if !rl.VimModePrompt {
+	if !rl.ShowVimMode {
 		return
 	}
 	rl.computePrompt()
