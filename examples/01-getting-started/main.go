@@ -19,7 +19,7 @@ func main() {
 	rl := readline.NewInstance()
 
 	// Attach the tab-completion handler (function defined below)
-	rl.Completer = Tab
+	rl.TabCompleter = Tab
 
 	for {
 		// Call readline - which will put the terminal into a pseudo-raw mode

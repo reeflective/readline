@@ -147,10 +147,9 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 
 	// Title is not printed for history
-	if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == HistoryFind {
+	if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
 		if len(g.Suggestions) == 0 {
 			rl.hintText = []rune(fmt.Sprintf("\n%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET))
-			// comp += fmt.Sprintf("\n%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET)
 		}
 	} else {
 		// Print group title (changes with line returns depending on type)
@@ -210,13 +209,13 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 
 	// Add the equivalent of this group's size to final screen clearing
 	if len(g.Suggestions) < g.tcMaxX {
-		if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == HistoryFind {
+		if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
 			rl.tcUsedY += len(g.Suggestions)
 		} else {
 			rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
 		}
 	} else {
-		if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == HistoryFind {
+		if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
 			rl.tcUsedY += len(g.Suggestions)
 		} else {
 			rl.tcUsedY += g.tcMaxY + 1 // + 1 for title

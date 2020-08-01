@@ -129,26 +129,24 @@ func (rl *Instance) Readline() (string, error) {
 
 		case charCtrlF:
 
-			if !rl.modeTabCompletion {
-				rl.regexpMode = CompletionFind
-				rl.modeAutoFind = true
-				// rl.getTabCompletion()
-			}
+			// Both these settings apply to when we already
+			// are in completion mode and when we are not.
+			rl.searchMode = CompletionFind
+			rl.modeAutoFind = true
 
-			if rl.modeTabCompletion && rl.regexpMode == HistoryFind {
-				rl.regexpMode = CompletionFind
+			// Switch from history to completion search
+			if rl.modeTabCompletion && rl.searchMode == HistoryFind {
+				rl.searchMode = CompletionFind
 			}
 
 			rl.updateTabFind([]rune{})
 			rl.viUndoSkipAppend = true
-			// rl.getTabCompletion()
 
 		case charCtrlR:
-			rl.regexpMode = HistoryFind
+			rl.searchMode = HistoryFind
 			rl.modeAutoFind = true
 			rl.tcOffset = 0
 			rl.modeTabCompletion = true
-			// rl.getTabCompletion()
 
 			rl.modeTabFind = true
 			rl.updateTabFind([]rune{})
@@ -186,7 +184,7 @@ func (rl *Instance) Readline() (string, error) {
 			return string(rl.line), nil
 
 		case charBackspace, charBackspace2:
-			if rl.modeTabFind {
+			if rl.modeTabFind || rl.modeAutoFind {
 				rl.backspaceTabFind()
 				rl.viUndoSkipAppend = true
 			} else {
@@ -198,7 +196,8 @@ func (rl *Instance) Readline() (string, error) {
 			rl.escapeSeq(r[:i])
 
 		default:
-			if rl.modeTabFind || rl.modeAutoFind {
+			// Not sure that CompletionFind is useful, nor one of the other two
+			if rl.modeAutoFind || rl.modeTabFind && rl.searchMode == CompletionFind {
 				rl.updateTabFind(r[:i])
 				rl.viUndoSkipAppend = true
 			} else {

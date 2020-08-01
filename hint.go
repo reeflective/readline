@@ -34,14 +34,14 @@ func (rl *Instance) writeHintText() {
 
 	hintText := rl.hintText
 
-	if rl.modeTabCompletion && rl.tcDisplayType == TabDisplayGrid &&
-		!rl.modeTabFind && len(rl.tcSuggestions) > 0 {
-		cell := (rl.tcMaxX * (rl.tcPosY - 1)) + rl.tcOffset + rl.tcPosX - 1
-		description := rl.tcDescriptions[rl.tcSuggestions[cell]]
-		if description != "" {
-			hintText = []rune(description)
-		}
-	}
+	// I HAVE PUT THIS OUT, AS I'M NOT SURE WE REALLY NEED IT
+	// if rl.modeTabCompletion && !rl.modeTabFind {
+	//         cell := (rl.tcMaxX * (rl.tcPosY - 1)) + rl.tcOffset + rl.tcPosX - 1
+	//         description := rl.tcDescriptions[rl.tcSuggestions[cell]]
+	//         if description != "" {
+	//                 hintText = []rune(description)
+	//         }
+	// }
 
 	print("\r\n" + rl.HintFormatting + string(hintText) + seqReset)
 }

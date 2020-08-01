@@ -1,10 +1,9 @@
 package readline
 
-// CompletionGroup - A group of items offered to completion, by category.
+// CompletionGroup - A group/category of items offered to completion, with its own
+// name, descriptions and completion display format/type.
 // The output, if there are multiple groups available for a given completion input,
 // will look like ZSH's completion system.
-// The type is exported, because it will be easier to populate groups from the outside,
-// then gather them and pass them as parameters to the TabCompleter function.
 type CompletionGroup struct {
 	Name        string
 	Description string
@@ -28,8 +27,6 @@ type CompletionGroup struct {
 	// Might be the case of things like remote processes .
 	allowCycle bool
 	isCurrent  bool // This is to say we are currently cycling through this group, for highlighting choice
-
-	// Tab find
 }
 
 // updateTabFind - When searching through all completion groups (whether it be command history or not),

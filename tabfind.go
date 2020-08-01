@@ -12,7 +12,6 @@ type FindMode int
 const (
 	// HistoryFind - Searching through history
 	HistoryFind = iota
-
 	// CompletionFind - Searching through completion items
 	CompletionFind
 )
@@ -29,7 +28,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 	rl.tfLine = append(rl.tfLine, r...)
 
 	// Depending on search type, we give different hints
-	switch rl.regexpMode {
+	switch rl.searchMode {
 	case HistoryFind:
 		rl.hintText = append([]rune("History search: "), rl.tfLine...)
 	case CompletionFind:

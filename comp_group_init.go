@@ -13,10 +13,8 @@ func (g *CompletionGroup) init(rl *Instance) {
 
 	case TabDisplayGrid:
 		g.initGrid(rl)
-
 	case TabDisplayMap:
 		g.initMap(rl)
-
 	case TabDisplayList:
 		g.initMap(rl)
 	}

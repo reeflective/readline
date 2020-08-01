@@ -28,22 +28,22 @@ const (
 	TabDisplayMap
 )
 
-// getTabCompletion - This root function sets up all completion items and engines.
+// getTabCompletion - This root function sets up all completion items and engines,
+// dealing with all search and completion modes. It also sets/checks various values.
 func (rl *Instance) getTabCompletion() {
 	rl.tcOffset = 0
 
-	if rl.Completer == nil {
+	if rl.TabCompleter == nil {
 		return // No completions to offer
 	}
 
 	// Populate for History search if in this mode
-	if rl.modeAutoFind && rl.regexpMode == HistoryFind {
+	if rl.modeAutoFind && rl.searchMode == HistoryFind {
 		rl.getHistorySearchCompletion()
 	}
 
 	// Populate for completion search if in this mode
-	if rl.regexpMode == CompletionFind {
-		// fmt.Println("comp")
+	if rl.searchMode == CompletionFind {
 		rl.getTabSearchCompletion()
 	}
 
@@ -76,22 +76,20 @@ func (rl *Instance) writeTabCompletion() {
 		return
 	}
 
-	// This is the final string, with all completions of all groups, to be printed
-	var completions string
-
 	// Each group produces its own string, added to the main one
+	var completions string
 	for _, group := range rl.tcGroups {
 		completions += group.writeCompletion(rl)
 	}
 
-	// Then we print it
+	// Then we print all of them.
 	fmt.Printf(completions)
 }
 
 // getTabSearchCompletion - Populates and sets up completion for completion search
 func (rl *Instance) getTabSearchCompletion() {
 
-	rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
 
 	for _, g := range rl.tcGroups {
 		g.updateTabFind(rl)
@@ -114,7 +112,7 @@ func (rl *Instance) getHistorySearchCompletion() {
 
 // getNormalCompletion - Populates and sets up completion for normal comp mode
 func (rl *Instance) getNormalCompletion() {
-	rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
 	rl.tcGroups[0].isCurrent = true
 }
 

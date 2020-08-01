@@ -33,7 +33,7 @@ type Instance struct {
 	// TabCompleter is a simple function that offers completion suggestions.
 	// It takes the readline line ([]rune) and cursor pos.
 	// Returns a prefix string, and several completion groups with their items and description
-	Completer func([]rune, int) (string, []*CompletionGroup)
+	TabCompleter func([]rune, int) (string, []*CompletionGroup)
 
 	// MaxTabCompletionRows is the maximum number of rows to display in the tab
 	// completion grid.
@@ -83,11 +83,9 @@ type Instance struct {
 	hintText []rune
 
 	// tab completion
+	tcGroups          []*CompletionGroup // All of our suggestions tree is in here
 	modeTabCompletion bool
 	tcPrefix          string
-	tcSuggestions     []string
-	tcDescriptions    map[string]string
-	tcDisplayType     TabDisplayType
 	tcOffset          int
 	tcPosX            int
 	tcPosY            int
@@ -96,24 +94,12 @@ type Instance struct {
 	tcUsedY           int
 	tcMaxLength       int
 
-	// tab find
-	modeTabFind   bool // This does not change, because we will seach in all options, no matter the group
-	tfLine        []rune
-	tfSuggestions []string
-	modeAutoFind  bool // for when invoked via ^R or ^F outside of [tab]
-
-	// ALTERNATE COMPLETION SYSTEM --------------------------------------------------------------------------
-
-	tcGroups []*CompletionGroup // All of our suggestions tree is in here
-
 	// Tab Find
-	// We will have to elaborate the system for suggestions in find mode, because it just supports list mode.
-	// Therefore we just pass the same completion groups to this, until we don't need this element anymore.
-	regexpMode     FindMode       // Used for varying hints, and underlying functions called
-	regexSearch    *regexp.Regexp // Holds the current search regex match
-	atfSuggestions []*CompletionGroup
-
-	// ------------------------------------------------------------------------------------------------------
+	modeTabFind  bool           // This does not change, because we will seach in all options, no matter the group
+	tfLine       []rune         // The current search pattern entered
+	modeAutoFind bool           // for when invoked via ^R or ^F outside of [tab]
+	searchMode   FindMode       // Used for varying hints, and underlying functions called
+	regexSearch  *regexp.Regexp // Holds the current search regex match
 
 	// vim
 	modeViMode       viMode //= vimInsert
