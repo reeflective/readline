@@ -11,6 +11,11 @@ import (
 // and according to display settings. This string is then appended to the main completion string.
 func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
 
+	// Avoids empty groups in suggestions
+	if len(g.Suggestions) == 0 {
+		return
+	}
+
 	// Depending on display type we produce the approriate string
 	switch g.DisplayType {
 
@@ -141,8 +146,16 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 // writeMap - A map or list completion string
 func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 
-	// Print group title (changes with line returns depending on type)
-	comp += fmt.Sprintf("\n%s%s%s %s", tui.BOLD, tui.YELLOW, g.Name, tui.RESET)
+	// Title is not printed for history
+	if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == HistoryFind {
+		if len(g.Suggestions) == 0 {
+			rl.hintText = []rune(fmt.Sprintf("\n%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET))
+			// comp += fmt.Sprintf("\n%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET)
+		}
+	} else {
+		// Print group title (changes with line returns depending on type)
+		comp += fmt.Sprintf("\n%s%s%s %s", tui.BOLD, tui.YELLOW, g.Name, tui.RESET)
+	}
 
 	termWidth := GetTermWidth()
 	if termWidth < 20 {
@@ -197,9 +210,17 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 
 	// Add the equivalent of this group's size to final screen clearing
 	if len(g.Suggestions) < g.tcMaxX {
-		rl.tcUsedY += len(g.Suggestions) + 1 // + 1 for title
+		if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == HistoryFind {
+			rl.tcUsedY += len(g.Suggestions)
+		} else {
+			rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+		}
 	} else {
-		rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+		if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == HistoryFind {
+			rl.tcUsedY += len(g.Suggestions)
+		} else {
+			rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+		}
 	}
 
 	return

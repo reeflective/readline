@@ -42,11 +42,25 @@ func main() {
 // Tab is the tab-completion handler for this readline example program
 func Tab(input []rune, pos int) (line string, groups []*readline.CompletionGroup) {
 
-	groups = append(groups, &coreCommands)
-	groups = append(groups, &addresses)
-	groups = append(groups, &adminCommands)
-	groups = append(groups, &processes)
-	groups = append(groups, &other)
+	var core readline.CompletionGroup
+	core = coreCommands
+	groups = append(groups, &core)
+
+	var addrs readline.CompletionGroup
+	addrs = addresses
+	groups = append(groups, &addrs)
+
+	var admin readline.CompletionGroup
+	admin = adminCommands
+	groups = append(groups, &admin)
+
+	var procs readline.CompletionGroup
+	procs = processes
+	groups = append(groups, &procs)
+
+	var oth readline.CompletionGroup
+	oth = other
+	groups = append(groups, &oth)
 
 	return string(input[:pos]), groups
 }
@@ -167,6 +181,7 @@ var other = readline.CompletionGroup{
 	Name:        "other",
 	Description: "Other names completed",
 	Suggestions: items,
+	DisplayType: readline.TabDisplayGrid,
 }
 
 // items is an example list of possible suggestions to display in readline's

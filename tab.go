@@ -1,6 +1,10 @@
 package readline
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/evilsocket/islazy/tui"
+)
 
 // This file gathers all alterative tab completion functions, therefore is not separated in files like
 // tabgrid.go, tabmap.go, etc., because in this new setup such a structure and distinction is now irrelevant.
@@ -33,105 +37,33 @@ func (rl *Instance) getTabCompletion() {
 	}
 
 	// Populate for History search if in this mode
-	if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == HistoryFind {
-
-		rl.tcGroups = rl.completeHistory()         // Refresh full list each time
-		rl.tcGroups[0].DisplayType = TabDisplayMap // History is always shown as map
-
-		if rl.regexSearch.String() != "(?i)" {
-			rl.tcGroups[0].updateTabFind(rl) // Refresh filtered candidates
-		}
+	if rl.modeAutoFind && rl.regexpMode == HistoryFind {
+		rl.getHistorySearchCompletion()
 	}
 
 	// Populate for completion search if in this mode
-	if rl.modeAutoFind && rl.modeTabFind && rl.regexpMode == CompletionFind {
-
-		// for _, g := range rl.tcGroups {
-		//         fmt.Println(g)
-		// }
-
-		rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
-
-		for _, g := range rl.tcGroups {
-			// fmt.Println(g.Suggestions)
-			g.updateTabFind(rl)
-		}
+	if rl.regexpMode == CompletionFind {
+		// fmt.Println("comp")
+		rl.getTabSearchCompletion()
 	}
 
 	// Not in either search mode, just yield completions
 	if !rl.modeAutoFind {
-		rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
-
-		// Here we initialize some values for moving completion selection
-		rl.tcGroups[0].isCurrent = true
+		rl.getNormalCompletion()
 	}
 
 	// If no completions available, return
 	if len(rl.tcGroups) == 0 {
 		return
 	}
-	// Add here, if all groups are empty, don't display them
+	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
+	rl.tcGroups[0].isCurrent = true          // Init this for starting comp select somewhere
 
-	// Avoid nil maps in groups
-	rl.tcGroups = checkNilItems(rl.tcGroups)
-
-	// Init/Setup all groups
-	// This tells what each group is able to do and what not, etc...
+	// Init/Setup all groups with their priting details
 	for _, group := range rl.tcGroups {
 		group.init(rl)
 	}
 
-	// Here we initialize some values for moving completion selection
-	rl.tcGroups[0].isCurrent = true
-}
-
-// moveTabCompletionHighlight - This function is in charge of highlighting the current completion item.
-func (rl *Instance) moveTabCompletionHighlight(x, y int) {
-
-	g := rl.getCurrentGroup()
-
-	// We keep track of these values
-	// ty := &g.tcPosY
-
-	// This is triggered when we need to cycle through the next group
-	var done bool
-
-	switch g.DisplayType {
-	// Depending on the display, we only keep track of x or (x and y)
-	case TabDisplayGrid:
-		done = g.aMoveTabGridHighlight(rl, x, y)
-
-	case TabDisplayList:
-		done = g.aMoveTabMapHighlight(x, y)
-
-	case TabDisplayMap:
-		done = g.aMoveTabMapHighlight(x, y)
-	}
-
-	// Cycle to next group: we tell them who is the next one to handle highlighting
-	if done {
-		for i, g := range rl.tcGroups {
-			if g.isCurrent {
-				g.isCurrent = false
-				if i == len(rl.tcGroups)-1 {
-					rl.tcGroups[0].isCurrent = true
-				} else {
-					rl.tcGroups[i+1].isCurrent = true
-				}
-				break
-			}
-		}
-	}
-
-}
-
-func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
-	for _, g := range rl.tcGroups {
-		if g.isCurrent {
-			return g
-		}
-	}
-	return
 }
 
 // writeTabCompletion - Prints all completion groups and their items
@@ -154,7 +86,45 @@ func (rl *Instance) writeTabCompletion() {
 
 	// Then we print it
 	fmt.Printf(completions)
+}
 
+// getTabSearchCompletion - Populates and sets up completion for completion search
+func (rl *Instance) getTabSearchCompletion() {
+
+	rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+
+	for _, g := range rl.tcGroups {
+		g.updateTabFind(rl)
+	}
+}
+
+// getHistorySearchCompletion - Populates and sets up completion for command history search
+func (rl *Instance) getHistorySearchCompletion() {
+	rl.tcGroups = rl.completeHistory()         // Refresh full list each time
+	rl.tcGroups[0].DisplayType = TabDisplayMap // History is always shown as map
+
+	if len(rl.tcGroups[0].Suggestions) == 0 {
+		rl.hintText = []rune(fmt.Sprintf("%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET))
+	}
+
+	if rl.regexSearch.String() != "(?i)" {
+		rl.tcGroups[0].updateTabFind(rl) // Refresh filtered candidates
+	}
+}
+
+// getNormalCompletion - Populates and sets up completion for normal comp mode
+func (rl *Instance) getNormalCompletion() {
+	rl.tcPrefix, rl.tcGroups = rl.Completer(rl.line, rl.pos)
+	rl.tcGroups[0].isCurrent = true
+}
+
+func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
+	for _, g := range rl.tcGroups {
+		if g.isCurrent {
+			return g
+		}
+	}
+	return
 }
 
 // getScreenCleanSize - not used
@@ -171,6 +141,7 @@ func (rl *Instance) resetTabCompletion() {
 	rl.tcOffset = 0
 	rl.tcUsedY = 0
 	rl.modeTabFind = false
+	rl.modeAutoFind = false
 	rl.tfLine = []rune{}
 
 	// Reset tab highlighting

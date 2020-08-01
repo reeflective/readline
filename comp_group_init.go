@@ -20,8 +20,6 @@ func (g *CompletionGroup) init(rl *Instance) {
 	case TabDisplayList:
 		g.initMap(rl)
 	}
-
-	// Here, handle all things for completion search functions
 }
 
 // initGrid - Grid display details
@@ -40,13 +38,14 @@ func (g *CompletionGroup) initGrid(rl *Instance) {
 	g.tcOffset = 0
 
 	g.tcMaxX = GetTermWidth() / (tcMaxLength + 2)
-	if rl.tcMaxX < 1 {
-		rl.tcMaxX = 1 // avoid a divide by zero error
+	if g.tcMaxX < 1 {
+		g.tcMaxX = 1 // avoid a divide by zero error
 	}
 	if g.MaxLength == 0 {
 		g.MaxLength = 10 // Handle default value if not set
 	}
 	g.tcMaxY = g.MaxLength
+
 }
 
 // initMap - Map display details

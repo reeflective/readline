@@ -1,7 +1,5 @@
 package readline
 
-import "fmt"
-
 // CompletionGroup - A group of items offered to completion, by category.
 // The output, if there are multiple groups available for a given completion input,
 // will look like ZSH's completion system.
@@ -39,13 +37,9 @@ type CompletionGroup struct {
 // The rx parameter is passed, as the shell already checked that the search pattern is valid.
 func (g *CompletionGroup) updateTabFind(rl *Instance) {
 
-	fmt.Println("------------------")
-	fmt.Println(g.Suggestions)
-
 	suggs := make([]string, 0)
 
 	for i := range g.Suggestions {
-		fmt.Println(g.Suggestions[i])
 		if rl.regexSearch.MatchString(g.Suggestions[i]) {
 			suggs = append(suggs, g.Suggestions[i])
 

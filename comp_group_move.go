@@ -1,7 +1,38 @@
 package readline
 
-// aMoveTabGridHighlight - Moves the highlighting for currently selected completion item (grid display)
-func (g *CompletionGroup) aMoveTabGridHighlight(rl *Instance, x, y int) (done bool) {
+// moveTabCompletionHighlight - This function is in charge of highlighting the current completion item.
+func (rl *Instance) moveTabCompletionHighlight(x, y int) {
+
+	g := rl.getCurrentGroup()
+
+	if len(g.Suggestions) == 0 {
+		rl.cycleNextGroup()
+		g = rl.getCurrentGroup()
+	}
+
+	// This is triggered when we need to cycle through the next group
+	var done bool
+
+	// Depending on the display, we only keep track of x or (x and y)
+	switch g.DisplayType {
+	case TabDisplayGrid:
+		done = g.moveTabGridHighlight(rl, x, y)
+
+	case TabDisplayList:
+		done = g.moveTabMapHighlight(x, y)
+
+	case TabDisplayMap:
+		done = g.moveTabMapHighlight(x, y)
+	}
+
+	// Cycle to next group: we tell them who is the next one to handle highlighting
+	if done {
+		rl.cycleNextGroup()
+	}
+}
+
+// moveTabGridHighlight - Moves the highlighting for currently selected completion item (grid display)
+func (g *CompletionGroup) moveTabGridHighlight(rl *Instance, x, y int) (done bool) {
 
 	g.tcPosX += x
 	g.tcPosY += y
@@ -53,8 +84,8 @@ func (g *CompletionGroup) aMoveTabGridHighlight(rl *Instance, x, y int) (done bo
 	return false
 }
 
-// aMoveTabMapHighlight - Moves the highlighting for currently selected completion item (map/list display)
-func (g *CompletionGroup) aMoveTabMapHighlight(x, y int) (done bool) {
+// moveTabMapHighlight - Moves the highlighting for currently selected completion item (map/list display)
+func (g *CompletionGroup) moveTabMapHighlight(x, y int) (done bool) {
 
 	g.tcPosY += x
 	g.tcPosY += y
@@ -84,4 +115,24 @@ func (g *CompletionGroup) aMoveTabMapHighlight(x, y int) (done bool) {
 		return true
 	}
 	return false
+}
+
+func (rl *Instance) cycleNextGroup() {
+	for i, g := range rl.tcGroups {
+		if g.isCurrent {
+			g.isCurrent = false
+			if i == len(rl.tcGroups)-1 {
+				rl.tcGroups[0].isCurrent = true
+			} else {
+				rl.tcGroups[i+1].isCurrent = true
+				// Here, we check if the cycled group is not empty.
+				// If yes, cycle to next one now.
+				new := rl.getCurrentGroup()
+				if len(new.Suggestions) == 0 {
+					rl.cycleNextGroup()
+				}
+			}
+			break
+		}
+	}
 }

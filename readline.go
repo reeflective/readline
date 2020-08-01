@@ -128,23 +128,27 @@ func (rl *Instance) Readline() (string, error) {
 			return "", EOF
 
 		case charCtrlF:
-			if !rl.modeTabCompletion {
-				rl.modeAutoFind = true
-				rl.getTabCompletion()
-			}
-			rl.regexpMode = CompletionFind
 
-			rl.modeTabFind = true
-			rl.regexpMode = CompletionFind
+			if !rl.modeTabCompletion {
+				rl.regexpMode = CompletionFind
+				rl.modeAutoFind = true
+				// rl.getTabCompletion()
+			}
+
+			if rl.modeTabCompletion && rl.regexpMode == HistoryFind {
+				rl.regexpMode = CompletionFind
+			}
+
 			rl.updateTabFind([]rune{})
 			rl.viUndoSkipAppend = true
+			// rl.getTabCompletion()
 
 		case charCtrlR:
 			rl.regexpMode = HistoryFind
 			rl.modeAutoFind = true
 			rl.tcOffset = 0
 			rl.modeTabCompletion = true
-			rl.getTabCompletion()
+			// rl.getTabCompletion()
 
 			rl.modeTabFind = true
 			rl.updateTabFind([]rune{})
@@ -167,19 +171,10 @@ func (rl *Instance) Readline() (string, error) {
 		case '\r':
 			fallthrough
 		case '\n':
-			// var suggestions []string
-			// if rl.modeTabFind {
-			//         suggestions = rl.tfSuggestions
-			// } else {
-			//         suggestions = rl.tcSuggestions
-			// }
 
 			if rl.modeTabCompletion {
-				// if rl.modeTabCompletion && len(suggestions) > 0 {
-				// Add code for getting the current selected item
 				cur := rl.getCurrentGroup()
 				cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
-				// cell := (rl.tcMaxX * (rl.tcPosY - 1)) + rl.tcOffset + rl.tcPosX - 1
 				rl.clearHelpers()
 				rl.resetTabCompletion()
 				rl.renderHelpers()
@@ -203,7 +198,7 @@ func (rl *Instance) Readline() (string, error) {
 			rl.escapeSeq(r[:i])
 
 		default:
-			if rl.modeTabFind {
+			if rl.modeTabFind || rl.modeAutoFind {
 				rl.updateTabFind(r[:i])
 				rl.viUndoSkipAppend = true
 			} else {
