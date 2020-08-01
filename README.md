@@ -1,13 +1,16 @@
-# Readline: A fork from [lmorg/readline](https://github.com/lmorg/readline) console.
+# Readline: A enhanced version [lmorg/readline](https://github.com/lmorg/readline) console.
 
 The original project by lmorg is absolutely great. The console already has superb capabilities,
-and implemented in such a way that for everything that follows, I only needed 2 days.
+and many thanks go to its author: it was both simple and fast to add the various enhancements:
 
-This fork is version of the console that enhances various things:
 - **Better completion system** *à-la-ZSH* offering multiple categories of completions, each with their
-   own display types, concurrently.
-- **Better Vim mode and shell refresh**. This means that for instance, the shell gives a clear and real-time 
-   indication of the current Vim mode. Overall, enhanced support for live refresh of the whole prompt line.
+   own display types, concurrently. Also works in completion search mode.
+- **Better Vim mode indicators**. The shell can now (optionally) give a clear and real-time 
+   indication of the current Vim Mode. 
+- **Prompt multiline**. You can either have a single line prompt, or a two-line prompt *à-la-Spaceship-prompt*. 
+- **Prompt refresh**. A new function is added, and can be called for live refresh of the prompt string part (full
+   line refresh is already implicitely proposed with the SyntaxCompleter() function)
+
 
 ## TODO 
 
