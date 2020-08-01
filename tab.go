@@ -91,6 +91,11 @@ func (rl *Instance) getTabSearchCompletion() {
 
 	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
 
+	// Handle empty list
+	if len(rl.tcGroups) == 0 {
+		return
+	}
+
 	for _, g := range rl.tcGroups {
 		g.updateTabFind(rl)
 	}
@@ -98,7 +103,12 @@ func (rl *Instance) getTabSearchCompletion() {
 
 // getHistorySearchCompletion - Populates and sets up completion for command history search
 func (rl *Instance) getHistorySearchCompletion() {
-	rl.tcGroups = rl.completeHistory()         // Refresh full list each time
+	rl.tcGroups = rl.completeHistory() // Refresh full list each time
+
+	// Handle empty list
+	if len(rl.tcGroups) == 0 {
+		return
+	}
 	rl.tcGroups[0].DisplayType = TabDisplayMap // History is always shown as map
 
 	if len(rl.tcGroups[0].Suggestions) == 0 {
@@ -113,6 +123,11 @@ func (rl *Instance) getHistorySearchCompletion() {
 // getNormalCompletion - Populates and sets up completion for normal comp mode
 func (rl *Instance) getNormalCompletion() {
 	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
+
+	// Handle empty list
+	if len(rl.tcGroups) == 0 {
+		return
+	}
 	rl.tcGroups[0].isCurrent = true
 }
 

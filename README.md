@@ -16,4 +16,5 @@ and many thanks go to its author: it was both simple and fast to add the various
 
 - A simple function for refreshing the input line *ONLY FOR THOSE KNOWING WHAT THEY DO*
     instance.RefreshPrompt([]rune{})
-
+- When proposing completions, analyze the input line and find items that are already input but still in completions.
+  Then, recompute completions to delete these items, like in ZSH.
