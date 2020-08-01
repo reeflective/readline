@@ -4,6 +4,42 @@ import (
 	"strings"
 )
 
+// computePrompt - At any moment, returns prompt actualized with Vim status
+func (rl *Instance) computePrompt() (prompt []rune) {
+
+	// Add custom prompt string if provided by user
+	if rl.MultilinePrompt != "" {
+		prompt = append(prompt, []rune(rl.MultilinePrompt)...)
+	}
+
+	// If ModeVimEnabled, append it.
+	if rl.VimModePrompt {
+
+		switch rl.modeViMode {
+		case vimKeys:
+			prompt = append(prompt, []rune(vimKeysStr)...)
+		case vimInsert:
+			prompt = append(prompt, []rune(vimInsertStr)...)
+		case vimReplaceOnce:
+			prompt = append(prompt, []rune(vimReplaceOnceStr)...)
+		case vimReplaceMany:
+			prompt = append(prompt, []rune(vimReplaceManyStr)...)
+		case vimDelete:
+			prompt = append(prompt, []rune(vimDeleteStr)...)
+		}
+
+		// Process colors
+		prompt = rl.colorizeVimPrompt(prompt)
+		// Add the arrow
+		prompt = append(prompt, rl.mlnArrow...)
+	}
+
+	rl.mlnPrompt = prompt
+	rl.promptLen = len(rl.mlnPrompt)
+
+	return
+}
+
 func moveCursorUp(i int) {
 	if i < 1 {
 		return
@@ -36,8 +72,26 @@ func moveCursorBackwards(i int) {
 	printf("\x1b[%dD", i)
 }
 
+// moveCursorToLinePos - Must calculate the length of the prompt, realtime
+// and for all contexts/needs, and move the cursor appropriately
 func moveCursorToLinePos(rl *Instance) {
-	moveCursorForwards(rl.promptLen + rl.pos)
+	var length int
+
+	// We use either the normal prompt, or the multiline one
+	if !rl.Multiline {
+		length = len(rl.prompt)
+	} else {
+		length = len(rl.MultilinePrompt)
+	}
+
+	// If the user wants Vim status
+	if rl.VimModePrompt {
+		length += 3                // 3 for [N]
+		length += len(rl.mlnArrow) // 3: ' > '
+	}
+
+	// move the cursor
+	moveCursorForwards(length + rl.pos)
 }
 
 func (rl *Instance) moveCursorByAdjust(adjust int) {
@@ -90,11 +144,13 @@ func (rl *Instance) insert(r []rune) {
 }
 
 func (rl *Instance) backspace() {
+	// fmt.Println(rl.pos)
 	if len(rl.line) == 0 || rl.pos == 0 {
 		return
 	}
 
 	moveCursorBackwards(1)
+	// fmt.Println(len(rl.line))
 	rl.pos--
 	rl.delete()
 }
@@ -123,16 +179,21 @@ func (rl *Instance) delete() {
 }
 
 func (rl *Instance) echo() {
-	moveCursorBackwards(rl.pos)
+
+	// We move the cursor back to the very beginning of the line:
+	// prompt + cursor position
+	moveCursorBackwards(len(rl.mlnPrompt) + rl.pos)
 
 	switch {
 	case rl.PasswordMask > 0:
 		print(strings.Repeat(string(rl.PasswordMask), len(rl.line)) + " ")
 
 	case rl.SyntaxHighlighter == nil:
+		print(string(rl.mlnPrompt))
 		print(string(rl.line) + " ")
 
 	default:
+		print(string(rl.mlnPrompt))
 		print(rl.SyntaxHighlighter(rl.line) + " ")
 	}
 
@@ -166,11 +227,14 @@ func (rl *Instance) clearHelpers() {
 }
 
 func (rl *Instance) renderHelpers() {
+
+	rl.echo() // Added by me, so that prompt always appear when new line
 	rl.writeHintText()
 	rl.writeTabCompletion()
 
 	moveCursorUp(rl.hintY + rl.tcUsedY)
 	moveCursorBackwards(GetTermWidth())
+
 	moveCursorToLinePos(rl)
 }
 

@@ -21,6 +21,10 @@ func main() {
 	// Attach the tab-completion handler (function defined below)
 	rl.TabCompleter = Tab
 
+	// Set multiline prompt and Vim status in it
+	rl.Multiline = true
+	rl.VimModePrompt = true
+
 	for {
 		// Call readline - which will put the terminal into a pseudo-raw mode
 		// and then read from STDIN. After the user has hit <ENTER> the terminal

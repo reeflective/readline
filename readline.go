@@ -18,13 +18,20 @@ func (rl *Instance) Readline() (string, error) {
 	}
 	defer Restore(fd, state)
 
-	print(rl.prompt)
+	// Here we have to either print prompt and return new line (multiline)
+	// Or use the prompt value as multiline and therefore not printing anything here
+	// print(rl.prompt)
 
 	rl.line = []rune{}
 	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
 	rl.pos = 0
 	rl.histPos = rl.History.Len()
 	rl.modeViMode = vimInsert
+
+	rl.computePrompt()
+
+	rl.promptLen = len(rl.computePrompt()) // We always use this
+
 	rl.resetHintText()
 	rl.resetTabCompletion()
 
@@ -241,7 +248,12 @@ func (rl *Instance) escapeSeq(r []rune) {
 			rl.modeViMode = vimKeys
 			rl.viIteration = ""
 			//rl.viHintVimKeys()
-			rl.viHintMessage()
+			// rl.viHintMessage()
+			rl.refreshVimStatus()
+
+			// Added by me, to refresh Vim status in prompt
+			rl.clearHelpers()
+			rl.renderHelpers()
 		}
 		rl.viUndoSkipAppend = true
 
@@ -351,24 +363,28 @@ func (rl *Instance) editorInput(r []rune) {
 	switch rl.modeViMode {
 	case vimKeys:
 		rl.vi(r[0])
-		rl.viHintMessage()
+		// rl.viHintMessage()
+		rl.refreshVimStatus()
 
 	case vimDelete:
 		rl.vimDelete(r)
-		rl.viHintMessage()
+		// rl.viHintMessage()
+		rl.refreshVimStatus()
 
 	case vimReplaceOnce:
 		rl.modeViMode = vimKeys
 		rl.delete()
 		rl.insert([]rune{r[0]})
-		rl.viHintMessage()
+		// rl.viHintMessage()
+		rl.refreshVimStatus()
 
 	case vimReplaceMany:
 		for _, char := range r {
 			rl.delete()
 			rl.insert([]rune{char})
 		}
-		rl.viHintMessage()
+		// rl.viHintMessage()
+		rl.refreshVimStatus()
 
 	default:
 		rl.insert(r)

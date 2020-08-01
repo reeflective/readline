@@ -16,7 +16,8 @@ type Instance struct {
 
 	// VimModePrompt - If set to true, the MultilinePrompt variable will be erased,
 	// and instead will be '[i] >' or '[N] >' for indicating the current Vim mode
-	VimModePrompt bool
+	VimModePrompt   bool
+	VimModeColorize bool // If set to true, varies colors of the VimModePrompt
 
 	// RefreshMultiline allows the user's program to refresh the input prompt.
 	// In this version, the prompt is treated like the input line following it:
@@ -81,8 +82,9 @@ type Instance struct {
 	// readline operating parameters
 	prompt        string //  = ">>> "
 	mlnPrompt     []rune // Our multiline prompt, different from multiline below
+	mlnArrow      []rune
 	promptLen     int    //= 4
-	line          []rune
+	line          []rune // This is the input line, with entered text: full line = mlnPrompt + line
 	pos           int
 	multiline     []byte
 	multisplit    []string
@@ -123,6 +125,7 @@ type Instance struct {
 	viYankBuffer     string
 
 	// event
+
 	evtKeyPress map[string]func(string, []rune, int) *EventReturn
 }
 
@@ -137,7 +140,8 @@ func NewInstance() *Instance {
 	rl.HistoryAutoWrite = true
 	rl.MaxTabCompleterRows = 100
 	rl.prompt = ">>> "
-	rl.promptLen = 4
+	// rl.promptLen = len(rl.computePrompt()) // We need
+	rl.mlnArrow = []rune{' ', '>', ' '}
 	rl.HintFormatting = seqFgBlue
 	rl.evtKeyPress = make(map[string]func(string, []rune, int) *EventReturn)
 

@@ -1,8 +1,11 @@
 package readline
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/evilsocket/islazy/tui"
 )
 
 type viMode int
@@ -13,6 +16,14 @@ const (
 	vimReplaceMany
 	vimDelete
 	vimKeys
+)
+
+const (
+	vimInsertStr      = "[I]"
+	vimReplaceOnceStr = "[V]"
+	vimReplaceManyStr = "[R]"
+	vimDeleteStr      = "[D]"
+	vimKeysStr        = "[N]"
 )
 
 func (rl *Instance) vi(r rune) {
@@ -222,6 +233,25 @@ func (rl *Instance) getViIterations() int {
 	return i
 }
 
+func (rl *Instance) refreshVimStatus() {
+
+	if !rl.VimModePrompt {
+		return
+	}
+	rl.computePrompt()
+	rl.clearHelpers()
+	rl.renderHelpers()
+}
+
+func (rl *Instance) colorizeVimPrompt(p []rune) (cp []rune) {
+
+	if !rl.VimModeColorize {
+		return []rune(fmt.Sprintf("%s%s%s", tui.BOLD, string(p), tui.RESET))
+	}
+
+	return
+}
+
 func (rl *Instance) viHintMessage() {
 	switch rl.modeViMode {
 	case vimKeys:
@@ -286,7 +316,13 @@ func (rl *Instance) viJumpW(tokeniser func([]rune, int) ([]string, int, int)) (a
 	case len(split) == 0:
 		return
 	case index+1 == len(split):
-		adjust = len(rl.line) - 1 - rl.pos
+		if len(split) == 1 {
+			// If there is only one word in input, don't add a useless backspace
+			adjust = len(rl.line) - rl.pos
+		} else {
+			// Otherwise add it
+			adjust = len(rl.line) - 1 - rl.pos
+		}
 	default:
 		adjust = len(split[index]) - pos
 	}
