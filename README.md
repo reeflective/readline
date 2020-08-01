@@ -11,11 +11,6 @@ This fork is version of the console that enhances various things:
 
 ## TODO 
 
-- Fix tab find functions, passing it all completion groups
-    - When passing from comp to search, doesn't filter/refresh
-
-- Add current selection to input line
-
 - Multiline prompt: rl.Multiline = true
                     rl.MultilinePrompt = ">"
 

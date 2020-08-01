@@ -10,6 +10,19 @@ import (
 // captures without having to repeatedly unload configuration.
 type Instance struct {
 
+	// Public Prompt and Vim parameters/functions
+	Multiline       bool   // If set to true, the shell will have a two-line prompt.
+	MultilinePrompt string // The second line of the prompt, where input follows.
+
+	// VimModePrompt - If set to true, the MultilinePrompt variable will be erased,
+	// and instead will be '[i] >' or '[N] >' for indicating the current Vim mode
+	VimModePrompt bool
+
+	// RefreshMultiline allows the user's program to refresh the input prompt.
+	// In this version, the prompt is treated like the input line following it:
+	// we can refresh it at any time, like we do with SyntaxHighlighter below.
+	RefreshMultiline func([]rune) string
+
 	// PasswordMask is what character to hide password entry behind.
 	// Once enabled, set to 0 (zero) to disable the mask again.
 	PasswordMask rune
@@ -67,6 +80,7 @@ type Instance struct {
 
 	// readline operating parameters
 	prompt        string //  = ">>> "
+	mlnPrompt     []rune // Our multiline prompt, different from multiline below
 	promptLen     int    //= 4
 	line          []rune
 	pos           int
