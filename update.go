@@ -1,8 +1,45 @@
 package readline
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 )
+
+// RefreshMultiline - This function can be called by the user program to refresh the first
+// line of the prompt, if the latter is a 2-line (multiline) prompt.
+// This function should refresh the prompt "in place", which means it renders it
+// directly where it was: it does not print a new one below.
+func (rl *Instance) RefreshMultiline(prompt string) (err error) {
+
+	if !rl.Multiline {
+		return errors.New("readline error: refresh cannot happen, prompt is not multiline")
+	}
+
+	if prompt != "" {
+		rl.prompt = prompt
+	}
+
+	// We adjust cursor movement, depending on which mode we're currently in.
+	if !rl.modeTabCompletion {
+		rl.tcUsedY = 1
+	} else if rl.modeTabCompletion && rl.modeAutoFind { // Account for the hint line
+		rl.tcUsedY = 0
+	} else {
+		rl.tcUsedY = 1
+	}
+
+	moveCursorUp(rl.hintY + rl.tcUsedY)
+	moveCursorBackwards(GetTermWidth())
+
+	// Then print 1st line prompt
+	fmt.Println(rl.prompt)
+
+	// Helpers take care of restituting the input line and its prompt
+	rl.renderHelpers()
+
+	return
+}
 
 // computePrompt - At any moment, returns prompt actualized with Vim status
 func (rl *Instance) computePrompt() (prompt []rune) {

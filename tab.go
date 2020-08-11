@@ -69,6 +69,11 @@ func (rl *Instance) getTabCompletion() {
 // writeTabCompletion - Prints all completion groups and their items
 func (rl *Instance) writeTabCompletion() {
 
+	// We adjust for a supplementary prompt line
+	// It NEEDS to precede the following line, because its effect is immediate
+	if rl.Multiline {
+		// rl.tcUsedY++
+	}
 	// This stablizes the completion printing just beyond the input line
 	rl.tcUsedY -= rl.tcUsedY
 

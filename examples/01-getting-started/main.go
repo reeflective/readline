@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/maxlandon/readline"
 )
@@ -22,8 +23,9 @@ func main() {
 	rl.TabCompleter = Tab
 
 	// Set multiline prompt and Vim status in it
-	rl.Multiline = true
-	rl.ShowVimMode = true
+	rl.Multiline = true                                  // Two-line prompt
+	rl.SetPrompt("@localhost => exploit(multi/handler)") // Sets the first line
+	rl.ShowVimMode = true                                // Sets the second line to Vim
 
 	for {
 		// Call readline - which will put the terminal into a pseudo-raw mode
@@ -32,6 +34,11 @@ func main() {
 		//
 		// In this example, `line` is a returned string of the key presses
 		// typed into readline.
+		go func() {
+			time.Sleep(time.Second * 5)
+			rl.RefreshMultiline("@localhost => payload(ghost/multi/stager/HTTP)") // Sets the first line
+		}()
+
 		line, err := rl.Readline()
 		if err != nil {
 			fmt.Println("Error:", err)

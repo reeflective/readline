@@ -2,6 +2,7 @@ package readline
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"regexp"
 )
@@ -20,7 +21,9 @@ func (rl *Instance) Readline() (string, error) {
 
 	// Here we have to either print prompt and return new line (multiline)
 	// Or use the prompt value as multiline and therefore not printing anything here
-	// print(rl.prompt)
+	if rl.Multiline {
+		fmt.Println(rl.prompt)
+	}
 
 	rl.line = []rune{}
 	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
