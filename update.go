@@ -6,11 +6,12 @@ import (
 	"strings"
 )
 
-// RefreshMultiline - This function can be called by the user program to refresh the first
-// line of the prompt, if the latter is a 2-line (multiline) prompt.
-// This function should refresh the prompt "in place", which means it renders it
-// directly where it was: it does not print a new one below.
-func (rl *Instance) RefreshMultiline(prompt string) (err error) {
+// RefreshMultiline - This function can be called by the user program to refresh the first line of the prompt,
+// if the latter is a 2-line (multiline) prompt. This function should refresh the prompt "in place", which
+// means it renders it directly where it was: it does not print a new one below.
+// The offset param can be used to adjust the number of lines to clear upward, in case there are things the
+// shell cannot know. Set offset to 0 if you don't use it.
+func (rl *Instance) RefreshMultiline(prompt string, offset int) (err error) {
 
 	if !rl.Multiline {
 		return errors.New("readline error: refresh cannot happen, prompt is not multiline")
@@ -28,6 +29,9 @@ func (rl *Instance) RefreshMultiline(prompt string) (err error) {
 	} else {
 		rl.tcUsedY = 1
 	}
+
+	// Add user-provided offset
+	rl.tcUsedY += offset
 
 	moveCursorUp(rl.hintY + rl.tcUsedY)
 	moveCursorBackwards(GetTermWidth())
