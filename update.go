@@ -35,6 +35,7 @@ func (rl *Instance) RefreshMultiline(prompt string, offset int) (err error) {
 
 	moveCursorUp(rl.hintY + rl.tcUsedY)
 	moveCursorBackwards(GetTermWidth())
+	print("\r\n" + seqClearScreenBelow) // We add this to clear everything below offset.
 
 	// Then print 1st line prompt
 	fmt.Println(rl.prompt)

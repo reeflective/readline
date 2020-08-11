@@ -36,7 +36,7 @@ func main() {
 		// typed into readline.
 		go func() {
 			time.Sleep(time.Second * 5)
-			rl.RefreshMultiline("@localhost => payload(ghost/multi/stager/HTTP)") // Sets the first line
+			rl.RefreshMultiline("@localhost => payload(ghost/multi/stager/HTTP)", 4) // Sets the first line
 		}()
 
 		line, err := rl.Readline()
