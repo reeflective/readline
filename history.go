@@ -124,10 +124,21 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 
 	hist = make([]*CompletionGroup, 1)
 	hist[0] = &CompletionGroup{
-		Name:        "Command History",
-		Description: "All commands entered by the user, in all its consoles.",
 		DisplayType: TabDisplayMap,
 	}
+
+	// Switch to completion flux first
+	var history History
+	if rl.mainHist {
+		history = rl.History
+		hist[0].Name = "Console history"
+		hist[0].Description = "All commands for this console only (identified by its ID)."
+	} else {
+		history = rl.AltHistory
+		hist[0].Name = "User history (all clients)"
+		hist[0].Description = "All commands entered by the user, in all its consoles."
+	}
+
 	hist[0].init(rl)
 
 	var (
@@ -138,8 +149,8 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 
 	rl.tcPrefix = string(rl.line) // We use the current full line for filtering
 
-	for i := rl.History.Len() - 1; i >= 0; i-- {
-		line, err = rl.History.GetLine(i)
+	for i := history.Len() - 1; i >= 0; i-- {
+		line, err = history.GetLine(i)
 		if err != nil {
 			continue
 		}

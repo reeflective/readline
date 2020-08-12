@@ -42,6 +42,9 @@ type Instance struct {
 	// no history at all). By default it uses a dummy interface that only stores
 	// historic items in memory.
 	History History
+	// AltHistory is an alternative history input, in case a console user would
+	// like to have two different history flows.
+	AltHistory History
 
 	// HistoryAutoWrite defines whether items automatically get written to
 	// history.
@@ -119,6 +122,7 @@ type Instance struct {
 	modeAutoFind bool           // for when invoked via ^R or ^F outside of [tab]
 	searchMode   FindMode       // Used for varying hints, and underlying functions called
 	regexSearch  *regexp.Regexp // Holds the current search regex match
+	mainHist     bool           // Which history stdin do we want
 
 	// vim
 	modeViMode       viMode //= vimInsert
