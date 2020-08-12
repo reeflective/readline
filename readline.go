@@ -177,7 +177,6 @@ func (rl *Instance) Readline() (string, error) {
 			rl.modeTabFind = true
 			rl.updateTabFind([]rune{})
 			rl.viUndoSkipAppend = true
-			rl.mainHist = false
 
 		case charCtrlU:
 			rl.clearLine()

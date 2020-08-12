@@ -30,7 +30,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 	if rl.mainHist {
 		rl.histHint = []rune("User history (all clients): ")
 	} else {
-		rl.histHint = []rune("Console history:")
+		rl.histHint = []rune("Console history: ")
 	}
 	// Depending on search type, we give different hints
 	switch rl.searchMode {
