@@ -45,7 +45,7 @@ func (rl *Instance) RefreshMultiline(prompt string, offset int) (err error) {
 	// If input line was empty, check that we clear it from detritus
 	// The three lines are borrowed from clearLine(), we don't need more.
 	if len(rl.line) == 0 {
-		print(strings.Repeat(" ", (GetTermWidth() - 10)))
+		rl.clearLine()
 	}
 
 	return

@@ -34,12 +34,6 @@ func main() {
 		//
 		// In this example, `line` is a returned string of the key presses
 		// typed into readline.
-		go func() {
-			time.Sleep(time.Second)
-			rl.HideNextPrompt = true
-			time.Sleep(time.Second * 4)
-			rl.RefreshMultiline("@localhost => payload(ghost/multi/stager/HTTP)", 3) // Sets the first line
-		}()
 
 		line, err := rl.Readline()
 		if err != nil {
@@ -52,7 +46,7 @@ func main() {
 				time.Sleep(time.Second)
 				rl.HideNextPrompt = true
 				time.Sleep(time.Second * 4)
-				rl.RefreshMultiline("@localhost => payload(ghost/multi/stager/HTTP)", 3) // Sets the first line
+				rl.RefreshMultiline("@localhost => payload(ghost/multi/stager/HTTP)", 4) // Sets the first line
 			}()
 		}
 
