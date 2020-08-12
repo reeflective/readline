@@ -83,17 +83,26 @@ func (h *NullHistory) Dump() interface{} {
 
 // Browse historic lines:
 func (rl *Instance) walkHistory(i int) {
+	// Switch to correct history
+	var history History
+	if !rl.mainHist {
+		history = rl.History
+	}
+	if rl.mainHist {
+		history = rl.AltHistory
+	}
+
 	switch rl.histPos + i {
-	case -1, rl.History.Len() + 1:
+	case -1, history.Len() + 1:
 		return
 
-	case rl.History.Len():
+	case history.Len():
 		rl.clearLine()
 		rl.histPos += i
 		rl.line = []rune(rl.lineBuf)
 
 	default:
-		s, err := rl.History.GetLine(rl.histPos + i)
+		s, err := history.GetLine(rl.histPos + i)
 		if err != nil {
 			rl.resetHelpers()
 			print("\r\n" + err.Error() + "\r\n")
@@ -101,7 +110,7 @@ func (rl *Instance) walkHistory(i int) {
 			return
 		}
 
-		if rl.histPos == rl.History.Len() {
+		if rl.histPos == history.Len() {
 			rl.lineBuf = string(rl.line)
 		}
 
@@ -137,7 +146,9 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 		history = rl.History
 		hist[0].Name = "Console history"
 		hist[0].Description = "All commands for this console only (identified by its ID)."
-	} else {
+	}
+
+	if rl.mainHist {
 		history = rl.AltHistory
 		hist[0].Name = "User history (all clients)"
 		hist[0].Description = "All commands entered by the user, in all its consoles."
