@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -131,6 +132,7 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 
 	// Switch to completion flux first
 	var history History
+	fmt.Println(rl.mainHist)
 	if !rl.mainHist {
 		history = rl.History
 		hist[0].Name = "Console history"
