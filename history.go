@@ -3,6 +3,8 @@ package readline
 import (
 	"strconv"
 	"strings"
+
+	"github.com/evilsocket/islazy/tui"
 )
 
 // History is an interface to allow you to write your own history logging
@@ -129,7 +131,7 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 
 	// Switch to completion flux first
 	var history History
-	if rl.mainHist {
+	if !rl.mainHist {
 		history = rl.History
 		hist[0].Name = "Console history"
 		hist[0].Description = "All commands for this console only (identified by its ID)."
@@ -168,7 +170,7 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 		hist[0].Suggestions = append(hist[0].Suggestions, line)
 		num = strconv.Itoa(i)
 
-		hist[0].Descriptions[line] = num
+		hist[0].Descriptions[line] = "\033[38;5;130m" + num + tui.RESET
 	}
 
 	rl.mainHist = false

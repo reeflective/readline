@@ -119,7 +119,7 @@ func (rl *Instance) getHistorySearchCompletion() {
 	if len(rl.tcGroups[0].Suggestions) == 0 {
 		rl.hintText = []rune(fmt.Sprintf("%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET))
 	} else {
-		rl.hintText = []rune(rl.tcGroups[0].Name)
+		rl.hintText = []rune("\033[38;5;183m" + rl.tcGroups[0].Name + tui.RESET)
 	}
 
 	if rl.regexSearch.String() != "(?i)" {
