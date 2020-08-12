@@ -164,6 +164,9 @@ func (rl *Instance) Readline() (string, error) {
 			rl.modeTabCompletion = true
 
 			rl.modeTabFind = true
+			// update comps in advance, avoid
+			// nil dereference when printing hint
+			rl.tcGroups = rl.completeHistory()
 			rl.updateTabFind([]rune{})
 			rl.viUndoSkipAppend = true
 
@@ -175,6 +178,7 @@ func (rl *Instance) Readline() (string, error) {
 			rl.modeTabCompletion = true
 
 			rl.modeTabFind = true
+			rl.tcGroups = rl.completeHistory()
 			rl.updateTabFind([]rune{})
 			rl.viUndoSkipAppend = true
 			rl.mainHist = false
