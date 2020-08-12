@@ -182,7 +182,5 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 		hist[0].Descriptions[line] = "\033[38;5;130m" + num + tui.RESET
 	}
 
-	rl.mainHist = false
-
 	return
 }
