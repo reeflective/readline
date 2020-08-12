@@ -153,7 +153,6 @@ func (rl *Instance) Readline() (string, error) {
 			rl.viUndoSkipAppend = true
 
 		case charCtrlR:
-			rl.mainHist = true
 			rl.searchMode = HistoryFind
 			rl.modeAutoFind = true
 			rl.tcOffset = 0
@@ -164,7 +163,7 @@ func (rl *Instance) Readline() (string, error) {
 			rl.viUndoSkipAppend = true
 
 		case charCtrlE:
-			rl.mainHist = false
+			rl.mainHist = true
 			rl.searchMode = HistoryFind
 			rl.modeAutoFind = true
 			rl.tcOffset = 0
