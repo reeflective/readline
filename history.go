@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -141,17 +140,14 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 
 	// Switch to completion flux first
 	var history History
-	fmt.Println(rl.mainHist)
-	if !rl.mainHist {
-		history = rl.History
-		hist[0].Name = "Console history"
-		hist[0].Description = "All commands for this console only (identified by its ID)."
-	}
-
 	if rl.mainHist {
 		history = rl.AltHistory
 		hist[0].Name = "User history (all clients)"
 		hist[0].Description = "All commands entered by the user, in all its consoles."
+	} else {
+		history = rl.History
+		hist[0].Name = "Console history"
+		hist[0].Description = "All commands for this console only (identified by its ID)."
 	}
 
 	hist[0].init(rl)

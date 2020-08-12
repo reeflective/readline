@@ -30,7 +30,12 @@ func (rl *Instance) Readline() (string, error) {
 	rl.line = []rune{}
 	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
 	rl.pos = 0
-	rl.histPos = rl.History.Len()
+	if rl.mainHist {
+		rl.histPos = rl.History.Len()
+	} else {
+		rl.histPos = rl.AltHistory.Len()
+	}
+	// rl.histPos = rl.History.Len()
 	rl.modeViMode = vimInsert
 
 	rl.computePrompt() // initialise the prompt for first print
@@ -357,6 +362,12 @@ func (rl *Instance) escapeSeq(r []rune) {
 			line, err := rl.History.GetLine(rl.History.Len() - 1)
 			if err != nil {
 				return
+			}
+			if !rl.mainHist {
+				line, err = rl.AltHistory.GetLine(rl.AltHistory.Len() - 1)
+				if err != nil {
+					return
+				}
 			}
 
 			tokens, _, _ := tokeniseSplitSpaces([]rune(line), 0)
