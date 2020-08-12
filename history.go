@@ -171,5 +171,7 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 		hist[0].Descriptions[line] = num
 	}
 
+	rl.mainHist = false
+
 	return
 }
