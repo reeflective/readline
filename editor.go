@@ -21,7 +21,7 @@ func (rl *Instance) launchEditor(multiline []rune) ([]rune, error) {
 	editor := os.Getenv("EDITOR")
 	// default editor is $EDITOR not set
 	if editor == "" {
-		editor = "vi"
+		editor = "vim"
 	}
 
 	cmd := exec.Command(editor, name)
@@ -55,7 +55,7 @@ func (rl *Instance) writeTempFile(content []byte) (string, error) {
 		return "", err
 	}
 
-	name := rl.TempDirectory + "readline-" + hex.EncodeToString(h.Sum(nil)) + "-" + strconv.Itoa(os.Getpid())
+	name := rl.TempDirectory + "/" + "readline-" + hex.EncodeToString(h.Sum(nil)) + "-" + strconv.Itoa(os.Getpid())
 
 	file, err := os.Create(name)
 	if err != nil {
@@ -65,6 +65,9 @@ func (rl *Instance) writeTempFile(content []byte) (string, error) {
 	defer file.Close()
 
 	_, err = file.Write(content)
+	if err != nil {
+
+	}
 	return name, err
 }
 
