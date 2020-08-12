@@ -27,6 +27,11 @@ func (rl *Instance) updateTabFind(r []rune) {
 
 	rl.tfLine = append(rl.tfLine, r...)
 
+	if rl.mainHist {
+		rl.histHint = []rune("Console history:")
+	} else {
+		rl.histHint = []rune("User history (all clients): ")
+	}
 	// Depending on search type, we give different hints
 	switch rl.searchMode {
 	case HistoryFind:
