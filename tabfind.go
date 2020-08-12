@@ -30,7 +30,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 	// Depending on search type, we give different hints
 	switch rl.searchMode {
 	case HistoryFind:
-		rl.hintText = append([]rune("\033[38;5;183m"+rl.tcGroups[0].Name), rl.tfLine...)
+		rl.hintText = append([]rune("\033[38;5;183m"+string(rl.histHint)), rl.tfLine...)
 		rl.hintText = append(rl.hintText, []rune(tui.RESET)...)
 	case CompletionFind:
 		rl.hintText = append([]rune("Completion search: "), rl.tfLine...)

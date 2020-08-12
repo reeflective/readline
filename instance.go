@@ -123,6 +123,7 @@ type Instance struct {
 	searchMode   FindMode       // Used for varying hints, and underlying functions called
 	regexSearch  *regexp.Regexp // Holds the current search regex match
 	mainHist     bool           // Which history stdin do we want
+	histHint     []rune         // We store a hist hint, for dual history sources
 
 	// vim
 	modeViMode       viMode //= vimInsert
