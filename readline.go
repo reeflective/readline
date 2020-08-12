@@ -21,8 +21,10 @@ func (rl *Instance) Readline() (string, error) {
 
 	// Here we have to either print prompt and return new line (multiline)
 	// Or use the prompt value as multiline and therefore not printing anything here
-	if rl.Multiline {
+	if rl.Multiline && !rl.HideNextPrompt {
 		fmt.Println(rl.prompt)
+	} else if rl.Multiline && rl.HideNextPrompt {
+		rl.HideNextPrompt = false // Immediately reset this. Its a one-time shot.
 	}
 
 	rl.line = []rune{}

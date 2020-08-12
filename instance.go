@@ -14,6 +14,8 @@ type Instance struct {
 	Multiline       bool   // If set to true, the shell will have a two-line prompt.
 	prompt          string // If Multiline is true, this is the first line of the prompt
 	MultilinePrompt string // The second line of the prompt, where input follows.
+	HideNextPrompt  bool   // When true, the next occurence of Instance.Readline will
+	// not show the first line of the prompt (if multiline mode)
 
 	// ShowVimMode - If set to true, a string '[i] >' or '[N] >' indicating the
 	// current Vim mode will be appended to the prompt variable, therefore added to
