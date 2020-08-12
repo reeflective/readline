@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -42,7 +43,7 @@ func (rl *Instance) launchEditor(multiline []rune) ([]rune, error) {
 		return multiline, err
 	}
 
-	b, err := readTempFile(name)
+	b, err := readTempFile(name, true)
 	return []rune(string(b)), err
 }
 
@@ -71,7 +72,11 @@ func (rl *Instance) writeTempFile(content []byte) (string, error) {
 	return name, err
 }
 
-func readTempFile(name string) ([]byte, error) {
+// readTempFile - this function is only meant to be called by the shell.
+// We don't use it, in Wiregost, for reading entire files that we then output
+// to the console. Other wise we need to add an explicit return escape, so that
+// it doesn't screw up the terminal.
+func readTempFile(name string, forShell bool) ([]byte, error) {
 	file, err := os.Open(name)
 	if err != nil {
 		return nil, err
@@ -80,6 +85,11 @@ func readTempFile(name string) ([]byte, error) {
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
+	}
+
+	// We parse all occurences of "\n" for not screwing the shell here
+	if forShell {
+		b = []byte(strings.Replace(string(b), "\n", " ", -1))
 	}
 
 	if len(b) > 0 && b[len(b)-1] == '\n' {
