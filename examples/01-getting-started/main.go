@@ -46,7 +46,7 @@ func main() {
 				time.Sleep(time.Second)
 				rl.HideNextPrompt = true
 				time.Sleep(time.Second * 4)
-				rl.RefreshMultiline("@localhost => payload(ghost/multi/stager/HTTP)", 4) // Sets the first line
+				rl.RefreshMultiline("@localhost => payload(ghost/multi/stager/HTTP)", 4, true) // Sets the first line
 			}()
 		}
 
