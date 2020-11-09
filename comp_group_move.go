@@ -5,7 +5,8 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 
 	g := rl.getCurrentGroup()
 
-	if len(g.Suggestions) == 0 {
+	// If nil, nothing matched input so it amounts to no suggestions.
+	if len(g.Suggestions) == 0 || g.Suggestions == nil {
 		rl.cycleNextGroup()
 		g = rl.getCurrentGroup()
 	}
