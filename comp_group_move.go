@@ -7,7 +7,7 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 
 	// If nil, nothing matched input so it amounts to no suggestions.
 	// We return right now to avoid dereference.
-	if g.Suggestions == nil {
+	if g == nil || g.Suggestions == nil {
 		rl.cycleNextGroup()
 		g = rl.getCurrentGroup()
 	}
