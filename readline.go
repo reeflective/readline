@@ -203,7 +203,7 @@ func (rl *Instance) Readline() (string, error) {
 				rl.clearHelpers()
 				rl.resetTabCompletion()
 				rl.renderHelpers()
-				rl.insert([]rune(cur.Suggestions[cell]))
+				rl.insert([]rune(cur.Suggestions[cell][rl.pos:]))
 
 				continue
 			}
