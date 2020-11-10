@@ -26,8 +26,10 @@ func (g *CompletionGroup) initGrid(rl *Instance) {
 	// Max number of suggestions per line, for this group
 	tcMaxLength := 1
 	for i := range g.Suggestions {
-		if len(rl.tcPrefix+g.Suggestions[i]) > tcMaxLength {
-			tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
+		if len(g.Suggestions[i]) > tcMaxLength {
+			// if len(rl.tcPrefix+g.Suggestions[i]) > tcMaxLength {
+			tcMaxLength = len([]rune(g.Suggestions[i]))
+			// tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
 		}
 	}
 
@@ -60,8 +62,10 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 	g.tcMaxLength = 1
 	for i := range g.Suggestions {
 		if g.DisplayType == TabDisplayList {
-			if len(rl.tcPrefix+g.Suggestions[i]) > g.tcMaxLength {
-				g.tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
+			if len(g.Suggestions[i]) > g.tcMaxLength {
+				// if len(rl.tcPrefix+g.Suggestions[i]) > g.tcMaxLength {
+				g.tcMaxLength = len([]rune(g.Suggestions[i]))
+				// g.tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
 			}
 
 		} else {

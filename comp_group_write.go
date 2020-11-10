@@ -69,7 +69,8 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 		if (x == g.tcPosX && y == g.tcPosY) && (g.isCurrent) {
 			comp += seqBgWhite + seqFgBlack
 		}
-		comp += fmt.Sprintf(" %-"+cellWidth+"s %s", rl.tcPrefix+g.Suggestions[i], seqReset)
+		comp += fmt.Sprintf(" %-"+cellWidth+"s %s", g.Suggestions[i], seqReset)
+		// comp += fmt.Sprintf(" %-"+cellWidth+"s %s", rl.tcPrefix+g.Suggestions[i], seqReset)
 	}
 
 	// Add the equivalent of this group's size to final screen clearing
@@ -192,7 +193,8 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 			break
 		}
 
-		item = rl.tcPrefix + g.Suggestions[i]
+		item = g.Suggestions[i]
+		// item = rl.tcPrefix + g.Suggestions[i]
 
 		if len(item) > maxDescWidth {
 			item = item[:maxDescWidth-3] + "..."
