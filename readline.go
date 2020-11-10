@@ -203,7 +203,17 @@ func (rl *Instance) Readline() (string, error) {
 				rl.clearHelpers()
 				rl.resetTabCompletion()
 				rl.renderHelpers()
-				rl.insert([]rune(cur.Suggestions[cell][rl.pos:]))
+				// Here we have added [tl.pos:] indexing, so that we don't have to
+				// deal with input/completion indexing in the client application.
+				// We have added a few checks here, because sometimes the suggestions
+				// don't catch up and we have a runtime error: index out of range [0] with length 0
+				//
+				// This means we have no suggestions to select
+				if len(cur.Suggestions[cell]) == 0 {
+					continue
+				} else {
+					rl.insert([]rune(cur.Suggestions[cell][rl.pos:]))
+				}
 
 				continue
 			}
