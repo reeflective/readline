@@ -67,7 +67,6 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 				g.tcMaxLength = len([]rune(g.Suggestions[i]))
 				// g.tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
 			}
-
 		} else {
 			if len(g.Descriptions[g.Suggestions[i]]) > g.tcMaxLength {
 				g.tcMaxLength = len(g.Descriptions[g.Suggestions[i]])

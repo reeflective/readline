@@ -119,7 +119,8 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 			break
 		}
 
-		item = rl.tcPrefix + g.Suggestions[i]
+		item = g.Suggestions[i]
+		// item = rl.tcPrefix + g.Suggestions[i]
 
 		if len(item) > maxLength {
 			item = item[:maxLength-3] + "..."
