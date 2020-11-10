@@ -209,8 +209,8 @@ func (rl *Instance) Readline() (string, error) {
 				// We have added a few checks here, because sometimes the suggestions
 				// don't catch up and we have a runtime error: index out of range [0] with length 0
 				//
-				// This means we have no suggestions to select
-				if len(cur.Suggestions[cell]) == 0 {
+				// This means we have no suggestions to select, or that the suggestion is an empty string.
+				if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
 					continue
 				} else {
 					rl.insert([]rune(cur.Suggestions[cell][len(rl.tcPrefix):]))
