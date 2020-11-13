@@ -196,7 +196,6 @@ func (rl *Instance) Readline() (string, error) {
 		case '\r':
 			fallthrough
 		case '\n':
-
 			if rl.modeTabCompletion {
 				cur := rl.getCurrentGroup()
 				// Check that there is a group indeed, as we might have no completions.
@@ -257,6 +256,26 @@ func (rl *Instance) Readline() (string, error) {
 					rl.skipStdinRead = true
 				}
 			}
+		}
+
+		// Check if completions are nil and that we currently are in modeTabCompletion.
+		// If both conditions are true, we should not wait to reset the tab completion engine,
+		// or ensure it does not bother any user input going on.
+		cur := rl.getCurrentGroup()
+		if cur == nil {
+			rl.clearHelpers()
+			rl.resetTabCompletion()
+			rl.renderHelpers()
+		}
+		cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
+
+		// We have added a few checks here, because sometimes the suggestions
+		// don't catch up and we have a runtime error: index out of range [0] with length 0
+		// This means we have no suggestions to select, or that the suggestion is an empty string.
+		if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
+			rl.clearHelpers()
+			rl.resetTabCompletion()
+			rl.renderHelpers()
 		}
 
 		//if !rl.viUndoSkipAppend {
