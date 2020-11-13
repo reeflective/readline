@@ -199,6 +199,10 @@ func (rl *Instance) Readline() (string, error) {
 
 			if rl.modeTabCompletion {
 				cur := rl.getCurrentGroup()
+				// Check that there is a group indeed, as we might have no completions
+				if cur == nil {
+					continue
+				}
 				cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
 				rl.clearHelpers()
 				rl.resetTabCompletion()
