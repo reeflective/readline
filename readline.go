@@ -266,6 +266,7 @@ func (rl *Instance) Readline() (string, error) {
 			rl.clearHelpers()
 			rl.resetTabCompletion()
 			rl.renderHelpers()
+			continue
 		}
 		cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
 
@@ -276,6 +277,7 @@ func (rl *Instance) Readline() (string, error) {
 			rl.clearHelpers()
 			rl.resetTabCompletion()
 			rl.renderHelpers()
+			continue
 		}
 
 		//if !rl.viUndoSkipAppend {
