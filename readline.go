@@ -199,26 +199,35 @@ func (rl *Instance) Readline() (string, error) {
 
 			if rl.modeTabCompletion {
 				cur := rl.getCurrentGroup()
-				// Check that there is a group indeed, as we might have no completions
+				// Check that there is a group indeed, as we might have no completions.
+				// NOTE: When we find that there are neither available groups, empty groups or
+				// nil objects of some sort, it means we don't have completion, and we return calmly
+				// from this, so that the user is still able to use input without noticing anything.
 				if cur == nil {
+					rl.clearHelpers()
+					rl.resetTabCompletion()
+					rl.renderHelpers()
 					continue
 				}
 				cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
+
+				// We have added a few checks here, because sometimes the suggestions
+				// don't catch up and we have a runtime error: index out of range [0] with length 0
+				// This means we have no suggestions to select, or that the suggestion is an empty string.
+				if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
+					rl.clearHelpers()
+					rl.resetTabCompletion()
+					rl.renderHelpers()
+					continue
+				} else {
+					// Here we have added len([tl.tcPrefix]) so that we don't have to
+					// deal with input/completion indexing in the client application.
+					rl.insert([]rune(cur.Suggestions[cell][len(rl.tcPrefix):]))
+				}
+
 				rl.clearHelpers()
 				rl.resetTabCompletion()
 				rl.renderHelpers()
-				// rl.insert([]rune(cur.Suggestions[cell]))
-				// Here we have added [tl.pos:] indexing, so that we don't have to
-				// deal with input/completion indexing in the client application.
-				// We have added a few checks here, because sometimes the suggestions
-				// don't catch up and we have a runtime error: index out of range [0] with length 0
-				//
-				// This means we have no suggestions to select, or that the suggestion is an empty string.
-				if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
-					continue
-				} else {
-					rl.insert([]rune(cur.Suggestions[cell][len(rl.tcPrefix):]))
-				}
 
 				continue
 			}
