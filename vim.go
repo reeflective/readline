@@ -215,6 +215,28 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 		rl.moveCursorByAdjust(rl.viJumpBracket())
 
+	// Added quick command history navigation
+	case 'j':
+	case 'k':
+		if rl.History.Len() > 0 {
+			line, err := rl.History.GetLine(rl.histPos - 1)
+			if err != nil {
+				return
+			}
+			// if !rl.mainHist {
+			//         line, err = rl.AltHistory.GetLine(rl.AltHistory.Len() - 1)
+			//         if err != nil {
+			//                 return
+			//         }
+			// }
+
+			// tokens, _, _ := tokeniseSplitSpaces([]rune(line), 0)
+			// pos := int(r[1]) - 48 // convert ASCII to integer
+			// if pos > len(tokens) {
+			//         return
+			// }
+			rl.insert([]rune(line))
+		}
 	default:
 		if r <= '9' && '0' <= r {
 			rl.viIteration += string(r)

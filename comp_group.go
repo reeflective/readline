@@ -39,9 +39,6 @@ func (g *CompletionGroup) updateTabFind(rl *Instance) {
 	for i := range g.Suggestions {
 		if rl.regexSearch.MatchString(g.Suggestions[i]) {
 			suggs = append(suggs, g.Suggestions[i])
-
-			// If map or list we keep the description as well (MAYBE NOT NEEDED)
-
 		} else if g.DisplayType == TabDisplayList && rl.regexSearch.MatchString(g.Descriptions[g.Suggestions[i]]) {
 			// this is a list so lets also check the descriptions
 			suggs = append(suggs, g.Suggestions[i])

@@ -35,7 +35,7 @@ func (rl *Instance) Readline() (string, error) {
 	} else {
 		rl.histPos = rl.AltHistory.Len()
 	}
-	// rl.histPos = rl.History.Len()
+	rl.histPos = rl.History.Len()
 	rl.modeViMode = vimInsert
 
 	rl.computePrompt() // initialise the prompt for first print

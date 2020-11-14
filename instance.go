@@ -97,8 +97,9 @@ type Instance struct {
 	skipStdinRead bool
 
 	// history
-	lineBuf string
-	histPos int
+	lineBuf    string
+	histPos    int
+	histNavIdx int // Used for quick history navigation.
 
 	// hint text
 	hintY    int //= 0
@@ -144,7 +145,7 @@ func NewInstance() *Instance {
 
 	//GetTermWidth()
 
-	rl.History = new(ExampleHistory)
+	rl.History = new(ExampleHistory) // In-memory history by default.
 	rl.HistoryAutoWrite = true
 	rl.MaxTabCompleterRows = 100
 	rl.prompt = ">>> "

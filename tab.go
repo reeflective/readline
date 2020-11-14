@@ -57,7 +57,9 @@ func (rl *Instance) getTabCompletion() {
 		return
 	}
 	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
-	rl.tcGroups[0].isCurrent = true          // Init this for starting comp select somewhere
+
+	rl.getCurrentGroup()
+	// rl.tcGroups[0].isCurrent = true // Init this for starting comp select somewhere
 
 	// Init/Setup all groups with their priting details
 	for _, group := range rl.tcGroups {
@@ -140,14 +142,19 @@ func (rl *Instance) getNormalCompletion() {
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
 	for _, g := range rl.tcGroups {
-		if g.isCurrent {
+		if g.isCurrent && len(g.Suggestions) > 0 {
 			return g
 		}
 	}
 	// We might, for whatever reason, not find one.
 	// If there are groups but no current, make first one the king.
 	if len(rl.tcGroups) > 0 {
-		rl.tcGroups[0].isCurrent = true
+		// Find first group that has list > 0, as another checkup
+		for _, g := range rl.tcGroups {
+			if len(g.Suggestions) > 0 {
+				return g
+			}
+		}
 	}
 	return
 }
