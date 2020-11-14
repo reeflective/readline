@@ -165,13 +165,12 @@ func (rl *Instance) resetTabCompletion() {
 	rl.tfLine = []rune{}
 
 	// Reset tab highlighting
-	if len(rl.tcGroups) > 0 {
-		for _, g := range rl.tcGroups {
-			g.isCurrent = false
-		}
-		rl.tcGroups[0].isCurrent = true
-
-	}
+	// if len(rl.tcGroups) > 0 {
+	//         for _, g := range rl.tcGroups {
+	//                 g.isCurrent = false
+	//         }
+	//         rl.tcGroups[0].isCurrent = true
+	// }
 }
 
 // checkNilItems - For each completion group we avoid nil maps and possibly other items
