@@ -261,13 +261,13 @@ func (rl *Instance) Readline() (string, error) {
 		// Check if completions are nil and that we currently are in modeTabCompletion.
 		// If both conditions are true, we should not wait to reset the tab completion engine,
 		// or ensure it does not bother any user input going on.
-		// cur := rl.getCurrentGroup()
-		// if cur == nil {
-		//         rl.clearHelpers()
-		//         rl.resetTabCompletion()
-		//         rl.renderHelpers()
-		//         continue
-		// }
+		cur := rl.getCurrentGroup()
+		if cur == nil {
+			rl.clearHelpers()
+			rl.resetTabCompletion()
+			rl.renderHelpers()
+			continue
+		}
 		// cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
 		//
 		// // We have added a few checks here, because sometimes the suggestions
