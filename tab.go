@@ -144,6 +144,11 @@ func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
 			return g
 		}
 	}
+	// We might, for whatever reason, not find one.
+	// If there are groups but no current, make first one the king.
+	if len(rl.tcGroups) > 0 {
+		rl.tcGroups[0].isCurrent = true
+	}
 	return
 }
 
