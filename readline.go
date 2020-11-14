@@ -261,24 +261,24 @@ func (rl *Instance) Readline() (string, error) {
 		// Check if completions are nil and that we currently are in modeTabCompletion.
 		// If both conditions are true, we should not wait to reset the tab completion engine,
 		// or ensure it does not bother any user input going on.
-		cur := rl.getCurrentGroup()
-		if cur == nil {
-			rl.clearHelpers()
-			rl.resetTabCompletion()
-			rl.renderHelpers()
-			continue
-		}
-		cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
-
-		// We have added a few checks here, because sometimes the suggestions
-		// don't catch up and we have a runtime error: index out of range [0] with length 0
-		// This means we have no suggestions to select, or that the suggestion is an empty string.
-		if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
-			rl.clearHelpers()
-			rl.resetTabCompletion()
-			rl.renderHelpers()
-			continue
-		}
+		// cur := rl.getCurrentGroup()
+		// if cur == nil {
+		//         rl.clearHelpers()
+		//         rl.resetTabCompletion()
+		//         rl.renderHelpers()
+		//         continue
+		// }
+		// cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
+		//
+		// // We have added a few checks here, because sometimes the suggestions
+		// // don't catch up and we have a runtime error: index out of range [0] with length 0
+		// // This means we have no suggestions to select, or that the suggestion is an empty string.
+		// if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
+		//         rl.clearHelpers()
+		//         rl.resetTabCompletion()
+		//         rl.renderHelpers()
+		//         continue
+		// }
 
 		//if !rl.viUndoSkipAppend {
 		//	rl.viUndoHistory = append(rl.viUndoHistory, rl.line)
