@@ -136,6 +136,7 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 	hist = make([]*CompletionGroup, 1)
 	hist[0] = &CompletionGroup{
 		DisplayType: TabDisplayMap,
+		MaxLength:   10,
 	}
 
 	// Switch to completion flux first
