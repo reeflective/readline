@@ -27,6 +27,11 @@ const (
 )
 
 func (rl *Instance) vi(r rune) {
+
+	// We are here in Normal mode, so that we
+	// We need this set to the last command, so that we can access it quickly
+	// rl.histPos = rl.History.Len()
+
 	switch r {
 	case 'a':
 		if len(rl.line) > 0 {
@@ -215,28 +220,50 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 		rl.moveCursorByAdjust(rl.viJumpBracket())
 
-	// Added quick command history navigation
+	// Added quick command history navigation (down)
 	case 'j':
-	case 'k':
-		if rl.History.Len() > 0 {
-			line, err := rl.History.GetLine(rl.histPos - 1)
-			if err != nil {
-				return
-			}
-			// if !rl.mainHist {
-			//         line, err = rl.AltHistory.GetLine(rl.AltHistory.Len() - 1)
-			//         if err != nil {
-			//                 return
-			//         }
-			// }
+		// Safeguard
+		if rl.History.Len() == 0 {
+			return
+		}
 
-			// tokens, _, _ := tokeniseSplitSpaces([]rune(line), 0)
-			// pos := int(r[1]) - 48 // convert ASCII to integer
-			// if pos > len(tokens) {
-			//         return
-			// }
+		// If we have counter = 1, it means either:
+		// - We just entered Normal mode, and therefore we might ask for the next (last)
+		// line of history.
+		// - We already have navigated back and forth in history and the last occurence is
+		// currently printed, so we just clear line
+		if rl.histNavIdx == 0 {
+			rl.clearLine()
+		}
+	// Added quick command history navigation (up)
+	case 'k':
+		// Safeguard
+		if rl.History.Len() == 0 {
+			return
+		}
+
+		rl.histNavIdx++ // We increase for getting next occurence in hist.
+
+		line, err := rl.History.GetLine(rl.History.Len() - rl.histNavIdx)
+		if err != nil {
+			return
+		}
+
+		if len(line) > 0 {
 			rl.insert([]rune(line))
 		}
+		// if !rl.mainHist {
+		//         line, err = rl.AltHistory.GetLine(rl.AltHistory.Len() - 1)
+		//         if err != nil {
+		//                 return
+		//         }
+		// }
+
+		// tokens, _, _ := tokeniseSplitSpaces([]rune(line), 0)
+		// pos := int(r[1]) - 48 // convert ASCII to integer
+		// if pos > len(tokens) {
+		//         return
+		// }
 	default:
 		if r <= '9' && '0' <= r {
 			rl.viIteration += string(r)

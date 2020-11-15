@@ -35,8 +35,10 @@ func (rl *Instance) Readline() (string, error) {
 	} else {
 		rl.histPos = rl.AltHistory.Len()
 	}
-	rl.histPos = rl.History.Len()
 	rl.modeViMode = vimInsert
+
+	// We need this set to the last command, so that we can access it quickly
+	rl.histPos = rl.History.Len()
 
 	rl.computePrompt() // initialise the prompt for first print
 
@@ -310,6 +312,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 				rl.pos--
 				moveCursorBackwards(1)
 			}
+
 			rl.modeViMode = vimKeys
 			rl.viIteration = ""
 			//rl.viHintVimKeys()
@@ -458,6 +461,9 @@ func (rl *Instance) editorInput(r []rune) {
 		rl.refreshVimStatus()
 
 	default:
+		// We reset the history nav counter each time we come here:
+		// We don't need it when inserting text.
+		rl.histNavIdx = 0
 		rl.insert(r)
 	}
 
