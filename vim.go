@@ -220,22 +220,22 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 		rl.moveCursorByAdjust(rl.viJumpBracket())
 
-	// Added quick command history navigation (down)
+	// Command history navigation (down)
 	case 'j':
-		// Safeguard
-		if rl.History.Len() == 0 {
+		// Safeguard: if we already are at beginning of hist, we cannot invent it anew.
+		if rl.History.Len() == 0 || rl.histNavIdx == 0 {
 			return
 		}
 
-		// If we have counter = 1, it means either:
-		// - We just entered Normal mode, and therefore we might ask for the next (last)
-		// line of history.
-		// - We already have navigated back and forth in history and the last occurence is
-		// currently printed, so we just clear line
+		rl.histNavIdx-- // Decrease counter.
+
+		// If counter is nil, the last occurence is currently printed, so we just clear line
 		if rl.histNavIdx == 0 {
 			rl.clearLine()
+			return
 		}
-	// Added quick command history navigation (up)
+
+	// Command history navigation (up)
 	case 'k':
 		// Safeguard
 		if rl.History.Len() == 0 {
@@ -250,6 +250,7 @@ func (rl *Instance) vi(r rune) {
 		}
 
 		if len(line) > 0 {
+			rl.clearLine()
 			rl.insert([]rune(line))
 		}
 		// if !rl.mainHist {
