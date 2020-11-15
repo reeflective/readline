@@ -99,9 +99,9 @@ func (rl *Instance) getTabSearchCompletion() {
 	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
 
 	// Handle empty list
-	if len(rl.tcGroups) == 0 {
-		return
-	}
+	// if len(rl.tcGroups) == 0 {
+	//         return
+	// }
 
 	for _, g := range rl.tcGroups {
 		g.updateTabFind(rl)
