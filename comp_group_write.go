@@ -16,11 +16,6 @@ func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
 		return
 	}
 
-	// Because some completion groups might have more suggestions
-	// than what their MaxLength allows them to. So the cycling
-	// sometimes occur, but does not fully clears itself: some descriptions
-	// are messed up with. We always clear the screen as a result, between writings.
-
 	// Depending on display type we produce the approriate string
 	switch g.DisplayType {
 
@@ -77,12 +72,11 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 
 	// Add the equivalent of this group's size to final screen clearing.
 	// This is either the max allowed print size for this group, or its actual size if inferior.
-	rl.tcUsedY += y + 1
-	// if g.MaxLength > y {
-	//         rl.tcUsedY += g.MaxLength + 1 // + 1 for title
-	// } else {
-	//         rl.tcUsedY += y + 1
-	// }
+	if g.MaxLength > y {
+		rl.tcUsedY += g.MaxLength + 1 // + 1 for title
+	} else {
+		rl.tcUsedY += y + 1
+	}
 
 	return
 }
@@ -148,11 +142,6 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	} else {
 		rl.tcUsedY += len(g.Suggestions) + 1
 	}
-	// if len(g.Suggestions) < g.tcMaxX {
-	//         rl.tcUsedY += len(g.Suggestions) + 1 // + 1 for title
-	// } else {
-	//         rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
-	// }
 
 	return
 }
@@ -223,19 +212,24 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	}
 
 	// Add the equivalent of this group's size to final screen clearing
-	if len(g.Suggestions) < g.tcMaxX {
-		if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
-			rl.tcUsedY += len(g.Suggestions)
-		} else {
-			rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
-		}
+	if len(g.Suggestions) > g.MaxLength {
+		rl.tcUsedY += g.MaxLength + 1
 	} else {
-		if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
-			rl.tcUsedY += len(g.Suggestions)
-		} else {
-			rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
-		}
+		rl.tcUsedY += len(g.Suggestions) + 1
 	}
+	// if len(g.Suggestions) < g.tcMaxX {
+	//         if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
+	//                 rl.tcUsedY += len(g.Suggestions)
+	//         } else {
+	//                 rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+	//         }
+	// } else {
+	//         if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
+	//                 rl.tcUsedY += len(g.Suggestions)
+	//         } else {
+	//                 rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+	//         }
+	// }
 
 	return
 }
