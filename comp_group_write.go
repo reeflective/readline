@@ -70,11 +70,15 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 			comp += seqBgWhite + seqFgBlack
 		}
 		comp += fmt.Sprintf(" %-"+cellWidth+"s %s", g.Suggestions[i], seqReset)
-		// comp += fmt.Sprintf(" %-"+cellWidth+"s %s", rl.tcPrefix+g.Suggestions[i], seqReset)
 	}
 
-	// Add the equivalent of this group's size to final screen clearing
-	rl.tcUsedY += y + 1 // + 1 for title
+	// Add the equivalent of this group's size to final screen clearing.
+	// This is either the max allowed print size for this group, or its actual size if inferior.
+	if g.MaxLength > y {
+		rl.tcUsedY += g.MaxLength + 1 // + 1 for title
+	} else {
+		rl.tcUsedY += y + 1
+	}
 
 	return
 }
