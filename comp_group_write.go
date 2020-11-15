@@ -124,7 +124,6 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 		}
 
 		item = g.Suggestions[i]
-		// item = rl.tcPrefix + g.Suggestions[i]
 
 		if len(item) > maxLength {
 			item = item[:maxLength-3] + "..."
@@ -140,11 +139,16 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	}
 
 	// Add the equivalent of this group's size to final screen clearing
-	if len(g.Suggestions) < g.tcMaxX {
-		rl.tcUsedY += len(g.Suggestions) + 1 // + 1 for title
+	if len(g.Suggestions) > g.MaxLength {
+		rl.tcUsedY = g.MaxLength + 1
 	} else {
-		rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+		rl.tcUsedY = len(g.Suggestions)
 	}
+	// if len(g.Suggestions) < g.tcMaxX {
+	//         rl.tcUsedY += len(g.Suggestions) + 1 // + 1 for title
+	// } else {
+	//         rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
+	// }
 
 	return
 }
