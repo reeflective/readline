@@ -155,6 +155,7 @@ func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
 		// Find first group that has list > 0, as another checkup
 		for _, g := range rl.tcGroups {
 			if len(g.Suggestions) > 0 {
+				g.isCurrent = true // Might be used by code not calling here.
 				return g
 			}
 		}
