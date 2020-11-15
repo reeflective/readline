@@ -228,17 +228,25 @@ func (rl *Instance) vi(r rune) {
 		}
 
 		rl.histNavIdx-- // Decrease counter.
-
 		// If counter is nil, the last occurence is currently printed, so we just clear line
 		if rl.histNavIdx == 0 {
 			rl.clearLine()
 			return
 		}
 
+		// Else print the corresponding next occurence
+		line, err := rl.History.GetLine(rl.History.Len() - rl.histNavIdx)
+		if err != nil {
+			return
+		}
+		if len(line) > 0 {
+			rl.clearLine()
+			rl.insert([]rune(line))
+		}
 	// Command history navigation (up)
 	case 'k':
-		// Safeguard
-		if rl.History.Len() == 0 {
+		// Safeguard: we cannot go further than the length of Main History.
+		if rl.History.Len() == 0 || rl.histNavIdx >= rl.History.Len() {
 			return
 		}
 
@@ -253,24 +261,11 @@ func (rl *Instance) vi(r rune) {
 			rl.clearLine()
 			rl.insert([]rune(line))
 		}
-		// if !rl.mainHist {
-		//         line, err = rl.AltHistory.GetLine(rl.AltHistory.Len() - 1)
-		//         if err != nil {
-		//                 return
-		//         }
-		// }
-
-		// tokens, _, _ := tokeniseSplitSpaces([]rune(line), 0)
-		// pos := int(r[1]) - 48 // convert ASCII to integer
-		// if pos > len(tokens) {
-		//         return
-		// }
 	default:
 		if r <= '9' && '0' <= r {
 			rl.viIteration += string(r)
 		}
 		rl.viUndoSkipAppend = true
-
 	}
 }
 
