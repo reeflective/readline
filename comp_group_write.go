@@ -140,9 +140,9 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 
 	// Add the equivalent of this group's size to final screen clearing
 	if len(g.Suggestions) > g.MaxLength {
-		rl.tcUsedY = g.MaxLength + 1
+		rl.tcUsedY += g.MaxLength + 1
 	} else {
-		rl.tcUsedY = len(g.Suggestions)
+		rl.tcUsedY += len(g.Suggestions)
 	}
 	// if len(g.Suggestions) < g.tcMaxX {
 	//         rl.tcUsedY += len(g.Suggestions) + 1 // + 1 for title
