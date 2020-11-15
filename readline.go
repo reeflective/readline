@@ -198,7 +198,7 @@ func (rl *Instance) Readline() (string, error) {
 		case '\r':
 			fallthrough
 		case '\n':
-			if rl.modeTabCompletion {
+			if rl.modeTabCompletion && !rl.modeTabFind {
 				cur := rl.getCurrentGroup()
 				// Check that there is a group indeed, as we might have no completions.
 				// NOTE: When we find that there are neither available groups, empty groups or
@@ -216,9 +216,9 @@ func (rl *Instance) Readline() (string, error) {
 				// don't catch up and we have a runtime error: index out of range [0] with length 0
 				// This means we have no suggestions to select, or that the suggestion is an empty string.
 				if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
-					rl.clearHelpers()
-					rl.resetTabCompletion()
-					rl.renderHelpers()
+					// rl.clearHelpers()
+					// rl.resetTabCompletion()
+					// rl.renderHelpers()
 					continue
 				} else {
 					// Here we have added len([tl.tcPrefix]) so that we don't have to
