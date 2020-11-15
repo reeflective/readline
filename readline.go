@@ -32,7 +32,7 @@ func (rl *Instance) Readline() (string, error) {
 	rl.pos = 0
 	if rl.mainHist {
 		rl.histPos = rl.History.Len()
-	} else {
+	} else if rl.AltHistory != nil {
 		rl.histPos = rl.AltHistory.Len()
 	}
 	rl.modeViMode = vimInsert

@@ -16,6 +16,11 @@ func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
 		return
 	}
 
+	// Because some completion groups might have more suggestions
+	// than what their MaxLength allows them to. So the cycling
+	// sometimes occur, but does not fully clears itself: some descriptions
+	// are messed up with. We always clear the screen as a result, between writings.
+
 	// Depending on display type we produce the approriate string
 	switch g.DisplayType {
 
@@ -41,9 +46,7 @@ func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
 func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 
 	// Print group title
-	comp += fmt.Sprintf("\n%s%s%s %s\n", tui.BOLD, tui.YELLOW, g.Name, tui.RESET)
-
-	// print(seqClearScreenBelow + "\r\n") // might need to be conditional, like first group only
+	comp += fmt.Sprintf("\n %s%s%s %s\n", tui.BOLD, tui.YELLOW, g.Name, tui.RESET)
 
 	cellWidth := strconv.Itoa((GetTermWidth() / g.tcMaxX) - 2)
 	x := 0
@@ -74,11 +77,12 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 
 	// Add the equivalent of this group's size to final screen clearing.
 	// This is either the max allowed print size for this group, or its actual size if inferior.
-	if g.MaxLength > y {
-		rl.tcUsedY += g.MaxLength + 1 // + 1 for title
-	} else {
-		rl.tcUsedY += y + 1
-	}
+	rl.tcUsedY += y + 1
+	// if g.MaxLength > y {
+	//         rl.tcUsedY += g.MaxLength + 1 // + 1 for title
+	// } else {
+	//         rl.tcUsedY += y + 1
+	// }
 
 	return
 }
@@ -87,7 +91,7 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 
 	// Print group title (changes with line returns depending on type)
-	comp += fmt.Sprintf("\n%s%s%s %s", tui.BOLD, tui.YELLOW, g.Name, tui.RESET)
+	comp += fmt.Sprintf("\n %s%s%s %s", tui.BOLD, tui.YELLOW, g.Name, tui.RESET)
 
 	termWidth := GetTermWidth()
 	if termWidth < 20 {
@@ -163,7 +167,7 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 		}
 	} else {
 		// Print group title (changes with line returns depending on type)
-		comp += fmt.Sprintf("\n%s%s%s %s", tui.BOLD, tui.YELLOW, g.Name, tui.RESET)
+		comp += fmt.Sprintf("\n %s%s%s %s", tui.BOLD, tui.YELLOW, g.Name, tui.RESET)
 	}
 
 	termWidth := GetTermWidth()

@@ -156,14 +156,15 @@ var coreCommands = readline.CompletionGroup{
 var adminCommands = readline.CompletionGroup{
 	Name:        "administrator commands",
 	Description: "All commands for managing permissions and other users",
-	Suggestions: []string{"add_user", "delete_user", "chown", "chmod", "server"},
+	Suggestions: []string{"multiplayer", "delete_user", "jobs", "chown", "chmod", "server"},
 	Descriptions: map[string]string{
-		"add_user":    "Enter the compiler menu, for implant setup and compilation",
-		"delete_user": "Asynchronous server jobs",
+		"multiplayer": "Start multiplayer mode on this server",
+		"delete_user": "Delete a user from the server",
+		"jobs":        "Asynchronous server jobs",
 		"chown":       "Change owner of an implant",
 		"chmod":       "Change permissions for an implant",
 		"server":      "Server admin commands, for requiring editing"},
-	MaxLength:   20,
+	MaxLength:   3,
 	DisplayType: readline.TabDisplayList,
 }
 

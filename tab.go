@@ -29,7 +29,7 @@ const (
 )
 
 // getTabCompletion - This root function sets up all completion items and engines,
-// dealing with all search and completion modes. It also sets/checks various values.
+// dealing with all search and completion modes.
 func (rl *Instance) getTabCompletion() {
 	rl.tcOffset = 0
 
@@ -88,6 +88,13 @@ func (rl *Instance) writeTabCompletion() {
 		completions += group.writeCompletion(rl)
 	}
 
+	// Because some completion groups might have more suggestions
+	// than what their MaxLength allows them to. So the cycling
+	// sometimes occur, but does not fully clears itself: some descriptions
+	// are messed up with. We always clear the screen as a result, between writings.
+	print(seqClearScreenBelow) // might need to be conditional, like first group only
+	// print(seqClearScreenBelow + "\r\n") // might need to be conditional, like first group only
+
 	// Then we print all of them.
 	fmt.Printf(completions)
 }
@@ -140,7 +147,6 @@ func (rl *Instance) getNormalCompletion() {
 		return
 	}
 	rl.getCurrentGroup()
-	// rl.tcGroups[0].isCurrent = true
 }
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
@@ -164,13 +170,13 @@ func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
 }
 
 // getScreenCleanSize - not used
-func (rl *Instance) getScreenCleanSize() (size int) {
-	for _, g := range rl.tcGroups {
-		size++ // Group title
-		size += g.tcPosY
-	}
-	return
-}
+// func (rl *Instance) getScreenCleanSize() (size int) {
+//         for _, g := range rl.tcGroups {
+//                 size++ Group title
+//                 size += g.tcPosY
+//         }
+//         return
+// }
 
 func (rl *Instance) resetTabCompletion() {
 	rl.modeTabCompletion = false
