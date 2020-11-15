@@ -58,8 +58,7 @@ func (rl *Instance) getTabCompletion() {
 	}
 	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 
-	rl.getCurrentGroup()
-	// rl.tcGroups[0].isCurrent = true // Init this for starting comp select somewhere
+	// rl.getCurrentGroup()
 
 	// Init/Setup all groups with their priting details
 	for _, group := range rl.tcGroups {
@@ -98,10 +97,11 @@ func (rl *Instance) getTabSearchCompletion() {
 
 	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
 
-	// Handle empty list
-	// if len(rl.tcGroups) == 0 {
-	//         return
-	// }
+	// Handle empty list and make sure there is a current group
+	if len(rl.tcGroups) == 0 {
+		return
+	}
+	rl.getCurrentGroup() //
 
 	for _, g := range rl.tcGroups {
 		g.updateTabFind(rl)
@@ -112,10 +112,12 @@ func (rl *Instance) getTabSearchCompletion() {
 func (rl *Instance) getHistorySearchCompletion() {
 	rl.tcGroups = rl.completeHistory() // Refresh full list each time
 
-	// Handle empty list
+	// Handle empty list and make sure there is a current group
 	if len(rl.tcGroups) == 0 {
 		return
 	}
+	rl.getCurrentGroup()
+
 	rl.tcGroups[0].DisplayType = TabDisplayMap // History is always shown as map
 
 	if len(rl.tcGroups[0].Suggestions) == 0 {
@@ -137,7 +139,8 @@ func (rl *Instance) getNormalCompletion() {
 	if len(rl.tcGroups) == 0 {
 		return
 	}
-	rl.tcGroups[0].isCurrent = true
+	rl.getCurrentGroup()
+	// rl.tcGroups[0].isCurrent = true
 }
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
