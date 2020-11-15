@@ -198,7 +198,8 @@ func (rl *Instance) Readline() (string, error) {
 		case '\r':
 			fallthrough
 		case '\n':
-			if rl.modeTabCompletion && !rl.modeTabFind {
+			if rl.modeTabCompletion {
+				// if rl.modeTabCompletion && !rl.modeTabFind {
 				cur := rl.getCurrentGroup()
 				// Check that there is a group indeed, as we might have no completions.
 				// NOTE: When we find that there are neither available groups, empty groups or

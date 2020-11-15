@@ -37,11 +37,6 @@ func (rl *Instance) getTabCompletion() {
 		return // No completions to offer
 	}
 
-	// Populate for History search if in this mode
-	if rl.modeAutoFind && rl.searchMode == HistoryFind {
-		rl.getHistorySearchCompletion()
-	}
-
 	// Populate for completion search if in this mode
 	if rl.searchMode == CompletionFind {
 		rl.getTabSearchCompletion()
@@ -52,13 +47,17 @@ func (rl *Instance) getTabCompletion() {
 		rl.getNormalCompletion()
 	}
 
+	// Populate for History search if in this mode
+	if rl.modeAutoFind && rl.searchMode == HistoryFind {
+		rl.getHistorySearchCompletion()
+	}
+
 	// If no completions available, return
 	if len(rl.tcGroups) == 0 {
 		return
+	} else {
+		rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 	}
-	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
-
-	// rl.getCurrentGroup()
 
 	// Init/Setup all groups with their priting details
 	for _, group := range rl.tcGroups {
@@ -70,13 +69,8 @@ func (rl *Instance) getTabCompletion() {
 // writeTabCompletion - Prints all completion groups and their items
 func (rl *Instance) writeTabCompletion() {
 
-	// We adjust for a supplementary prompt line
-	// It NEEDS to precede the following line, because its effect is immediate
-	if rl.Multiline {
-		rl.tcUsedY++
-	}
 	// This stablizes the completion printing just beyond the input line
-	rl.tcUsedY -= rl.tcUsedY
+	rl.tcUsedY = 0
 
 	if !rl.modeTabCompletion {
 		return
@@ -89,11 +83,10 @@ func (rl *Instance) writeTabCompletion() {
 	}
 
 	// Because some completion groups might have more suggestions
-	// than what their MaxLength allows them to. So the cycling
-	// sometimes occur, but does not fully clears itself: some descriptions
-	// are messed up with. We always clear the screen as a result, between writings.
-	print(seqClearScreenBelow) // might need to be conditional, like first group only
-	// print(seqClearScreenBelow + "\r\n") // might need to be conditional, like first group only
+	// than what their MaxLength allows them to, cycling sometimes occur,
+	// but does not fully clears itself: some descriptions are messed up with.
+	// We always clear the screen as a result, between writings.
+	print(seqClearScreenBelow)
 
 	// Then we print all of them.
 	fmt.Printf(completions)
@@ -101,14 +94,12 @@ func (rl *Instance) writeTabCompletion() {
 
 // getTabSearchCompletion - Populates and sets up completion for completion search
 func (rl *Instance) getTabSearchCompletion() {
-
 	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
-
-	// Handle empty list and make sure there is a current group
 	if len(rl.tcGroups) == 0 {
 		return
 	}
-	rl.getCurrentGroup() //
+	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
+	rl.getCurrentGroup()                     // Make sure there is a current group
 
 	for _, g := range rl.tcGroups {
 		g.updateTabFind(rl)
@@ -118,14 +109,11 @@ func (rl *Instance) getTabSearchCompletion() {
 // getHistorySearchCompletion - Populates and sets up completion for command history search
 func (rl *Instance) getHistorySearchCompletion() {
 	rl.tcGroups = rl.completeHistory() // Refresh full list each time
-
-	// Handle empty list and make sure there is a current group
 	if len(rl.tcGroups) == 0 {
 		return
 	}
-	rl.getCurrentGroup()
-
-	rl.tcGroups[0].DisplayType = TabDisplayMap // History is always shown as map
+	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
+	rl.getCurrentGroup()                     // Make sure there is a current group
 
 	if len(rl.tcGroups[0].Suggestions) == 0 {
 		rl.hintText = []rune(fmt.Sprintf("%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET))
@@ -141,12 +129,11 @@ func (rl *Instance) getHistorySearchCompletion() {
 // getNormalCompletion - Populates and sets up completion for normal comp mode
 func (rl *Instance) getNormalCompletion() {
 	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
-
-	// Handle empty list
 	if len(rl.tcGroups) == 0 {
 		return
 	}
-	rl.getCurrentGroup()
+	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
+	rl.getCurrentGroup()                     // Make sure there is a current group
 }
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
@@ -168,15 +155,6 @@ func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
 	}
 	return
 }
-
-// getScreenCleanSize - not used
-// func (rl *Instance) getScreenCleanSize() (size int) {
-//         for _, g := range rl.tcGroups {
-//                 size++ Group title
-//                 size += g.tcPosY
-//         }
-//         return
-// }
 
 func (rl *Instance) resetTabCompletion() {
 	rl.modeTabCompletion = false

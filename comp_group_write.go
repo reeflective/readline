@@ -67,12 +67,12 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 		if (x == g.tcPosX && y == g.tcPosY) && (g.isCurrent) {
 			comp += seqBgWhite + seqFgBlack
 		}
-		comp += fmt.Sprintf(" %-"+cellWidth+"s %s", g.Suggestions[i], seqReset)
+		comp += fmt.Sprintf("%-"+cellWidth+"s %s", g.Suggestions[i], seqReset)
 	}
 
 	// Add the equivalent of this group's size to final screen clearing.
 	// This is either the max allowed print size for this group, or its actual size if inferior.
-	if g.MaxLength > y {
+	if g.MaxLength < y {
 		rl.tcUsedY += g.MaxLength + 1 // + 1 for title
 	} else {
 		rl.tcUsedY += y + 1
@@ -104,8 +104,6 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	cellWidth := strconv.Itoa(maxLength)
 	y := 0
 
-	// print(seqClearScreenBelow) // might need to be conditional, like first group only
-
 	// Highlighting function
 	highlight := func(y int) string {
 		if y == g.tcPosY && g.isCurrent {
@@ -132,7 +130,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 			description = description[:maxDescWidth-3] + "..."
 		}
 
-		comp += fmt.Sprintf("\r\n%s %-"+cellWidth+"s %s %s",
+		comp += fmt.Sprintf("\r\n%s%-"+cellWidth+"s %s %s",
 			highlight(y), item, seqReset, description)
 	}
 
@@ -177,8 +175,6 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	itemWidth := strconv.Itoa(maxDescWidth)
 	y := 0
 
-	// print(seqClearScreenBelow) // might need to be conditional, like first group only
-
 	// Highlighting function
 	highlight := func(y int) string {
 		if y == g.tcPosY && g.isCurrent {
@@ -196,7 +192,6 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 		}
 
 		item = g.Suggestions[i]
-		// item = rl.tcPrefix + g.Suggestions[i]
 
 		if len(item) > maxDescWidth {
 			item = item[:maxDescWidth-3] + "..."
@@ -207,7 +202,7 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 			description = description[:maxLength-3] + "..."
 		}
 
-		comp += fmt.Sprintf("\r\n %-"+cellWidth+"s %s %-"+itemWidth+"s %s",
+		comp += fmt.Sprintf("\r\n%-"+cellWidth+"s %s %-"+itemWidth+"s %s",
 			description, highlight(y), item, seqReset)
 	}
 
@@ -217,19 +212,11 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	} else {
 		rl.tcUsedY += len(g.Suggestions) + 1
 	}
-	// if len(g.Suggestions) < g.tcMaxX {
-	//         if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
-	//                 rl.tcUsedY += len(g.Suggestions)
-	//         } else {
-	//                 rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
-	//         }
-	// } else {
-	//         if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
-	//                 rl.tcUsedY += len(g.Suggestions)
-	//         } else {
-	//                 rl.tcUsedY += g.tcMaxY + 1 // + 1 for title
-	//         }
-	// }
+
+	// Special case: history search handles titles differently.
+	if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
+		rl.tcUsedY--
+	}
 
 	return
 }

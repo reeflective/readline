@@ -27,9 +27,7 @@ func (g *CompletionGroup) initGrid(rl *Instance) {
 	tcMaxLength := 1
 	for i := range g.Suggestions {
 		if len(g.Suggestions[i]) > tcMaxLength {
-			// if len(rl.tcPrefix+g.Suggestions[i]) > tcMaxLength {
 			tcMaxLength = len([]rune(g.Suggestions[i]))
-			// tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
 		}
 	}
 
@@ -48,7 +46,7 @@ func (g *CompletionGroup) initGrid(rl *Instance) {
 
 }
 
-// initMap - Map display details
+// initMap - Map & List display details
 func (g *CompletionGroup) initMap(rl *Instance) {
 
 	// We make the map anyway, especially if we need to use it later
@@ -63,9 +61,7 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 	for i := range g.Suggestions {
 		if g.DisplayType == TabDisplayList {
 			if len(g.Suggestions[i]) > g.tcMaxLength {
-				// if len(rl.tcPrefix+g.Suggestions[i]) > g.tcMaxLength {
 				g.tcMaxLength = len([]rune(g.Suggestions[i]))
-				// g.tcMaxLength = len([]rune(rl.tcPrefix + g.Suggestions[i]))
 			}
 		} else {
 			if len(g.Descriptions[g.Suggestions[i]]) > g.tcMaxLength {

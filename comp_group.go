@@ -36,6 +36,7 @@ func (g *CompletionGroup) updateTabFind(rl *Instance) {
 
 	suggs := make([]string, 0)
 
+	// We perform filter right here, so we create a new completion group, and populate it with our results.
 	for i := range g.Suggestions {
 		if rl.regexSearch.MatchString(g.Suggestions[i]) {
 			suggs = append(suggs, g.Suggestions[i])
@@ -59,8 +60,7 @@ func (g *CompletionGroup) checkCycle(rl *Instance) {
 		g.allowCycle = true
 	}
 
-	// 5 different groups might be a good but conservative beginning.
-	if len(rl.tcGroups) >= 5 {
+	if len(rl.tcGroups) >= 10 {
 		g.allowCycle = false
 	}
 
@@ -72,12 +72,11 @@ func (g *CompletionGroup) checkMaxLength(rl *Instance) {
 	// This means the user forgot to set it
 	if g.MaxLength == 0 {
 		if len(rl.tcGroups) < 5 {
-			g.MaxLength = 10
+			g.MaxLength = 20
 		}
 
-		// 5 different groups might be a good but conservative beginning.
 		if len(rl.tcGroups) >= 5 {
-			g.MaxLength = 7
+			g.MaxLength = 20
 		}
 	}
 }

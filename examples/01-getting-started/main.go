@@ -165,7 +165,7 @@ var adminCommands = readline.CompletionGroup{
 		"chmod":       "Change permissions for an implant",
 		"server":      "Server admin commands, for requiring editing"},
 	MaxLength:   3,
-	DisplayType: readline.TabDisplayList,
+	DisplayType: readline.TabDisplayMap,
 }
 
 var processes = readline.CompletionGroup{

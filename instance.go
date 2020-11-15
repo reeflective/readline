@@ -118,7 +118,7 @@ type Instance struct {
 	tcMaxLength       int
 
 	// Tab Find
-	modeTabFind  bool           // This does not change, because we will seach in all options, no matter the group
+	modeTabFind  bool           // This does not change, because we will search in all options, no matter the group
 	tfLine       []rune         // The current search pattern entered
 	modeAutoFind bool           // for when invoked via ^R or ^F outside of [tab]
 	searchMode   FindMode       // Used for varying hints, and underlying functions called
