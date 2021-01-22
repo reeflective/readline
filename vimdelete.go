@@ -32,6 +32,9 @@ func (rl *Instance) vimDelete(r []rune) {
 	case '%':
 		rl.viDeleteByAdjust(rl.viJumpBracket())
 
+	case '$':
+		rl.viDeleteByAdjust(len(rl.line) - rl.pos)
+
 	case 27:
 		if len(r) > 1 && '1' <= r[1] && r[1] <= '9' {
 			if rl.vimDeleteToken(r[1]) {

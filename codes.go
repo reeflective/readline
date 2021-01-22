@@ -58,6 +58,7 @@ const (
 	seqClearLineBefore  = "\x1b[1k"
 	seqClearLine        = "\x1b[2k"
 	seqClearScreenBelow = "\x1b[0J"
+	seqClearScreen      = "\x1b[H" // Clears screen and places cursor on top-left
 
 	seqGetCursorPos = "\x1b6n" // response: "\x1b{Line};{Column}R"
 )
@@ -110,4 +111,9 @@ const (
 	seqBgMagentaBright = "\x1b[1;45m"
 	seqBgCyanBright    = "\x1b[1;46m"
 	seqBgWhiteBright   = "\x1b[1;47m"
+)
+
+// Xterm 256 colors
+const (
+	seqCtermFg255 = "\033[48;5;255m"
 )

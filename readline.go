@@ -195,6 +195,16 @@ func (rl *Instance) Readline() (string, error) {
 			rl.renderHelpers()
 			rl.viUndoSkipAppend = true
 
+		// Clear the entire screen. Reprints completions if they were shown.
+		case charCtrlL:
+			print(seqClearScreen)
+			fmt.Println(rl.prompt)
+			print(seqClearScreenBelow)
+
+			rl.resetHintText()
+			rl.getHintText()
+			rl.renderHelpers()
+
 		case '\r':
 			fallthrough
 		case '\n':
@@ -217,15 +227,11 @@ func (rl *Instance) Readline() (string, error) {
 				// don't catch up and we have a runtime error: index out of range [0] with length 0
 				// This means we have no suggestions to select, or that the suggestion is an empty string.
 				if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
-					// rl.clearHelpers()
-					// rl.resetTabCompletion()
-					// rl.renderHelpers()
 					continue
-				} else {
-					// Here we have added len([tl.tcPrefix]) so that we don't have to
-					// deal with input/completion indexing in the client application.
-					rl.insert([]rune(cur.Suggestions[cell][len(rl.tcPrefix):]))
 				}
+				// Else we have added len([tl.tcPrefix]) so that we don't have to
+				// deal with input/completion indexing in the client application.
+				rl.insert([]rune(cur.Suggestions[cell][len(rl.tcPrefix):]))
 
 				rl.clearHelpers()
 				rl.resetTabCompletion()

@@ -65,7 +65,7 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 		// We use tcPosX and tcPosY because we don't care about the other groups, they don't
 		// print anything important to us right now.
 		if (x == g.tcPosX && y == g.tcPosY) && (g.isCurrent) {
-			comp += seqBgWhite + seqFgBlack
+			comp += seqCtermFg255 + seqFgBlackBright
 		}
 		comp += fmt.Sprintf("%-"+cellWidth+"s %s", g.Suggestions[i], seqReset)
 	}
@@ -107,7 +107,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	// Highlighting function
 	highlight := func(y int) string {
 		if y == g.tcPosY && g.isCurrent {
-			return seqBgWhite + seqFgBlack
+			return seqCtermFg255 + seqFgBlackBright
 		}
 		return ""
 	}
@@ -178,7 +178,7 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	// Highlighting function
 	highlight := func(y int) string {
 		if y == g.tcPosY && g.isCurrent {
-			return seqBgWhite + seqFgBlack
+			return seqCtermFg255 + seqFgBlackBright
 		}
 		return ""
 	}

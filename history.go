@@ -180,7 +180,7 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 		hist[0].Suggestions = append(hist[0].Suggestions, line)
 		num = strconv.Itoa(i)
 
-		hist[0].Descriptions[line] = "\033[38;5;130m" + num + tui.RESET
+		hist[0].Descriptions[line] = "\033[38;5;237m" + num + tui.RESET
 	}
 
 	return
