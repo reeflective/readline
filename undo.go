@@ -1,6 +1,8 @@
 package readline
 
-import "strings"
+import (
+	"strings"
+)
 
 type undoItem struct {
 	line string
@@ -23,6 +25,7 @@ func (rl *Instance) undoAppendHistory() {
 func (rl *Instance) undoLast() {
 	var undo undoItem
 	for {
+		// fmt.Println("|", len(rl.viUndoHistory), "|")
 		if len(rl.viUndoHistory) == 0 {
 			return
 		}

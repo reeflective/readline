@@ -85,10 +85,9 @@ func (rl *Instance) walkHistory(i int) {
 	// Switch to correct history
 	var history History
 	if !rl.mainHist {
-		history = rl.History
-	}
-	if rl.mainHist {
 		history = rl.AltHistory
+	} else {
+		history = rl.History
 	}
 
 	switch rl.histPos + i {
@@ -141,11 +140,17 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 
 	// Switch to completion flux first
 	var history History
-	if rl.mainHist {
+	if !rl.mainHist {
+		if rl.AltHistory == nil {
+			return
+		}
 		history = rl.AltHistory
 		hist[0].Name = "User history (all clients)"
 		hist[0].Description = "All commands entered by the user, in all its consoles."
 	} else {
+		if rl.History == nil {
+			return
+		}
 		history = rl.History
 		hist[0].Name = "Console history"
 		hist[0].Description = "All commands for this console only (identified by its ID)."

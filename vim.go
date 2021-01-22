@@ -28,10 +28,6 @@ const (
 
 func (rl *Instance) vi(r rune) {
 
-	// We are here in Normal mode, so that we
-	// We need this set to the last command, so that we can access it quickly
-	// rl.histPos = rl.History.Len()
-
 	switch r {
 	case 'a':
 		if len(rl.line) > 0 {
@@ -175,12 +171,21 @@ func (rl *Instance) vi(r rune) {
 
 	case 'w':
 		rl.viUndoSkipAppend = true
+		// If the input line is empty, we don't do anything
+		if rl.pos == 0 && len(rl.line) == 0 {
+			return
+		}
+		// Else get iterations and move
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
 			rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
 		}
 
 	case 'W':
+		// If the input line is empty, we don't do anything
+		if rl.pos == 0 && len(rl.line) == 0 {
+			return
+		}
 		rl.viUndoSkipAppend = true
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
@@ -200,8 +205,6 @@ func (rl *Instance) vi(r rune) {
 	case 'y', 'Y':
 		rl.viYankBuffer = string(rl.line)
 		rl.viUndoSkipAppend = true
-		//rl.hintText = []rune("-- LINE YANKED --")
-		//rl.renderHelpers()
 
 	case '[':
 		rl.viUndoSkipAppend = true
@@ -220,47 +223,14 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 		rl.moveCursorByAdjust(rl.viJumpBracket())
 
-	// Command history navigation (down)
 	case 'j':
-		// Safeguard: if we already are at beginning of hist, we cannot invent it anew.
-		if rl.History.Len() == 0 || rl.histNavIdx == 0 {
-			return
-		}
-
-		rl.histNavIdx-- // Decrease counter.
-		// If counter is nil, the last occurence is currently printed, so we just clear line
-		if rl.histNavIdx == 0 {
-			rl.clearLine()
-			return
-		}
-
-		// Else print the corresponding next occurence
-		line, err := rl.History.GetLine(rl.History.Len() - rl.histNavIdx)
-		if err != nil {
-			return
-		}
-		if len(line) > 0 {
-			rl.clearLine()
-			rl.insert([]rune(line))
-		}
-	// Command history navigation (up)
+		// Set the main history as the one we navigate, by default
+		rl.mainHist = true
+		rl.walkHistory(1)
 	case 'k':
-		// Safeguard: we cannot go further than the length of Main History.
-		if rl.History.Len() == 0 || rl.histNavIdx >= rl.History.Len() {
-			return
-		}
-
-		rl.histNavIdx++ // We increase for getting next occurence in hist.
-
-		line, err := rl.History.GetLine(rl.History.Len() - rl.histNavIdx)
-		if err != nil {
-			return
-		}
-
-		if len(line) > 0 {
-			rl.clearLine()
-			rl.insert([]rune(line))
-		}
+		// Set the main history as the one we navigate, by default
+		rl.mainHist = true
+		rl.walkHistory(-1)
 	default:
 		if r <= '9' && '0' <= r {
 			rl.viIteration += string(r)

@@ -160,7 +160,7 @@ func (rl *Instance) Readline() (string, error) {
 			rl.viUndoSkipAppend = true
 
 		case charCtrlR:
-			rl.mainHist = false
+			rl.mainHist = true // false before
 			rl.searchMode = HistoryFind
 			rl.modeAutoFind = true
 			rl.tcOffset = 0
@@ -171,7 +171,7 @@ func (rl *Instance) Readline() (string, error) {
 			rl.viUndoSkipAppend = true
 
 		case charCtrlE:
-			rl.mainHist = true
+			rl.mainHist = false // true before
 			rl.searchMode = HistoryFind
 			rl.modeAutoFind = true
 			rl.tcOffset = 0
@@ -198,6 +198,7 @@ func (rl *Instance) Readline() (string, error) {
 		// Clear the entire screen. Reprints completions if they were shown.
 		case charCtrlL:
 			print(seqClearScreen)
+			print(seqCursorTopLeft)
 			fmt.Println(rl.prompt)
 			print(seqClearScreenBelow)
 
@@ -322,13 +323,13 @@ func (rl *Instance) escapeSeq(r []rune) {
 
 			rl.modeViMode = vimKeys
 			rl.viIteration = ""
-			//rl.viHintVimKeys()
-			// rl.viHintMessage()
 			rl.refreshVimStatus()
 
 			// Added by me, to refresh Vim status in prompt
 			rl.clearHelpers()
 			rl.renderHelpers()
+			//rl.viHintVimKeys()
+			// rl.viHintMessage()
 		}
 		rl.viUndoSkipAppend = true
 

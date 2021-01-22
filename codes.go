@@ -58,7 +58,8 @@ const (
 	seqClearLineBefore  = "\x1b[1k"
 	seqClearLine        = "\x1b[2k"
 	seqClearScreenBelow = "\x1b[0J"
-	seqClearScreen      = "\x1b[H" // Clears screen and places cursor on top-left
+	seqClearScreen      = "\x1b[2J" // Clears screen fully
+	seqCursorTopLeft    = "\x1b[H"  // Clears screen and places cursor on top-left
 
 	seqGetCursorPos = "\x1b6n" // response: "\x1b{Line};{Column}R"
 )

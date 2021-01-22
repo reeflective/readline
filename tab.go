@@ -55,15 +55,13 @@ func (rl *Instance) getTabCompletion() {
 	// If no completions available, return
 	if len(rl.tcGroups) == 0 {
 		return
-	} else {
-		rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 	}
+	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 
 	// Init/Setup all groups with their priting details
 	for _, group := range rl.tcGroups {
 		group.init(rl)
 	}
-
 }
 
 // writeTabCompletion - Prints all completion groups and their items
@@ -116,13 +114,20 @@ func (rl *Instance) getHistorySearchCompletion() {
 	rl.getCurrentGroup()                     // Make sure there is a current group
 
 	if len(rl.tcGroups[0].Suggestions) == 0 {
-		rl.hintText = []rune(fmt.Sprintf("%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET))
-	} else {
-		rl.histHint = []rune(rl.tcGroups[0].Name)
+		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET))
+		rl.hintText = rl.histHint
+		return
 	}
+	rl.histHint = []rune(rl.tcGroups[0].Name)
 
-	if rl.regexSearch.String() != "(?i)" {
-		rl.tcGroups[0].updateTabFind(rl) // Refresh filtered candidates
+	// if rl.regexSearch.String() != "(?i)" {
+	rl.tcGroups[0].updateTabFind(rl) // Refresh filtered candidates
+	// }
+
+	// If no items matched history, add hint text that we failed to search
+	if len(rl.tcGroups[0].Suggestions) == 0 {
+		rl.histHint = []rune(rl.tcGroups[0].Name)
+		rl.hintText = append(rl.histHint, []rune(": no matches")...)
 	}
 }
 

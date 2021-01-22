@@ -1,6 +1,8 @@
 package readline
 
-import "strings"
+import (
+	"strings"
+)
 
 func (rl *Instance) vimDelete(r []rune) {
 	defer func() { rl.modeViMode = vimKeys }()
@@ -88,12 +90,6 @@ func (rl *Instance) viDeleteByAdjust(adjust int) {
 }
 
 func (rl *Instance) vimDeleteToken(r rune) bool {
-	/*line, err := rl.History.GetLine(rl.History.Len() - 1)
-	if err != nil {
-		return false
-	}*/
-
-	//tokens, _, _ := tokeniseSplitSpaces([]rune(line), 0)
 	tokens, _, _ := tokeniseSplitSpaces(rl.line, 0)
 	pos := int(r) - 48 // convert ASCII to integer
 	if pos > len(tokens) {

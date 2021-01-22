@@ -27,7 +27,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 
 	rl.tfLine = append(rl.tfLine, r...)
 
-	if rl.mainHist {
+	if !rl.mainHist {
 		rl.histHint = []rune("User history (all clients): ")
 	} else {
 		rl.histHint = []rune("Console history: ")
@@ -46,7 +46,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 	rl.regexSearch, err = regexp.Compile("(?i)" + string(rl.tfLine))
 	if err != nil {
 		rl.hintText = []rune(tui.Red("Failed to match search regexp"))
-		return
+		// return
 	}
 
 	rl.clearHelpers()

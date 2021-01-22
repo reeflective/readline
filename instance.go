@@ -149,7 +149,7 @@ func NewInstance() *Instance {
 	rl.HistoryAutoWrite = true
 	rl.MaxTabCompleterRows = 100
 	rl.prompt = ">>> "
-	// rl.promptLen = len(rl.computePrompt()) // We need
+	rl.promptLen = len(rl.computePrompt())
 	rl.mlnArrow = []rune{' ', '>', ' '}
 	rl.HintFormatting = seqFgBlue
 	rl.evtKeyPress = make(map[string]func(string, []rune, int) *EventReturn)
