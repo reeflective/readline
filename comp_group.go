@@ -14,13 +14,19 @@ type CompletionGroup struct {
 	DisplayType  TabDisplayType    // Map, list or normal
 	MaxLength    int               // Each group can be limited in the number of comps offered
 
+	// Alternative suggestions: used when a candidate has an alternative name
+	// this applies to options, when both short and long flags are used.
+	// Index is Suggestion
+	SuggestionsAlt map[string]string
+
 	// Values used by the shell
-	tcPosX      int
-	tcPosY      int
-	tcMaxX      int
-	tcMaxY      int
-	tcOffset    int
-	tcMaxLength int // Used when display is map/list, for determining message width
+	tcPosX         int
+	tcPosY         int
+	tcMaxX         int
+	tcMaxY         int
+	tcOffset       int
+	tcMaxLength    int // Used when display is map/list, for determining message width
+	tcMaxLengthAlt int // Same as tcMaxLength but for SuggestionsAlt.
 
 	// allowCycle - is true if we want to cycle through suggestions because they overflow MaxLength
 	// This is set by the shell when it has detected this group is alone in the suggestions.
@@ -79,4 +85,35 @@ func (g *CompletionGroup) checkMaxLength(rl *Instance) {
 			g.MaxLength = 20
 		}
 	}
+}
+
+// getCurrentCell - The completion groups computes the current cell value,
+// depending on its display type and its different parameters
+func (g *CompletionGroup) getCurrentCell() string {
+
+	switch g.DisplayType {
+	case TabDisplayGrid, TabDisplayMap:
+		// x & y coodinates
+		cell := (g.tcMaxX * (g.tcPosY - 1)) + g.tcOffset + g.tcPosX - 1
+		if cell < len(g.Suggestions) {
+			return g.Suggestions[cell]
+		}
+		return ""
+
+	case TabDisplayList:
+		// The current y gives us the correct key, at least
+		sugg := g.Suggestions[g.tcOffset+g.tcPosY-1]
+
+		// If we are in the alt suggestions column, check key and return
+		if g.tcPosX == 2 {
+			if alt, ok := g.SuggestionsAlt[sugg]; ok {
+				return alt
+			}
+			return sugg // return key in case of failure
+		}
+		return sugg // Else return the suggestion itself
+	}
+
+	// We should NEVER get here
+	return ""
 }

@@ -222,17 +222,26 @@ func (rl *Instance) Readline() (string, error) {
 					rl.renderHelpers()
 					continue
 				}
-				cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
 
-				// We have added a few checks here, because sometimes the suggestions
-				// don't catch up and we have a runtime error: index out of range [0] with length 0
-				// This means we have no suggestions to select, or that the suggestion is an empty string.
-				if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
-					continue
-				}
+				completion := cur.getCurrentCell()
+				prefix := len(rl.tcPrefix)
+
 				// Else we have added len([tl.tcPrefix]) so that we don't have to
 				// deal with input/completion indexing in the client application.
-				rl.insert([]rune(cur.Suggestions[cell][len(rl.tcPrefix):]))
+				rl.insert([]rune(completion[prefix:]))
+
+				// OLD DETECTION --------------
+				// cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
+				//
+				// // We have added a few checks here, because sometimes the suggestions
+				// // don't catch up and we have a runtime error: index out of range [0] with length 0
+				// // This means we have no suggestions to select, or that the suggestion is an empty string.
+				// if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
+				//         continue
+				// }
+				// // Else we have added len([tl.tcPrefix]) so that we don't have to
+				// // deal with input/completion indexing in the client application.
+				// rl.insert([]rune(cur.Suggestions[cell][len(rl.tcPrefix):]))
 
 				rl.clearHelpers()
 				rl.resetTabCompletion()

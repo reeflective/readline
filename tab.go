@@ -185,6 +185,9 @@ func checkNilItems(groups []*CompletionGroup) (checked []*CompletionGroup) {
 		if grp.Descriptions == nil || len(grp.Descriptions) == 0 {
 			grp.Descriptions = make(map[string]string)
 		}
+		if grp.SuggestionsAlt == nil || len(grp.SuggestionsAlt) == 0 {
+			grp.SuggestionsAlt = make(map[string]string)
+		}
 		checked = append(checked, grp)
 	}
 

@@ -3,6 +3,7 @@ package readline
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/evilsocket/islazy/tui"
 )
@@ -60,10 +61,6 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 			}
 		}
 
-		// For having a highlighted choice, we might need to set a flag like:
-		// "we are currently selecting an option in this one, so highlight according to x & y"
-		// We use tcPosX and tcPosY because we don't care about the other groups, they don't
-		// print anything important to us right now.
 		if (x == g.tcPosX && y == g.tcPosY) && (g.isCurrent) {
 			comp += seqCtermFg255 + seqFgBlackBright
 		}
@@ -94,51 +91,84 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 		return
 	}
 
-	// Set all necessary dimensions
+	// Suggestion cells dimensions
 	maxLength := g.tcMaxLength
 	if maxLength > termWidth-9 {
 		maxLength = termWidth - 9
 	}
-	maxDescWidth := termWidth - maxLength - 4
-
 	cellWidth := strconv.Itoa(maxLength)
-	y := 0
 
-	// Highlighting function
-	highlight := func(y int) string {
-		if y == g.tcPosY && g.isCurrent {
+	// Alternative suggestion cells dimensions
+	maxLengthAlt := g.tcMaxLengthAlt
+	if maxLengthAlt > termWidth-9 {
+		maxLengthAlt = termWidth - 9
+	}
+	cellWidthAlt := strconv.Itoa(maxLengthAlt)
+
+	// Descriptions cells dimensions
+	maxDescWidth := termWidth - maxLength - maxLengthAlt - 4
+
+	// function highlights the cell depending on current selector place.
+	highlight := func(y int, x int) string {
+		if y == g.tcPosY && x == g.tcPosX && g.isCurrent {
 			return seqCtermFg255 + seqFgBlackBright
 		}
 		return ""
 	}
 
-	var item, description string
+	// For each line in completions
+	y := 0
 	for i := g.tcOffset; i < len(g.Suggestions); i++ {
-		y++
+		y++ // Consider next item
 		if y > g.tcMaxY {
 			break
 		}
 
-		item = g.Suggestions[i]
-
+		// Main suggestion
+		item := g.Suggestions[i]
 		if len(item) > maxLength {
 			item = item[:maxLength-3] + "..."
 		}
+		sugg := fmt.Sprintf("\r\n%s%-"+cellWidth+"s", highlight(y, 1), item)
 
-		description = g.Descriptions[g.Suggestions[i]]
+		// Alt suggestion
+		alt, ok := g.SuggestionsAlt[item]
+		if ok {
+			alt = fmt.Sprintf(" %s%"+cellWidthAlt+"s", highlight(y, 2), alt)
+		} else {
+			// Else, make an empty cell
+			alt = strings.Repeat(" ", maxLengthAlt+2) // + 2 to keep account of spaces
+		}
+
+		// Description
+		description := g.Descriptions[g.Suggestions[i]]
 		if len(description) > maxDescWidth {
 			description = description[:maxDescWidth-3] + "..."
 		}
 
-		comp += fmt.Sprintf("\r\n%s%-"+cellWidth+"s %s %s",
-			highlight(y), item, seqReset, description)
+		// Total completion line
+		comp += sugg + seqReset + alt + " " + seqReset + description
 	}
 
 	// Add the equivalent of this group's size to final screen clearing
-	if len(g.Suggestions) > g.MaxLength {
-		rl.tcUsedY += g.MaxLength + 1
-	} else {
-		rl.tcUsedY += len(g.Suggestions) + 1
+	// Cannot be set with MaxLength when printing lists
+	rl.tcUsedY += len(g.Suggestions) + 1
+
+	// Add the equivalent of this group's size to final screen clearing
+	// Can be set and used only if no alterative completions have been given.
+	// if len(g.SuggestionsAlt) == 0 {
+	//         if len(g.Suggestions) > g.MaxLength {
+	//                 rl.tcUsedY += g.MaxLength + 2 // Do is required for lists
+	//         } else {
+	//                 rl.tcUsedY += len(g.Suggestions) + 1
+	//         }
+	// } else {
+	//         rl.tcUsedY += len(g.Suggestions) + 1
+	// }
+
+	// Special case: history search handles titles differently.
+	if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
+		rl.tcUsedY--
 	}
 
 	return
@@ -150,7 +180,8 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	// Title is not printed for history
 	if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
 		if len(g.Suggestions) == 0 {
-			rl.hintText = []rune(fmt.Sprintf("\n%s%s%s %s", tui.DIM, tui.RED, "No command history source, or empty", tui.RESET))
+			rl.hintText = []rune(fmt.Sprintf("\n%s%s%s %s", tui.DIM, tui.RED,
+				"No command history source, or empty", tui.RESET))
 		}
 	} else {
 		// Print group title (changes with line returns depending on type)
@@ -186,7 +217,7 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	// String formating
 	var item, description string
 	for i := g.tcOffset; i < len(g.Suggestions); i++ {
-		y++
+		y++ // Consider new item
 		if y > g.tcMaxY {
 			break
 		}

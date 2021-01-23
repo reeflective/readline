@@ -12,18 +12,19 @@ func (g *CompletionGroup) init(rl *Instance) {
 	switch g.DisplayType {
 
 	case TabDisplayGrid:
-		g.initGrid(rl)
+		g.readyGrid(rl)
 	case TabDisplayMap:
-		g.initMap(rl)
+		g.readyMap(rl)
 	case TabDisplayList:
-		g.initMap(rl)
+		g.readyList(rl)
 	}
 }
 
-// initGrid - Grid display details
-func (g *CompletionGroup) initGrid(rl *Instance) {
+// readyGrid - Grid display details. Called each time we want to be sure to have
+// a working completion group either immediately, or later on. Generally defered.
+func (g *CompletionGroup) readyGrid(rl *Instance) {
 
-	// Max number of suggestions per line, for this group
+	// Compute size of each completion item box
 	tcMaxLength := 1
 	for i := range g.Suggestions {
 		if len(g.Suggestions[i]) > tcMaxLength {
@@ -46,27 +47,20 @@ func (g *CompletionGroup) initGrid(rl *Instance) {
 
 }
 
-// initMap - Map & List display details
-func (g *CompletionGroup) initMap(rl *Instance) {
+// readyMap - Map display details. Called each time we want to be sure to have
+// a working completion group either immediately, or later on. Generally defered.
+func (g *CompletionGroup) readyMap(rl *Instance) {
 
 	// We make the map anyway, especially if we need to use it later
 	if g.Descriptions == nil {
 		g.Descriptions = make(map[string]string)
 	}
 
-	// Max number of suggestions per line, for this group
-	// Here, we have decided that tcMaxLength is managed by group, and not rl
-	// Therefore we might have made a mistake. Keep that in mind
+	// Compute size of each completion item box. Group independent
 	g.tcMaxLength = 1
 	for i := range g.Suggestions {
-		if g.DisplayType == TabDisplayList {
-			if len(g.Suggestions[i]) > g.tcMaxLength {
-				g.tcMaxLength = len([]rune(g.Suggestions[i]))
-			}
-		} else {
-			if len(g.Descriptions[g.Suggestions[i]]) > g.tcMaxLength {
-				g.tcMaxLength = len(g.Descriptions[g.Suggestions[i]])
-			}
+		if len(g.Descriptions[g.Suggestions[i]]) > g.tcMaxLength {
+			g.tcMaxLength = len(g.Descriptions[g.Suggestions[i]])
 		}
 	}
 
@@ -74,10 +68,49 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 	g.tcPosY = 1
 	g.tcOffset = 0
 
-	g.tcMaxX = 1
+	// Number of lines allowed to be printed for group
 	if len(g.Suggestions) > g.MaxLength {
 		g.tcMaxY = g.MaxLength
 	} else {
 		g.tcMaxY = len(g.Suggestions)
 	}
+}
+
+// readyList - List display details. Because of the way alternative completions
+// are handled, MaxLength cannot be set when there are alternative completions.
+func (g *CompletionGroup) readyList(rl *Instance) {
+
+	// We may only ever have two different
+	// columns: (suggestions, and alternatives)
+	g.tcMaxX = 2
+
+	// We make the list anyway, especially if we need to use it later
+	if g.Descriptions == nil {
+		g.Descriptions = make(map[string]string)
+	}
+	if g.SuggestionsAlt == nil {
+		g.SuggestionsAlt = make(map[string]string)
+	}
+
+	// Compute size of each completion item box. Group independent
+	g.tcMaxLength = 1
+	for i := range g.Suggestions {
+		if len(g.Suggestions[i]) > g.tcMaxLength {
+			g.tcMaxLength = len([]rune(g.Suggestions[i]))
+		}
+	}
+
+	// Same for suggestions alt
+	g.tcMaxLengthAlt = 1
+	for i := range g.Suggestions {
+		if len(g.Suggestions[i]) > g.tcMaxLength {
+			g.tcMaxLength = len([]rune(g.Suggestions[i]))
+		}
+	}
+
+	g.tcPosX = 1
+	g.tcPosY = 1
+	g.tcOffset = 0
+	g.tcMaxX = 2                  // we have alternative suggs, so 2 columns
+	g.tcMaxY = len(g.Suggestions) // cannot restrict to MaxLength
 }
