@@ -11,7 +11,7 @@ import (
 // means it renders it directly where it was: it does not print a new one below.
 // The offset param can be used to adjust the number of lines to clear upward, in case there are things the
 // shell cannot know. Set offset to 0 if you don't use it.
-func (rl *Instance) RefreshMultiline(prompt string, offset int, clearLine bool) (err error) {
+func (rl *Instance) RefreshMultiline(prompt string, printPrompt bool, offset int, clearLine bool) (err error) {
 
 	if !rl.Multiline {
 		return errors.New("readline error: refresh cannot happen, prompt is not multiline")
@@ -38,8 +38,10 @@ func (rl *Instance) RefreshMultiline(prompt string, offset int, clearLine bool) 
 	moveCursorBackwards(GetTermWidth())
 	print("\r\n" + seqClearScreenBelow) // We add this to clear everything below offset.
 
-	// Then print 1st line prompt
-	fmt.Println(rl.prompt)
+	// Print first line of prompt if asked to
+	if printPrompt {
+		fmt.Println(prompt)
+	}
 
 	// Helpers take care of restituting the input line and its prompt
 	rl.renderHelpers()
