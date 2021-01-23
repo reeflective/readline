@@ -33,7 +33,7 @@ func (rl *Instance) RefreshMultiline(prompt string, offset int, clearLine bool) 
 	// Add user-provided offset
 	rl.tcUsedY += offset
 
-	print(seqCursorTopLeft) // Clear the current line, which might be longer than what's overwritten
+	print(seqClearLine) // Clear the current line, which might be longer than what's overwritten
 	moveCursorUp(rl.hintY + rl.tcUsedY)
 	moveCursorBackwards(GetTermWidth())
 	print("\r\n" + seqClearScreenBelow) // We add this to clear everything below offset.
