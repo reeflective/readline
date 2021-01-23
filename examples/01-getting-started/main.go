@@ -66,6 +66,10 @@ func Tab(input []rune, pos int) (line string, groups []*readline.CompletionGroup
 	addrs = addresses
 	groups = append(groups, &addrs)
 
+	var opts readline.CompletionGroup
+	opts = options
+	groups = append(groups, &opts)
+
 	var admin readline.CompletionGroup
 	admin = adminCommands
 	groups = append(groups, &admin)
@@ -149,7 +153,7 @@ var coreCommands = readline.CompletionGroup{
 		"module":   "Use a module (post, handler, route, exploit)",
 		"db":       "Database commands and queries",
 		"server":   "Server commands, for requiring editing"},
-	MaxLength:   20,
+	// MaxLength:   4,
 	DisplayType: readline.TabDisplayList,
 }
 
@@ -192,6 +196,38 @@ var addresses = readline.CompletionGroup{
 		"socks5://23.245.53.932:8888"},
 	MaxLength:   20,
 	DisplayType: readline.TabDisplayGrid,
+}
+
+var options = readline.CompletionGroup{
+	Name:        "long/short options",
+	Description: "All addresses known on this particular implant subnet",
+	Suggestions: []string{"--protocol",
+		"--direction",
+		"--reverse",
+		"--lhost",
+		"--forwarder",
+		"--session-id",
+		"--id",
+		"--exploit",
+		"--proxy",
+		"--close-conns"},
+	Descriptions: map[string]string{
+		"--protocol":    "Transport protocol to use",
+		"--direction":   "Direction of the forwarder",
+		"--reverse":     "Start reverse",
+		"--lhost":       "Host to reach back",
+		"--close-conns": "Close active connections",
+	},
+	SuggestionsAlt: map[string]string{
+		"--protocol":    "-p",
+		"--reverse":     "-r",
+		"--close-conns": "-c",
+		"--session-id":  "-s",
+		"--proxy":       "-x",
+		"--id":          "-i",
+	},
+	MaxLength:   5,
+	DisplayType: readline.TabDisplayList,
 }
 
 var other = readline.CompletionGroup{
