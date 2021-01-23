@@ -17,10 +17,6 @@ func (rl *Instance) RefreshMultiline(prompt string, printPrompt bool, offset int
 		return errors.New("readline error: refresh cannot happen, prompt is not multiline")
 	}
 
-	if prompt != "" {
-		rl.prompt = prompt
-	}
-
 	// We adjust cursor movement, depending on which mode we're currently in.
 	if !rl.modeTabCompletion {
 		rl.tcUsedY = 1
@@ -39,12 +35,14 @@ func (rl *Instance) RefreshMultiline(prompt string, printPrompt bool, offset int
 	print("\r\n" + seqClearScreenBelow) // We add this to clear everything below offset.
 
 	// Print first line of prompt if asked to
+	if prompt != "" {
+		rl.prompt = prompt
+	}
 	if printPrompt {
-		fmt.Println(prompt)
+		fmt.Println(rl.prompt)
+		rl.renderHelpers()
 	}
 
-	// Helpers take care of restituting the input line and its prompt
-	rl.renderHelpers()
 	// If input line was empty, check that we clear it from detritus
 	// The three lines are borrowed from clearLine(), we don't need more.
 	if clearLine {
