@@ -69,6 +69,7 @@ func (g *CompletionGroup) readyMap(rl *Instance) {
 	g.tcOffset = 0
 
 	// Number of lines allowed to be printed for group
+	g.tcMaxX = 1
 	if len(g.Suggestions) > g.MaxLength {
 		g.tcMaxY = g.MaxLength
 	} else {
