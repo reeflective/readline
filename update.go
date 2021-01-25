@@ -82,6 +82,12 @@ func (rl *Instance) computePrompt() (prompt []rune) {
 		prompt = append(prompt, rl.mlnArrow...)
 	}
 
+	// If prompt is still nil (because we don't want Vim mode),
+	// we set a normal prompt string without status.
+	if !rl.ShowVimMode {
+		prompt = append(prompt, rl.mlnArrow...)
+	}
+
 	rl.mlnPrompt = prompt
 	rl.promptLen = len(rl.mlnPrompt)
 
@@ -136,6 +142,8 @@ func moveCursorToLinePos(rl *Instance) {
 	if rl.ShowVimMode {
 		length += 3                // 3 for [N]
 		length += len(rl.mlnArrow) // 3: ' > '
+	} else {
+		length += len(rl.mlnArrow)
 	}
 
 	// move the cursor
@@ -151,11 +159,8 @@ func (rl *Instance) moveCursorByAdjust(adjust int) {
 		moveCursorBackwards(adjust * -1)
 		rl.pos += adjust
 	}
-
-	if rl.modeViMode != vimInsert && rl.pos == len(rl.line) {
-		moveCursorBackwards(1)
-		rl.pos--
-	}
+	// We might have to make a safeguard so
+	// the cursor cannot move more backward than the prompt...
 }
 
 func (rl *Instance) insert(r []rune) {

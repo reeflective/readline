@@ -30,6 +30,8 @@ func (rl *Instance) Readline() (string, error) {
 	rl.line = []rune{}
 	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
 	rl.pos = 0
+
+	// Choose the correct history for key up/down navigation.
 	if rl.mainHist {
 		rl.histPos = rl.History.Len()
 	} else if rl.AltHistory != nil {
