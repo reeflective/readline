@@ -64,6 +64,36 @@ func (rl *Instance) getTabCompletion() {
 	}
 }
 
+// getNormalCompletion - Populates and sets up completion for normal comp mode
+func (rl *Instance) getNormalCompletion() {
+	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
+	if len(rl.tcGroups) == 0 {
+		return
+	}
+	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
+	rl.getCurrentGroup()                     // Make sure there is a current group
+}
+
+func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
+	for _, g := range rl.tcGroups {
+		if g.isCurrent && len(g.Suggestions) > 0 {
+			return g
+		}
+	}
+	// We might, for whatever reason, not find one.
+	// If there are groups but no current, make first one the king.
+	if len(rl.tcGroups) > 0 {
+		// Find first group that has list > 0, as another checkup
+		for _, g := range rl.tcGroups {
+			if len(g.Suggestions) > 0 {
+				g.isCurrent = true // Might be used by code not calling here.
+				return g
+			}
+		}
+	}
+	return
+}
+
 // writeTabCompletion - Prints all completion groups and their items
 func (rl *Instance) writeTabCompletion() {
 
@@ -129,36 +159,6 @@ func (rl *Instance) getHistorySearchCompletion() {
 		rl.histHint = []rune(rl.tcGroups[0].Name)
 		rl.hintText = append(rl.histHint, []rune(": no matches")...)
 	}
-}
-
-// getNormalCompletion - Populates and sets up completion for normal comp mode
-func (rl *Instance) getNormalCompletion() {
-	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.line, rl.pos)
-	if len(rl.tcGroups) == 0 {
-		return
-	}
-	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
-	rl.getCurrentGroup()                     // Make sure there is a current group
-}
-
-func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
-	for _, g := range rl.tcGroups {
-		if g.isCurrent && len(g.Suggestions) > 0 {
-			return g
-		}
-	}
-	// We might, for whatever reason, not find one.
-	// If there are groups but no current, make first one the king.
-	if len(rl.tcGroups) > 0 {
-		// Find first group that has list > 0, as another checkup
-		for _, g := range rl.tcGroups {
-			if len(g.Suggestions) > 0 {
-				g.isCurrent = true // Might be used by code not calling here.
-				return g
-			}
-		}
-	}
-	return
 }
 
 func (rl *Instance) resetTabCompletion() {

@@ -208,6 +208,16 @@ func (rl *Instance) Readline() (string, error) {
 			rl.getHintText()
 			rl.renderHelpers()
 
+		case charCtrlG:
+			if rl.modeTabFind {
+				rl.modeTabFind = false
+				rl.modeAutoFind = false // Added, because otherwise it gets stuck on search completions
+
+				rl.clearHelpers()
+				rl.getTabCompletion()
+				rl.renderHelpers()
+			}
+
 		case '\r':
 			fallthrough
 		case '\n':

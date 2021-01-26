@@ -95,11 +95,10 @@ func (g *CompletionGroup) getCurrentCell() string {
 	case TabDisplayGrid, TabDisplayMap:
 		// x & y coodinates
 		cell := (g.tcMaxX * (g.tcPosY - 1)) + g.tcOffset + g.tcPosX - 1
-		// if cell < len(g.Suggestions) {
-		//         return g.Suggestions[cell]
-		// }
-		return g.Suggestions[cell]
-		// return ""
+		if cell < len(g.Suggestions) {
+			return g.Suggestions[cell]
+		}
+		return ""
 
 	case TabDisplayList:
 		// The current y gives us the correct key, at least
