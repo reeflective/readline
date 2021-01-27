@@ -30,8 +30,6 @@ func (rl *Instance) Readline() (string, error) {
 	rl.line = []rune{}
 	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
 	rl.pos = 0
-
-	// Choose the correct history for key up/down navigation.
 	if rl.mainHist {
 		rl.histPos = rl.History.Len()
 	} else if rl.AltHistory != nil {
@@ -207,16 +205,6 @@ func (rl *Instance) Readline() (string, error) {
 			rl.resetHintText()
 			rl.getHintText()
 			rl.renderHelpers()
-
-		case charCtrlG:
-			if rl.modeTabFind {
-				rl.modeTabFind = false
-				rl.modeAutoFind = false // Added, because otherwise it gets stuck on search completions
-
-				rl.clearHelpers()
-				rl.getTabCompletion()
-				rl.renderHelpers()
-			}
 
 		case '\r':
 			fallthrough

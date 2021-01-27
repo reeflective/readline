@@ -11,7 +11,6 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 		return
 	}
 
-	// Get the next group that has availbale suggestions
 	if len(g.Suggestions) == 0 {
 		rl.cycleNextGroup()
 		g = rl.getCurrentGroup()
@@ -110,10 +109,9 @@ func (g *CompletionGroup) moveTabListHighlight(x, y int) (done bool) {
 
 	// Lines
 	if g.tcPosY < 1 {
-		// g.tcPosY = 1 // We had suppressed it for some time, don't know why.
+		g.tcPosY = 1 // We had suppressed it for some time, don't know why.
 		g.tcOffset--
 	}
-	// Offset
 	if g.tcPosY > g.tcMaxY {
 		g.tcPosY--
 		g.tcOffset++
@@ -121,21 +119,18 @@ func (g *CompletionGroup) moveTabListHighlight(x, y int) (done bool) {
 
 	// Here we must check, in x == 2, that the current choice
 	// is not empty. If it is, directly return after setting y value.
-	if g.tcOffset+g.tcPosY-1 < len(g.Suggestions) {
-		sugg := g.Suggestions[g.tcPosY-1]
-		_, ok := g.SuggestionsAlt[sugg]
-		if !ok && g.tcPosX == 2 {
-			for i, su := range g.Suggestions[g.tcPosY-1:] {
-				if _, ok := g.SuggestionsAlt[su]; ok {
-					g.tcPosY += i
-					return false
-				}
+	sugg := g.Suggestions[g.tcPosY-1]
+	_, ok := g.SuggestionsAlt[sugg]
+	if !ok && g.tcPosX == 2 {
+		for i, su := range g.Suggestions[g.tcPosY-1:] {
+			if _, ok := g.SuggestionsAlt[su]; ok {
+				g.tcPosY += i
+				return false
 			}
 		}
 	}
 
 	// Setup offset if needs to be.
-	// TODO: should rewrited to conditionally process rolling menus with alternatives
 	if g.tcOffset+g.tcPosY < 1 && len(g.Suggestions) > 0 {
 		g.tcPosY = g.tcMaxY
 		g.tcOffset = len(g.Suggestions) - g.tcMaxY
@@ -145,7 +140,6 @@ func (g *CompletionGroup) moveTabListHighlight(x, y int) (done bool) {
 	}
 
 	// Once we get to the end of choices: check which column we were selecting.
-	// We use +1 because we may have a single suggestion, and we just want "a ratio"
 	if g.tcOffset+g.tcPosY > len(g.Suggestions) {
 
 		// If we have alternative options and that we are not yet
@@ -158,7 +152,10 @@ func (g *CompletionGroup) moveTabListHighlight(x, y int) (done bool) {
 		}
 
 		// Else no alternatives, return for next group.
-		g.tcPosY = 1
+		// Reset all values, in case we pass on them again.
+		g.tcPosX = 1 // First column
+		g.tcPosY = 1 // first row
+		g.tcOffset = 0
 		return true
 	}
 	return false
@@ -195,7 +192,6 @@ func (g *CompletionGroup) moveTabMapHighlight(x, y int) (done bool) {
 	}
 	return false
 }
-
 func (rl *Instance) cycleNextGroup() {
 	for i, g := range rl.tcGroups {
 		if g.isCurrent {
