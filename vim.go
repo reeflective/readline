@@ -4,8 +4,16 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+)
 
-	"github.com/evilsocket/islazy/tui"
+// InputMode - The shell input mode
+type InputMode int
+
+const (
+	// Vim - Vim editing mode
+	Vim = iota
+	// Emacs - Emacs (classic) editing mode
+	Emacs
 )
 
 type viMode int
@@ -259,12 +267,11 @@ func (rl *Instance) refreshVimStatus() {
 }
 
 func (rl *Instance) colorizeVimPrompt(p []rune) (cp []rune) {
-
-	if !rl.VimModeColorize {
-		return []rune(fmt.Sprintf("%s%s%s", tui.BOLD, string(p), tui.RESET))
+	if rl.VimModeColorize {
+		return []rune(fmt.Sprintf("%s%s%s", BOLD, string(p), RESET))
 	}
 
-	return
+	return []rune(fmt.Sprintf("%s%s%s", BOLD, string(p), RESET))
 }
 
 func (rl *Instance) viHintMessage() {

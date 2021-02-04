@@ -28,6 +28,8 @@ func (rl *Instance) Readline() (string, error) {
 	}
 
 	rl.line = []rune{}
+	rl.currentComp = []rune{} // No virtual completion yet
+	rl.lineComp = []rune{}    // So no virtual line either
 	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
 	rl.pos = 0
 	if rl.mainHist {
@@ -145,6 +147,11 @@ func (rl *Instance) Readline() (string, error) {
 			return "", EOF
 
 		case charCtrlF:
+			rl.resetVirtualComp()
+
+			if !rl.modeTabCompletion {
+				rl.modeTabCompletion = true
+			}
 
 			// Both these settings apply to when we already
 			// are in completion mode and when we are not.
@@ -160,6 +167,8 @@ func (rl *Instance) Readline() (string, error) {
 			rl.viUndoSkipAppend = true
 
 		case charCtrlR:
+			rl.resetVirtualComp()
+
 			rl.mainHist = true // false before
 			rl.searchMode = HistoryFind
 			rl.modeAutoFind = true
@@ -171,6 +180,8 @@ func (rl *Instance) Readline() (string, error) {
 			rl.viUndoSkipAppend = true
 
 		case charCtrlE:
+			rl.resetVirtualComp()
+
 			rl.mainHist = false // true before
 			rl.searchMode = HistoryFind
 			rl.modeAutoFind = true
@@ -181,16 +192,55 @@ func (rl *Instance) Readline() (string, error) {
 			rl.updateTabFind([]rune{})
 			rl.viUndoSkipAppend = true
 
+		case charCtrlG:
+			if rl.modeAutoFind {
+				rl.resetTabFind()
+			}
+
 		case charCtrlU:
+			rl.resetVirtualComp()
+
 			rl.clearLine()
 			rl.resetHelpers()
 
 		case charTab:
-			if rl.modeTabCompletion {
+			if rl.modeTabCompletion && !rl.compConfirmWait {
+				rl.tabCompletionSelect = true
 				rl.moveTabCompletionHighlight(1, 0)
 			} else {
 				rl.getTabCompletion()
+
+				// If too many completions and no yet confirmed, ask user for completion
+				comps, lines := rl.getCompletionCount()
+				if lines >= 70 && !rl.compConfirmWait {
+					sentence := fmt.Sprintf("%s show all %d completions (%d lines) ?",
+						FOREWHITE, comps, lines)
+					rl.hintText = []rune(sentence)
+					rl.writeHintText()
+					moveCursorUp(rl.hintY)
+					moveCursorBackwards(GetTermWidth())
+					moveCursorToLinePos(rl)
+					rl.compConfirmWait = true
+					rl.viUndoSkipAppend = true
+					continue
+				}
+				rl.compConfirmWait = false
+				rl.modeTabCompletion = true
+
+				// Also here, if only one candidate is available, automatically
+				// insert it and don't bother printing completions.
+				if rl.hasOneCandidate() {
+					rl.insertCandidate()
+				}
+
+				rl.renderHelpers()
+				rl.viUndoSkipAppend = true
+				continue
 			}
+
+			// Once we have a completion candidate, insert it in the virtual input line.
+			// This will thus not filter other candidates, despite printing the current one.
+			rl.updateVirtualComp()
 
 			rl.renderHelpers()
 			rl.viUndoSkipAppend = true
@@ -212,10 +262,8 @@ func (rl *Instance) Readline() (string, error) {
 			if rl.modeTabCompletion {
 				// if rl.modeTabCompletion && !rl.modeTabFind {
 				cur := rl.getCurrentGroup()
+
 				// Check that there is a group indeed, as we might have no completions.
-				// NOTE: When we find that there are neither available groups, empty groups or
-				// nil objects of some sort, it means we don't have completion, and we return calmly
-				// from this, so that the user is still able to use input without noticing anything.
 				if cur == nil {
 					rl.clearHelpers()
 					rl.resetTabCompletion()
@@ -223,26 +271,22 @@ func (rl *Instance) Readline() (string, error) {
 					continue
 				}
 
-				completion := cur.getCurrentCell()
+				// IF we have a prefix and completions printed, but no candidate
+				// (in which case the completion is ""), we immediately return.
+				completion := cur.getCurrentCell(rl)
 				prefix := len(rl.tcPrefix)
+				if prefix > len(completion) {
+					rl.carridgeReturn()
+					return string(rl.line), nil
+				}
 
-				// Else we have added len([tl.tcPrefix]) so that we don't have to
-				// deal with input/completion indexing in the client application.
-				rl.insert([]rune(completion[prefix:]))
+				// Else, we insert the completion candidate in the real input line.
+				// This is in fact nothing more than assigning the virtual input line.
+				// By default we add a space, unless completion group asks otherwise.
+				rl.compAddSpace = true
+				rl.resetVirtualComp()
 
-				// OLD DETECTION --------------
-				// cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
-				//
-				// // We have added a few checks here, because sometimes the suggestions
-				// // don't catch up and we have a runtime error: index out of range [0] with length 0
-				// // This means we have no suggestions to select, or that the suggestion is an empty string.
-				// if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
-				//         continue
-				// }
-				// // Else we have added len([tl.tcPrefix]) so that we don't have to
-				// // deal with input/completion indexing in the client application.
-				// rl.insert([]rune(cur.Suggestions[cell][len(rl.tcPrefix):]))
-
+				// Reset completions and update input line
 				rl.clearHelpers()
 				rl.resetTabCompletion()
 				rl.renderHelpers()
@@ -257,17 +301,32 @@ func (rl *Instance) Readline() (string, error) {
 				rl.backspaceTabFind()
 				rl.viUndoSkipAppend = true
 			} else {
+				rl.resetVirtualComp()
+
 				rl.backspace()
 				rl.renderHelpers()
 			}
 
 		case charEscape:
+			// We always refresh the completion candidates, except if we are currently
+			// cycling through them, because then it would just append the candidate.
+			if rl.modeTabCompletion {
+				if string(r[:i]) != seqShiftTab &&
+					string(r[:i]) != seqForwards && string(r[:i]) != seqBackwards &&
+					string(r[:i]) != seqUp && string(r[:i]) != seqDown {
+					rl.resetVirtualComp()
+				}
+			}
+
 			rl.escapeSeq(r[:i])
 
 		default:
+			rl.resetVirtualComp()
+
 			// Not sure that CompletionFind is useful, nor one of the other two
 			if rl.modeAutoFind || rl.modeTabFind && rl.searchMode == CompletionFind {
 				rl.updateTabFind(r[:i])
+				rl.renderHelpers()
 				rl.viUndoSkipAppend = true
 			} else {
 				rl.editorInput(r[:i])
@@ -277,31 +336,9 @@ func (rl *Instance) Readline() (string, error) {
 			}
 		}
 
-		// Check if completions are nil and that we currently are in modeTabCompletion.
-		// If both conditions are true, we should not wait to reset the tab completion engine,
-		// or ensure it does not bother any user input going on.
-		cur := rl.getCurrentGroup()
-		if cur == nil {
-			rl.clearHelpers()
-			rl.resetTabCompletion()
-			rl.renderHelpers()
-			continue
-		}
-		// cell := (cur.tcMaxX * (cur.tcPosY - 1)) + cur.tcOffset + cur.tcPosX - 1
-		//
-		// // We have added a few checks here, because sometimes the suggestions
-		// // don't catch up and we have a runtime error: index out of range [0] with length 0
-		// // This means we have no suggestions to select, or that the suggestion is an empty string.
-		// if len(cur.Suggestions) == 0 || len(cur.Suggestions[cell]) == 0 {
-		//         rl.clearHelpers()
-		//         rl.resetTabCompletion()
-		//         rl.renderHelpers()
-		//         continue
+		// if !rl.viUndoSkipAppend {
+		//         rl.viUndoHistory = append(rl.viUndoHistory, rl.line)
 		// }
-
-		//if !rl.viUndoSkipAppend {
-		//	rl.viUndoHistory = append(rl.viUndoHistory, rl.line)
-		//}
 		rl.undoAppendHistory()
 	}
 }
@@ -318,6 +355,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 
 		case rl.modeTabFind:
 			rl.resetTabFind()
+			rl.resetTabCompletion()
 
 		case rl.modeTabCompletion:
 			rl.clearHelpers()
@@ -325,20 +363,23 @@ func (rl *Instance) escapeSeq(r []rune) {
 			rl.renderHelpers()
 
 		default:
-			if rl.pos == len(rl.line) && len(rl.line) > 0 {
-				rl.pos--
-				moveCursorBackwards(1)
+			// If we are in Vim mode, the escape key has its usage.
+			// Otherwise in emacs mode the escape key does nothing.
+			if rl.InputMode == Vim {
+				if rl.pos == len(rl.line) && len(rl.line) > 0 {
+					rl.pos--
+					moveCursorBackwards(1)
+				}
+
+				rl.modeViMode = vimKeys
+				rl.viIteration = ""
+				rl.refreshVimStatus()
+
+				// This refreshed and actually prints the new Vim status
+				rl.clearHelpers()
+				rl.renderHelpers()
 			}
 
-			rl.modeViMode = vimKeys
-			rl.viIteration = ""
-			rl.refreshVimStatus()
-
-			// Added by me, to refresh Vim status in prompt
-			rl.clearHelpers()
-			rl.renderHelpers()
-			//rl.viHintVimKeys()
-			// rl.viHintMessage()
 		}
 		rl.viUndoSkipAppend = true
 
@@ -351,7 +392,12 @@ func (rl *Instance) escapeSeq(r []rune) {
 
 	case seqUp:
 		if rl.modeTabCompletion {
-			rl.moveTabCompletionHighlight(0, -1)
+			rl.tabCompletionSelect = true
+			rl.tabCompletionReverse = true
+			rl.moveTabCompletionHighlight(-1, 0)
+			// rl.moveTabCompletionHighlight(0, -1)
+			rl.updateVirtualComp()
+			rl.tabCompletionReverse = false
 			rl.renderHelpers()
 			return
 		}
@@ -359,7 +405,10 @@ func (rl *Instance) escapeSeq(r []rune) {
 
 	case seqDown:
 		if rl.modeTabCompletion {
-			rl.moveTabCompletionHighlight(0, 1)
+			rl.tabCompletionSelect = true
+			rl.moveTabCompletionHighlight(1, 0)
+			// rl.moveTabCompletionHighlight(0, 1)
+			rl.updateVirtualComp()
 			rl.renderHelpers()
 			return
 		}
@@ -367,7 +416,11 @@ func (rl *Instance) escapeSeq(r []rune) {
 
 	case seqBackwards:
 		if rl.modeTabCompletion {
+			rl.tabCompletionSelect = true
+			rl.tabCompletionReverse = true
 			rl.moveTabCompletionHighlight(-1, 0)
+			rl.updateVirtualComp()
+			rl.tabCompletionReverse = false
 			rl.renderHelpers()
 			return
 		}
@@ -379,7 +432,9 @@ func (rl *Instance) escapeSeq(r []rune) {
 
 	case seqForwards:
 		if rl.modeTabCompletion {
+			rl.tabCompletionSelect = true
 			rl.moveTabCompletionHighlight(1, 0)
+			rl.updateVirtualComp()
 			rl.renderHelpers()
 			return
 		}
@@ -407,9 +462,20 @@ func (rl *Instance) escapeSeq(r []rune) {
 		rl.viUndoSkipAppend = true
 
 	case seqShiftTab:
-		if rl.modeTabCompletion {
+		if rl.modeTabCompletion && !rl.compConfirmWait {
+
+			rl.tabCompletionReverse = true // The group will use this to know how to index.
+
 			rl.moveTabCompletionHighlight(-1, 0)
+
+			// Once we have a completion candidate, insert it in the virtual input line.
+			// This will thus not filter other candidates, despite printing the current one.
+			rl.updateVirtualComp()
+
+			rl.tabCompletionReverse = false
 			rl.renderHelpers()
+			rl.viUndoSkipAppend = true
+
 			return
 		}
 
@@ -454,19 +520,16 @@ func (rl *Instance) editorInput(r []rune) {
 	switch rl.modeViMode {
 	case vimKeys:
 		rl.vi(r[0])
-		// rl.viHintMessage()
 		rl.refreshVimStatus()
 
 	case vimDelete:
 		rl.vimDelete(r)
-		// rl.viHintMessage()
 		rl.refreshVimStatus()
 
 	case vimReplaceOnce:
 		rl.modeViMode = vimKeys
 		rl.delete()
 		rl.insert([]rune{r[0]})
-		// rl.viHintMessage()
 		rl.refreshVimStatus()
 
 	case vimReplaceMany:
@@ -474,7 +537,6 @@ func (rl *Instance) editorInput(r []rune) {
 			rl.delete()
 			rl.insert([]rune{char})
 		}
-		// rl.viHintMessage()
 		rl.refreshVimStatus()
 
 	default:

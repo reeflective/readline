@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
-// RefreshMultiline - This function can be called by the user program to refresh the first line of the prompt,
-// if the latter is a 2-line (multiline) prompt. This function should refresh the prompt "in place", which
-// means it renders it directly where it was: it does not print a new one below.
-// The offset param can be used to adjust the number of lines to clear upward, in case there are things the
-// shell cannot know. Set offset to 0 if you don't use it.
-func (rl *Instance) RefreshMultiline(prompt string, printPrompt bool, offset int, clearLine bool) (err error) {
+// RefreshMultiline - Reprints the prompt considering several parameters:
+// @prompt      => If not nil (""), will use this prompt instead of the currently set prompt.
+// @offset      => Used to set the number of lines to go upward, before reprinting. Set to 0 if not used.
+// @clearLine   => If true, will clean the current input line on the next refresh.
+// Please check the Instance.HideNextPrompt variable and its effects on this function !
+func (rl *Instance) RefreshMultiline(prompt string, offset int, clearLine bool) (err error) {
 
 	if !rl.Multiline {
 		return errors.New("readline error: refresh cannot happen, prompt is not multiline")
@@ -29,16 +29,19 @@ func (rl *Instance) RefreshMultiline(prompt string, printPrompt bool, offset int
 	// Add user-provided offset
 	rl.tcUsedY += offset
 
-	print(seqClearLine) // Clear the current line, which might be longer than what's overwritten
+	// Clear the input line and everything below
+	print(seqClearLine)
 	moveCursorUp(rl.hintY + rl.tcUsedY)
 	moveCursorBackwards(GetTermWidth())
-	print("\r\n" + seqClearScreenBelow) // We add this to clear everything below offset.
+	print("\r\n" + seqClearScreenBelow)
 
-	// Print first line of prompt if asked to
+	// Update the prompt if a special has been passed.
 	if prompt != "" {
 		rl.prompt = prompt
 	}
-	if printPrompt {
+
+	// Only print the prompt if we have not been instructed to hide it.
+	if !rl.HideNextPrompt {
 		fmt.Println(rl.prompt)
 		rl.renderHelpers()
 	}
@@ -55,13 +58,17 @@ func (rl *Instance) RefreshMultiline(prompt string, printPrompt bool, offset int
 // computePrompt - At any moment, returns prompt actualized with Vim status
 func (rl *Instance) computePrompt() (prompt []rune) {
 
-	// Add custom prompt string if provided by user
-	if rl.MultilinePrompt != "" {
-		prompt = append(prompt, []rune(rl.MultilinePrompt)...)
+	// If single line prompt, and the prompt is not nil, the user has set it,
+	// so we put up everything together, compute legnths and return.
+	if rl.prompt != "" && !rl.Multiline {
+		rl.mlnPrompt = []rune(rl.prompt)
+		rl.promptLen = len(rl.mlnPrompt)
+		return rl.mlnPrompt
 	}
 
-	// If ModeVimEnabled, append it.
-	if rl.ShowVimMode {
+	// If ModeVimEnabled, append it and compute details.
+	var colorPromptOffset int
+	if rl.InputMode == Vim && rl.ShowVimMode {
 
 		switch rl.modeViMode {
 		case vimKeys:
@@ -76,19 +83,25 @@ func (rl *Instance) computePrompt() (prompt []rune) {
 			prompt = append(prompt, []rune(vimDeleteStr)...)
 		}
 
-		// Process colors
+		// Process colors, and get offset for correct cursor position
+		bwPromptLen := len(prompt)
 		prompt = rl.colorizeVimPrompt(prompt)
-		// Add the arrow
+
+		colorPromptLen := len(prompt)
+		colorPromptOffset = colorPromptLen - bwPromptLen
+	}
+
+	// Add custom multiline prompt string if provided by user
+	if rl.MultilinePrompt != "" {
+		prompt = append(prompt, []rune(rl.MultilinePrompt)...)
+	} else {
+		// Else add the default arrow
 		prompt = append(prompt, rl.mlnArrow...)
 	}
 
-	// Else if in Emacs mode, add a simple prompt
-	if !rl.ShowVimMode {
-		prompt = append(prompt, rl.mlnArrow...)
-	}
-
+	// We have our prompt, adjust for any coloring
 	rl.mlnPrompt = prompt
-	rl.promptLen = len(rl.mlnPrompt)
+	rl.promptLen = len(rl.mlnPrompt) - colorPromptOffset
 
 	return
 }
@@ -128,25 +141,8 @@ func moveCursorBackwards(i int) {
 // moveCursorToLinePos - Must calculate the length of the prompt, realtime
 // and for all contexts/needs, and move the cursor appropriately
 func moveCursorToLinePos(rl *Instance) {
-	var length int
-
-	// We use either the normal prompt, or the multiline one
-	if !rl.Multiline {
-		length = len(rl.prompt)
-	} else {
-		length = len(rl.MultilinePrompt)
-	}
-
-	// If the user wants Vim status
-	if rl.ShowVimMode {
-		length += 3                // 3 for [N]
-		length += len(rl.mlnArrow) // 3: ' > '
-	} else {
-		length += len(rl.mlnArrow)
-	}
-
-	// move the cursor
-	moveCursorForwards(length + rl.pos)
+	moveCursorForwards(rl.promptLen + rl.pos)
+	return
 }
 
 func (rl *Instance) moveCursorByAdjust(adjust int) {
@@ -199,13 +195,11 @@ func (rl *Instance) insert(r []rune) {
 }
 
 func (rl *Instance) backspace() {
-	// fmt.Println(rl.pos)
 	if len(rl.line) == 0 || rl.pos == 0 {
 		return
 	}
 
 	moveCursorBackwards(1)
-	// fmt.Println(len(rl.line))
 	rl.pos--
 	rl.delete()
 }
@@ -237,7 +231,7 @@ func (rl *Instance) echo() {
 
 	// We move the cursor back to the very beginning of the line:
 	// prompt + cursor position
-	moveCursorBackwards(len(rl.mlnPrompt) + rl.pos)
+	moveCursorBackwards(rl.promptLen + rl.pos)
 
 	switch {
 	case rl.PasswordMask > 0:
@@ -245,14 +239,34 @@ func (rl *Instance) echo() {
 
 	case rl.SyntaxHighlighter == nil:
 		print(string(rl.mlnPrompt))
-		print(string(rl.line) + " ")
+
+		// Depending on the presence of a virtually completed item,
+		// print either the virtual line or the real one.
+		if len(rl.currentComp) > 0 {
+			line := rl.lineComp[:rl.pos]
+			line = append(line, rl.lineRemain...)
+			print(string(line) + " ")
+		} else {
+			print(string(rl.line) + " ")
+			moveCursorBackwards(len(rl.line) - rl.pos)
+		}
 
 	default:
 		print(string(rl.mlnPrompt))
-		print(rl.SyntaxHighlighter(rl.line) + " ")
+
+		// Depending on the presence of a virtually completed item,
+		// print either the virtual line or the real one.
+		if len(rl.currentComp) > 0 {
+			line := rl.lineComp[:rl.pos]
+			line = append(line, rl.lineRemain...)
+			print(rl.SyntaxHighlighter(line) + " ")
+		} else {
+			print(rl.SyntaxHighlighter(rl.line) + " ")
+			moveCursorBackwards(len(rl.line) - rl.pos)
+		}
 	}
 
-	moveCursorBackwards(len(rl.line) - rl.pos)
+	// moveCursorBackwards(len(rl.line) - rl.pos)
 }
 
 func (rl *Instance) clearLine() {
@@ -260,12 +274,23 @@ func (rl *Instance) clearLine() {
 		return
 	}
 
-	moveCursorBackwards(rl.pos)
-	print(strings.Repeat(" ", len(rl.line)))
-	moveCursorBackwards(len(rl.line))
+	var lineLen int
+	if len(rl.lineComp) > len(rl.line) {
+		lineLen = len(rl.lineComp)
+	} else {
+		lineLen = len(rl.line)
+	}
 
+	moveCursorBackwards(rl.pos)
+	print(strings.Repeat(" ", lineLen))
+	moveCursorBackwards(lineLen)
+
+	// Real input line
 	rl.line = []rune{}
 	rl.pos = 0
+
+	// Completions are also reset
+	rl.clearVirtualComp()
 }
 
 func (rl *Instance) resetHelpers() {
@@ -279,19 +304,57 @@ func (rl *Instance) clearHelpers() {
 	print("\r\n" + seqClearScreenBelow)
 	moveCursorUp(1)
 	moveCursorToLinePos(rl)
+
+	// Reset some values
+	rl.lineComp = []rune{}
+	rl.currentComp = []rune{}
 }
 
 func (rl *Instance) renderHelpers() {
 
-	rl.echo() // Added by me, so that prompt always appear when new line
-	rl.writeHintText()
-	rl.writeTabCompletion()
+	rl.echo()
 
-	moveCursorUp(rl.hintY + rl.tcUsedY)
+	// If we are waiting for confirmation (too many comps),
+	// do not overwrite the confirmation question hint.
+	if !rl.compConfirmWait {
+		// We also don't overwrite if in tab find mode, which has a special hint.
+		if !rl.modeAutoFind {
+			rl.getHintText()
+		}
+		// We write the hint anyway
+		rl.writeHintText()
+	}
+
+	rl.writeTabCompletion()
+	moveCursorUp(rl.tcUsedY)
+
+	if !rl.compConfirmWait {
+		moveCursorUp(rl.hintY)
+	}
 	moveCursorBackwards(GetTermWidth())
 
 	moveCursorToLinePos(rl)
 }
+
+// This one has the advantage of not stacking hints and completions, pretty balanced.
+// However there is a problem with it when we use completion while being in the middle of the line.
+// func (rl *Instance) renderHelpers() {
+//
+//         rl.echo() // Added by me, so that prompt always appear when new line
+//
+//         // If we are waiting for confirmation (too many comps), do not overwrite the hints.
+//         if !rl.compConfirmWait {
+//                 rl.getHintText()
+//                 rl.writeHintText()
+//                 moveCursorUp(rl.hintY)
+//         }
+//
+//         rl.writeTabCompletion()
+//         moveCursorUp(rl.tcUsedY)
+
+//         moveCursorBackwards(GetTermWidth())
+//         moveCursorToLinePos(rl)
+// }
 
 func (rl *Instance) updateHelpers() {
 	rl.tcOffset = 0
