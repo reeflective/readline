@@ -16,6 +16,9 @@ func main() {
 	// Instantiate a console object
 	console := newConsole()
 
+	// Bind commands to the console
+	bindCommands()
+
 	// Setup the console completers, prompts, and input modes
 	console.setup()
 
@@ -66,9 +69,7 @@ func (c *console) setup() (err error) {
 	c.Shell.HintText = defaultCompleter.HintCompleter
 	c.Shell.SyntaxHighlighter = defaultCompleter.SyntaxHighlighter
 
-	// History (client and user-wide)
-	// c.Shell.History = UserHist
-	// c.Shell.AltHistory = ClientHist
+	// History: by default the history is in-memory, use it with Ctrl-R
 
 	return
 }
@@ -85,7 +86,6 @@ func (c *console) Start() (err error) {
 
 	// Start input loop
 	for {
-
 		// Read input line
 		line, _ := c.Readline()
 
@@ -105,7 +105,7 @@ func (c *console) Start() (err error) {
 
 		// Execute the command and print any errors
 		if _, parserErr := c.parser.ParseArgs(tokenParsed); parserErr != nil {
-			fmt.Println(readline.RED + "[Error] " + parserErr.Error())
+			fmt.Println(readline.RED + "[Error] " + readline.RESET + parserErr.Error() + "\n")
 		}
 	}
 }
