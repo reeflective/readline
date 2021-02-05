@@ -4,14 +4,12 @@
 * [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
 * [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
 
-#### Prompt system
-* [ Vim mode ](https://github.com/maxlandon/readline/wiki/Vim-Prompt)
-* [ Multiline Prompts ](https://github.com/maxlandon/readline/wiki/Multiline-Prompts)
-* [ Custom Prompts ](https://github.com/maxlandon/readline/wiki/Custom-Prompts)
+### Prompt system
+* [ Setting the Prompts](https://github.com/maxlandon/readline/wiki/Prompt-Setup)
 * [ Prompt Refresh ](https://github.com/maxlandon/readline/wiki/Prompt-Refresh)
 
 #### Completion Engine 
-* [ Group Types ](https://github.com/maxlandon/readline/wiki/Group-Types)
+* [ Completion Groups ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
 * [ Stacking up completions ](https://github.com/maxlandon/readline/wiki/Stacking-Up-Completions)
 * [ Completion Search ](https://github.com/maxlandon/readline/wiki/Completion-Search)
 * [ Other details and Warnings ](https://github.com/maxlandon/readline/wiki/Other-Details-And-Warnings)

@@ -90,7 +90,7 @@ The complete documentation for this library can be found in the repo's [Wiki](ht
 * [ Prompt Refresh ](https://github.com/maxlandon/readline/wiki/Prompt-Refresh)
 
 #### Completion Engine 
-* [ Group Types ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
+* [ Completion Groups ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
 * [ Completion Search ](https://github.com/maxlandon/readline/wiki/Completion-Search)
 * [ Other details and Warnings ](https://github.com/maxlandon/readline/wiki/Other-Details-And-Warnings)
 

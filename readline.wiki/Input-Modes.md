@@ -33,8 +33,8 @@ You can also require the different editing modes statuses to be colorized with t
 c.shell.VimModeColorize = true
 ```
 
-As explained in the various [Prompts](https://github.com/maxlandon/readline/wiki/Vim-Prompt) sections, you can combined any of these parameters 
-with custom prompt strings, and for either 1-line or 2-line prompts. You can go on setting it up at this point.
+As explained in the various [Prompts](https://github.com/maxlandon/readline/wiki/Vim-Prompt) sections, you can combine any of 
+these parameters with custom prompt strings, and for either 1-line or 2-line prompts. You can go on setting it up at this point.
 
 
 ----
@@ -83,7 +83,7 @@ Keys applying in both the `NORMAL` and `DELETE` modes.
 ------
 ## Emacs input mode
 
-The emacs binding or obviously more simple. they resume to this:
+The emacs binding are obviously more simple. Setup and usage resume to this:
 ```go
 c.shell.InputMode = readline.Emacs
 ```

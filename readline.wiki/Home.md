@@ -18,14 +18,13 @@ adding completion groups, going through prompt systems, etc**, in between. Have 
 * [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
 
 ### Prompt system
-* [ Vim Prompt](https://github.com/maxlandon/readline/wiki/Vim-Prompt)
-* [ Multiline Prompts ](https://github.com/maxlandon/readline/wiki/Multiline-Prompts)
-* [ Custom Prompts ](https://github.com/maxlandon/readline/wiki/Custom-Prompts)
+* [ Setting the Prompts](https://github.com/maxlandon/readline/wiki/Prompt-Setup)
 * [ Prompt Refresh ](https://github.com/maxlandon/readline/wiki/Prompt-Refresh)
 
 ### Completion Engine 
-* [ Group Types ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
-* [ Completion Search ](https://github.com/maxlandon/readline/wiki/Completion-Search)
+* [ Completion Groups ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
+* [ Completion Search & Movements ](https://github.com/maxlandon/readline/wiki/Completion-Search)
+* [ Writing a Completer ](https://github.com/maxlandon/readline/wiki/Writing-A-Completer)
 * [ Other details and Warnings ](https://github.com/maxlandon/readline/wiki/Other-Details-And-Warnings)
 
 ### Hint Formatter & Syntax Highlighter 

@@ -6,11 +6,11 @@ This page shows how to start using the library in your console application. Plea
 proceed with the other pages of the documentation in order. Hopefully, by the end of them, you should have a 
 shell leveraging most, if not all, of the features offered by this library. A few notes before anything else:
 
-1) As mentionned in the README, this library is not an integrated console application. This means we does not natively 
-handles a REPL-style loop, but the examples below will show you how to define one and use the library accordingly.
+1) As mentionned in the README, this library is not an integrated console application. This means **it does not natively 
+handles a REPL-style loop**, but the examples along the documentation will show you how to define one and use the library accordingly.
 2) The variables declared in the example below will be reused in the following sections.
 3) If some things are not entirely clear to you, they will probably be explained in the following sections of this documentation.
-5) The code is pulled out of the [examples](https://github.com/maxlandon/readline/examples) directory. Check it out if needed.
+5) The code is pulled out of the [examples](https://github.com/maxlandon/readline/tree/master/examples) directory. Check it out if needed.
 
 
 ### Embedding the shell readline

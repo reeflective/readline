@@ -235,7 +235,7 @@ func completeOptionGroup(lastWord string, grp *flags.Group, title string) (prefi
 		Name:           grp.ShortDescription,
 		Descriptions:   map[string]string{},
 		DisplayType:    readline.TabDisplayList,
-		SuggestionsAlt: map[string]string{},
+		Aliases: map[string]string{},
 	}
 
 	// An optional title for this comp group.
@@ -260,7 +260,7 @@ func completeOptionGroup(lastWord string, grp *flags.Group, title string) (prefi
 			// Add short if there is, and that the prefix is only one dash
 			if strings.HasPrefix("-", lastWord) {
 				if opt.ShortName != 0 {
-					compGrp.SuggestionsAlt[optName] = "-" + string(opt.ShortName)
+					compGrp.Aliases[optName] = "-" + string(opt.ShortName)
 				}
 			}
 
