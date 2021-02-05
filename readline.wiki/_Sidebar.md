@@ -1,8 +1,8 @@
 * [Home](https://github.com/maxlandon/readline/wiki)
 
-#### Input modes
-* [ Vim ](https://github.com/maxlandon/readline/wiki/Vim)
-* [ Emacs ](https://github.com/maxlandon/readline/wiki/Emacs)
+#### Getting started
+* [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
+* [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
 
 #### Prompt system
 * [ Vim mode ](https://github.com/maxlandon/readline/wiki/Vim-Prompt)

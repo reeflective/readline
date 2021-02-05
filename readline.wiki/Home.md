@@ -3,15 +3,19 @@
 
 The documentation and examples pictures have been realized with a [Sliver](https://github.com/BishopFox/sliver) 
 client console, so that one can see what can be done with the readline library. Huge thanks to Sliver maintainers for their agreement !
-
 As well, the subset of commands/options/arguments bound the example console in the `examples/commands.go` file is from the Sliver project.
+
+In order to use the readline library at the best of its possibilities and with the smallest number of problems, **it is strongly advised**
+to read the documentation in the order below: **it will guide you step-by-step, from instantiating a shell into your project all the way to
+adding completion groups, going through prompt systems, etc**, in between. Have fun !
+
 
 -----
 ## Table of Contents 
 
-### Input modes
-* [ Vim ](https://github.com/maxlandon/readline/wiki/Vim)
-* [ Emacs ](https://github.com/maxlandon/readline/wiki/Emacs)
+#### Getting started
+* [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
+* [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
 
 ### Prompt system
 * [ Vim Prompt](https://github.com/maxlandon/readline/wiki/Vim-Prompt)

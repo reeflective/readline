@@ -157,6 +157,7 @@ func NewInstance() *Instance {
 	rl := new(Instance)
 
 	// Prompt
+	rl.Multiline = false
 	rl.prompt = ">>> "
 	rl.promptLen = len(rl.computePrompt())
 	rl.mlnArrow = []rune{' ', '>', ' '}

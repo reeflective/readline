@@ -79,9 +79,9 @@ Please see either the `examples` directory, or the Wiki for detailed instruction
 
 The complete documentation for this library can be found in the repo's [Wiki](https://github.com/maxlandon/readline/wiki). Below is the Table of Contents:
 
-#### Input modes
-* [ Vim ](https://github.com/maxlandon/readline/wiki/Vim)
-* [ Emacs ](https://github.com/maxlandon/readline/wiki/Emacs)
+#### Getting started
+* [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
+* [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
 
 #### Prompt system
 * [ Vim Prompt](https://github.com/maxlandon/readline/wiki/Vim-Prompt)
@@ -118,6 +118,7 @@ Being alone working on this project and having only one lifetime (anyone able to
 Things I do intend to add in a more or less foreseeable future:
 - A better recursive command/subcommand default completer (see utilities), because the current one supports only `command subcommand --options` patterns, not `command subcommand subsubcommand`.
 - A recursive option group completer: tools like `nmap` will use options like `-PA`, or `-sT`, etc. These are not supported.
+- A more precise yank command (currently only yanks the full input line)
 
 Therefore, I do not intend to add any other features, as far as I can see. Of course, any good will submitting mockups and a big smile might be considered !
 

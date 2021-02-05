@@ -55,54 +55,88 @@ func (rl *Instance) RefreshMultiline(prompt string, offset int, clearLine bool) 
 	return
 }
 
-// computePrompt - At any moment, returns prompt actualized with Vim status
+// computePrompt - At any moment, returns an (1st or 2nd line) actualized prompt,
+// considering all input mode parameters and prompt string values.
 func (rl *Instance) computePrompt() (prompt []rune) {
 
-	// If single line prompt, and the prompt is not nil, the user has set it,
-	// so we put up everything together, compute legnths and return.
-	if rl.prompt != "" && !rl.Multiline {
-		rl.mlnPrompt = []rune(rl.prompt)
-		rl.promptLen = len(rl.mlnPrompt)
-		return rl.mlnPrompt
-	}
+	switch rl.InputMode {
+	case Vim:
+		var vimStatus []rune
+		var colorPromptOffset int
+		// Compute Vim status
+		if rl.ShowVimMode {
+			switch rl.modeViMode {
+			case vimKeys:
+				vimStatus = []rune(vimKeysStr)
+			case vimInsert:
+				vimStatus = []rune(vimInsertStr)
+			case vimReplaceOnce:
+				vimStatus = []rune(vimReplaceOnceStr)
+			case vimReplaceMany:
+				vimStatus = []rune(vimReplaceManyStr)
+			case vimDelete:
+				vimStatus = []rune(vimDeleteStr)
+			}
 
-	// If ModeVimEnabled, append it and compute details.
-	var colorPromptOffset int
-	if rl.InputMode == Vim && rl.ShowVimMode {
+			// Process colors, and get offset for correct cursor position
+			bwPromptLen := len(vimStatus)
+			vimStatus = rl.colorizeVimPrompt(vimStatus)
 
-		switch rl.modeViMode {
-		case vimKeys:
-			prompt = append(prompt, []rune(vimKeysStr)...)
-		case vimInsert:
-			prompt = append(prompt, []rune(vimInsertStr)...)
-		case vimReplaceOnce:
-			prompt = append(prompt, []rune(vimReplaceOnceStr)...)
-		case vimReplaceMany:
-			prompt = append(prompt, []rune(vimReplaceManyStr)...)
-		case vimDelete:
-			prompt = append(prompt, []rune(vimDeleteStr)...)
+			colorPromptLen := len(vimStatus)
+			colorPromptOffset = colorPromptLen - bwPromptLen
 		}
 
-		// Process colors, and get offset for correct cursor position
-		bwPromptLen := len(prompt)
-		prompt = rl.colorizeVimPrompt(prompt)
+		// Append any optional prompts for multiline mode
+		if rl.Multiline {
+			if rl.MultilinePrompt != "" {
+				rl.mlnPrompt = append(vimStatus, []rune(rl.MultilinePrompt)...)
+			} else {
+				rl.mlnPrompt = append(rl.mlnPrompt, vimStatus...)
+				rl.mlnPrompt = append(rl.mlnPrompt, rl.mlnArrow...)
+			}
+		}
+		// Equivalent for non-multiline
+		if !rl.Multiline {
+			if rl.prompt != "" {
+				rl.mlnPrompt = append(vimStatus, []rune(" "+rl.prompt)...)
+			} else {
+				rl.mlnPrompt = append(rl.mlnPrompt, vimStatus...)
+			}
+			if rl.MultilinePrompt != "" {
+				rl.mlnPrompt = append(rl.mlnPrompt, []rune(rl.MultilinePrompt)...)
+			} else {
+				rl.mlnPrompt = append(rl.mlnPrompt, rl.mlnArrow...)
+			}
+		}
 
-		colorPromptLen := len(prompt)
-		colorPromptOffset = colorPromptLen - bwPromptLen
+		// Compute lengths and return
+		rl.promptLen = len(rl.mlnPrompt) - colorPromptOffset
+		return
+
+	case Emacs:
+		if rl.Multiline {
+			if rl.MultilinePrompt != "" {
+				rl.mlnPrompt = []rune(rl.MultilinePrompt)
+			} else {
+				rl.mlnPrompt = rl.mlnArrow
+			}
+
+		}
+		if !rl.Multiline {
+			if rl.prompt != "" {
+				rl.mlnPrompt = append([]rune(rl.prompt), rl.mlnArrow...)
+			}
+			if rl.MultilinePrompt != "" {
+				rl.mlnPrompt = append(rl.mlnPrompt, []rune(rl.MultilinePrompt)...)
+			} else {
+				rl.mlnPrompt = append(rl.mlnPrompt, rl.mlnArrow...)
+			}
+		}
+
+		// Compute lengths and return
+		rl.promptLen = len(rl.mlnPrompt)
+		return
 	}
-
-	// Add custom multiline prompt string if provided by user
-	if rl.MultilinePrompt != "" {
-		prompt = append(prompt, []rune(rl.MultilinePrompt)...)
-	} else {
-		// Else add the default arrow
-		prompt = append(prompt, rl.mlnArrow...)
-	}
-
-	// We have our prompt, adjust for any coloring
-	rl.mlnPrompt = prompt
-	rl.promptLen = len(rl.mlnPrompt) - colorPromptOffset
-
 	return
 }
 
