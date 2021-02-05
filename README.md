@@ -1,7 +1,7 @@
 
 # Readline - ZSH-like console library in Go
 
-[!Demo](../assets/readline-demo.gif)
+![Demo](../assets/readline-demo.gif)
 *This demo GIF has been made with a Sliver project client.*
 
 
