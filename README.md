@@ -12,20 +12,21 @@ This project started out of the wish to make an enhanced console for a security 
 There are already several readline libraries available in Go ([github.com/chzyer/readline](https://github.com/chzyer/readline), 
 and [github.com/lmorg/readline](https://github.com/lmorg/readline)), but being stricter readline implementations, their completion 
 system is either limited (the former), or not as advanced as this one (the latter). The latter, however, is the basis I used for this 
-library, and all credits due and diserved are in the **Warmests Thanks** section).
+library, and all credits due and diserved are in the **Warmest Thanks** section).
 
 This project is not a full command-line application, which means it does not automatically understand and execute any commands.
 However, having been developed in a project using the CLI [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) library,
 it also includes some default utilities (completers) that are made to work with this library, which I humbly but highly recommend.
-Please see the [Wiki](https://github.com/maxlandon/readline/docs/) (or the `examples/` directory) for information on how to use these utilities.
+Please see the [Wiki](https://github.com/maxlandon/readline/wiki) (or the `examples/` directory) for information on how to use these utilities.
 
-Additionally, this project is not POSIX-compliant in any way, nor it a complete and perfect reimplementation of Z-Shell parsing & completion engine.
-Please see the `Project Status` for the list of things that I can support on my own (considering no other maintainers).
+Additionally, this project is not POSIX-compliant in any way, nor it is a complete and perfect reimplementation of Z-Shell parsing & completion engine.
+Please see the **Project Status** section for the list of things that I can support on my own (considering no other maintainers).
+Finally, it is important to say that this library **has NOT been thoroughly tested**, at least the part that I've been modifying and writing.
 
 
 ## Features Summary
 
-A summarized of features supported by this library is following:
+A summarized list of features supported by this library is the following:
 
 ### Input & Editing 
 - Vim / Emacs input and editing modes.
@@ -60,7 +61,7 @@ A summarized of features supported by this library is following:
 
 ### Utilities
 - Default Tab completer, Hint formatter and Syntax highlighter provided, using [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) 
-command parser to build themselves. These are in the  `completers/` directory. Please look at the [Wiki page](https://github.com/maxlandon/readline/docs/) 
+command parser to build themselves. These are in the  `completers/` directory. Please look at the [Wiki page](https://github.com/maxlandon/readline/wiki) 
 for how to use them. Also feel free to use them as an inspiration source to make your owns.
 - Colors mercilessly copied from [github.com/evilsocket/islazy/](https://github.com/evilsocket/islazy) `tui/` package.
 - Also in the `completers` directory, completion functions for environment variables (using Go's std lib for getting them), and dir/file path completions.
@@ -71,47 +72,41 @@ for how to use them. Also feel free to use them as an inspiration source to make
 As usual with Go, installation:
 ```
 go get github.com/maxlandon/readline
-
 ```
 Please see either the `examples` directory, or the Wiki for detailed instructions on how to use this library.
 
 
 ## Documentation
 
-The complete documentation for this library can be found in the repo's [Wiki](https://github.com/maxlandon/readline/docs/). Below is the Table of Contents:
+The complete documentation for this library can be found in the repo's [Wiki](https://github.com/maxlandon/readline/wiki). Below is the Table of Contents:
 
-- **Input modes**
-    - Vim
-        - Setup
-        - Usage
-    - Emacs
-        - Setup
-        - Usage
+#### Input modes
+* [ Vim ](https://github.com/maxlandon/readline/wiki/Vim)
+* [ Emacs ](https://github.com/maxlandon/readline/wiki/Emacs)
 
-- **Prompt system**
-    - Vim mode
-    - Multiline prompts
-    - Custom prompts
-    - Prompt refresh
+#### Prompt system
+* [ Vim Prompt](https://github.com/maxlandon/readline/wiki/Vim-Prompt)
+* [ Multiline Prompts ](https://github.com/maxlandon/readline/wiki/Multiline-Prompts)
+* [ Custom Prompts ](https://github.com/maxlandon/readline/wiki/Custom-Prompts)
+* [ Prompt Refresh ](https://github.com/maxlandon/readline/wiki/Prompt-Refresh)
 
-- **Completion system**
-    - Completion group types
-    - Stacking up completions
-    - Completion search
-    - Other details & warnings
-    - Completion utilities
+#### Completion Engine 
+* [ Group Types ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
+* [ Completion Search ](https://github.com/maxlandon/readline/wiki/Completion-Search)
+* [ Other details and Warnings ](https://github.com/maxlandon/readline/wiki/Other-Details-And-Warnings)
 
-- **Hint formatter & Syntax highlighter**
-    - Live refresh demonstration
+#### Hint Formatter & Syntax Highlighter 
+* [ Live Refresh Demonstration ](https://github.com/maxlandon/readline/wiki/Live-Refresh-Demonstration)
 
-- **Command History**
-    - Main / alternative sources
-    - Navigation & search
+#### Command History
+* [ Main & Alternative Sources ](https://github.com/maxlandon/readline/wiki/Main-&-Alternative-Sources)
+* [ Navigation & Search ](https://github.com/maxlandon/readline/wiki/Navigation-&-Search)
 
-- **Command & Completion utilities**
-    - Using the library with [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags)
-    - Default completion engines with go-flags.
-    - Colors usage and/or deactivation.
+#### Command & Completion utilities
+* [ Interfacing with the go-flags library](https://github.com/maxlandon/readline/wiki/Interfacing-With-Go-Flags)
+* [ Default Completion Engine (with go-flags) ](https://github.com/maxlandon/readline/wiki/Default-Completion-Engine)
+* [ Colors/Effects Usage ](https://github.com/maxlandon/readline/wiki/Colors-&-Effects-Usage)
+
 
 
 ## Project Status & Support
@@ -121,7 +116,7 @@ Being alone working on this project and having only one lifetime (anyone able to
 - Answering any questions related.
 - Being available for any blame you'd like to make for my humble but passioned work. I don't mind, I need to go up.
 
-Things I do intend to add a more or less foreseeable future:
+Things I do intend to add in a more or less foreseeable future:
 - A better recursive command/subcommand default completer (see utilities), because the current one supports only `command subcommand --options` patterns, not `command subcommand subsubcommand`.
 - A recursive option group completer: tools like `nmap` will use options like `-PA`, or `-sT`, etc. These are not supported.
 
@@ -133,6 +128,7 @@ Therefore, I do not intend to add any other features, as far as I can see. Of co
 - First of all, the warmest thanks to Laurence Morgan, aka [lmorg](https://github.com/lmorg) for his [readline](https://github.com/lmorg/readline) library. 
 This project could have never been done without the time he dedicated writing the shell in the first place. Please go check his [murex](https://github.com/lmorg/murex) shell as well !
 - The [Sliver](https://github.com/BishopFox/sliver) implant framework project, which I used as a basis to make, test and refine this library. as well as all the GIFs and documentation pictures !
+- [evilsocket](https://github.com/evilsocket) for his TUI library !
 
 
 ## Licences
