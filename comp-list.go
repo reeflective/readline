@@ -155,8 +155,9 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 
 	// Print group title and adjust offset if there is one.
+	comp += "\n"
 	if g.Name != "" {
-		comp += fmt.Sprintf("\n %s%s%s %s", BOLD, YELLOW, g.Name, RESET)
+		comp += fmt.Sprintf(" %s%s%s %s", BOLD, YELLOW, g.Name, RESET)
 		rl.tcUsedY++
 	}
 

@@ -327,7 +327,6 @@ func (rl *Instance) Readline() (string, error) {
 			// Not sure that CompletionFind is useful, nor one of the other two
 			if rl.modeAutoFind || rl.modeTabFind && rl.searchMode == CompletionFind {
 				rl.updateTabFind(r[:i])
-				rl.renderHelpers()
 				rl.viUndoSkipAppend = true
 			} else {
 				rl.editorInput(r[:i])
@@ -557,7 +556,7 @@ func (rl *Instance) editorInput(r []rune) {
 // escape codes.
 func (rl *Instance) SetPrompt(s string) {
 	rl.prompt = s
-	rl.promptLen = strLen(s)
+	// rl.promptLen = strLen(s)
 }
 
 func (rl *Instance) carridgeReturn() {

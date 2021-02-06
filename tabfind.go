@@ -21,6 +21,8 @@ func (rl *Instance) backspaceTabFind() {
 	rl.updateTabFind([]rune{})
 }
 
+// Filter and refresh (print) a list of completions. The caller should have reset
+// the virtual completion system before, so that should not clash with this.
 func (rl *Instance) updateTabFind(r []rune) {
 
 	rl.tfLine = append(rl.tfLine, r...)
@@ -46,12 +48,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 		rl.hintText = []rune(Red("Failed to match search regexp"))
 	}
 
-	// we always clear the line first, so that changing the
-	// search pattern does not screw everything.
-	rl.clearLine()
-	rl.clearVirtualComp()
-
-	// Then we update and print
+	// We update and print
 	rl.clearHelpers()
 	rl.getTabCompletion()
 	rl.renderHelpers()

@@ -20,7 +20,9 @@ func (rl *Instance) RefreshPromptLog(log string) (err error) {
 
 	// Prompt offset
 	if rl.Multiline {
-		rl.tcUsedY++
+		rl.tcUsedY += 1
+	} else {
+		rl.tcUsedY += 0
 	}
 
 	// Clear the current prompt and everything below
@@ -237,4 +239,12 @@ func (rl *Instance) computePromptEmacs() {
 
 	// Compute lengths and return
 	rl.promptLen = len(rl.mlnPrompt)
+}
+
+func (rl *Instance) colorizeVimPrompt(p []rune) (cp []rune) {
+	if rl.VimModeColorize {
+		return []rune(fmt.Sprintf("%s%s%s", BOLD, string(p), RESET))
+	}
+
+	return p
 }

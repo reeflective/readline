@@ -80,8 +80,12 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 				"No command history source, or empty", RESET))
 		}
 	} else {
-		// Print group title (changes with line returns depending on type)
-		comp += fmt.Sprintf("\n %s%s%s %s", BOLD, YELLOW, g.Name, RESET)
+		comp += "\n"
+		if g.Name != "" {
+			// Print group title (changes with line returns depending on type)
+			comp += fmt.Sprintf(" %s%s%s %s", BOLD, YELLOW, g.Name, RESET)
+			rl.tcUsedY++
+		}
 	}
 
 	termWidth := GetTermWidth()
