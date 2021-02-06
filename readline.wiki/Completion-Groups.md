@@ -1,7 +1,5 @@
 
-## Completion Groups
-
-### Group types
+## Group types
 
 Similarly to the Z-Shell completion engine, readline supports 3 different types of completions.
 For each group added to the completions, the engine will print its title if the group's `Name` 
@@ -23,10 +21,10 @@ This is used for things like history lines. To be noted, declaring such ones wor
 ![tab-map](../assets/tab-map.gif)
 
 
-### Stacking completion groups
+## Stacking completion groups
 
-As you can see in the return values of the `TabCompleter` function below, the Completion engine accepts lists
- of completion groups: it will combine them for printing, search and navigation, respecting the order in which
+As you can see in the return values of the `TabCompleter` function [here](https://github.com/maxlandon/readline/completers/tab-completer.go), 
+the Completion engine accepts lists of completion groups: it will combine them for printing, search and navigation, respecting the order in which
 they are in the completion groups list. If you are readling this, it most certainly means you want to write a completer. 
 Please see this as an overview, and come back to it later when you'll have read the docs for 
 [writing a completion function](https://github.com/maxlandon/Writing-A-Completer).
@@ -35,7 +33,7 @@ Such an example:
 ![multiple-groups](../assets/multiple-groups.gif)
 
 
-### Limiting the Group printing length
+## Limiting the Group printing length
 
 Because your completers or their commands might produce massive amounts of completions (OS processes are a good example),
 you may wish to limit the size of candidates being printed at once.  The default is 20 when more than 5 groups are passed 
@@ -50,7 +48,7 @@ rarely end up having many different groups of options for a command, and each of
 - `Map`: Works normally.
 
 
-### Populating the Completions list 
+## Populating the Completions list 
 
 Below are examples on how to populate a group of completion candidates, for each of the types:
 

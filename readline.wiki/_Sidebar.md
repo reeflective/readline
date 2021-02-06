@@ -10,8 +10,8 @@
 
 #### Completion Engine 
 * [ Completion Groups ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
-* [ Stacking up completions ](https://github.com/maxlandon/readline/wiki/Stacking-Up-Completions)
-* [ Completion Search ](https://github.com/maxlandon/readline/wiki/Completion-Search)
+* [ Completion Search & Movements ](https://github.com/maxlandon/readline/wiki/Completion-Search)
+* [ Writing a Completer ](https://github.com/maxlandon/readline/wiki/Writing-A-Completer)
 * [ Other details and Warnings ](https://github.com/maxlandon/readline/wiki/Other-Details-And-Warnings)
 
 #### Hint Formatter & Syntax Highlighter 

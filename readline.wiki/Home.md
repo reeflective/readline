@@ -45,9 +45,10 @@ adding completion groups, going through prompt systems, etc**, in between. Have 
 
 Below is a summary of the content for most files. The list is not complete, as I did not have the occasion yet to dig in some of them. The list is structured by topic/domain.
 
-#### Readline types & main loop 
+#### Readline Shell, Prompt and Main loop
 * `instance.go`     - Contains the `Instance` type, which is the Shell itself, and all its operating parameters.
 * `readline.go`     - The readline main loop.
+* `prompt.go`       - Functions computing the prompts at each loop, or on demand with custom behavior with the `RefreshPrompt()`  function.
 
 #### Vim editing
 * `vim.go`          - Processes all keystrokes used in Vim input mode, for all Vim editing modes.
