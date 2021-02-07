@@ -16,6 +16,7 @@ adding completion groups, going through prompt systems, etc**, in between. Have 
 #### Getting started
 * [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
 * [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
+* [ Command History ](https://github.com/maxlandon/readline/wiki/Command-History)
 
 ### Prompt system
 * [ Setting the Prompts](https://github.com/maxlandon/readline/wiki/Prompt-Setup)
@@ -25,14 +26,9 @@ adding completion groups, going through prompt systems, etc**, in between. Have 
 * [ Completion Groups ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
 * [ Completion Search & Movements ](https://github.com/maxlandon/readline/wiki/Completion-Search)
 * [ Writing a Completer ](https://github.com/maxlandon/readline/wiki/Writing-A-Completer)
-* [ Other details and Warnings ](https://github.com/maxlandon/readline/wiki/Other-Details-And-Warnings)
 
 ### Hint Formatter & Syntax Highlighter 
 * [ Live Refresh Demonstration ](https://github.com/maxlandon/readline/wiki/Live-Refresh-Demonstration)
-
-### Command History
-* [ Main & Alternative Sources ](https://github.com/maxlandon/readline/wiki/Main-&-Alternative-Sources)
-* [ Navigation & Search ](https://github.com/maxlandon/readline/wiki/Navigation-&-Search)
 
 ### Command & Completion utilities
 * [ Interfacing with the go-flags library](https://github.com/maxlandon/readline/wiki/Interfacing-With-Go-Flags)

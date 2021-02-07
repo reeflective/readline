@@ -41,7 +41,7 @@ func (rl *Instance) Readline() (string, error) {
 	rl.modeViMode = vimInsert
 
 	// We need this set to the last command, so that we can access it quickly
-	rl.histPos = rl.History.Len()
+	// rl.histPos = rl.History.Len()
 
 	rl.computePrompt() // initialise the prompt for first print
 
@@ -564,9 +564,20 @@ func (rl *Instance) carridgeReturn() {
 	print("\r\n")
 	if rl.HistoryAutoWrite {
 		var err error
-		rl.histPos, err = rl.History.Write(string(rl.line))
-		if err != nil {
-			print(err.Error() + "\r\n")
+
+		// Main history
+		if rl.History != nil {
+			rl.histPos, err = rl.History.Write(string(rl.line))
+			if err != nil {
+				print(err.Error() + "\r\n")
+			}
+		}
+		// Alternative history
+		if rl.AltHistory != nil {
+			rl.histPos, err = rl.AltHistory.Write(string(rl.line))
+			if err != nil {
+				print(err.Error() + "\r\n")
+			}
 		}
 	}
 }

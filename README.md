@@ -79,25 +79,22 @@ Please see either the `examples` directory, or the Wiki for detailed instruction
 
 The complete documentation for this library can be found in the repo's [Wiki](https://github.com/maxlandon/readline/wiki). Below is the Table of Contents:
 
-#### Getting started
+**Getting started**
 * [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
 * [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
 
-#### Prompt system
-* [ Vim Prompt](https://github.com/maxlandon/readline/wiki/Vim-Prompt)
-* [ Multiline Prompts ](https://github.com/maxlandon/readline/wiki/Multiline-Prompts)
-* [ Custom Prompts ](https://github.com/maxlandon/readline/wiki/Custom-Prompts)
+**Prompt system**
+* [ Setting the Prompts](https://github.com/maxlandon/readline/wiki/Prompt-Setup)
 * [ Prompt Refresh ](https://github.com/maxlandon/readline/wiki/Prompt-Refresh)
 
-#### Completion Engine 
+**Completion Engine**
 * [ Completion Groups ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
 * [ Completion Search ](https://github.com/maxlandon/readline/wiki/Completion-Search)
-* [ Other details and Warnings ](https://github.com/maxlandon/readline/wiki/Other-Details-And-Warnings)
 
-#### Hint Formatter & Syntax Highlighter 
+**Hint Formatter & Syntax Highlighter**
 * [ Live Refresh Demonstration ](https://github.com/maxlandon/readline/wiki/Live-Refresh-Demonstration)
 
-#### Command History
+**Command History**
 * [ Main & Alternative Sources ](https://github.com/maxlandon/readline/wiki/Main-&-Alternative-Sources)
 * [ Navigation & Search ](https://github.com/maxlandon/readline/wiki/Navigation-&-Search)
 
@@ -110,17 +107,23 @@ The complete documentation for this library can be found in the repo's [Wiki](ht
 
 ## Project Status & Support
 
+**Support**
 Being alone working on this project and having only one lifetime (anyone able to solve this please call me), I can engage myself over the following:
 - Support for any issue opened.
 - Answering any questions related.
 - Being available for any blame you'd like to make for my humble but passioned work. I don't mind, I need to go up.
 
+**Fixes**
+- Currently the line cannot span multiple real lines, will fix this as soon as possible.
+
+**Enhancements**
 Things I do intend to add in a more or less foreseeable future:
 - A better recursive command/subcommand default completer (see utilities), because the current one supports only `command subcommand --options` patterns, not `command subcommand subsubcommand`.
 - A recursive option group completer: tools like `nmap` will use options like `-PA`, or `-sT`, etc. These are not supported.
 - A more precise yank command (currently only yanks the full input line)
+- A customizable syntax highlighter, with many sane defaults. Still based on go-flags commands library, but with advanced line parsing.
 
-Therefore, I do not intend to add any other features, as far as I can see. Of course, any good will submitting mockups and a big smile might be considered !
+Therefore, I do not intend to add -on my own- any other features, as far as I can see. Of course, any good will submitting mockups and a big smile might be considered !
 
 
 ## Warmest Thanks
