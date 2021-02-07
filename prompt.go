@@ -77,9 +77,7 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 	}
 
 	if rl.Multiline {
-		rl.tcUsedY += 2
-	} else {
-		rl.tcUsedY++
+		rl.tcUsedY += 1
 	}
 
 	// Clear the input line and everything below
