@@ -22,9 +22,22 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 	rl.pos -= len(rl.currentComp)
 	moveCursorBackwards(len(rl.currentComp))
 
-	// We clear the current line
-	print(strings.Repeat(" ", len(rl.lineComp)))
-	moveCursorBackwards(len(rl.lineComp))
+	// We clear the current line, veryfying we just go the end of the first line
+	// TODO: Support for the first line, we'll sove when multiple ones
+	// rl.lineRemain = rl.lineComp[rl.pos:]
+	maxClearLength := GetTermWidth() - rl.promptLen - rl.pos
+	var offset int
+	if len(rl.lineRemain) > 0 && len(rl.lineRemain) > maxClearLength {
+		offset = maxClearLength
+	} else if len(rl.lineRemain) > 0 {
+		offset = len(rl.lineRemain)
+	} else if len(rl.lineComp) < maxClearLength {
+		offset = len(rl.lineComp)
+	} else {
+		offset = len(rl.currentComp)
+	}
+	print(strings.Repeat(" ", offset))
+	moveCursorBackwards(offset)
 
 	// We delete the previous virtual completion, just
 	// like we would delete a word in vim editing mode.
