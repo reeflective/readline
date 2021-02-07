@@ -8,17 +8,17 @@ field is not nil, and below it, the candidate strings.
 #### Grid 
 This type is mostly used for items like directory/file paths,  or some command and option arguments.
 
-![tab-grid](../assets/tab-grid.gif)
+![tab-grid](../assets/grid.gif)
 
 #### Lists 
 This mode allows you to add descriptions to each item, as well as an optional alias. The example below
 shows such a list, in command options are completed, with some of them having a short -f flag.
-![tab-list](../assets/tab-list.gif)
+![tab-list](../assets/list.gif)
 
 #### Maps
 - This type is visually identical to the List type, but which the description is the actual candidate. 
 This is used for things like history lines. To be noted, declaring such ones works **the same way** as for Maps.
-![tab-map](../assets/tab-map.gif)
+![tab-map](../assets/map.gif)
 
 
 ## Stacking completion groups
@@ -30,7 +30,7 @@ Please see this as an overview, and come back to it later when you'll have read 
 [writing a completion function](https://github.com/maxlandon/Writing-A-Completer).
 
 Such an example:
-![multiple-groups](../assets/multiple-groups.gif)
+![multiple-groups](../assets/stacking-completions.gif)
 
 
 ## Limiting the Group printing length
@@ -40,6 +40,7 @@ you may wish to limit the size of candidates being printed at once.  The default
 to the engine (which means 20 lines, not 20 items -would be unfair for grids-). Normally these defaults play nicely.
 
 You can specify this length by setting the groups `MaxLength`.
+See the GIF in **Stacking Completions** for a demonstration of the effect.
 
 **Important Warning:**
 - `Grid`: There is no rollout for this group, the remaining items will just be ignored for printing (they are still here in some sense).

@@ -28,13 +28,14 @@ c.shell.RefreshPromptInPlace("a new prompt that will only survive until the next
 As a general rule, for each line you want to print, add increment `offset` by 1. 
 Setting clearLine to false keeps our current line.
 ```go
-c.shell.RefreshPromptCustom("prompt", 2, false)
+c.shell.RefreshPromptCustom("prompt", 0, false)
 ```
 
 Note: if you use this function, it means that you have previse needs over the prompt 
-refresh behvior: you will inevitably need to toy around with this to get to your ends.
+refresh behavior: you will inevitably need to toy around with this to get to your ends.
+The Gif below is what is produced with the call just above.
 
-![refresh-below](../assets/refresh-in-place.gif)
+![refresh-below](../assets/simple-refresh.gif)
 
 
 ### Example 3 - Push the prompt (more effiently)
@@ -45,12 +46,9 @@ arrived, that you want it printed but at the same time not bothering you while w
 ```go
 asyncLog <-logChan
 
-// Compute the number of lines that your log string will use 
-_, logLineOffset := readline.WrapText(asyncLog.String(), readline.GetTermWidth())
-
 // Refresh the prompt just below.
-c.shell.RefreshPrompt("prompt", logLineOffset, false)
+c.shell.RefreshPromptLog(asyncLog.String())
 ```
 
-![refresh-efficient](../assets/refresh-efficient.gif)
+![refresh-efficient](../assets/refresh-prompt-log.gif)
 
