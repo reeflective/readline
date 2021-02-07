@@ -10,7 +10,7 @@ they can either have a user-centralized history record, and an in-memory one for
 
 *Note that the history is automatically put in Search Mode, so that what you type is passed to the search filter.*
 
-![histories](https://github.com/maxlandon/readline/blob/assets/histories.gif)
+![history](https://github.com/maxlandon/readline/blob/assets/history.gif)
 
 
 ## Writing a custom history
