@@ -20,7 +20,8 @@ because prompt single ?*. Don't bother with this. The examples below are by the 
 c.shell.RefreshPromptInPlace("a new prompt that will only survive until the next readline loop")
 ```
 
-![refresh-in-place](../assets/refresh-in-place.gif)
+![refresh-in-place](https://github.com/maxlandon/readline/tree/assets/refresh-in-place.gif)
+<!-- ![refresh-in-place](../assets/refresh-in-place.gif) -->
 
 
 ### Example 2 - Push the prompt below, a new message
@@ -35,7 +36,8 @@ Note: if you use this function, it means that you have previse needs over the pr
 refresh behavior: you will inevitably need to toy around with this to get to your ends.
 The Gif below is what is produced with the call just above.
 
-![simple-refresh](../assets/simple-refresh.gif)
+![simple-refresh](https://github.com/maxlandon/readline/tree/assets/simple-refresh.gif)
+<!-- ![simple-refresh](../assets/simple-refresh.gif) -->
 
 
 ### Example 3 - Push the prompt (more effiently)
@@ -50,5 +52,6 @@ asyncLog <-logChan
 c.shell.RefreshPromptLog(asyncLog.String())
 ```
 
-![refresh-prompt-log](../assets/refresh-prompt-log.gif)
+![refresh-prompt-log](https://github.com/maxlandon/readline/tree/assets/refresh-prompt-log.gif)
+<!-- ![refresh-prompt-log](../assets/refresh-prompt-log.gif) -->
 
