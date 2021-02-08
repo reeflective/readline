@@ -113,6 +113,8 @@ Being alone working on this project and having only one lifetime (anyone able to
 - Answering any questions related.
 - Being available for any blame you'd like to make for my humble but passioned work. I don't mind, I need to go up.
 
+## Fixes & Planned Enhancements
+
 **Fixes**
 - Currently the line cannot span multiple real lines, will fix this as soon as possible.
 
@@ -122,8 +124,8 @@ Things I do intend to add in a more or less foreseeable future:
 - A recursive option group completer: tools like `nmap` will use options like `-PA`, or `-sT`, etc. These are not supported.
 - A more precise yank command (currently only yanks the full input line)
 - A customizable syntax highlighter, with many sane defaults. Still based on go-flags commands library, but with advanced line parsing.
-
-Therefore, I do not intend to add -on my own- any other features, as far as I can see. Of course, any good will submitting mockups and a big smile might be considered !
+- A larger wish would be to integrate more parsing logic that has been found in the lmorg's murex library.
+- Also, I will maybe add, in a separate package, a ready-to-work console with default commands, while keep the ability to bind new ones on the fly.
 
 
 ## Warmest Thanks
