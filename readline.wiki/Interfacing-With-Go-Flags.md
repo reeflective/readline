@@ -63,6 +63,9 @@ func BindParser() (parser  *flags.Parser){
 This comand, as you will see below, will be called on each loop execution: 
 therefore, you can add new commands to a parser, change it all together, etc.
 
+Go to the next page to see how to [declare and bind commands](https::/github.com/maxlandon/readline/wiki/Declaring-Commands) 
+with a go-flags parser. 
+
 
 ## Using the default Completion Engine 
 

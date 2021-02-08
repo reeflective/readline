@@ -19,5 +19,6 @@
 
 #### Command & Completion utilities
 * [ Interfacing with the go-flags library](https://github.com/maxlandon/readline/wiki/Interfacing-With-Go-Flags)
+* [ Declaring go-flags commands](https://github.com/maxlandon/readline/wiki/Declaring-Commands)
 * [ Colors/Effects Usage ](https://github.com/maxlandon/readline/wiki/Colors-&-Effects-Usage)
 
