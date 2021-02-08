@@ -32,7 +32,6 @@ adding completion groups, going through prompt systems, etc**, in between. Have 
 
 ### Command & Completion utilities
 * [ Interfacing with the go-flags library](https://github.com/maxlandon/readline/wiki/Interfacing-With-Go-Flags)
-* [ Default Completion Engine (with go-flags) ](https://github.com/maxlandon/readline/wiki/Default-Completion-Engine)
 * [ Colors/Effects Usage ](https://github.com/maxlandon/readline/wiki/Colors-&-Effects-Usage)
 
 
