@@ -8,17 +8,17 @@ field is not nil, and below it, the candidate strings.
 #### Grid 
 This type is mostly used for items like directory/file paths,  or some command and option arguments.
 
-![tab-grid](../assets/grid.gif)
+![tab-grid](https://github.com/maxlandon/readline/blob/assets/grid.gif)
 
 #### Lists 
 This mode allows you to add descriptions to each item, as well as an optional alias. The example below
 shows such a list, in command options are completed, with some of them having a short -f flag.
-![tab-list](../assets/list.gif)
+![tab-list](https://github.com/maxlandon/readline/blob/assets/list.gif)
 
 #### Maps
 - This type is visually identical to the List type, but which the description is the actual candidate. 
 This is used for things like history lines. To be noted, declaring such ones works **the same way** as for Maps.
-![tab-map](../assets/map.gif)
+![tab-map](https://github.com/maxlandon/readline/blob/assets/map.gif)
 
 
 ## Stacking completion groups
@@ -30,7 +30,7 @@ Please see this as an overview, and come back to it later when you'll have read 
 [writing a completion function](https://github.com/maxlandon/Writing-A-Completer).
 
 Such an example:
-![multiple-groups](../assets/stacking-completions.gif)
+![multiple-groups](https://github.com/maxlandon/readline/blob/assets/stacking-completions.gif)
 
 
 ## Limiting the Group printing length
