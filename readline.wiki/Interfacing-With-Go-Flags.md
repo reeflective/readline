@@ -103,7 +103,7 @@ and we need to reset all of their arguments/option values. In addition, we might
 after some command executions, or register new commands to it. 
 
 Therefore, the parser is called before each readline execution loop, in the following function.
-Includes a bit of parsing and expansion logic, but you can get rid of it.
+The loop also includes a bit of parsing and expansion logic, but you can get rid of it.
 
 ```go
 
@@ -127,7 +127,9 @@ func (c *console) Start() (err error) {
                 // Start reading the user input, yield completions, etc.
 		line, _ := c.Readline()
 
-		// Split and sanitize input
+                // Optional part 
+                // --------------------------------------------------------------------
+		// Split and sanitize the input line, after each space. 
 		sanitized, empty := sanitizeInput(line)
 		if empty {
 			continue
@@ -140,6 +142,7 @@ func (c *console) Start() (err error) {
 		// Other types of tokens, needed by commands who expect a certain type
 		// of arguments, such as paths with spaces.
 		tokenParsed := c.parseTokens(envParsed)
+                // --------------------------------------------------------------------
 
 		// Let the parser execute the command 
 		if _, parserErr := c.parser.ParseArgs(tokenParsed); parserErr != nil {
@@ -154,9 +157,13 @@ func (c *console) Start() (err error) {
 ```
 
 
-## Practical functions (handle parser behavior)
+## Handling the go-flags Parser errors 
 
-The following functions show how to handle default errors raised by a go-flags Parser.
+The following function shows how to handle default errors raised by a go-flags Parser. 
+Some of these errors may be --help flags passed to a command, in which case you will 
+find the appropriate Help printing function in the `examples/help.go` files of the repo. 
+Just copy them in your project.
+
 
 ```go
 // HandleParserErrors - The parsers may return various types of Errors, this function handles them.
@@ -201,41 +208,4 @@ func (c *console) HandleParserErrors(parser *flags.Parser, in error, args []stri
 
 	return
 }
-
-// findHelpCommand - A -h, --help flag was invoked in the output.
-// Find the root or any subcommand.
-func (c *console) findHelpCommand(args []string, parser *flags.Parser) *flags.Command {
-
-	var root *flags.Command
-	for _, cmd := range parser.Commands() {
-		if cmd.Name == args[0] {
-			root = cmd
-		}
-	}
-	if root == nil {
-		return nil
-	}
-	if len(args) == 1 || len(root.Commands()) == 0 {
-		return root
-	}
-
-	var sub *flags.Command
-	if len(args) > 1 {
-		for _, s := range root.Commands() {
-			if s.Name == args[1] {
-				sub = s
-			}
-		}
-	}
-	if sub == nil {
-		return root
-	}
-	if len(args) == 2 || len(sub.Commands()) == 0 {
-		return sub
-	}
-
-	return nil
-}
-
-
 ```
