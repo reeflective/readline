@@ -29,7 +29,7 @@ func bindCommands() (err error) {
 		"Exit from the client/server console", // Description (completions, help usage)
 		"",                                    // Long description
 		&Exit{})                               // Command implementation
-	ex.Aliases = []string{"core"}
+	ex.Aliases = []string{"core"} // Hackish: commands cannot be assigned to groups.
 
 	cd, err := commandParser.AddCommand("cd",
 		"Change client working directory",

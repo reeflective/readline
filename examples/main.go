@@ -16,11 +16,11 @@ func main() {
 	// Instantiate a console object
 	console := newConsole()
 
-	// Bind commands to the console
-	bindCommands()
-
 	// Setup the console completers, prompts, and input modes
 	console.setup()
+
+	// NOTE: we don't bind the commands to the loop here,
+	// go check the Start() loop to get the reason.
 
 	// Start the readline loop (blocking)
 	console.Start()
@@ -86,17 +86,24 @@ func (c *console) Start() (err error) {
 
 	// Start input loop
 	for {
-		// Read input line
+		// IMPORTANT: Before anything, we bind the commands again.
+		// This is because unlike a CLI application where command structs have a given lifetime,
+		// this shell will not exit, and therefore we have to bind new commands again, so that
+		// all command options, arguments and fields be reset. Only the go-flags library will see this.
+		bindCommands()
+
+		// We block while the user has not entered its command,
+		// and this is where most of the library works
 		line, _ := c.Readline()
 
-		// Split and sanitize input
+		// Once the command is entered, split and sanitize the line from redundant spaces.
 		sanitized, empty := sanitizeInput(line)
 		if empty {
 			continue
 		}
 
 		// Process various tokens on input (environment variables, paths, etc.)
-		// These tokens will be expaneded by completers anyway, so this is not absolutely required.
+		// These tokens will be expanded by completers anyway, so this is not absolutely required.
 		envParsed, _ := completers.ParseEnvironmentVariables(sanitized)
 
 		// Other types of tokens, needed by commands who expect a certain type
@@ -168,6 +175,5 @@ func (c *console) parseTokens(sanitized []string) (parsed []string) {
 	}
 	parsed = pathAdjusted
 
-	// Add new function here, act on parsed []string from now on, not sanitized
 	return
 }

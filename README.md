@@ -12,20 +12,20 @@ This project started out of the wish to make an enhanced console for a security 
 There are already several readline libraries available in Go ([github.com/chzyer/readline](https://github.com/chzyer/readline), 
 and [github.com/lmorg/readline](https://github.com/lmorg/readline)), but being stricter readline implementations, their completion 
 system is either limited (the former), or not as advanced as this one (the latter). The latter, however, is the basis I used for this 
-library, and all credits due and diserved are in the **Warmests Thanks** section).
+library, and all credits due and diserved are in the **Warmest Thanks** section).
 
 This project is not a full command-line application, which means it does not automatically understand and execute any commands.
 However, having been developed in a project using the CLI [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) library,
 it also includes some default utilities (completers) that are made to work with this library, which I humbly but highly recommend.
 Please see the [Wiki](https://github.com/maxlandon/readline/docs/) (or the `examples/` directory) for information on how to use these utilities.
 
-Additionally, this project is not POSIX-compliant in any way, nor it a complete and perfect reimplementation of Z-Shell parsing & completion engine.
-Please see the `Project Status` for the list of things that I can support on my own (considering no other maintainers).
+Additionally, this project is not POSIX-compliant in any way, nor it is a complete and perfect reimplementation of Z-Shell parsing & completion engine.
+Please see the **Project Status** section for the list of things that I can support on my own (considering no other maintainers).
 
 
 ## Features Summary
 
-A summarized of features supported by this library is following:
+A summarized list of features supported by this library is the following:
 
 ### Input & Editing 
 - Vim / Emacs input and editing modes.
@@ -71,7 +71,6 @@ for how to use them. Also feel free to use them as an inspiration source to make
 As usual with Go, installation:
 ```
 go get github.com/maxlandon/readline
-
 ```
 Please see either the `examples` directory, or the Wiki for detailed instructions on how to use this library.
 
@@ -121,7 +120,7 @@ Being alone working on this project and having only one lifetime (anyone able to
 - Answering any questions related.
 - Being available for any blame you'd like to make for my humble but passioned work. I don't mind, I need to go up.
 
-Things I do intend to add a more or less foreseeable future:
+Things I do intend to add in a more or less foreseeable future:
 - A better recursive command/subcommand default completer (see utilities), because the current one supports only `command subcommand --options` patterns, not `command subcommand subsubcommand`.
 - A recursive option group completer: tools like `nmap` will use options like `-PA`, or `-sT`, etc. These are not supported.
 
