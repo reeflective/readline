@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -228,7 +229,12 @@ func (rl *Instance) renderHelpers() {
 	// If the length of completion is wider than the terminal length,
 	// we refresh the prompt as well
 	if rl.tcUsedY > GetTermLength() {
-		rl.RefreshPromptCustom(rl.prompt, 0, false)
+		if rl.Multiline {
+			fmt.Println(rl.prompt)
+		}
+		rl.echo()
+
+		// rl.RefreshPromptCustom(rl.prompt, 0, false)
 		// Very important, otherwise it endlessly print comps
 		rl.resetTabCompletion()
 	} else {
