@@ -213,7 +213,7 @@ func (rl *Instance) Readline() (string, error) {
 
 				// If too many completions and no yet confirmed, ask user for completion
 				comps, lines := rl.getCompletionCount()
-				if lines >= 70 && !rl.compConfirmWait {
+				if lines > rl.MaxTabCompleterRows && !rl.compConfirmWait {
 					sentence := fmt.Sprintf("%s show all %d completions (%d lines) ?",
 						FOREWHITE, comps, lines)
 					rl.hintText = []rune(sentence)
@@ -230,8 +230,16 @@ func (rl *Instance) Readline() (string, error) {
 
 				// Also here, if only one candidate is available, automatically
 				// insert it and don't bother printing completions.
+				// Quit the tab completion mode to avoid asking to the user to press
+				// Enter twice to actually run the command
 				if rl.hasOneCandidate() {
 					rl.insertCandidate()
+
+					// Refresh first, and then quit the completion mode
+					rl.renderHelpers()
+					rl.viUndoSkipAppend = true
+					rl.resetTabCompletion()
+					continue
 				}
 
 				rl.renderHelpers()
