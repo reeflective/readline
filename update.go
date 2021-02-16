@@ -238,8 +238,8 @@ func (rl *Instance) renderHelpers() {
 	if !rl.compConfirmWait {
 		moveCursorUp(rl.hintY)
 	}
-	moveCursorBackwards(GetTermWidth())
 
+	moveCursorBackwards(GetTermWidth())
 	moveCursorToLinePos(rl)
 }
 
