@@ -227,16 +227,21 @@ func (rl *Instance) renderHelpers() {
 	rl.writeTabCompletion()
 
 	// If the length of completion is wider than the terminal length,
-	// we refresh the prompt as well
+	// we refresh the prompt and the hints once again
 	if rl.tcUsedY > GetTermLength() {
 		if rl.Multiline {
+			fmt.Println() // Completions don't add the last newline
 			fmt.Println(rl.prompt)
 		}
 		rl.echo()
+		if !rl.modeAutoFind {
+			rl.getHintText()
+		}
+		// We write the hint again
+		rl.writeHintText()
 
-		// rl.RefreshPromptCustom(rl.prompt, 0, false)
-		// Very important, otherwise it endlessly print comps
-		rl.resetTabCompletion()
+		// Very important, otherwise will reprint the loop
+		// rl.resetTabCompletion()
 	} else {
 		moveCursorUp(rl.tcUsedY)
 	}
