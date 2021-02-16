@@ -218,9 +218,9 @@ func (rl *Instance) Readline() (string, error) {
 						FOREWHITE, comps, lines)
 					rl.promptCompletionConfirm(sentence)
 					continue
-				} else if lines > GetTermLength() && !rl.compConfirmWait {
+				} else if lines > GetTermLength()-GetCursorLine() && !rl.compConfirmWait {
 					sentence := fmt.Sprintf("%s completions are longer than screen (%d lines). Show anyway ?",
-						FOREWHITE, comps, lines)
+						FOREWHITE, lines)
 					rl.promptCompletionConfirm(sentence)
 					continue
 				}

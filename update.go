@@ -224,7 +224,14 @@ func (rl *Instance) renderHelpers() {
 	}
 
 	rl.writeTabCompletion()
-	moveCursorUp(rl.tcUsedY)
+
+	// If the length of completion is wider than the terminal length,
+	// we refresh the prompt as well
+	if rl.tcUsedY > GetTermLength() {
+		rl.RefreshPromptCustom(rl.prompt, 0, false)
+	} else {
+		moveCursorUp(rl.tcUsedY)
+	}
 
 	if !rl.compConfirmWait {
 		moveCursorUp(rl.hintY)
@@ -233,26 +240,6 @@ func (rl *Instance) renderHelpers() {
 
 	moveCursorToLinePos(rl)
 }
-
-// This one has the advantage of not stacking hints and completions, pretty balanced.
-// However there is a problem with it when we use completion while being in the middle of the line.
-// func (rl *Instance) renderHelpers() {
-//
-//         rl.echo() // Added by me, so that prompt always appear when new line
-//
-//         // If we are waiting for confirmation (too many comps), do not overwrite the hints.
-//         if !rl.compConfirmWait {
-//                 rl.getHintText()
-//                 rl.writeHintText()
-//                 moveCursorUp(rl.hintY)
-//         }
-//
-//         rl.writeTabCompletion()
-//         moveCursorUp(rl.tcUsedY)
-
-//         moveCursorBackwards(GetTermWidth())
-//         moveCursorToLinePos(rl)
-// }
 
 func (rl *Instance) updateHelpers() {
 	rl.tcOffset = 0

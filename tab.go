@@ -180,6 +180,12 @@ func (rl *Instance) writeTabCompletion() {
 
 	// Then we print all of them.
 	fmt.Printf(completions)
+
+	// If the length of completion is wider than the terminal length,
+	// we refresh the prompt as well
+	if rl.tcUsedY > GetTermLength() {
+		rl.RefreshPromptCustom(rl.prompt, 0, false)
+	}
 }
 
 // getTabSearchCompletion - Populates and sets up completion for completion search
