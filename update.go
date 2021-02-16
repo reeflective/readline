@@ -229,6 +229,8 @@ func (rl *Instance) renderHelpers() {
 	// we refresh the prompt as well
 	if rl.tcUsedY > GetTermLength() {
 		rl.RefreshPromptCustom(rl.prompt, 0, false)
+		// Very important, otherwise it endlessly print comps
+		rl.resetTabCompletion()
 	} else {
 		moveCursorUp(rl.tcUsedY)
 	}
