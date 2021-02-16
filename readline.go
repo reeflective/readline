@@ -216,15 +216,15 @@ func (rl *Instance) Readline() (string, error) {
 				if lines > rl.MaxTabCompleterRows && !rl.compConfirmWait {
 					sentence := fmt.Sprintf("%s show all %d completions (%d lines) ?",
 						FOREWHITE, comps, lines)
-					rl.hintText = []rune(sentence)
-					rl.writeHintText()
-					moveCursorUp(rl.hintY)
-					moveCursorBackwards(GetTermWidth())
-					moveCursorToLinePos(rl)
-					rl.compConfirmWait = true
-					rl.viUndoSkipAppend = true
+					rl.promptCompletionConfirm(sentence)
+					continue
+				} else if lines > GetTermLength() && !rl.compConfirmWait {
+					sentence := fmt.Sprintf("%s completions are longer than screen (%d lines). Show anyway ?",
+						FOREWHITE, comps, lines)
+					rl.promptCompletionConfirm(sentence)
 					continue
 				}
+
 				rl.compConfirmWait = false
 				rl.modeTabCompletion = true
 
