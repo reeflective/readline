@@ -3,6 +3,8 @@ package readline
 import (
 	"fmt"
 	"strings"
+
+	"github.com/lunixbochs/vtclean"
 )
 
 func moveCursorUp(i int) {
@@ -197,8 +199,22 @@ func (rl *Instance) moveInputEnd() {
 // input line appropriately, ensuring the cursor is always where it should be.
 func (rl *Instance) echoInputLine(line []rune) {
 
+	// First, clean the line from any color/terminal escape sequence it contains
+	netLine := vtclean.Clean(string(line))
+
 	// If there are any token to process it should be done here, because
 	// we are going to need exact length/width values after that.
+
+	// If, counting the prompt, our current input will not span multiple lines,
+	// do not complicate: print and return
+	firstLen := GetTermWidth() - len(rl.prompt)
+	if len(netLine) <= firstLen {
+		print(string(line))
+		if len(rl.currentComp) <= 0 {
+			moveCursorBackwards(len(rl.line) - rl.pos)
+		}
+		return
+	}
 
 	// We first go back to where the prompt is (either Vim status or "$"), and clear
 	// everything below it. Completions, hinsts, etc will be reprinted anyway.
@@ -209,16 +225,21 @@ func (rl *Instance) echoInputLine(line []rune) {
 	moveCursorUp(numlines)
 	print(seqClearScreenBelow)
 
-	// We make multiple, independent lines for printing, for clarity
 	var lines [][]rune
-	for i := 0; i < numlines; i++ {
-		var ln []rune
-		if i == 0 && numlines == 0 && rest > 0 {
-			ln = line
-		} else {
-			ln = line[(i*GetTermWidth() - 2) : GetTermWidth()-2]
+	if numlines > 1 {
+		for i := 0; i < numlines; i++ {
+			ln := line[(i * GetTermWidth()):GetTermWidth()]
+			lines = append(lines, ln)
 		}
-		lines = append(lines, ln)
+
+		if rest > 0 {
+			ln := line[(numlines * GetTermWidth()) : GetTermWidth()-2]
+			lines = append(lines, ln)
+		}
+	}
+
+	if rest > 0 && numlines == 0 {
+		lines = append(lines, line)
 	}
 
 	// For each line we may potentially adjust for any token we want
