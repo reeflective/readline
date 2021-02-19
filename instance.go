@@ -97,6 +97,8 @@ type Instance struct {
 	promptLen      int    //= 4
 	line           []rune // This is the input line, with entered text: full line = mlnPrompt + line
 	pos            int
+	posX           int // Cursor position X
+	posY           int // Cursor position Y (multiple lines span)
 	multiline      []byte
 	multisplit     []string
 	skipStdinRead  bool

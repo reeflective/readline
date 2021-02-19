@@ -41,7 +41,7 @@ func (rl *Instance) Readline() (string, error) {
 	rl.modeViMode = vimInsert
 
 	// We need this set to the last command, so that we can access it quickly
-	// rl.histPos = rl.History.Len()
+	rl.histPos = rl.History.Len()
 
 	rl.computePrompt() // initialise the prompt for first print
 

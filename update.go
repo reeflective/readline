@@ -144,10 +144,13 @@ func (rl *Instance) echo() {
 		if len(rl.currentComp) > 0 {
 			line := rl.lineComp[:rl.pos]
 			line = append(line, rl.lineRemain...)
-			print(string(line) + " ")
+			// print(string(line) + " ")
+			rl.echoInputLine(line)
 		} else {
-			print(string(rl.line) + " ")
-			moveCursorBackwards(len(rl.line) - rl.pos)
+			// print(string(rl.line) + " ")
+			line := append(rl.line, []rune(" ")...)
+			rl.echoInputLine(line)
+			// moveCursorBackwards(len(rl.line) - rl.pos)
 		}
 
 	default:
@@ -158,14 +161,84 @@ func (rl *Instance) echo() {
 		if len(rl.currentComp) > 0 {
 			line := rl.lineComp[:rl.pos]
 			line = append(line, rl.lineRemain...)
-			print(rl.SyntaxHighlighter(line) + " ")
+			// print(rl.SyntaxHighlighter(line) + " ")
+			line = []rune(rl.SyntaxHighlighter(line) + " ")
+			rl.echoInputLine(line)
 		} else {
-			print(rl.SyntaxHighlighter(rl.line) + " ")
-			moveCursorBackwards(len(rl.line) - rl.pos)
+			// print(rl.SyntaxHighlighter(rl.line) + " ")
+			line := []rune(rl.SyntaxHighlighter(rl.line) + " ")
+			rl.echoInputLine(line)
+			// moveCursorBackwards(len(rl.line) - rl.pos)
 		}
 	}
+}
 
-	// moveCursorBackwards(len(rl.line) - rl.pos)
+// If the input line spans multiple lines, before we print hints, comps, etc.
+func (rl *Instance) moveInputEnd() {
+
+	// First go back to prompt
+	moveCursorBackwards(rl.pos)
+	moveCursorUp(rl.posY)
+
+	// Then go back to end
+	numlines := len(rl.line)/GetTermWidth() - 2
+	rest := len(rl.line)%GetTermWidth() - 2
+
+	if numlines > 0 {
+		moveCursorDown(numlines)
+	}
+	if rest > 0 {
+		moveCursorDown(1)
+	}
+}
+
+// echoInputLine - The console considers various things at once (current term width,
+// input line width, potentially any newline/tab tokens, etc), and renders the current
+// input line appropriately, ensuring the cursor is always where it should be.
+func (rl *Instance) echoInputLine(line []rune) {
+
+	// If there are any token to process it should be done here, because
+	// we are going to need exact length/width values after that.
+
+	// We first go back to where the prompt is (either Vim status or "$"), and clear
+	// everything below it. Completions, hinsts, etc will be reprinted anyway.
+	numlines := len(line)/GetTermWidth() - 2
+	rest := len(line)%GetTermWidth() - 2
+
+	moveCursorBackwards(rest)
+	moveCursorUp(numlines)
+	print(seqClearScreenBelow)
+
+	// We make multiple, independent lines for printing, for clarity
+	var lines [][]rune
+	for i := 0; i < numlines; i++ {
+		var ln []rune
+		if i == 0 && numlines == 0 && rest > 0 {
+			ln = line
+		} else {
+			ln = line[(i*GetTermWidth() - 2) : GetTermWidth()-2]
+		}
+		lines = append(lines, ln)
+	}
+
+	// For each line we may potentially adjust for any token we want
+	// to interpret as newlines (or anything) that we might do here.
+	// Only adjust numlines in the process, and overwrite carefully
+	// the lines [][]rune variable.
+
+	// Then we print each line
+	for _, line := range lines {
+		print(string(line))
+	}
+
+	// Move the cursor back to its current position
+	moveCursorUp(numlines - rl.tcPosY)
+	moveCursorToLinePos(rl)
+
+	// Go back if we are not on the first line (no need to offsert prompt)
+	if numlines > 0 {
+		moveCursorBackwards(len(rl.prompt))
+	}
 }
 
 func (rl *Instance) clearLine() {
@@ -241,7 +314,7 @@ func (rl *Instance) renderHelpers() {
 		rl.writeHintText()
 
 		// Very important, otherwise will reprint the loop
-		// rl.resetTabCompletion()
+		rl.resetTabCompletion()
 	} else {
 		moveCursorUp(rl.tcUsedY)
 	}
