@@ -200,7 +200,7 @@ func (rl *Instance) moveInputEnd() {
 func (rl *Instance) echoInputLine(line []rune) {
 
 	// First, clean the line from any color/terminal escape sequence it contains
-	netLine := vtclean.Clean(string(line))
+	netLine := vtclean.Clean(string(line), false)
 
 	// If there are any token to process it should be done here, because
 	// we are going to need exact length/width values after that.
