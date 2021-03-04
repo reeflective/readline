@@ -3,6 +3,7 @@ package readline
 import (
 	"os"
 	"regexp"
+	"strings"
 )
 
 // Instance is used to encapsulate the parameter group and run time of any given
@@ -40,15 +41,17 @@ type Instance struct {
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func([]rune) string
 
-	// History is an interface for querying the readline history.
+	// mainHistory is an interface for querying the readline history.
 	// This is exposed as an interface to allow you the flexibility to define how
 	// you want your history managed (eg file on disk, database, cloud, or even
 	// no history at all). By default it uses a dummy interface that only stores
 	// historic items in memory.
-	History History
-	// AltHistory is an alternative history input, in case a console user would
+	mainHistory      History
+	mainHistName string
+	// altHistory is an alternative history input, in case a console user would
 	// like to have two different history flows.
-	AltHistory History
+	altHistory  History
+	altHistName string
 
 	// HistoryAutoWrite defines whether items automatically get written to
 	// history.
@@ -91,14 +94,19 @@ type Instance struct {
 	GetMultiLine func([]rune) []rune
 
 	// readline operating parameters
-	mlnPrompt     []rune // Our multiline prompt, different from multiline below
-	mlnArrow      []rune
-	promptLen     int    //= 4
-	line          []rune // This is the input line, with entered text: full line = mlnPrompt + line
-	pos           int
-	multiline     []byte
-	multisplit    []string
-	skipStdinRead bool
+	mlnPrompt      []rune // Our multiline prompt, different from multiline below
+	mlnArrow       []rune
+	promptLen      int    //= 4
+	line           []rune // This is the input line, with entered text: full line = mlnPrompt + line
+	pos            int
+	posX           int // Cursor position X
+	fullX          int
+	posY           int // Cursor position Y (multiple lines span)
+	fullY          int
+	multiline      []byte
+	multisplit     []string
+	skipStdinRead  bool
+	stillOnRefresh bool // True if some logs have printed asynchronously since last loop.
 
 	// history
 	lineBuf    string
@@ -157,6 +165,7 @@ func NewInstance() *Instance {
 	rl := new(Instance)
 
 	// Prompt
+	rl.Multiline = false
 	rl.prompt = ">>> "
 	rl.promptLen = len(rl.computePrompt())
 	rl.mlnArrow = []rune{' ', '>', ' '}
@@ -166,10 +175,10 @@ func NewInstance() *Instance {
 	rl.ShowVimMode = true // In case the user sets input mode to Vim, everything is ready.
 
 	// Completion
-	rl.MaxTabCompleterRows = 100
+	rl.MaxTabCompleterRows = 50
 
 	// History
-	rl.History = new(ExampleHistory) // In-memory history by default.
+	rl.mainHistory = new(ExampleHistory) // In-memory history by default.
 	rl.HistoryAutoWrite = true
 
 	// Others
@@ -178,4 +187,30 @@ func NewInstance() *Instance {
 	rl.TempDirectory = os.TempDir()
 
 	return rl
+}
+
+// WrapText - Wraps a text given a specified width, and returns the formatted
+// string as well the number of lines it will occupy
+func WrapText(text string, lineWidth int) (wrapped string, lines int) {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return
+	}
+	wrapped = words[0]
+	spaceLeft := lineWidth - len(wrapped)
+	// There must be at least a line
+	if text != "" {
+		lines++
+	}
+	for _, word := range words[1:] {
+		if len(word)+1 > spaceLeft {
+			lines++
+			wrapped += "\n" + word
+			spaceLeft = lineWidth - len(word)
+		} else {
+			wrapped += " " + word
+			spaceLeft -= 1 + len(word)
+		}
+	}
+	return
 }

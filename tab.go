@@ -2,6 +2,7 @@ package readline
 
 import (
 	"fmt"
+	"strings"
 )
 
 // TabDisplayType defines how the autocomplete suggestions display
@@ -172,6 +173,12 @@ func (rl *Instance) writeTabCompletion() {
 		}
 	}
 
+	// If we are the first group, we delete the newline
+	// because cursor movements are handled by the caller
+	if strings.HasPrefix(completions, "\n") {
+		completions = strings.TrimPrefix(completions, "\n")
+	}
+
 	// Because some completion groups might have more suggestions
 	// than what their MaxLength allows them to, cycling sometimes occur,
 	// but does not fully clears itself: some descriptions are messed up with.
@@ -192,13 +199,16 @@ func (rl *Instance) getTabSearchCompletion() {
 	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 	rl.getCurrentGroup()                     // Make sure there is a current group
 
+	// Set the hint for this completion mode
+	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
+
 	for _, g := range rl.tcGroups {
 		g.updateTabFind(rl)
 	}
 
 	// If total number of matches is zero, we directly change the hint, and return
 	if comps, _ := rl.getCompletionCount(); comps == 0 {
-		rl.hintText = append(rl.hintText, []rune(": no matches (Ctrl-G to cancel)")...)
+		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
 	}
 }
 
@@ -211,20 +221,25 @@ func (rl *Instance) getHistorySearchCompletion() {
 	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 	rl.getCurrentGroup()                     // Make sure there is a current group
 
+	// The history hint is already set, but overwrite it if we don't have completions
 	if len(rl.tcGroups[0].Suggestions) == 0 {
-		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED, "No command history source, or empty", RESET))
+		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
+			"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
 		rl.hintText = rl.histHint
 		return
 	}
-	rl.histHint = []rune(rl.tcGroups[0].Name)
+
+	// Set the hint line with everything
+	rl.histHint = append([]rune("\033[38;5;183m"+string(rl.histHint)+RESET), rl.tfLine...)
+	rl.histHint = append(rl.histHint, []rune(RESET)...)
+	rl.hintText = rl.histHint
 
 	// Refresh filtered candidates
 	rl.tcGroups[0].updateTabFind(rl)
 
 	// If no items matched history, add hint text that we failed to search
 	if len(rl.tcGroups[0].Suggestions) == 0 {
-		rl.histHint = []rune(rl.tcGroups[0].Name)
-		rl.hintText = append(rl.histHint, []rune(": no matches")...)
+		rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
 	}
 }
 
@@ -324,6 +339,19 @@ func (rl *Instance) hasOneCandidate() bool {
 	return false
 }
 
+// When the completions are either longer than:
+// - The user-specified max completion length
+// - The terminal lengh
+// we use this function to prompt for confirmation before printing comps.
+func (rl *Instance) promptCompletionConfirm(sentence string) {
+	rl.hintText = []rune(sentence)
+
+	rl.compConfirmWait = true
+	rl.viUndoSkipAppend = true
+
+	rl.renderHelpers()
+}
+
 func (rl *Instance) getCompletionCount() (comps int, lines int) {
 	for _, group := range rl.tcGroups {
 		comps += len(group.Suggestions)
@@ -334,27 +362,6 @@ func (rl *Instance) getCompletionCount() (comps int, lines int) {
 		}
 	}
 	return
-}
-
-// Insert the current completion candidate into the input line.
-// This candidate might either be the currently selected one (white frame),
-// or the only candidate available, if the total number of candidates is 1.
-func (rl *Instance) insertCandidate() {
-
-	cur := rl.getCurrentGroup()
-
-	if cur != nil {
-		completion := cur.getCurrentCell(rl)
-		prefix := len(rl.tcPrefix)
-
-		// Ensure no indexing error happens with prefix
-		if len(completion) >= prefix {
-			rl.insert([]rune(completion[prefix:]))
-			if !cur.TrimSlash {
-				rl.insert([]rune(" "))
-			}
-		}
-	}
 }
 
 func (rl *Instance) resetTabCompletion() {

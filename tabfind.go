@@ -21,23 +21,11 @@ func (rl *Instance) backspaceTabFind() {
 	rl.updateTabFind([]rune{})
 }
 
+// Filter and refresh (print) a list of completions. The caller should have reset
+// the virtual completion system before, so that should not clash with this.
 func (rl *Instance) updateTabFind(r []rune) {
 
 	rl.tfLine = append(rl.tfLine, r...)
-
-	if !rl.mainHist {
-		rl.histHint = []rune("User history (all clients): ")
-	} else {
-		rl.histHint = []rune("Console history: ")
-	}
-	// Depending on search type, we give different hints
-	switch rl.searchMode {
-	case HistoryFind:
-		rl.hintText = append([]rune("\033[38;5;183m"+string(rl.histHint)), rl.tfLine...)
-		rl.hintText = append(rl.hintText, []rune(RESET)...)
-	case CompletionFind:
-		rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
-	}
 
 	// The search regex is common to all search modes
 	var err error
@@ -46,12 +34,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 		rl.hintText = []rune(Red("Failed to match search regexp"))
 	}
 
-	// we always clear the line first, so that changing the
-	// search pattern does not screw everything.
-	rl.clearLine()
-	rl.clearVirtualComp()
-
-	// Then we update and print
+	// We update and print
 	rl.clearHelpers()
 	rl.getTabCompletion()
 	rl.renderHelpers()
@@ -59,17 +42,13 @@ func (rl *Instance) updateTabFind(r []rune) {
 
 func (rl *Instance) resetTabFind() {
 	rl.modeTabFind = false
-	rl.tfLine = []rune{}
-	if rl.modeAutoFind {
-		rl.hintText = []rune{}
-	} else {
-		rl.hintText = []rune("Cancelled regexp suggestion find.")
-	}
-
 	rl.modeAutoFind = false // Added, because otherwise it gets stuck on search completions
+
+	rl.mainHist = false
+	rl.tfLine = []rune{}
 
 	rl.clearHelpers()
 	rl.resetTabCompletion()
-	// rl.getTabCompletion()
+	rl.getTabCompletion()
 	rl.renderHelpers()
 }

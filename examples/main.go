@@ -16,11 +16,11 @@ func main() {
 	// Instantiate a console object
 	console := newConsole()
 
+	// Bind commands to the console
+	bindCommands()
+
 	// Setup the console completers, prompts, and input modes
 	console.setup()
-
-	// NOTE: we don't bind the commands to the loop here,
-	// go check the Start() loop to get the reason.
 
 	// Start the readline loop (blocking)
 	console.Start()
@@ -30,7 +30,7 @@ func main() {
 // We modify/add elements of behavior later in setup.
 func newConsole() *console {
 	console := &console{
-		Shell:  readline.NewInstance(),
+		shell:  readline.NewInstance(),
 		parser: commandParser,
 	}
 	return console
@@ -38,7 +38,7 @@ func newConsole() *console {
 
 // console - A simple console example.
 type console struct {
-	Shell  *readline.Instance
+	shell  *readline.Instance
 	parser *flags.Parser
 }
 
@@ -46,17 +46,15 @@ type console struct {
 // syntax highlighting, prompt system, commands binding, and client environment loading.
 func (c *console) setup() (err error) {
 
-	// Input mode
-	c.Shell.InputMode = readline.Vim // Could be readline.Emacs for emacs input mode.
-
-	// Input mode details: in Vim mode we want to show Vim status, colorized
-	c.Shell.ShowVimMode = true
-	c.Shell.VimModeColorize = true
+	// Input mode & defails
+	c.shell.InputMode = readline.Vim // Could be readline.Emacs for emacs input mode.
+	c.shell.ShowVimMode = true
+	c.shell.VimModeColorize = true
 
 	// Prompt: we want a two-line prompt, with a custom indicator after the Vim status
-	c.Shell.SetPrompt("readline ")
-	c.Shell.Multiline = true
-	c.Shell.MultilinePrompt = " $ "
+	c.shell.SetPrompt("readline ")
+	c.shell.Multiline = true
+	c.shell.MultilinePrompt = " > "
 
 	// Instantiate a default completer associated with the parser
 	// declared in commands.go, and embedded into the console struct.
@@ -65,9 +63,9 @@ func (c *console) setup() (err error) {
 
 	// Register the completer for command/option completions, hints and syntax highlighting.
 	// The completer can handle all of them.
-	c.Shell.TabCompleter = defaultCompleter.TabCompleter
-	c.Shell.HintText = defaultCompleter.HintCompleter
-	c.Shell.SyntaxHighlighter = defaultCompleter.SyntaxHighlighter
+	c.shell.TabCompleter = defaultCompleter.TabCompleter
+	c.shell.HintText = defaultCompleter.HintCompleter
+	c.shell.SyntaxHighlighter = defaultCompleter.SyntaxHighlighter
 
 	// History: by default the history is in-memory, use it with Ctrl-R
 
@@ -86,24 +84,17 @@ func (c *console) Start() (err error) {
 
 	// Start input loop
 	for {
-		// IMPORTANT: Before anything, we bind the commands again.
-		// This is because unlike a CLI application where command structs have a given lifetime,
-		// this shell will not exit, and therefore we have to bind new commands again, so that
-		// all command options, arguments and fields be reset. Only the go-flags library will see this.
-		bindCommands()
-
-		// We block while the user has not entered its command,
-		// and this is where most of the library works
+		// Read input line
 		line, _ := c.Readline()
 
-		// Once the command is entered, split and sanitize the line from redundant spaces.
+		// Split and sanitize input
 		sanitized, empty := sanitizeInput(line)
 		if empty {
 			continue
 		}
 
 		// Process various tokens on input (environment variables, paths, etc.)
-		// These tokens will be expanded by completers anyway, so this is not absolutely required.
+		// These tokens will be expaneded by completers anyway, so this is not absolutely required.
 		envParsed, _ := completers.ParseEnvironmentVariables(sanitized)
 
 		// Other types of tokens, needed by commands who expect a certain type
@@ -119,7 +110,7 @@ func (c *console) Start() (err error) {
 
 // Readline - Add an empty line between input line and command output.
 func (c *console) Readline() (line string, err error) {
-	line, err = c.Shell.Readline()
+	line, err = c.shell.Readline()
 	fmt.Println()
 	return
 }
@@ -175,5 +166,6 @@ func (c *console) parseTokens(sanitized []string) (parsed []string) {
 	}
 	parsed = pathAdjusted
 
+	// Add new function here, act on parsed []string from now on, not sanitized
 	return
 }

@@ -1,8 +1,7 @@
 
 # Readline - ZSH-like console library in Go
 
-Put demo GIF here
-
+![Demo](../assets/readline-demo.gif)
 *This demo GIF has been made with a Sliver project client.*
 
 
@@ -17,10 +16,11 @@ library, and all credits due and diserved are in the **Warmest Thanks** section)
 This project is not a full command-line application, which means it does not automatically understand and execute any commands.
 However, having been developed in a project using the CLI [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) library,
 it also includes some default utilities (completers) that are made to work with this library, which I humbly but highly recommend.
-Please see the [Wiki](https://github.com/maxlandon/readline/docs/) (or the `examples/` directory) for information on how to use these utilities.
+Please see the [Wiki](https://github.com/bishopfox/sliver/client/readline/wiki) (or the `examples/` directory) for information on how to use these utilities.
 
 Additionally, this project is not POSIX-compliant in any way, nor it is a complete and perfect reimplementation of Z-Shell parsing & completion engine.
 Please see the **Project Status** section for the list of things that I can support on my own (considering no other maintainers).
+Finally, it is important to say that this library **has NOT been thoroughly tested**, at least the part that I've been modifying and writing.
 
 
 ## Features Summary
@@ -60,7 +60,7 @@ A summarized list of features supported by this library is the following:
 
 ### Utilities
 - Default Tab completer, Hint formatter and Syntax highlighter provided, using [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) 
-command parser to build themselves. These are in the  `completers/` directory. Please look at the [Wiki page](https://github.com/maxlandon/readline/docs/) 
+command parser to build themselves. These are in the  `completers/` directory. Please look at the [Wiki page](https://github.com/bishopfox/sliver/client/readline/wiki) 
 for how to use them. Also feel free to use them as an inspiration source to make your owns.
 - Colors mercilessly copied from [github.com/evilsocket/islazy/](https://github.com/evilsocket/islazy) `tui/` package.
 - Also in the `completers` directory, completion functions for environment variables (using Go's std lib for getting them), and dir/file path completions.
@@ -70,61 +70,61 @@ for how to use them. Also feel free to use them as an inspiration source to make
 
 As usual with Go, installation:
 ```
-go get github.com/maxlandon/readline
+go get github.com/bishopfox/sliver/client/readline
 ```
 Please see either the `examples` directory, or the Wiki for detailed instructions on how to use this library.
 
 
 ## Documentation
 
-The complete documentation for this library can be found in the repo's [Wiki](https://github.com/maxlandon/readline/docs/). Below is the Table of Contents:
+The complete documentation for this library can be found in the repo's [Wiki](https://github.com/bishopfox/sliver/client/readline/wiki). Below is the Table of Contents:
 
-- **Input modes**
-    - Vim
-        - Setup
-        - Usage
-    - Emacs
-        - Setup
-        - Usage
+**Getting started**
+* [ Embedding readline in a project ](https://github.com/bishopfox/sliver/client/readline/wiki/Embedding-Readline-In-A-Project)
+* [ Input Modes ](https://github.com/bishopfox/sliver/client/readline/wiki/Input-Modes)
 
-- **Prompt system**
-    - Vim mode
-    - Multiline prompts
-    - Custom prompts
-    - Prompt refresh
+**Prompt system**
+* [ Setting the Prompts](https://github.com/bishopfox/sliver/client/readline/wiki/Prompt-Setup)
+* [ Prompt Refresh ](https://github.com/bishopfox/sliver/client/readline/wiki/Prompt-Refresh)
 
-- **Completion system**
-    - Completion group types
-    - Stacking up completions
-    - Completion search
-    - Other details & warnings
-    - Completion utilities
+**Completion Engine**
+* [ Completion Groups ](https://github.com/bishopfox/sliver/client/readline/wiki/Completion-Groups)
+* [ Completion Search ](https://github.com/bishopfox/sliver/client/readline/wiki/Completion-Search)
 
-- **Hint formatter & Syntax highlighter**
-    - Live refresh demonstration
+**Hint Formatter & Syntax Highlighter**
+* [ Live Refresh Demonstration ](https://github.com/bishopfox/sliver/client/readline/wiki/Live-Refresh-Demonstration)
 
-- **Command History**
-    - Main / alternative sources
-    - Navigation & search
+**Command History**
+* [ Main & Alternative Sources ](https://github.com/bishopfox/sliver/client/readline/wiki/Main-&-Alternative-Sources)
+* [ Navigation & Search ](https://github.com/bishopfox/sliver/client/readline/wiki/Navigation-&-Search)
 
-- **Command & Completion utilities**
-    - Using the library with [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags)
-    - Default completion engines with go-flags.
-    - Colors usage and/or deactivation.
+#### Command & Completion utilities
+* [ Interfacing with the go-flags library](https://github.com/bishopfox/sliver/client/readline/wiki/Interfacing-With-Go-Flags)
+* [ Declaring go-flags commands](https://github.com/bishopfox/sliver/client/readline/wiki/Declaring-Commands)
+* [ Colors/Effects Usage ](https://github.com/bishopfox/sliver/client/readline/wiki/Colors-&-Effects-Usage)
 
 
 ## Project Status & Support
 
+**Support**
 Being alone working on this project and having only one lifetime (anyone able to solve this please call me), I can engage myself over the following:
 - Support for any issue opened.
 - Answering any questions related.
 - Being available for any blame you'd like to make for my humble but passioned work. I don't mind, I need to go up.
 
+## Fixes & Planned Enhancements
+
+**Fixes**
+- Currently the line cannot span multiple real lines, will fix this as soon as possible.
+
+**Enhancements**
 Things I do intend to add in a more or less foreseeable future:
 - A better recursive command/subcommand default completer (see utilities), because the current one supports only `command subcommand --options` patterns, not `command subcommand subsubcommand`.
 - A recursive option group completer: tools like `nmap` will use options like `-PA`, or `-sT`, etc. These are not supported.
-
-Therefore, I do not intend to add any other features, as far as I can see. Of course, any good will submitting mockups and a big smile might be considered !
+- A more precise yank command (currently only yanks the full input line)
+- A customizable syntax highlighter, with many sane defaults. Still based on go-flags commands library, but with advanced line parsing.
+- A larger wish would be to integrate more parsing logic that has been found in the lmorg's murex library.
+- Also, I will maybe add, in a separate package, a ready-to-work console with default commands, while keep the ability to bind new ones on the fly.
 
 
 ## Warmest Thanks
@@ -132,6 +132,7 @@ Therefore, I do not intend to add any other features, as far as I can see. Of co
 - First of all, the warmest thanks to Laurence Morgan, aka [lmorg](https://github.com/lmorg) for his [readline](https://github.com/lmorg/readline) library. 
 This project could have never been done without the time he dedicated writing the shell in the first place. Please go check his [murex](https://github.com/lmorg/murex) shell as well !
 - The [Sliver](https://github.com/BishopFox/sliver) implant framework project, which I used as a basis to make, test and refine this library. as well as all the GIFs and documentation pictures !
+- [evilsocket](https://github.com/evilsocket) for his TUI library !
 
 
 ## Licences

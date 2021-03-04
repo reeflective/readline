@@ -30,7 +30,8 @@ func (g *CompletionGroup) initGrid(rl *Instance) {
 	// Maximum number of lines
 	maxY := len(g.Suggestions) / g.tcMaxX
 	rest := len(g.Suggestions) % g.tcMaxX
-	if rest != 0 && maxY != 1 {
+	if rest != 0 {
+		// if rest != 0 && maxY != 1 {
 		maxY++
 	}
 	if maxY > g.MaxLength {
@@ -96,8 +97,9 @@ func (g *CompletionGroup) moveTabGridHighlight(rl *Instance, x, y int) (done boo
 func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 
 	// If group title, print it and adjust offset.
+	comp += "\n"
 	if g.Name != "" {
-		comp += fmt.Sprintf("\n %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
+		comp += fmt.Sprintf(" %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
 		rl.tcUsedY++
 	}
 

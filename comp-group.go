@@ -8,20 +8,19 @@ type CompletionGroup struct {
 	Name        string
 	Description string
 
-	// Same as readline old system
+	// Candidates & related
 	Suggestions  []string
+	Aliases      map[string]string // A candidate has an alternative name (ex: --long, -l option flags)
 	Descriptions map[string]string // Items descriptions
 	DisplayType  TabDisplayType    // Map, list or normal
 	MaxLength    int               // Each group can be limited in the number of comps offered
 
-	// Alternative suggestions: used when a candidate has an alternative name
-	// this applies to options, when both short and long flags are used.
-	// Index is Suggestion
-	SuggestionsAlt map[string]string
-
 	// When this is true, the completion is inserted really (not virtually) without
-	// the trailing slash, if any. This is used when we want to complete paths
+	// the trailing slash, if any. This is used when we want to complete paths.
 	TrimSlash bool
+	// When this is true, we don't add a space after entering the candidate.
+	// Can be used for multi-stage completions, like URLS (scheme:// + host)
+	NoSpace bool
 
 	// Values used by the shell
 	tcPosX         int
@@ -105,13 +104,14 @@ func (g *CompletionGroup) checkMaxLength(rl *Instance) {
 		if len(rl.tcGroups) >= 5 {
 			g.MaxLength = 20
 		}
+
+		// Lists that have a alternative completions are not allowed to have
+		// MaxLength set, because rolling does not work yet.
+		if g.DisplayType == TabDisplayList {
+			g.MaxLength = 1000 // Should be enough not to trigger anything related.
+		}
 	}
 
-	// Lists that have a alternative completions are not allowed to have
-	// MaxLength set, because rolling does not work yet.
-	if g.DisplayType == TabDisplayList {
-		g.MaxLength = 1000 // Should be enough not to trigger anything related.
-	}
 }
 
 // checkNilItems - For each completion group we avoid nil maps and possibly other items
@@ -121,8 +121,8 @@ func checkNilItems(groups []*CompletionGroup) (checked []*CompletionGroup) {
 		if grp.Descriptions == nil || len(grp.Descriptions) == 0 {
 			grp.Descriptions = make(map[string]string)
 		}
-		if grp.SuggestionsAlt == nil || len(grp.SuggestionsAlt) == 0 {
-			grp.SuggestionsAlt = make(map[string]string)
+		if grp.Aliases == nil || len(grp.Aliases) == 0 {
+			grp.Aliases = make(map[string]string)
 		}
 		checked = append(checked, grp)
 	}
@@ -190,7 +190,7 @@ func (g *CompletionGroup) getCurrentCell(rl *Instance) string {
 
 		// If we are in the alt suggestions column, check key and return
 		if g.tcPosX == 1 {
-			if alt, ok := g.SuggestionsAlt[sugg]; ok {
+			if alt, ok := g.Aliases[sugg]; ok {
 				return alt
 			}
 			return sugg

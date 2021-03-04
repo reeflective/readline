@@ -13,8 +13,6 @@ func (rl *Instance) syntaxCompletion() {
 	newPos++
 
 	rl.line = newLine
-	rl.echo()
-	moveCursorForwards(newPos - rl.pos - 1)
-	moveCursorBackwards(rl.pos - newPos + 1)
 	rl.pos = newPos
+	rl.renderHelpers()
 }
