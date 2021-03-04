@@ -1,5 +1,12 @@
 package readline
 
+<<<<<<< HEAD
+=======
+import (
+	"strings"
+)
+
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 type undoItem struct {
 	line string
 	pos  int
@@ -21,6 +28,10 @@ func (rl *Instance) undoAppendHistory() {
 func (rl *Instance) undoLast() {
 	var undo undoItem
 	for {
+<<<<<<< HEAD
+=======
+		// fmt.Println("|", len(rl.viUndoHistory), "|")
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		if len(rl.viUndoHistory) == 0 {
 			return
 		}
@@ -31,6 +42,7 @@ func (rl *Instance) undoLast() {
 		}
 	}
 
+<<<<<<< HEAD
 	rl.line = []rune(undo.line)
 	rl.pos = undo.pos
 
@@ -38,6 +50,23 @@ func (rl *Instance) undoLast() {
 
 	if rl.modeViMode != vimInsert && len(rl.line) > 0 && rl.pos == len(rl.line) {
 		rl.pos--
+=======
+	rl.clearHelpers()
+
+	moveCursorBackwards(rl.pos)
+	print(strings.Repeat(" ", len(rl.line)))
+	moveCursorBackwards(len(rl.line))
+	moveCursorForwards(undo.pos)
+
+	rl.line = []rune(undo.line)
+	rl.pos = undo.pos
+
+	rl.echo()
+
+	if rl.modeViMode != vimInsert && len(rl.line) > 0 && rl.pos == len(rl.line) {
+		rl.pos--
+		moveCursorBackwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	}
 
 }

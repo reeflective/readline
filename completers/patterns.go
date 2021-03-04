@@ -57,8 +57,12 @@ func noCommandOrEmpty(args []string, last []rune, command *flags.Command) bool {
 // [ Commands ] -------------------------------------------------------------------------------------
 // detectedCommand - Returns the base command from parser if detected, depending on context
 func (c *CommandCompleter) detectedCommand(args []string) (command *flags.Command) {
+<<<<<<< HEAD
 	arg := strings.TrimSpace(args[0])
 	command = c.parser.Find(arg)
+=======
+	command = c.parser.Find(args[0])
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	return
 }
 
@@ -112,10 +116,14 @@ func hasSubCommands(command *flags.Command, args []string) bool {
 }
 
 // Does the input has a subcommand in it ?
+<<<<<<< HEAD
 func subCommandFound(lastWord string, raw []string, command *flags.Command) (sub *flags.Command, ok bool) {
 	// First, filter redundant spaces. This does not modify the actual line
 	args := ignoreRedundantSpaces(raw)
 
+=======
+func subCommandFound(lastWord string, args []string, command *flags.Command) (sub *flags.Command, ok bool) {
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	if len(args) <= 1 || command == nil {
 		return nil, false
 	}
@@ -146,10 +154,14 @@ func hasArgs(command *flags.Command) bool {
 }
 
 // commandArgumentRequired - Analyses input and sends back the next argument name to provide completion for
+<<<<<<< HEAD
 func commandArgumentRequired(lastWord string, raw []string, command *flags.Command) (name string, yes bool) {
 
 	// First, filter redundant spaces. This does not modify the actual line
 	args := ignoreRedundantSpaces(raw)
+=======
+func commandArgumentRequired(lastWord string, args []string, command *flags.Command) (name string, yes bool) {
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 
 	// Trim command and subcommand args
 	var remain []string
@@ -162,10 +174,20 @@ func commandArgumentRequired(lastWord string, raw []string, command *flags.Comma
 
 	// The remain may include a "" as a last element,
 	// which we don't consider as a real remain, so we move it away
+<<<<<<< HEAD
 	switch lastWord {
 	case "":
 	case command.Name:
 		return "", false
+=======
+	if lastWord == "" {
+		if len(remain) > 1 {
+			remain = remain[:]
+		}
+		if len(remain) == 1 { // Avoid index error
+			remain = []string{}
+		}
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	}
 
 	// Trim all --option flags and their arguments if they have
@@ -180,6 +202,7 @@ func commandArgumentRequired(lastWord string, raw []string, command *flags.Comma
 
 			// If last word is the argument, and we are
 			// last arg in: line keep completing.
+<<<<<<< HEAD
 			if len(remain) < 1 {
 				return arg.Name, true
 			}
@@ -190,14 +213,27 @@ func commandArgumentRequired(lastWord string, raw []string, command *flags.Comma
 					return arg.Name, true
 				}
 			}
+=======
+			if len(remain) <= 1 {
+				return arg.Name, true
+			}
+			// If last word is the argument, and we are
+			// last arg in line keep completing.
+			// if len(remain) <= 1 && i == (len(command.Args())-1) {
+			//         return arg.Name, true
+			// }
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 
 			// If filed and we are not last arg, continue
 			if len(remain) > 1 && i < (len(command.Args())-1) {
 				remain = remain[1:]
 				continue
 			}
+<<<<<<< HEAD
 
 			continue
+=======
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		}
 
 		// If we need more than one value and we knwo the maximum,
@@ -222,7 +258,11 @@ func commandArgumentRequired(lastWord string, raw []string, command *flags.Comma
 			continue
 		}
 
+<<<<<<< HEAD
 		// If has required arguments, with no limit of needs, return true
+=======
+		// If have required arguments, with no limit of needs, return true
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		if arg.Required > 0 && arg.RequiredMaximum == -1 {
 			return arg.Name, true
 		}
@@ -475,6 +515,7 @@ func formatInput(line []rune) (args []string, last []rune, lastWord string) {
 	return
 }
 
+<<<<<<< HEAD
 // FormatInput - Formats & sanitize the command line input
 func formatInputHighlighter(line []rune) (args []string, last []rune, lastWord string) {
 	args = strings.SplitN(string(line), " ", -1)
@@ -517,6 +558,8 @@ func ignoreRedundantSpaces(raw []string) (args []string) {
 	return
 }
 
+=======
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 func trimSpaceLeft(in []rune) []rune {
 	firstIndex := len(in)
 	for i, r := range in {

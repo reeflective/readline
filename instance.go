@@ -41,17 +41,28 @@ type Instance struct {
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func([]rune) string
 
+<<<<<<< HEAD
 	// mainHistory is an interface for querying the readline history.
+=======
+	// History is an interface for querying the readline history.
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	// This is exposed as an interface to allow you the flexibility to define how
 	// you want your history managed (eg file on disk, database, cloud, or even
 	// no history at all). By default it uses a dummy interface that only stores
 	// historic items in memory.
+<<<<<<< HEAD
 	mainHistory      History
 	mainHistName string
 	// altHistory is an alternative history input, in case a console user would
 	// like to have two different history flows.
 	altHistory  History
 	altHistName string
+=======
+	History History
+	// AltHistory is an alternative history input, in case a console user would
+	// like to have two different history flows.
+	AltHistory History
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 
 	// HistoryAutoWrite defines whether items automatically get written to
 	// history.
@@ -100,9 +111,13 @@ type Instance struct {
 	line           []rune // This is the input line, with entered text: full line = mlnPrompt + line
 	pos            int
 	posX           int // Cursor position X
+<<<<<<< HEAD
 	fullX          int
 	posY           int // Cursor position Y (multiple lines span)
 	fullY          int
+=======
+	posY           int // Cursor position Y (multiple lines span)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	multiline      []byte
 	multisplit     []string
 	skipStdinRead  bool
@@ -178,7 +193,11 @@ func NewInstance() *Instance {
 	rl.MaxTabCompleterRows = 50
 
 	// History
+<<<<<<< HEAD
 	rl.mainHistory = new(ExampleHistory) // In-memory history by default.
+=======
+	rl.History = new(ExampleHistory) // In-memory history by default.
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	rl.HistoryAutoWrite = true
 
 	// Others

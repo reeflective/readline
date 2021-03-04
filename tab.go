@@ -2,7 +2,10 @@ package readline
 
 import (
 	"fmt"
+<<<<<<< HEAD
 	"strings"
+=======
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 )
 
 // TabDisplayType defines how the autocomplete suggestions display
@@ -173,12 +176,15 @@ func (rl *Instance) writeTabCompletion() {
 		}
 	}
 
+<<<<<<< HEAD
 	// If we are the first group, we delete the newline
 	// because cursor movements are handled by the caller
 	if strings.HasPrefix(completions, "\n") {
 		completions = strings.TrimPrefix(completions, "\n")
 	}
 
+=======
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	// Because some completion groups might have more suggestions
 	// than what their MaxLength allows them to, cycling sometimes occur,
 	// but does not fully clears itself: some descriptions are messed up with.
@@ -199,16 +205,23 @@ func (rl *Instance) getTabSearchCompletion() {
 	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 	rl.getCurrentGroup()                     // Make sure there is a current group
 
+<<<<<<< HEAD
 	// Set the hint for this completion mode
 	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
 
+=======
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	for _, g := range rl.tcGroups {
 		g.updateTabFind(rl)
 	}
 
 	// If total number of matches is zero, we directly change the hint, and return
 	if comps, _ := rl.getCompletionCount(); comps == 0 {
+<<<<<<< HEAD
 		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+=======
+		rl.hintText = append(rl.hintText, []rune(": no matches (Ctrl-G to cancel)")...)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	}
 }
 
@@ -221,6 +234,7 @@ func (rl *Instance) getHistorySearchCompletion() {
 	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 	rl.getCurrentGroup()                     // Make sure there is a current group
 
+<<<<<<< HEAD
 	// The history hint is already set, but overwrite it if we don't have completions
 	if len(rl.tcGroups[0].Suggestions) == 0 {
 		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
@@ -233,13 +247,26 @@ func (rl *Instance) getHistorySearchCompletion() {
 	rl.histHint = append([]rune("\033[38;5;183m"+string(rl.histHint)+RESET), rl.tfLine...)
 	rl.histHint = append(rl.histHint, []rune(RESET)...)
 	rl.hintText = rl.histHint
+=======
+	if len(rl.tcGroups[0].Suggestions) == 0 {
+		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED, "No command history source, or empty", RESET))
+		rl.hintText = rl.histHint
+		return
+	}
+	rl.histHint = []rune(rl.tcGroups[0].Name)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 
 	// Refresh filtered candidates
 	rl.tcGroups[0].updateTabFind(rl)
 
 	// If no items matched history, add hint text that we failed to search
 	if len(rl.tcGroups[0].Suggestions) == 0 {
+<<<<<<< HEAD
 		rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+=======
+		rl.histHint = []rune(rl.tcGroups[0].Name)
+		rl.hintText = append(rl.histHint, []rune(": no matches")...)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	}
 }
 
@@ -345,11 +372,20 @@ func (rl *Instance) hasOneCandidate() bool {
 // we use this function to prompt for confirmation before printing comps.
 func (rl *Instance) promptCompletionConfirm(sentence string) {
 	rl.hintText = []rune(sentence)
+<<<<<<< HEAD
 
 	rl.compConfirmWait = true
 	rl.viUndoSkipAppend = true
 
 	rl.renderHelpers()
+=======
+	rl.writeHintText()
+	moveCursorUp(rl.hintY)
+	moveCursorBackwards(GetTermWidth())
+	moveCursorToLinePos(rl)
+	rl.compConfirmWait = true
+	rl.viUndoSkipAppend = true
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 }
 
 func (rl *Instance) getCompletionCount() (comps int, lines int) {
@@ -364,6 +400,30 @@ func (rl *Instance) getCompletionCount() (comps int, lines int) {
 	return
 }
 
+<<<<<<< HEAD
+=======
+// Insert the current completion candidate into the input line.
+// This candidate might either be the currently selected one (white frame),
+// or the only candidate available, if the total number of candidates is 1.
+func (rl *Instance) insertCandidate() {
+
+	cur := rl.getCurrentGroup()
+
+	if cur != nil {
+		completion := cur.getCurrentCell(rl)
+		prefix := len(rl.tcPrefix)
+
+		// Ensure no indexing error happens with prefix
+		if len(completion) >= prefix {
+			rl.insert([]rune(completion[prefix:]))
+			if !cur.TrimSlash {
+				rl.insert([]rune(" "))
+			}
+		}
+	}
+}
+
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 func (rl *Instance) resetTabCompletion() {
 	rl.modeTabCompletion = false
 	rl.tabCompletionSelect = false

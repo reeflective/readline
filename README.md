@@ -16,7 +16,11 @@ library, and all credits due and diserved are in the **Warmest Thanks** section)
 This project is not a full command-line application, which means it does not automatically understand and execute any commands.
 However, having been developed in a project using the CLI [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) library,
 it also includes some default utilities (completers) that are made to work with this library, which I humbly but highly recommend.
+<<<<<<< HEAD
 Please see the [Wiki](https://github.com/bishopfox/sliver/client/readline/wiki) (or the `examples/` directory) for information on how to use these utilities.
+=======
+Please see the [Wiki](https://github.com/maxlandon/readline/wiki) (or the `examples/` directory) for information on how to use these utilities.
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 
 Additionally, this project is not POSIX-compliant in any way, nor it is a complete and perfect reimplementation of Z-Shell parsing & completion engine.
 Please see the **Project Status** section for the list of things that I can support on my own (considering no other maintainers).
@@ -60,7 +64,11 @@ A summarized list of features supported by this library is the following:
 
 ### Utilities
 - Default Tab completer, Hint formatter and Syntax highlighter provided, using [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) 
+<<<<<<< HEAD
 command parser to build themselves. These are in the  `completers/` directory. Please look at the [Wiki page](https://github.com/bishopfox/sliver/client/readline/wiki) 
+=======
+command parser to build themselves. These are in the  `completers/` directory. Please look at the [Wiki page](https://github.com/maxlandon/readline/wiki) 
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 for how to use them. Also feel free to use them as an inspiration source to make your owns.
 - Colors mercilessly copied from [github.com/evilsocket/islazy/](https://github.com/evilsocket/islazy) `tui/` package.
 - Also in the `completers` directory, completion functions for environment variables (using Go's std lib for getting them), and dir/file path completions.
@@ -70,13 +78,18 @@ for how to use them. Also feel free to use them as an inspiration source to make
 
 As usual with Go, installation:
 ```
+<<<<<<< HEAD
 go get github.com/bishopfox/sliver/client/readline
+=======
+go get github.com/maxlandon/readline
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 ```
 Please see either the `examples` directory, or the Wiki for detailed instructions on how to use this library.
 
 
 ## Documentation
 
+<<<<<<< HEAD
 The complete documentation for this library can be found in the repo's [Wiki](https://github.com/bishopfox/sliver/client/readline/wiki). Below is the Table of Contents:
 
 **Getting started**
@@ -102,6 +115,33 @@ The complete documentation for this library can be found in the repo's [Wiki](ht
 * [ Interfacing with the go-flags library](https://github.com/bishopfox/sliver/client/readline/wiki/Interfacing-With-Go-Flags)
 * [ Declaring go-flags commands](https://github.com/bishopfox/sliver/client/readline/wiki/Declaring-Commands)
 * [ Colors/Effects Usage ](https://github.com/bishopfox/sliver/client/readline/wiki/Colors-&-Effects-Usage)
+=======
+The complete documentation for this library can be found in the repo's [Wiki](https://github.com/maxlandon/readline/wiki). Below is the Table of Contents:
+
+**Getting started**
+* [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
+* [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
+
+**Prompt system**
+* [ Setting the Prompts](https://github.com/maxlandon/readline/wiki/Prompt-Setup)
+* [ Prompt Refresh ](https://github.com/maxlandon/readline/wiki/Prompt-Refresh)
+
+**Completion Engine**
+* [ Completion Groups ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
+* [ Completion Search ](https://github.com/maxlandon/readline/wiki/Completion-Search)
+
+**Hint Formatter & Syntax Highlighter**
+* [ Live Refresh Demonstration ](https://github.com/maxlandon/readline/wiki/Live-Refresh-Demonstration)
+
+**Command History**
+* [ Main & Alternative Sources ](https://github.com/maxlandon/readline/wiki/Main-&-Alternative-Sources)
+* [ Navigation & Search ](https://github.com/maxlandon/readline/wiki/Navigation-&-Search)
+
+#### Command & Completion utilities
+* [ Interfacing with the go-flags library](https://github.com/maxlandon/readline/wiki/Interfacing-With-Go-Flags)
+* [ Declaring go-flags commands](https://github.com/maxlandon/readline/wiki/Declaring-Commands)
+* [ Colors/Effects Usage ](https://github.com/maxlandon/readline/wiki/Colors-&-Effects-Usage)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 
 
 ## Project Status & Support

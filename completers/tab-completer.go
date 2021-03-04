@@ -129,7 +129,11 @@ func (c *CommandCompleter) completeMenuCommands(lastWord string, pos int) (prefi
 	for _, grp := range completions {
 		// If the length of suggestions is too long and we have
 		// many groups, use grid display.
+<<<<<<< HEAD
 		if len(completions) >= 10 && len(grp.Suggestions) >= 7 {
+=======
+		if len(completions) >= 10 && len(grp.Suggestions) >= 10 {
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			grp.DisplayType = readline.TabDisplayGrid
 		} else {
 			// By default, we use a map of command to descriptions
@@ -232,10 +236,17 @@ func completeCommandOptions(args []string, lastWord string, cmd *flags.Command) 
 func completeOptionGroup(lastWord string, grp *flags.Group, title string) (prefix string, compGrp *readline.CompletionGroup) {
 
 	compGrp = &readline.CompletionGroup{
+<<<<<<< HEAD
 		Name:         grp.ShortDescription,
 		Descriptions: map[string]string{},
 		DisplayType:  readline.TabDisplayList,
 		Aliases:      map[string]string{},
+=======
+		Name:           grp.ShortDescription,
+		Descriptions:   map[string]string{},
+		DisplayType:    readline.TabDisplayList,
+		Aliases: map[string]string{},
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	}
 
 	// An optional title for this comp group.

@@ -19,6 +19,7 @@ func (rl *Instance) Readline() (string, error) {
 	}
 	defer Restore(fd, state)
 
+<<<<<<< HEAD
 	// Prompt Init
 	// Here we have to either print prompt and return new line (multiline)
 	if rl.Multiline {
@@ -49,6 +50,37 @@ func (rl *Instance) Readline() (string, error) {
 	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
 
 	// Multisplit
+=======
+	// Here we have to either print prompt and return new line (multiline)
+	// Or use the prompt value as multiline and therefore not printing anything here
+	if rl.Multiline && !rl.HideNextPrompt {
+		fmt.Println(rl.prompt)
+	} else if rl.Multiline && rl.HideNextPrompt {
+		rl.HideNextPrompt = false // Immediately reset this. Its a one-time shot.
+	}
+
+	rl.stillOnRefresh = false
+	rl.line = []rune{}
+	rl.currentComp = []rune{} // No virtual completion yet
+	rl.lineComp = []rune{}    // So no virtual line either
+	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
+	rl.pos = 0
+	if rl.mainHist {
+		rl.histPos = rl.History.Len()
+	} else if rl.AltHistory != nil {
+		rl.histPos = rl.AltHistory.Len()
+	}
+	rl.modeViMode = vimInsert
+
+	// We need this set to the last command, so that we can access it quickly
+	rl.histPos = rl.History.Len()
+
+	rl.computePrompt() // initialise the prompt for first print
+
+	rl.resetHintText()
+	rl.resetTabCompletion()
+
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	if len(rl.multisplit) > 0 {
 		r := []rune(rl.multisplit[0])
 		rl.editorInput(r)
@@ -61,8 +93,12 @@ func (rl *Instance) Readline() (string, error) {
 		return string(rl.line), nil
 	}
 
+<<<<<<< HEAD
 	// Finally, print any hints or completions
 	// if the TabCompletion engines so desires
+=======
+	rl.getHintText()
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	rl.renderHelpers()
 
 	for {
@@ -116,13 +152,21 @@ func (rl *Instance) Readline() (string, error) {
 
 			rl.clearLine()
 			rl.line = append(ret.NewLine, []rune{}...)
+<<<<<<< HEAD
 			rl.updateHelpers() // rl.echo
+=======
+			rl.echo()
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.pos = ret.NewPos
 
 			if ret.ClearHelpers {
 				rl.resetHelpers()
 			} else {
 				rl.updateHelpers()
+<<<<<<< HEAD
+=======
+				rl.renderHelpers()
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			}
 
 			if len(ret.HintText) > 0 {
@@ -214,13 +258,25 @@ func (rl *Instance) Readline() (string, error) {
 
 				// If too many completions and no yet confirmed, ask user for completion
 				comps, lines := rl.getCompletionCount()
+<<<<<<< HEAD
 				if rl.compConfirmWait {
 				}
 				if ((lines > GetTermLength()) || (lines > rl.MaxTabCompleterRows)) && !rl.compConfirmWait {
+=======
+				if lines > rl.MaxTabCompleterRows && !rl.compConfirmWait {
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 					sentence := fmt.Sprintf("%s show all %d completions (%d lines) ?",
 						FOREWHITE, comps, lines)
 					rl.promptCompletionConfirm(sentence)
 					continue
+<<<<<<< HEAD
+=======
+				} else if lines > GetTermLength()-GetCursorLine() && !rl.compConfirmWait {
+					sentence := fmt.Sprintf("%s completions are longer than screen (%d lines). Show anyway ?",
+						FOREWHITE, lines)
+					rl.promptCompletionConfirm(sentence)
+					continue
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 				}
 
 				rl.compConfirmWait = false
@@ -325,19 +381,26 @@ func (rl *Instance) Readline() (string, error) {
 				}
 			}
 
+<<<<<<< HEAD
 			// If we are in a prompt completion confirm, we escape it
 			if rl.compConfirmWait {
 				rl.compConfirmWait = false
 			}
 
+=======
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.escapeSeq(r[:i])
 
 		default:
 			rl.resetVirtualComp()
 
 			// Not sure that CompletionFind is useful, nor one of the other two
+<<<<<<< HEAD
 			if rl.modeAutoFind || rl.modeTabFind {
 				// if rl.modeAutoFind || rl.modeTabFind && rl.searchMode == CompletionFind {
+=======
+			if rl.modeAutoFind || rl.modeTabFind && rl.searchMode == CompletionFind {
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 				rl.updateTabFind(r[:i])
 				rl.viUndoSkipAppend = true
 			} else {
@@ -380,7 +443,11 @@ func (rl *Instance) escapeSeq(r []rune) {
 			if rl.InputMode == Vim {
 				if rl.pos == len(rl.line) && len(rl.line) > 0 {
 					rl.pos--
+<<<<<<< HEAD
 					// moveCursorBackwards(1)
+=======
+					moveCursorBackwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 				}
 
 				rl.modeViMode = vimKeys
@@ -407,6 +474,10 @@ func (rl *Instance) escapeSeq(r []rune) {
 			rl.tabCompletionSelect = true
 			rl.tabCompletionReverse = true
 			rl.moveTabCompletionHighlight(-1, 0)
+<<<<<<< HEAD
+=======
+			// rl.moveTabCompletionHighlight(0, -1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.updateVirtualComp()
 			rl.tabCompletionReverse = false
 			rl.renderHelpers()
@@ -418,6 +489,10 @@ func (rl *Instance) escapeSeq(r []rune) {
 		if rl.modeTabCompletion {
 			rl.tabCompletionSelect = true
 			rl.moveTabCompletionHighlight(1, 0)
+<<<<<<< HEAD
+=======
+			// rl.moveTabCompletionHighlight(0, 1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.updateVirtualComp()
 			rl.renderHelpers()
 			return
@@ -500,12 +575,20 @@ func (rl *Instance) escapeSeq(r []rune) {
 				return
 			}
 
+<<<<<<< HEAD
 			line, err := rl.mainHistory.GetLine(rl.mainHistory.Len() - 1)
+=======
+			line, err := rl.History.GetLine(rl.History.Len() - 1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			if err != nil {
 				return
 			}
 			if !rl.mainHist {
+<<<<<<< HEAD
 				line, err = rl.altHistory.GetLine(rl.altHistory.Len() - 1)
+=======
+				line, err = rl.AltHistory.GetLine(rl.AltHistory.Len() - 1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 				if err != nil {
 					return
 				}
@@ -576,15 +659,25 @@ func (rl *Instance) carridgeReturn() {
 		var err error
 
 		// Main history
+<<<<<<< HEAD
 		if rl.mainHistory != nil {
 			rl.histPos, err = rl.mainHistory.Write(string(rl.line))
+=======
+		if rl.History != nil {
+			rl.histPos, err = rl.History.Write(string(rl.line))
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			if err != nil {
 				print(err.Error() + "\r\n")
 			}
 		}
 		// Alternative history
+<<<<<<< HEAD
 		if rl.altHistory != nil {
 			rl.histPos, err = rl.altHistory.Write(string(rl.line))
+=======
+		if rl.AltHistory != nil {
+			rl.histPos, err = rl.AltHistory.Write(string(rl.line))
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			if err != nil {
 				print(err.Error() + "\r\n")
 			}

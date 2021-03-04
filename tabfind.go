@@ -27,6 +27,23 @@ func (rl *Instance) updateTabFind(r []rune) {
 
 	rl.tfLine = append(rl.tfLine, r...)
 
+<<<<<<< HEAD
+=======
+	if !rl.mainHist {
+		rl.histHint = []rune("User history (all clients): ")
+	} else {
+		rl.histHint = []rune("Console history: ")
+	}
+	// Depending on search type, we give different hints
+	switch rl.searchMode {
+	case HistoryFind:
+		rl.hintText = append([]rune("\033[38;5;183m"+string(rl.histHint)), rl.tfLine...)
+		rl.hintText = append(rl.hintText, []rune(RESET)...)
+	case CompletionFind:
+		rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
+	}
+
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	// The search regex is common to all search modes
 	var err error
 	rl.regexSearch, err = regexp.Compile("(?i)" + string(rl.tfLine))
@@ -42,6 +59,7 @@ func (rl *Instance) updateTabFind(r []rune) {
 
 func (rl *Instance) resetTabFind() {
 	rl.modeTabFind = false
+<<<<<<< HEAD
 	rl.modeAutoFind = false // Added, because otherwise it gets stuck on search completions
 
 	rl.mainHist = false
@@ -50,5 +68,19 @@ func (rl *Instance) resetTabFind() {
 	rl.clearHelpers()
 	rl.resetTabCompletion()
 	rl.getTabCompletion()
+=======
+	rl.tfLine = []rune{}
+	if rl.modeAutoFind {
+		rl.hintText = []rune{}
+	} else {
+		rl.hintText = []rune("Cancelled regexp suggestion find.")
+	}
+
+	rl.modeAutoFind = false // Added, because otherwise it gets stuck on search completions
+
+	rl.clearHelpers()
+	rl.resetTabCompletion()
+	// rl.getTabCompletion()
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	rl.renderHelpers()
 }

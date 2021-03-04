@@ -2,6 +2,10 @@ package readline
 
 import (
 	"strconv"
+<<<<<<< HEAD
+=======
+	"strings"
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 )
 
 // InputMode - The shell input mode
@@ -37,7 +41,11 @@ func (rl *Instance) vi(r rune) {
 	switch r {
 	case 'a':
 		if len(rl.line) > 0 {
+<<<<<<< HEAD
 			// moveCursorForwards(1)
+=======
+			moveCursorForwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.pos++
 		}
 		rl.modeViMode = vimInsert
@@ -46,7 +54,11 @@ func (rl *Instance) vi(r rune) {
 
 	case 'A':
 		if len(rl.line) > 0 {
+<<<<<<< HEAD
 			// moveCursorForwards(len(rl.line) - rl.pos)
+=======
+			moveCursorForwards(len(rl.line) - rl.pos)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.pos = len(rl.line)
 		}
 		rl.modeViMode = vimInsert
@@ -72,6 +84,7 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 	case 'D':
+<<<<<<< HEAD
 		// moveCursorBackwards(rl.pos)
 		// print(strings.Repeat(" ", len(rl.line)))
 
@@ -82,6 +95,17 @@ func (rl *Instance) vi(r rune) {
 		// moveCursorBackwards(2)
 		rl.pos--
 		rl.updateHelpers()
+=======
+		moveCursorBackwards(rl.pos)
+		print(strings.Repeat(" ", len(rl.line)))
+
+		moveCursorBackwards(len(rl.line) - rl.pos)
+		rl.line = rl.line[:rl.pos]
+		rl.echo()
+
+		moveCursorBackwards(2)
+		rl.pos--
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		rl.viIteration = ""
 
 	case 'e':
@@ -100,7 +124,11 @@ func (rl *Instance) vi(r rune) {
 
 	case 'h':
 		if rl.pos > 0 {
+<<<<<<< HEAD
 			// moveCursorBackwards(1)
+=======
+			moveCursorBackwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.pos--
 		}
 		rl.viUndoSkipAppend = true
@@ -114,13 +142,21 @@ func (rl *Instance) vi(r rune) {
 		rl.modeViMode = vimInsert
 		rl.viIteration = ""
 		rl.viUndoSkipAppend = true
+<<<<<<< HEAD
 		// moveCursorBackwards(rl.pos)
+=======
+		moveCursorBackwards(rl.pos)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		rl.pos = 0
 
 	case 'l':
 		if (rl.modeViMode == vimInsert && rl.pos < len(rl.line)) ||
 			(rl.modeViMode != vimInsert && rl.pos < len(rl.line)-1) {
+<<<<<<< HEAD
 			// moveCursorForwards(1)
+=======
+			moveCursorForwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.pos++
 		}
 		rl.viUndoSkipAppend = true
@@ -129,13 +165,21 @@ func (rl *Instance) vi(r rune) {
 		// paste after
 		rl.viUndoSkipAppend = true
 		rl.pos++
+<<<<<<< HEAD
 		// moveCursorForwards(1)
+=======
+		moveCursorForwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
 			rl.insert([]rune(rl.viYankBuffer))
 		}
 		rl.pos--
+<<<<<<< HEAD
 		// moveCursorBackwards(1)
+=======
+		moveCursorBackwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 
 	case 'P':
 		// paste before
@@ -205,7 +249,11 @@ func (rl *Instance) vi(r rune) {
 			rl.delete()
 		}
 		if rl.pos == len(rl.line) && len(rl.line) > 0 {
+<<<<<<< HEAD
 			// moveCursorBackwards(1)
+=======
+			moveCursorBackwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 			rl.pos--
 		}
 
@@ -222,7 +270,11 @@ func (rl *Instance) vi(r rune) {
 		rl.moveCursorByAdjust(rl.viJumpNextBrace())
 
 	case '$':
+<<<<<<< HEAD
 		// moveCursorForwards(len(rl.line) - rl.pos)
+=======
+		moveCursorForwards(len(rl.line) - rl.pos)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		rl.pos = len(rl.line)
 		rl.viUndoSkipAppend = true
 
@@ -233,12 +285,20 @@ func (rl *Instance) vi(r rune) {
 	case 'j':
 		// Set the main history as the one we navigate, by default
 		rl.mainHist = true
+<<<<<<< HEAD
 		rl.walkHistory(-1)
 	case 'k':
 		// Set the main history as the one we navigate, by default
 		rl.mainHist = true
 		rl.walkHistory(1)
 		// rl.walkHistory(-1)
+=======
+		rl.walkHistory(1)
+	case 'k':
+		// Set the main history as the one we navigate, by default
+		rl.mainHist = true
+		rl.walkHistory(-1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 	default:
 		if r <= '9' && '0' <= r {
 			rl.viIteration += string(r)

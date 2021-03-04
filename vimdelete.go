@@ -76,15 +76,29 @@ func (rl *Instance) viDeleteByAdjust(adjust int) {
 		newLine = append(rl.line[:rl.pos], rl.line[rl.pos+adjust:]...)
 	}
 
+<<<<<<< HEAD
 	rl.line = newLine
 
 	rl.updateHelpers()
+=======
+	moveCursorBackwards(rl.pos)
+	print(strings.Repeat(" ", len(rl.line)))
+	moveCursorBackwards(len(rl.line) - rl.pos)
+
+	rl.line = newLine
+
+	rl.echo()
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 
 	if adjust < 0 {
 		rl.moveCursorByAdjust(adjust)
 	}
 
 	if backOne {
+<<<<<<< HEAD
+=======
+		moveCursorBackwards(1)
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		rl.pos--
 	}
 }
@@ -102,11 +116,26 @@ func (rl *Instance) vimDeleteToken(r rune) bool {
 		return false
 	}
 
+<<<<<<< HEAD
 	rl.line = []rune(newLine)
 
 	rl.updateHelpers()
 
 	if rl.pos > len(rl.line) {
+=======
+	moveCursorBackwards(rl.pos)
+	print(strings.Repeat(" ", len(rl.line)))
+	moveCursorBackwards(len(rl.line) - rl.pos)
+
+	rl.line = []rune(newLine)
+
+	rl.echo()
+
+	if rl.pos > len(rl.line) {
+		moveCursorBackwards(GetTermWidth())
+		moveCursorForwards(rl.promptLen + len(rl.line) - 1)
+		// ^ this is lazy
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 		rl.pos = len(rl.line) - 1
 	}
 

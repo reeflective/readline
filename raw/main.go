@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"os"
 
+<<<<<<< HEAD
 	"github.com/bishopfox/sliver/client/readline"
+=======
+	"github.com/maxlandon/readline"
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 )
 
 func main() {

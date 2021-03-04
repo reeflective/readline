@@ -104,6 +104,10 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 // @prompt      => If not nil (""), will use this prompt instead of the currently set prompt.
 // @offset      => Used to set the number of lines to go upward, before reprinting. Set to 0 if not used.
 // @clearLine   => If true, will clean the current input line on the next refresh.
+<<<<<<< HEAD
+=======
+// Please check the Instance.HideNextPrompt variable and its effects on this function !
+>>>>>>> 611c6fb333d138b32958059c075a2d21c7ca09ae
 func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine bool) (err error) {
 
 	// We adjust cursor movement, depending on which mode we're currently in.
