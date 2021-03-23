@@ -136,10 +136,6 @@ func (rl *Instance) walkHistory(i int) {
 		dedup = true
 		old = string(rl.line)
 		new, err = history.GetLine(history.Len() - rl.histPos - 1)
-		return
-	default:
-		s, err := history.GetLine(history.Len() - rl.histPos - 1)
-		// s, err := history.GetLine(rl.histPos)
 		if err != nil {
 			rl.resetHelpers()
 			print("\r\n" + err.Error() + "\r\n")
@@ -150,7 +146,6 @@ func (rl *Instance) walkHistory(i int) {
 		rl.clearLine()
 		rl.histPos += i
 		rl.line = []rune(new)
-		rl.line = []rune(s)
 		rl.pos = len(rl.line)
 	}
 
@@ -162,18 +157,6 @@ func (rl *Instance) walkHistory(i int) {
 	if dedup && old == new {
 		rl.walkHistory(i)
 	}
-}
-
-// SetHistoryCtrlE - Set the history source triggered with Ctrl-E combination
-func (rl *Instance) SetHistoryCtrlE(name string, history History) {
-	rl.altHistName = name
-	rl.altHistory = history
-}
-
-// SetHistoryCtrlR - Set the history source triggered with Ctrl-R combination
-func (rl *Instance) SetHistoryCtrlR(name string, history History) {
-	rl.mainHistName = name
-	rl.mainHistory = history
 }
 
 // completeHistory - Populates a CompletionGroup with history and returns it the shell

@@ -26,7 +26,7 @@ func NewCommandCompleter(parser *flags.Parser) (completer *CommandCompleter, err
 }
 
 // TabCompleter - A default tab completer working with a github.com/jessevdk/go-flags parser.
-func (c *CommandCompleter) TabCompleter(line []rune, pos int) (lastWord string, completions []*readline.CompletionGroup) {
+func (c *CommandCompleter) TabCompleter(line []rune, pos int, dtc readline.DelayedTabContext) (lastWord string, completions []*readline.CompletionGroup) {
 
 	// Format and sanitize input
 	// @args     => All items of the input line

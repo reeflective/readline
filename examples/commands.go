@@ -170,7 +170,7 @@ func shellExec(executable string, args []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.Trim(string(out)), nil
+	return strings.Trim(string(out), "/"), nil
 }
 
 // Generate - Configure and compile an implant
