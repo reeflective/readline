@@ -195,6 +195,8 @@ func (rl *Instance) Readline() (string, error) {
 		case charCtrlG:
 			if rl.modeAutoFind {
 				rl.resetTabFind()
+				rl.resetHelpers()
+				rl.renderHelpers()
 			}
 
 		case charCtrlU:
@@ -369,6 +371,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 			rl.resetTabFind()
 			rl.clearHelpers()
 			rl.resetTabCompletion()
+			rl.resetHelpers()
 			rl.renderHelpers()
 
 		case rl.modeTabFind:
