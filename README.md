@@ -28,21 +28,6 @@ development.
 This project started out of the wish to make an enhanced console for a security tool (Sliver, see below).
 There are already several readline libraries available in Go ([github.com/chzyer/readline](https://github.com/chzyer/readline), 
 and [github.com/lmorg/readline](https://github.com/lmorg/readline)), but being stricter readline implementations, their completion 
-<<<<<<< HEAD
-system is either limited (the former), or not as advanced as this one (the latter). 
-=======
-system is either limited (the former), or not as advanced as this one (the latter). The latter, however, is the basis I used for this 
-library, and all credits due and diserved are in the **Warmest Thanks** section).
-
-This project is not a full command-line application, which means it does not automatically understand and execute any commands.
-However, having been developed in a project using the CLI [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) library,
-it also includes some default utilities (completers) that are made to work with this library, which I humbly but highly recommend.
-Please see the [Wiki](https://github.com/bishopfox/sliver/client/readline/wiki) (or the `examples/` directory) for information on how to use these utilities.
-
-Additionally, this project is not POSIX-compliant in any way, nor it is a complete and perfect reimplementation of Z-Shell parsing & completion engine.
-Please see the **Project Status** section for the list of things that I can support on my own (considering no other maintainers).
-Finally, it is important to say that this library **has NOT been thoroughly tested**, at least the part that I've been modifying and writing.
->>>>>>> 7ec57b53d1bd6c72ca5794b3cf28febe0ec18c86
 
 
 ## Features Summary
