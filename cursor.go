@@ -129,6 +129,9 @@ func (rl *Instance) getCursorPos() (x int, y int) {
 // maxlandon code
 // -------------------------------------------------------------------------------
 
+=======
+// DISPLAY ------------------------------------------------------------
+>>>>>>> 7ec57b53d1bd6c72ca5794b3cf28febe0ec18c86
 // All cursorMoveFunctions move the cursor as it is seen by the user.
 // This means that they are not used to keep any reference point when
 // when we internally move around clearning and printing things

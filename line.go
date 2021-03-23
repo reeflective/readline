@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"math"
 	"strings"
 )
 
@@ -36,6 +35,7 @@ func (rl *Instance) echo() {
 	// Then we print the prompt, and the line,
 	switch {
 	case rl.PasswordMask != 0:
+	case rl.PasswordMask > 0:
 		print(strings.Repeat(string(rl.PasswordMask), len(rl.line)) + " ")
 
 	default:
@@ -149,40 +149,4 @@ func (rl *Instance) clearLine() {
 
 	// Completions are also reset
 	rl.clearVirtualComp()
-}
-
-func lineWrap(rl *Instance, termWidth int) []string {
-
-	// Get either the current line, or the virtually completed one
-	realLine := rl.getLine()
-
-	var promptLen int
-	if rl.promptLen < termWidth {
-		promptLen = rl.promptLen
-	}
-
-	n := float64(len(realLine)+1) / (float64(termWidth) - float64(promptLen))
-	if n < 0 {
-		return []string{" "}
-	}
-
-	var (
-		ceil = int(math.Ceil(n))
-		wrap = make([]string, ceil)
-		l    = termWidth - promptLen
-		line = string(rl.line) + " "
-	)
-
-	for i := 0; i < ceil; i++ {
-		if i > 0 {
-			wrap[i] = strings.Repeat(" ", promptLen)
-		}
-		if i == ceil-1 {
-			wrap[i] += line[l*i:]
-			break
-		}
-		wrap[i] += line[l*i : l*(i+1)]
-	}
-
-	return wrap
 }

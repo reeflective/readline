@@ -62,6 +62,22 @@ type Instance struct {
 
 	//
 	// Completion ---------------------------------------------------------------------------------
+	// mainHistory is an interface for querying the readline history.
+	// This is exposed as an interface to allow you the flexibility to define how
+	// you want your history managed (eg file on disk, database, cloud, or even
+	// no history at all). By default it uses a dummy interface that only stores
+	// historic items in memory.
+	mainHistory  History
+	mainHistName string
+	// altHistory is an alternative history input, in case a console user would
+	// like to have two different history flows.
+	altHistory  History
+	altHistName string
+
+	// HistoryAutoWrite defines whether items automatically get written to
+	// history.
+	// Enabled by default. Set to false to disable.
+	HistoryAutoWrite bool // = true
 
 	// TabCompleter is a simple function that offers completion suggestions.
 	// It takes the readline line ([]rune) and cursor pos.
@@ -84,6 +100,39 @@ type Instance struct {
 	// MaxTabCompletionRows is the maximum number of rows to display in the tab
 	// completion grid.
 	MaxTabCompleterRows int // = 4
+	// HintColor any ANSI escape codes you wish to use for hint formatting. By
+	// default this will just be blue.
+	HintFormatting string
+
+	// TempDirectory is the path to write temporary files when editing a line in
+	// $EDITOR. This will default to os.TempDir()
+	TempDirectory string
+
+	// GetMultiLine is a callback to your host program. Since multiline support
+	// is handled by the application rather than readline itself, this callback
+	// is required when calling $EDITOR. However if this function is not set
+	// then readline will just use the current line.
+	GetMultiLine func([]rune) []rune
+
+	// readline operating parameters
+	mlnPrompt      []rune // Our multiline prompt, different from multiline below
+	mlnArrow       []rune
+	promptLen      int    //= 4
+	line           []rune // This is the input line, with entered text: full line = mlnPrompt + line
+	pos            int
+	posX           int // Cursor position X
+	fullX          int
+	posY           int // Cursor position Y (multiple lines span)
+	fullY          int
+	multiline      []byte
+	multisplit     []string
+	skipStdinRead  bool
+	stillOnRefresh bool // True if some logs have printed asynchronously since last loop.
+
+	// history
+	lineBuf    string
+	histPos    int
+	histNavIdx int // Used for quick history navigation.
 
 	// tab completion operating parameters
 	tcGroups []*CompletionGroup // All of our suggestions tree is in here

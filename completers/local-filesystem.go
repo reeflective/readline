@@ -3,10 +3,9 @@ package completers
 import (
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
-
-	"github.com/evilsocket/islazy/fs"
 
 	"github.com/maxlandon/readline"
 )
@@ -42,14 +41,14 @@ func completeLocalPath(last string) (string, *readline.CompletionGroup) {
 
 	if strings.HasSuffix(string(inputPath), "/") {
 		linePath = filepath.Dir(string(inputPath))
-		absPath, _ = fs.Expand(string(linePath)) // Get absolute path
+		absPath, _ = expand(string(linePath)) // Get absolute path
 
 	} else if string(inputPath) == "" {
 		linePath = "."
-		absPath, _ = fs.Expand(string(linePath))
+		absPath, _ = expand(string(linePath))
 	} else {
 		linePath = filepath.Dir(string(inputPath))
-		absPath, _ = fs.Expand(string(linePath))    // Get absolute path
+		absPath, _ = expand(string(linePath))       // Get absolute path
 		lastPath = filepath.Base(string(inputPath)) // Save filter
 	}
 
@@ -134,14 +133,14 @@ func completeLocalPathAndFiles(last string) (string, *readline.CompletionGroup) 
 
 	if strings.HasSuffix(string(inputPath), "/") {
 		linePath = filepath.Dir(string(inputPath)) // Trim the non needed slash
-		absPath, _ = fs.Expand(string(linePath))   // Get absolute path
+		absPath, _ = expand(string(linePath))      // Get absolute path
 
 	} else if string(inputPath) == "" {
 		linePath = "."
-		absPath, _ = fs.Expand(string(linePath))
+		absPath, _ = expand(string(linePath))
 	} else {
 		linePath = filepath.Dir(string(inputPath))
-		absPath, _ = fs.Expand(string(linePath))    // Get absolute path
+		absPath, _ = expand(string(linePath))       // Get absolute path
 		lastPath = filepath.Base(string(inputPath)) // Save filter
 	}
 
@@ -187,4 +186,20 @@ func completeLocalPathAndFiles(last string) (string, *readline.CompletionGroup) 
 
 	completion.Suggestions = suggestions
 	return string(lastPath), completion
+}
+
+// expand will expand a path with ~ to the $HOME of the current user.
+func expand(path string) (string, error) {
+	if path == "" {
+		return path, nil
+	}
+	home := os.Getenv("HOME")
+	if home == "" {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		home = usr.HomeDir
+	}
+	return filepath.Abs(strings.Replace(path, "~", home, 1))
 }

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
+	"path/filepath"
 	"strings"
 
-	"github.com/evilsocket/islazy/fs"
-	"github.com/evilsocket/islazy/str"
 	"github.com/jessevdk/go-flags"
 
 	"github.com/maxlandon/readline"
@@ -105,7 +105,7 @@ type ChangeClientDirectory struct {
 // Execute - Handler for ChangeDirectory
 func (cd *ChangeClientDirectory) Execute(args []string) (err error) {
 
-	dir, err := fs.Expand(cd.Positional.Path)
+	dir, err := expand(cd.Positional.Path)
 
 	err = os.Chdir(dir)
 	if err != nil {
@@ -135,7 +135,7 @@ func (ls *ListClientDirectories) Execute(args []string) error {
 
 	fullPaths := []string{}
 	for _, path := range ls.Positional.Path {
-		full, _ := fs.Expand(path)
+		full, _ := expand(path)
 		fullPaths = append(fullPaths, full)
 	}
 	base = append(base, fullPaths...)
@@ -170,7 +170,7 @@ func shellExec(executable string, args []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return str.Trim(string(out)), nil
+	return strings.Trim(string(out)), nil
 }
 
 // Generate - Configure and compile an implant
@@ -297,3 +297,19 @@ var (
 	ParserError  = fmt.Sprintf("%s[Parser Error]%s ", readline.RED, readline.RESET)
 	DBError      = fmt.Sprintf("%s[DB Error]%s ", readline.RED, readline.RESET)
 )
+
+// expand will expand a path with ~ to the $HOME of the current user.
+func expand(path string) (string, error) {
+	if path == "" {
+		return path, nil
+	}
+	home := os.Getenv("HOME")
+	if home == "" {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		home = usr.HomeDir
+	}
+	return filepath.Abs(strings.Replace(path, "~", home, 1))
+}
