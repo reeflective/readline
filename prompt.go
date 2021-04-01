@@ -129,13 +129,8 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 	moveCursorUp(rl.posY)
 	moveCursorUp(offset)
 
-	// Then clear everything
-	print("\r\n" + seqClearScreenBelow)
-	// print(seqClearScreenBelow)
-
-	// Clear the input line and everything below
-	// print(seqClearLine)
-	// moveCursorUp(rl.hintY + rl.tcUsedY)
+	// Then clear everything below our new position
+	print(seqClearScreenBelow)
 	// print("\r\n" + seqClearScreenBelow)
 
 	// Update the prompt if a special has been passed.
