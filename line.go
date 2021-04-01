@@ -119,8 +119,8 @@ func (rl *Instance) delete() {
 		rl.line = rl.line[:rl.pos]
 		rl.pos--
 	default:
-		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
 		rl.pos--
+		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
 	}
 
 	rl.updateHelpers()
