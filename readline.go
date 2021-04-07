@@ -19,6 +19,9 @@ func (rl *Instance) Readline() (string, error) {
 	}
 	defer Restore(fd, state)
 
+	// In Vim mode, we always start in Input mode. The prompt needs this.
+	rl.modeViMode = vimInsert
+
 	// Prompt Init
 	// Here we have to either print prompt and return new line (multiline)
 	if rl.Multiline {
@@ -206,6 +209,12 @@ func (rl *Instance) Readline() (string, error) {
 			rl.resetHelpers()
 
 		case charTab:
+			// The user cannot show completions if currently in Vim Normal mode
+			if rl.InputMode == Vim && rl.modeViMode != vimInsert {
+				continue
+			}
+
+			// If we have asked for completions, already printed, and we want to move selection.
 			if rl.modeTabCompletion && !rl.compConfirmWait {
 				rl.tabCompletionSelect = true
 				rl.moveTabCompletionHighlight(1, 0)
@@ -213,6 +222,7 @@ func (rl *Instance) Readline() (string, error) {
 				rl.renderHelpers()
 				rl.viUndoSkipAppend = true
 			} else {
+				// Else we might be asked to confirm printing (if too many suggestions), or not.
 				rl.getTabCompletion()
 
 				// If too many completions and no yet confirmed, ask user for completion
@@ -249,14 +259,6 @@ func (rl *Instance) Readline() (string, error) {
 				rl.viUndoSkipAppend = true
 				continue
 			}
-
-			// Once we have a completion candidate, insert it in the virtual input line.
-			// This will thus not filter other candidates, despite printing the current one.
-			// rl.updateVirtualComp()
-
-			// rl.renderHelpers()
-			// rl.updateHelpers()
-			// rl.viUndoSkipAppend = true
 
 		// Clear the entire screen. Reprints completions if they were shown.
 		case charCtrlL:
@@ -389,7 +391,6 @@ func (rl *Instance) escapeSeq(r []rune) {
 			if rl.InputMode == Vim {
 				if rl.pos == len(rl.line) && len(rl.line) > 0 {
 					rl.pos--
-					// moveCursorBackwards(1)
 				}
 
 				rl.modeViMode = vimKeys

@@ -214,7 +214,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 			alt = fmt.Sprintf(" %s%"+cellWidthAlt+"s", highlight(y, 1), alt)
 		} else {
 			// Else, make an empty cell
-			alt = strings.Repeat(" ", maxLengthAlt+2) // + 2 to keep account of spaces
+			alt = strings.Repeat(" ", maxLengthAlt+1) // + 2 to keep account of spaces
 		}
 
 		// Description

@@ -88,13 +88,13 @@ func (rl *Instance) getCompletions() {
 
 	// Call up the completion engine/function to yield completion groups
 	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(compLine, compPos, rl.delayedTabContext)
-	// rl.tcPrefix, rl.tcGroups = rl.TabCompleter(rl.getCompletionLine())
 
 	// Avoid nil maps in groups. Maybe we could also pop any empty group.
 	rl.tcGroups = checkNilItems(rl.tcGroups)
 }
 
 // getNormalCompletion - Populates and sets up completion for normal comp mode.
+// Will automatically cancel the completion mode if there are no candidates.
 func (rl *Instance) getNormalCompletion() {
 
 	// Get completions groups, pass delayedTabContext and check nils
@@ -107,6 +107,18 @@ func (rl *Instance) getNormalCompletion() {
 		if i != 0 {
 			group.tcPosY = 1
 		}
+	}
+
+	// If there aren't ANY completion candidates, we
+	// escape the completion mode from here directly.
+	var items bool
+	for _, group := range rl.tcGroups {
+		if len(group.Suggestions) > 0 {
+			items = true
+		}
+	}
+	if !items {
+		rl.modeTabCompletion = false
 	}
 }
 

@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -173,6 +174,7 @@ func (rl *Instance) vi(r rune) {
 
 		new, err := rl.launchEditor(multiline)
 		if err != nil || len(new) == 0 || string(new) == string(multiline) {
+			fmt.Println(err)
 			rl.viUndoSkipAppend = true
 			return
 		}
@@ -208,7 +210,6 @@ func (rl *Instance) vi(r rune) {
 			rl.delete()
 		}
 		if rl.pos == len(rl.line) && len(rl.line) > 0 {
-			// moveCursorBackwards(1)
 			rl.pos--
 		}
 
