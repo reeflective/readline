@@ -130,7 +130,6 @@ func (rl *Instance) renderHelpers() {
 		print("\n")
 		rl.writeHintText()
 		moveCursorBackwards(GetTermWidth())
-		print("\n")
 	}
 
 	// Anyway, compensate for hint printout
