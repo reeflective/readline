@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -20,9 +21,10 @@ func (rl *Instance) writeTempFile(content []byte) (string, error) {
 		return "", err
 	}
 
-	name := rl.TempDirectory + "readline-" + hex.EncodeToString(h.Sum(nil)) + "-" + strconv.Itoa(os.Getpid())
+	name := "readline-" + hex.EncodeToString(h.Sum(nil)) + "-" + strconv.Itoa(os.Getpid())
+	path := filepath.Join(rl.TempDirectory, name)
 
-	file, err := os.Create(name)
+	file, err := os.Create(path)
 	if err != nil {
 		return "", err
 	}
