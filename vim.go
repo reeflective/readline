@@ -182,6 +182,25 @@ func (rl *Instance) vi(r rune) {
 		rl.line = new
 
 	case 'w':
+		// If we were yanking, we forge the new yank buffer and return
+		// without moving the cursor.
+		// if rl.viIsYanking {
+		//         init := rl.pos
+		//         vii := rl.getViIterations()
+		//         for i := 1; i <= vii; i++ {
+		//                 rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
+		//         }
+		//         end := rl.pos
+		//         rl.viYankBuffer = string(rl.line[init:end])
+		//         for i := 1; i <= vii; i++ {
+		//                 rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		//         }
+		//         rl.viUndoSkipAppend = true
+		//         rl.viIsYanking = false
+		//         return
+		// }
+
+		// If we were not yanking
 		rl.viUndoSkipAppend = true
 		// If the input line is empty, we don't do anything
 		if rl.pos == 0 && len(rl.line) == 0 {
@@ -213,7 +232,11 @@ func (rl *Instance) vi(r rune) {
 			rl.pos--
 		}
 
-	case 'y', 'Y':
+	case 'y':
+		// rl.viIsYanking = true
+		rl.viUndoSkipAppend = true
+
+	case 'Y':
 		rl.viYankBuffer = string(rl.line)
 		rl.viUndoSkipAppend = true
 
@@ -261,9 +284,7 @@ func (rl *Instance) getViIterations() int {
 
 func (rl *Instance) refreshVimStatus() {
 	rl.computePrompt()
-	// rl.clearHelpers()
 	rl.updateHelpers()
-	// rl.renderHelpers()
 }
 
 // viHintMessage - lmorg's way of showing Vim status is to overwrite the hint.

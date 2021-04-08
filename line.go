@@ -150,3 +150,12 @@ func (rl *Instance) clearLine() {
 	// Completions are also reset
 	rl.clearVirtualComp()
 }
+
+func (rl *Instance) deleteToBeginning() {
+	// Keep the line length up until the cursor
+	if len(rl.currentComp) > 0 {
+		rl.line = rl.line[rl.pos-len(rl.currentComp):]
+	} else {
+		rl.line = rl.line[rl.pos:]
+	}
+}
