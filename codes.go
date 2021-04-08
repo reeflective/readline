@@ -63,7 +63,8 @@ const (
 
 	seqGetCursorPos = "\x1b6n" // response: "\x1b{Line};{Column}R"
 
-	seqCtrlLeftArrow = "\x1b[1;5D"
+	seqCtrlLeftArrow  = "\x1b[1;5D"
+	seqCtrlRightArrow = "\x1b[1;5C"
 )
 
 // Text effects

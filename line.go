@@ -152,10 +152,8 @@ func (rl *Instance) clearLine() {
 }
 
 func (rl *Instance) deleteToBeginning() {
+	rl.resetVirtualComp()
 	// Keep the line length up until the cursor
-	if len(rl.currentComp) > 0 {
-		rl.line = rl.line[rl.pos-len(rl.currentComp):]
-	} else {
-		rl.line = rl.line[rl.pos:]
-	}
+	rl.line = rl.line[rl.pos:]
+	rl.pos = 0
 }

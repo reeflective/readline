@@ -140,6 +140,13 @@ func (rl *Instance) Readline() (string, error) {
 			}
 		}
 
+		// Before anything: we can never be both in modeTabCompletion and compConfirmWait,
+		// because we need to confirm before entering completion. If both are true, there
+		// is a problem (at least, the user has escaped the confirm hint some way).
+		if (rl.modeTabCompletion && rl.searchMode != HistoryFind) && rl.compConfirmWait {
+			rl.compConfirmWait = false
+		}
+
 		switch b[0] {
 		// Errors & Returns --------------------------------------------------------------------------------
 		case charCtrlC:
@@ -171,7 +178,6 @@ func (rl *Instance) Readline() (string, error) {
 		case charCtrlU:
 			// Delete everything from the beginning of the line to the cursor position
 			rl.deleteToBeginning()
-
 			rl.resetHelpers()
 			rl.updateHelpers()
 
@@ -189,8 +195,12 @@ func (rl *Instance) Readline() (string, error) {
 		// Emacs Bindings ----------------------------------------------------------------------------------
 		case charCtrlW:
 			rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-			rl.resetHelpers()
-			rl.renderHelpers()
+			// if rl.modeTabCompletion {
+			rl.resetVirtualComp()
+			// }
+			rl.line = rl.line[:rl.pos]
+			rl.updateHelpers()
+
 		case charCtrlY:
 
 		// Command History ---------------------------------------------------------------------------------
@@ -483,9 +493,12 @@ func (rl *Instance) escapeSeq(r []rune) {
 		}
 		rl.viUndoSkipAppend = true
 
-		// ----------------------------------------------------------------------------------------------------
+	// Movement -------------------------------------------------------------------------------
 	case seqCtrlLeftArrow:
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		rl.renderHelpers()
+	case seqCtrlRightArrow:
+		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
 		rl.renderHelpers()
 
 	case seqDelete:
