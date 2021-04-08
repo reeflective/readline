@@ -76,14 +76,7 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 	case 'D':
-		// moveCursorBackwards(rl.pos)
-		// print(strings.Repeat(" ", len(rl.line)))
-
-		// moveCursorBackwards(len(rl.line) - rl.pos)
 		rl.line = rl.line[:rl.pos]
-		// rl.echo()
-
-		// moveCursorBackwards(2)
 		rl.pos--
 		rl.updateHelpers()
 		rl.viIteration = ""
@@ -358,7 +351,8 @@ func (rl *Instance) viJumpW(tokeniser func([]rune, int) ([]string, int, int)) (a
 			adjust = len(rl.line) - rl.pos
 		} else {
 			// Otherwise add it
-			adjust = len(rl.line) - 1 - rl.pos
+			adjust = len(rl.line) - rl.pos
+			// adjust = len(rl.line) - 1 - rl.pos
 		}
 	default:
 		adjust = len(split[index]) - pos

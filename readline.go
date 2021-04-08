@@ -410,10 +410,9 @@ func (rl *Instance) escapeSeq(r []rune) {
 				if rl.compConfirmWait {
 					rl.compConfirmWait = false
 				} else {
-					if rl.pos == len(rl.line) && len(rl.line) > 0 {
+					if len(rl.line) > 0 {
 						rl.pos--
 					}
-
 					rl.modeViMode = vimKeys
 					rl.viIteration = ""
 					rl.refreshVimStatus()
@@ -497,9 +496,12 @@ func (rl *Instance) escapeSeq(r []rune) {
 	case seqCtrlLeftArrow:
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 		rl.renderHelpers()
+		return
+
 	case seqCtrlRightArrow:
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
 		rl.renderHelpers()
+		return
 
 	case seqDelete:
 		if rl.modeTabFind {
