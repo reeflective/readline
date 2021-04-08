@@ -107,7 +107,25 @@ func (rl *Instance) insert(r []rune) {
 	rl.updateHelpers()
 }
 
-func (rl *Instance) delete() {
+func (rl *Instance) deleteX() {
+	switch {
+	case len(rl.line) == 0:
+		return
+	case rl.pos == 0:
+		rl.line = rl.line[1:]
+	case rl.pos > len(rl.line):
+		rl.pos = len(rl.line)
+	case rl.pos == len(rl.line):
+		rl.pos--
+		rl.line = rl.line[:rl.pos]
+	default:
+		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
+	}
+
+	rl.updateHelpers()
+}
+
+func (rl *Instance) deleteBackspace() {
 	switch {
 	case len(rl.line) == 0:
 		return
@@ -119,6 +137,7 @@ func (rl *Instance) delete() {
 		rl.pos--
 		rl.line = rl.line[:rl.pos]
 	default:
+		rl.pos--
 		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
 	}
 

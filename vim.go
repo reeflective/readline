@@ -97,7 +97,6 @@ func (rl *Instance) vi(r rune) {
 
 	case 'h':
 		if rl.pos > 0 {
-			// moveCursorBackwards(1)
 			rl.pos--
 		}
 		rl.viUndoSkipAppend = true
@@ -111,13 +110,11 @@ func (rl *Instance) vi(r rune) {
 		rl.modeViMode = vimInsert
 		rl.viIteration = ""
 		rl.viUndoSkipAppend = true
-		// moveCursorBackwards(rl.pos)
 		rl.pos = 0
 
 	case 'l':
 		if (rl.modeViMode == vimInsert && rl.pos < len(rl.line)) ||
 			(rl.modeViMode != vimInsert && rl.pos < len(rl.line)-1) {
-			// moveCursorForwards(1)
 			rl.pos++
 		}
 		rl.viUndoSkipAppend = true
@@ -126,13 +123,11 @@ func (rl *Instance) vi(r rune) {
 		// paste after
 		rl.viUndoSkipAppend = true
 		rl.pos++
-		// moveCursorForwards(1)
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
 			rl.insert([]rune(rl.viYankBuffer))
 		}
 		rl.pos--
-		// moveCursorBackwards(1)
 
 	case 'P':
 		// paste before
@@ -219,7 +214,7 @@ func (rl *Instance) vi(r rune) {
 	case 'x':
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
-			rl.delete()
+			rl.deleteX()
 		}
 		if rl.pos == len(rl.line) && len(rl.line) > 0 {
 			rl.pos--
@@ -242,7 +237,6 @@ func (rl *Instance) vi(r rune) {
 		rl.moveCursorByAdjust(rl.viJumpNextBrace())
 
 	case '$':
-		// moveCursorForwards(len(rl.line) - rl.pos)
 		rl.pos = len(rl.line)
 		rl.viUndoSkipAppend = true
 
@@ -351,8 +345,8 @@ func (rl *Instance) viJumpW(tokeniser func([]rune, int) ([]string, int, int)) (a
 			adjust = len(rl.line) - rl.pos
 		} else {
 			// Otherwise add it
-			adjust = len(rl.line) - rl.pos
-			// adjust = len(rl.line) - 1 - rl.pos
+			// adjust = len(rl.line) - rl.pos
+			adjust = len(rl.line) - 1 - rl.pos
 		}
 	default:
 		adjust = len(split[index]) - pos

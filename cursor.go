@@ -63,72 +63,6 @@ func (rl *Instance) getCursorPos() (x int, y int) {
 	return x, y
 }
 
-// func moveCursorUp(i int) {
-//         if i < 1 {
-//                 return
-//         }
-//
-//         printf("\x1b[%dA", i)
-// }
-//
-// func moveCursorDown(i int) {
-//         if i < 1 {
-//                 return
-//         }
-//
-//         printf("\x1b[%dB", i)
-// }
-//
-// func moveCursorForwards(i int) {
-//         if i < 1 {
-//                 return
-//         }
-//
-//         printf("\x1b[%dC", i)
-// }
-//
-// func moveCursorBackwards(i int) {
-//         if i < 1 {
-//                 return
-//         }
-//
-//         printf("\x1b[%dD", i)
-// }
-
-// func (rl *Instance) moveCursorToStart() {
-//         posX, posY := lineWrapPos(rl.promptLen, rl.pos, rl.termWidth)
-//
-//         moveCursorBackwards(posX - rl.promptLen)
-//         moveCursorUp(posY)
-// }
-//
-// func (rl *Instance) moveCursorFromStartToLinePos() {
-//         posX, posY := lineWrapPos(rl.promptLen, rl.pos, rl.termWidth)
-//         moveCursorForwards(posX)
-//         moveCursorDown(posY)
-// }
-//
-// func (rl *Instance) moveCursorFromEndToLinePos() {
-//         lineX, lineY := lineWrapPos(rl.promptLen, len(rl.line), rl.termWidth)
-//         posX, posY := lineWrapPos(rl.promptLen, rl.pos, rl.termWidth)
-//         moveCursorBackwards(lineX - posX)
-//         moveCursorUp(lineY - posY)
-// }
-
-// moveCursorToLinePos should only be used on extreme circumstances because it
-// causes the cursor to jump around quite a bit
-// func (rl *Instance) moveCursorFromUnknownToLinePos() {
-//         _, lineY := lineWrapPos(rl.promptLen, len(rl.line), rl.termWidth)
-//         posX, posY := lineWrapPos(rl.promptLen, rl.pos, rl.termWidth)
-//         //moveCursorBackwards(lineX)
-//         print("\r")
-//         moveCursorForwards(posX)
-//         moveCursorUp(lineY - posY)
-// }
-
-// maxlandon code
-// -------------------------------------------------------------------------------
-
 // DISPLAY ------------------------------------------------------------
 // All cursorMoveFunctions move the cursor as it is seen by the user.
 // This means that they are not used to keep any reference point when
@@ -171,7 +105,7 @@ func (rl *Instance) backspace() {
 		return
 	}
 
-	rl.delete()
+	rl.deleteBackspace()
 }
 
 func (rl *Instance) moveCursorByAdjust(adjust int) {
@@ -184,5 +118,10 @@ func (rl *Instance) moveCursorByAdjust(adjust int) {
 
 	if rl.modeViMode != vimInsert && (rl.pos == len(rl.line)-1) && len(rl.line) > 0 {
 		rl.pos--
+	}
+
+	// The cursor can never be longer than the line
+	if rl.pos > len(rl.line)-1 {
+		rl.pos = len(rl.line) - 1
 	}
 }

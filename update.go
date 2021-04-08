@@ -126,9 +126,11 @@ func (rl *Instance) renderHelpers() {
 	}
 
 	// If we are still waiting for the user to confirm too long completions
+	// Immediately refresh the hints
 	if rl.compConfirmWait {
 		print("\n")
 		rl.writeHintText()
+		rl.getHintText()
 		moveCursorBackwards(GetTermWidth())
 	}
 

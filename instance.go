@@ -156,6 +156,7 @@ type Instance struct {
 	viUndoHistory    []undoItem
 	viUndoSkipAppend bool
 	viYankBuffer     string
+	yankBuffer       []rune
 	viIsYanking      bool
 
 	//
