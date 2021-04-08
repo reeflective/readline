@@ -121,7 +121,7 @@ func (rl *Instance) moveCursorByAdjust(adjust int) {
 	}
 
 	// The cursor can never be longer than the line
-	if rl.pos > len(rl.line)-1 {
+	if rl.pos > len(rl.line) {
 		rl.pos = len(rl.line) - 1
 	}
 }

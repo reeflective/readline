@@ -139,6 +139,8 @@ func (rl *Instance) renderHelpers() {
 		moveCursorUp(rl.hintY)
 	} else if !rl.compConfirmWait {
 		moveCursorUp(1)
+	} else if rl.compConfirmWait {
+		moveCursorUp(1)
 	}
 
 	// Go back to current cursor position
