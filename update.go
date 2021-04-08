@@ -130,13 +130,12 @@ func (rl *Instance) renderHelpers() {
 		print("\n")
 		rl.writeHintText()
 		moveCursorBackwards(GetTermWidth())
-		print("\n")
 	}
 
 	// Anyway, compensate for hint printout
 	if len(rl.hintText) > 0 {
 		moveCursorUp(rl.hintY)
-	} else {
+	} else if !rl.compConfirmWait {
 		moveCursorUp(1)
 	}
 

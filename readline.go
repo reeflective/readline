@@ -194,11 +194,10 @@ func (rl *Instance) Readline() (string, error) {
 
 		// Emacs Bindings ----------------------------------------------------------------------------------
 		case charCtrlW:
-			rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-			// if rl.modeTabCompletion {
-			rl.resetVirtualComp()
-			// }
-			rl.line = rl.line[:rl.pos]
+			if rl.modeTabCompletion {
+				rl.resetVirtualComp()
+			}
+			rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
 			rl.updateHelpers()
 
 		case charCtrlY:
@@ -345,6 +344,13 @@ func (rl *Instance) Readline() (string, error) {
 
 		// Vim --------------------------------------------------------------------------------------
 		case charEscape:
+
+			// If we were waiting for completion confirm, abort
+			if rl.compConfirmWait {
+				rl.compConfirmWait = false
+				rl.renderHelpers()
+			}
+
 			// We always refresh the completion candidates, except if we are currently
 			// cycling through them, because then it would just append the candidate.
 			if rl.modeTabCompletion {
@@ -410,7 +416,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 				if rl.compConfirmWait {
 					rl.compConfirmWait = false
 				} else {
-					if len(rl.line) > 0 {
+					if rl.pos == len(rl.line) && len(rl.line) > 0 {
 						rl.pos--
 					}
 					rl.modeViMode = vimKeys
@@ -497,7 +503,6 @@ func (rl *Instance) escapeSeq(r []rune) {
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 		rl.renderHelpers()
 		return
-
 	case seqCtrlRightArrow:
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
 		rl.renderHelpers()
