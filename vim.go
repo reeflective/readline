@@ -38,10 +38,21 @@ const (
 // will compute the new cursor pos accordingly.
 func (rl *Instance) vi(r rune) {
 
+	// Check if we are in register mode. If yes, and for some characters,
+	// We select the register and exit this func immediately.
+	if rl.registers.onRegister {
+		validRegs := []string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""}
+		for _, char := range validRegs {
+			if string(r) == char {
+				rl.registers.setActiveRegister(r)
+				return
+			}
+		}
+	}
+
 	switch r {
 	case 'a':
 		if len(rl.line) > 0 {
-			// moveCursorForwards(1)
 			rl.pos++
 		}
 		rl.modeViMode = vimInsert
@@ -50,7 +61,6 @@ func (rl *Instance) vi(r rune) {
 
 	case 'A':
 		if len(rl.line) > 0 {
-			// moveCursorForwards(len(rl.line) - rl.pos)
 			rl.pos = len(rl.line)
 		}
 		rl.modeViMode = vimInsert
@@ -58,6 +68,11 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 	case 'b':
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpB(tokeniseLine))
+			rl.viIsYanking = false
+			return
+		}
 		rl.viUndoSkipAppend = true
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
@@ -65,6 +80,11 @@ func (rl *Instance) vi(r rune) {
 		}
 
 	case 'B':
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces))
+			rl.viIsYanking = false
+			return
+		}
 		rl.viUndoSkipAppend = true
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
@@ -82,6 +102,12 @@ func (rl *Instance) vi(r rune) {
 		rl.viIteration = ""
 
 	case 'e':
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpE(tokeniseLine))
+			rl.viIsYanking = false
+			return
+		}
+
 		rl.viUndoSkipAppend = true
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
@@ -89,6 +115,12 @@ func (rl *Instance) vi(r rune) {
 		}
 
 	case 'E':
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces))
+			rl.viIsYanking = false
+			return
+		}
+
 		rl.viUndoSkipAppend = true
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
@@ -112,6 +144,15 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 		rl.pos = 0
 
+	case 'j':
+		// Set the main history as the one we navigate, by default
+		rl.mainHist = true
+		rl.walkHistory(-1)
+	case 'k':
+		// Set the main history as the one we navigate, by default
+		rl.mainHist = true
+		rl.walkHistory(1)
+
 	case 'l':
 		if (rl.modeViMode == vimInsert && rl.pos < len(rl.line)) ||
 			(rl.modeViMode != vimInsert && rl.pos < len(rl.line)-1) {
@@ -120,13 +161,14 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 	case 'p':
-		// paste after
+		// Ask the shell registers to yield us the appropriate buffer.
+		// Previous inputs have been andled and they know which register to use.
+		buffer := rl.pasteFromRegister()
+
+		// paste after the cursor position
 		rl.viUndoSkipAppend = true
 		rl.pos++
-		vii := rl.getViIterations()
-		for i := 1; i <= vii; i++ {
-			rl.insert([]rune(rl.viYankBuffer))
-		}
+		rl.insert(buffer)
 		rl.pos--
 
 	case 'P':
@@ -134,7 +176,8 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
-			rl.insert([]rune(rl.viYankBuffer))
+			buffer := rl.pasteFromRegister()
+			rl.insert(buffer)
 		}
 
 	case 'r':
@@ -170,30 +213,21 @@ func (rl *Instance) vi(r rune) {
 		rl.line = new
 
 	case 'w':
-		// If we were yanking, we forge the new yank buffer and return
-		// without moving the cursor.
-		// if rl.viIsYanking {
-		//         init := rl.pos
-		//         vii := rl.getViIterations()
-		//         for i := 1; i <= vii; i++ {
-		//                 rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
-		//         }
-		//         end := rl.pos
-		//         rl.viYankBuffer = string(rl.line[init:end])
-		//         for i := 1; i <= vii; i++ {
-		//                 rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-		//         }
-		//         rl.viUndoSkipAppend = true
-		//         rl.viIsYanking = false
-		//         return
-		// }
-
 		// If we were not yanking
 		rl.viUndoSkipAppend = true
 		// If the input line is empty, we don't do anything
 		if rl.pos == 0 && len(rl.line) == 0 {
 			return
 		}
+
+		// If we were yanking, we forge the new yank buffer
+		// and return without moving the cursor.
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpW(tokeniseLine))
+			rl.viIsYanking = false
+			return
+		}
+
 		// Else get iterations and move
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
@@ -206,6 +240,12 @@ func (rl *Instance) vi(r rune) {
 			return
 		}
 		rl.viUndoSkipAppend = true
+
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpW(tokeniseSplitSpaces))
+			rl.viIsYanking = false
+			return
+		}
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
 			rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces))
@@ -221,11 +261,11 @@ func (rl *Instance) vi(r rune) {
 		}
 
 	case 'y':
-		// rl.viIsYanking = true
+		rl.viIsYanking = true
 		rl.viUndoSkipAppend = true
 
 	case 'Y':
-		rl.viYankBuffer = string(rl.line)
+		rl.registers.unnamed = rl.line
 		rl.viUndoSkipAppend = true
 
 	case '[':
@@ -244,15 +284,14 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 		rl.moveCursorByAdjust(rl.viJumpBracket())
 
-	case 'j':
-		// Set the main history as the one we navigate, by default
-		rl.mainHist = true
-		rl.walkHistory(-1)
-	case 'k':
-		// Set the main history as the one we navigate, by default
-		rl.mainHist = true
-		rl.walkHistory(1)
+	case '"':
+		rl.registers.onRegister = true
+
 	default:
+		if rl.registers.onRegister {
+
+		}
+
 		if r <= '9' && '0' <= r {
 			rl.viIteration += string(r)
 		}

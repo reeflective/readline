@@ -4,15 +4,30 @@ import (
 	"strings"
 )
 
+// vimDelete -
 func (rl *Instance) vimDelete(r []rune) {
-	defer func() { rl.modeViMode = vimKeys }()
+
+	// We are allowed to type iterations after a delete ('d') command.
+	// in which case we don't exit the delete mode. The next thing typed
+	// will thus be dispatched back here (like "2d4 then w).
+	if r[0] != 27 {
+		defer func() { rl.modeViMode = vimKeys }()
+	}
+
+	vii := rl.getViIterations()
 
 	switch r[0] {
 	case 'b':
-		rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
+		rl.saveToRegister(rl.viJumpB(tokeniseLine))
+		for i := 1; i <= vii; i++ {
+			rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
+		}
 
 	case 'B':
-		rl.viDeleteByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+		rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces))
+		for i := 1; i <= vii; i++ {
+			rl.viDeleteByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+		}
 
 	case 'd':
 		rl.clearLine()
@@ -20,16 +35,28 @@ func (rl *Instance) vimDelete(r []rune) {
 		rl.getHintText()
 
 	case 'e':
-		rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
+		rl.saveToRegister(rl.viJumpE(tokeniseLine) + 1)
+		for i := 1; i <= vii; i++ {
+			rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
+		}
 
 	case 'E':
+		rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces) + 1)
+		for i := 1; i <= vii; i++ {
+		}
 		rl.viDeleteByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
 
 	case 'w':
-		rl.viDeleteByAdjust(rl.viJumpW(tokeniseLine))
+		rl.saveToRegister(rl.viJumpW(tokeniseLine))
+		for i := 1; i <= vii; i++ {
+			rl.viDeleteByAdjust(rl.viJumpW(tokeniseLine))
+		}
 
 	case 'W':
-		rl.viDeleteByAdjust(rl.viJumpW(tokeniseSplitSpaces))
+		rl.saveToRegister(rl.viJumpW(tokeniseSplitSpaces))
+		for i := 1; i <= vii; i++ {
+			rl.viDeleteByAdjust(rl.viJumpW(tokeniseSplitSpaces))
+		}
 
 	case '%':
 		rl.viDeleteByAdjust(rl.viJumpBracket())
@@ -39,13 +66,17 @@ func (rl *Instance) vimDelete(r []rune) {
 
 	case 27:
 		if len(r) > 1 && '1' <= r[1] && r[1] <= '9' {
-			if rl.vimDeleteToken(r[1]) {
-				return
-			}
+			rl.viIteration += string(r)
+			//         if rl.vimDeleteToken(r[1]) {
+			//                 return
+			//         }
 		}
-		fallthrough
+		// fallthrough
 
 	default:
+		// if r <= '9' && '0' <= r {
+		//         rl.viIteration += string(r)
+		// }
 		rl.viUndoSkipAppend = true
 	}
 }
