@@ -42,8 +42,13 @@ func (rl *Instance) saveToRegister(adjust int) {
 	}
 	end := rl.pos
 
+	var buffer []rune
+	if end < begin {
+		buffer = rl.line[end:begin]
+	} else {
+		buffer = rl.line[begin:end]
+	}
 	// Get a copy of the text subset, and immediately replace cursor
-	buffer := rl.line[begin:end]
 	rl.pos = begin
 
 	// Put the buffer in the appropriate registers.

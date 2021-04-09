@@ -81,12 +81,12 @@ func (rl *Instance) vimDelete(r []rune) {
 			//                 return
 			//         }
 		}
-		// fallthrough
+		fallthrough
 
 	default:
-		// if r <= '9' && '0' <= r {
-		//         rl.viIteration += string(r)
-		// }
+		if len(r) > 1 && r[1] <= '9' && '0' <= r[1] {
+			rl.viIteration += string(r)
+		}
 		rl.viUndoSkipAppend = true
 	}
 }
