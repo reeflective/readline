@@ -12,6 +12,8 @@ const (
 	HistoryFind = iota
 	// CompletionFind - Searching through completion items
 	CompletionFind
+	// RegisterFind - The user can complete/search registers
+	RegisterFind
 )
 
 func (rl *Instance) backspaceTabFind() {

@@ -155,11 +155,8 @@ type Instance struct {
 	viIteration      string
 	viUndoHistory    []undoItem
 	viUndoSkipAppend bool
-	viYankBuffer     string
-	yankBuffer       []rune
 	viIsYanking      bool
-
-	registers *registers // All memory text registers, can be consulted with Ctrl"
+	registers        *registers // All memory text registers, can be consulted with Ctrl"
 
 	//
 	// Other -------------------------------------------------------------------------------------

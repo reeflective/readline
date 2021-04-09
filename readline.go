@@ -23,7 +23,8 @@ func (rl *Instance) Readline() (string, error) {
 	rl.modeViMode = vimInsert
 
 	// Prompt Init
-	// Here we have to either print prompt and return new line (multiline)
+	// Here we have to either print prompt
+	// and return new line (multiline)
 	if rl.Multiline {
 		fmt.Println(rl.mainPrompt)
 	}
@@ -534,6 +535,14 @@ func (rl *Instance) escapeSeq(r []rune) {
 		}
 		moveCursorForwards(len(rl.line) - rl.pos)
 		rl.pos = len(rl.line)
+		rl.viUndoSkipAppend = true
+
+		// Movement -------------------------------------------------------------------------------
+	case seqAltQuote:
+		rl.modeAutoFind = true
+		rl.searchMode = RegisterFind
+		// Else we might be asked to confirm printing (if too many suggestions), or not.
+		rl.getTabCompletion()
 		rl.viUndoSkipAppend = true
 
 	default:

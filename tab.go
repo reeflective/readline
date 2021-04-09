@@ -30,7 +30,9 @@ const (
 func (rl *Instance) getTabCompletion() {
 	// rl.tcOffset = 0
 
-	if rl.TabCompleter == nil {
+	// Populate registers if requested.
+	if rl.modeAutoFind && rl.searchMode == RegisterFind {
+		rl.completeRegisters()
 		return
 	}
 
@@ -69,28 +71,74 @@ func (rl *Instance) getCompletionLine() (line []rune, pos int) {
 	}
 }
 
-// getCompletions - Calls the completion engine/function to yield a list of 0 or more completion groups,
-// sets up a delayed tab context and passes it on to the tab completion engine function, and ensure no
-// nil groups/items will pass through. This function is called by different comp search/nav modes.
-func (rl *Instance) getCompletions() {
+// getRegisterCompletion - Populates and sets up completion for Vim registers.
+func (rl *Instance) getRegisterCompletion() {
 
-	// Cancel any existing tab context first.
-	if rl.delayedTabContext.cancel != nil {
-		rl.delayedTabContext.cancel()
+	rl.tcGroups = rl.completeRegisters()
+	if len(rl.tcGroups) == 0 {
+		return
+	}
+	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
+	rl.getCurrentGroup()                     // Make sure there is a current group
+}
+
+// getTabSearchCompletion - Populates and sets up completion for completion search.
+func (rl *Instance) getTabSearchCompletion() {
+
+	// Get completions from the engine, and make sure there is a current group.
+	rl.getCompletions()
+	if len(rl.tcGroups) == 0 {
+		return
+	}
+	rl.getCurrentGroup()
+
+	// Set the hint for this completion mode
+	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
+
+	// Set the hint for this completion mode
+	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
+
+	for _, g := range rl.tcGroups {
+		g.updateTabFind(rl)
 	}
 
-	// Recreate a new context
-	rl.delayedTabContext = DelayedTabContext{rl: rl}
-	rl.delayedTabContext.Context, rl.delayedTabContext.cancel = context.WithCancel(context.Background())
+	// If total number of matches is zero, we directly change the hint, and return
+	if comps, _ := rl.getCompletionCount(); comps == 0 {
+		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+	}
+}
 
-	// Get the correct line to be completed, and the current cursor position
-	compLine, compPos := rl.getCompletionLine()
+// getHistorySearchCompletion - Populates and sets up completion for command history search
+func (rl *Instance) getHistorySearchCompletion() {
 
-	// Call up the completion engine/function to yield completion groups
-	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(compLine, compPos, rl.delayedTabContext)
+	// Refresh full list each time
+	rl.tcGroups = rl.completeHistory()
+	if len(rl.tcGroups) == 0 {
+		return
+	}
+	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
+	rl.getCurrentGroup()                     // Make sure there is a current group
 
-	// Avoid nil maps in groups. Maybe we could also pop any empty group.
-	rl.tcGroups = checkNilItems(rl.tcGroups)
+	// The history hint is already set, but overwrite it if we don't have completions
+	if len(rl.tcGroups[0].Suggestions) == 0 {
+		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
+			"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
+		rl.hintText = rl.histHint
+		return
+	}
+
+	// Set the hint line with everything
+	rl.histHint = append([]rune("\033[38;5;183m"+string(rl.histHint)+RESET), rl.tfLine...)
+	rl.histHint = append(rl.histHint, []rune(RESET)...)
+	rl.hintText = rl.histHint
+
+	// Refresh filtered candidates
+	rl.tcGroups[0].updateTabFind(rl)
+
+	// If no items matched history, add hint text that we failed to search
+	if len(rl.tcGroups[0].Suggestions) == 0 {
+		rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+	}
 }
 
 // getNormalCompletion - Populates and sets up completion for normal comp mode.
@@ -120,6 +168,35 @@ func (rl *Instance) getNormalCompletion() {
 	if !items {
 		rl.modeTabCompletion = false
 	}
+}
+
+// getCompletions - Calls the completion engine/function to yield a list of 0 or more completion groups,
+// sets up a delayed tab context and passes it on to the tab completion engine function, and ensure no
+// nil groups/items will pass through. This function is called by different comp search/nav modes.
+func (rl *Instance) getCompletions() {
+
+	// If there is no wired tab completion engine, nothing we can do.
+	if rl.TabCompleter == nil {
+		return
+	}
+
+	// Cancel any existing tab context first.
+	if rl.delayedTabContext.cancel != nil {
+		rl.delayedTabContext.cancel()
+	}
+
+	// Recreate a new context
+	rl.delayedTabContext = DelayedTabContext{rl: rl}
+	rl.delayedTabContext.Context, rl.delayedTabContext.cancel = context.WithCancel(context.Background())
+
+	// Get the correct line to be completed, and the current cursor position
+	compLine, compPos := rl.getCompletionLine()
+
+	// Call up the completion engine/function to yield completion groups
+	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(compLine, compPos, rl.delayedTabContext)
+
+	// Avoid nil maps in groups. Maybe we could also pop any empty group.
+	rl.tcGroups = checkNilItems(rl.tcGroups)
 }
 
 // moveTabCompletionHighlight - This function is in charge of highlighting the current completion item.
@@ -225,65 +302,6 @@ func (rl *Instance) writeTabCompletion() {
 
 	// Then we print all of them.
 	fmt.Printf(completions)
-}
-
-// getTabSearchCompletion - Populates and sets up completion for completion search.
-func (rl *Instance) getTabSearchCompletion() {
-
-	// Get completions from the engine, and make sure there is a current group.
-	rl.getCompletions()
-	if len(rl.tcGroups) == 0 {
-		return
-	}
-	rl.getCurrentGroup()
-
-	// Set the hint for this completion mode
-	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
-
-	// Set the hint for this completion mode
-	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
-
-	for _, g := range rl.tcGroups {
-		g.updateTabFind(rl)
-	}
-
-	// If total number of matches is zero, we directly change the hint, and return
-	if comps, _ := rl.getCompletionCount(); comps == 0 {
-		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
-	}
-}
-
-// getHistorySearchCompletion - Populates and sets up completion for command history search
-func (rl *Instance) getHistorySearchCompletion() {
-
-	// Refresh full list each time
-	rl.tcGroups = rl.completeHistory()
-	if len(rl.tcGroups) == 0 {
-		return
-	}
-	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
-	rl.getCurrentGroup()                     // Make sure there is a current group
-
-	// The history hint is already set, but overwrite it if we don't have completions
-	if len(rl.tcGroups[0].Suggestions) == 0 {
-		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
-			"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
-		rl.hintText = rl.histHint
-		return
-	}
-
-	// Set the hint line with everything
-	rl.histHint = append([]rune("\033[38;5;183m"+string(rl.histHint)+RESET), rl.tfLine...)
-	rl.histHint = append(rl.histHint, []rune(RESET)...)
-	rl.hintText = rl.histHint
-
-	// Refresh filtered candidates
-	rl.tcGroups[0].updateTabFind(rl)
-
-	// If no items matched history, add hint text that we failed to search
-	if len(rl.tcGroups[0].Suggestions) == 0 {
-		rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
-	}
 }
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {

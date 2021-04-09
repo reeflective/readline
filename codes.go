@@ -34,6 +34,7 @@ const (
 	charCtrlHat               // ^^
 	charCtrlUnderscore        // ^_
 	charBackspace2      = 127 // ASCII 1963
+
 )
 
 // Escape sequences
@@ -65,6 +66,8 @@ const (
 
 	seqCtrlLeftArrow  = "\x1b[1;5D"
 	seqCtrlRightArrow = "\x1b[1;5C"
+
+	seqAltQuote = "\x1b\"" // trigger registers list
 )
 
 // Text effects

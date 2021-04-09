@@ -1,6 +1,11 @@
 package readline
 
-import "strconv"
+import (
+	"sort"
+	"strconv"
+
+	"github.com/evilsocket/islazy/tui"
+)
 
 // registers - Contains all memory registers resulting from delete/paste/search
 // or other operations in the command line input.
@@ -134,6 +139,47 @@ func (r *registers) writeNumberedRegister(idx int, buf []rune) {
 }
 
 // The user can show registers completions and insert, no matter the cursor position.
-func (rl *Instance) completeRegisters() {
+func (rl *Instance) completeRegisters() []*CompletionGroup {
 
+	// We set the hint exceptionally
+	hint := YELLOW + " :registers" + RESET
+	rl.hintText = []rune(hint)
+
+	// Make the groups
+	regs := &CompletionGroup{
+		Name:         tui.DIM + "([0-9], [a-z], [A-Z])" + tui.RESET,
+		DisplayType:  TabDisplayMap,
+		MaxLength:    20,
+		Descriptions: map[string]string{},
+	}
+
+	// Unnamed
+	regs.Suggestions = append(regs.Suggestions, "\"")
+	regs.Descriptions["\""] = string(rl.registers.unnamed)
+
+	// Numbered registers
+	var nums []int
+	for reg := range rl.registers.num {
+		nums = append(nums, reg)
+	}
+	sort.Ints(nums)
+	for _, reg := range nums {
+		buf := rl.registers.num[reg]
+		regs.Suggestions = append(regs.Suggestions, string(buf))
+		regs.Descriptions[string(buf)] = "\033[38;5;237m" + strconv.Itoa(reg) + RESET
+	}
+
+	// Letter registers
+	var lett []string
+	for reg := range rl.registers.alpha {
+		lett = append(lett, reg)
+	}
+	sort.Strings(lett)
+	for _, reg := range lett {
+		buf := rl.registers.alpha[reg]
+		regs.Suggestions = append(regs.Suggestions, string(buf))
+		regs.Descriptions[string(buf)] = "\033[38;5;237m" + reg + RESET
+	}
+
+	return []*CompletionGroup{regs}
 }
