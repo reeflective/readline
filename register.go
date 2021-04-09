@@ -61,6 +61,11 @@ func (rl *Instance) saveToRegister(adjust int) {
 			rl.registers.alpha[string(rl.registers.currentRegister)] = buffer
 		}
 	}
+
+	// Once the buffer is saved, we cannot be acting on the currently
+	// selected register, in case there is one. Instead of letting
+	// the caller take charge of cancelling, we reset the registers now.
+	rl.registers.resetRegister()
 }
 
 // saveBufToRegister - Instead of computing the buffer ourselves based on an adjust,
