@@ -544,6 +544,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 		// Else we might be asked to confirm printing (if too many suggestions), or not.
 		rl.getTabCompletion()
 		rl.viUndoSkipAppend = true
+		rl.renderHelpers()
 
 	default:
 		if rl.modeTabFind {

@@ -43,8 +43,8 @@ func (rl *Instance) vimDelete(r []rune) {
 	case 'E':
 		rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces) + 1)
 		for i := 1; i <= vii; i++ {
+			rl.viDeleteByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
 		}
-		rl.viDeleteByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
 
 	case 'w':
 		rl.saveToRegister(rl.viJumpW(tokeniseLine))
@@ -59,10 +59,20 @@ func (rl *Instance) vimDelete(r []rune) {
 		}
 
 	case '%':
+		rl.saveToRegister(rl.viJumpBracket())
 		rl.viDeleteByAdjust(rl.viJumpBracket())
 
 	case '$':
+		rl.saveToRegister(len(rl.line) - rl.pos)
 		rl.viDeleteByAdjust(len(rl.line) - rl.pos)
+
+	case '[':
+		rl.saveToRegister(rl.viJumpPreviousBrace())
+		rl.viDeleteByAdjust(rl.viJumpPreviousBrace())
+
+	case ']':
+		rl.saveToRegister(rl.viJumpNextBrace())
+		rl.viDeleteByAdjust(rl.viJumpNextBrace())
 
 	case 27:
 		if len(r) > 1 && '1' <= r[1] && r[1] <= '9' {

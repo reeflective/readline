@@ -10,12 +10,13 @@ import (
 // registers - Contains all memory registers resulting from delete/paste/search
 // or other operations in the command line input.
 type registers struct {
-	unnamed         []rune            // Unnamed register, used by default
-	num             map[int][]rune    // numbered registers (0-9)
-	alpha           map[string][]rune // lettered registers ( a-z )
-	ro              map[string][]rune // read-only registers ( . % : )
-	onRegister      bool              // Are we currently activing on a specific register ?
-	currentRegister rune              // Any of the numbered registers
+	unnamed            []rune            // Unnamed register, used by default
+	num                map[int][]rune    // numbered registers (0-9)
+	alpha              map[string][]rune // lettered registers ( a-z )
+	ro                 map[string][]rune // read-only registers ( . % : )
+	registerSelectWait bool              // The user wants to use a still unidentified register
+	onRegister         bool              // We have identified the register, and acting on it.
+	currentRegister    rune              // Any of the numbered registers
 }
 
 func (rl *Instance) initRegisters() {
@@ -51,7 +52,31 @@ func (rl *Instance) saveToRegister(adjust int) {
 
 	// Or additionally on a specific one.
 	// Check if its a numbered of lettered register, and put it in.
-	if rl.registers.onRegister {
+	if rl.registers.registerSelectWait {
+		num, err := strconv.Atoi(string(rl.registers.currentRegister))
+		if err == nil && num < 10 {
+			rl.registers.writeNumberedRegister(num, buffer)
+		}
+		if err != nil {
+			rl.registers.alpha[string(rl.registers.currentRegister)] = buffer
+		}
+	}
+}
+
+// saveBufToRegister - Instead of computing the buffer ourselves based on an adjust,
+// let the caller pass directly this buffer, yet relying on the register system to
+// determine which register will store the buffer.
+func (rl *Instance) saveBufToRegister(buffer []rune) {
+	// When exiting this function the currently selected register is dropped,
+	defer rl.registers.resetRegister()
+
+	// Put the buffer in the appropriate registers.
+	// By default, always in the unnamed one first.
+	rl.registers.unnamed = buffer
+
+	// Or additionally on a specific one.
+	// Check if its a numbered of lettered register, and put it in.
+	if rl.registers.registerSelectWait {
 		num, err := strconv.Atoi(string(rl.registers.currentRegister))
 		if err == nil && num < 10 {
 			rl.registers.writeNumberedRegister(num, buffer)
@@ -70,7 +95,7 @@ func (rl *Instance) pasteFromRegister() (buffer []rune) {
 	defer rl.registers.resetRegister()
 
 	// If no actively selected register, return the unnamed buffer
-	if !rl.registers.onRegister {
+	if !rl.registers.registerSelectWait {
 		return rl.registers.unnamed
 	}
 	activeRegister := string(rl.registers.currentRegister)
@@ -110,23 +135,24 @@ func (r *registers) setActiveRegister(reg rune) {
 		r.currentRegister = reg
 		return
 	}
-
-	// Lettered
-	_, found := r.alpha[string(reg)]
+	// Read-only
+	_, found := r.ro[string(reg)]
 	if found {
 		r.currentRegister = reg
 		return
 	}
 
-	// Read-only
-	_, found = r.ro[string(reg)]
-	if found {
-		r.currentRegister = reg
-	}
+	// Else, lettered
+	r.currentRegister = reg
+
+	// We now have an active, identified register
+	r.registerSelectWait = false
+	r.onRegister = true
 }
 
 func (r *registers) resetRegister() {
 	r.currentRegister = ' '
+	r.registerSelectWait = false
 	r.onRegister = false
 }
 

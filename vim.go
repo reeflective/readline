@@ -33,6 +33,17 @@ const (
 	vimKeysStr        = "[N]"
 )
 
+var (
+	// registerFreeKeys - Some Vim keys don't act on/ aren't affected by registers,
+	// and using these keys will automatically cancel any active register.
+	// NOTE: Don't forget to update if you add Vim bindings !!
+	registerFreeKeys = []rune{'a', 'A', 'h', 'i', 'I', 'j', 'k', 'l', 'r', 'R', 'u', 'v'}
+)
+
+func (rl *Instance) viRegisterActions(r rune) {
+
+}
+
 // vi - Apply a key to a Vi action. Note that as in the rest of the code, all cursor movements
 // have been moved away, and only the rl.pos is adjusted: when echoing the input line, the shell
 // will compute the new cursor pos accordingly.
@@ -40,7 +51,7 @@ func (rl *Instance) vi(r rune) {
 
 	// Check if we are in register mode. If yes, and for some characters,
 	// We select the register and exit this func immediately.
-	if rl.registers.onRegister {
+	if rl.registers.registerSelectWait {
 		validRegs := []string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""}
 		for _, char := range validRegs {
 			if string(r) == char {
@@ -50,6 +61,18 @@ func (rl *Instance) vi(r rune) {
 		}
 	}
 
+	// If we are on register mode and one is already selected,
+	// check if the key stroke to be evaluated is acting on it
+	// or not: if not, we cancel the active register now.
+	if rl.registers.onRegister {
+		for _, char := range registerFreeKeys {
+			if char == r {
+				rl.registers.resetRegister()
+			}
+		}
+	}
+
+	// Then evaluate the key.
 	switch r {
 	case 'a':
 		if len(rl.line) > 0 {
@@ -96,6 +119,7 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 	case 'D':
+		rl.saveBufToRegister(rl.line[:rl.pos])
 		rl.line = rl.line[:rl.pos]
 		rl.pos--
 		rl.updateHelpers()
@@ -161,22 +185,23 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 	case 'p':
-		// Ask the shell registers to yield us the appropriate buffer.
-		// Previous inputs have been andled and they know which register to use.
-		buffer := rl.pasteFromRegister()
-
 		// paste after the cursor position
 		rl.viUndoSkipAppend = true
 		rl.pos++
-		rl.insert(buffer)
+
+		buffer := rl.pasteFromRegister()
+		vii := rl.getViIterations()
+		for i := 1; i <= vii; i++ {
+			rl.insert(buffer)
+		}
 		rl.pos--
 
 	case 'P':
 		// paste before
 		rl.viUndoSkipAppend = true
+		buffer := rl.pasteFromRegister()
 		vii := rl.getViIterations()
 		for i := 1; i <= vii; i++ {
-			buffer := rl.pasteFromRegister()
 			rl.insert(buffer)
 		}
 
@@ -253,6 +278,13 @@ func (rl *Instance) vi(r rune) {
 
 	case 'x':
 		vii := rl.getViIterations()
+
+		// We might be on an active register, but not yanking...
+		if rl.registers.onRegister {
+			rl.saveToRegister(vii)
+		}
+
+		// Delete the chars in the line anyway
 		for i := 1; i <= vii; i++ {
 			rl.deleteX()
 		}
@@ -265,33 +297,54 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 	case 'Y':
-		rl.registers.unnamed = rl.line
+		rl.saveBufToRegister(rl.line)
 		rl.viUndoSkipAppend = true
 
 	case '[':
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpPreviousBrace())
+			rl.viIsYanking = false
+			return
+		}
 		rl.viUndoSkipAppend = true
 		rl.moveCursorByAdjust(rl.viJumpPreviousBrace())
 
 	case ']':
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpNextBrace())
+			rl.viIsYanking = false
+			return
+		}
 		rl.viUndoSkipAppend = true
 		rl.moveCursorByAdjust(rl.viJumpNextBrace())
 
 	case '$':
+		if rl.viIsYanking {
+			rl.saveToRegister(len(rl.line) - rl.pos)
+			rl.viIsYanking = false
+			return
+		}
 		rl.pos = len(rl.line)
 		rl.viUndoSkipAppend = true
 
 	case '%':
+		if rl.viIsYanking {
+			rl.saveToRegister(rl.viJumpBracket())
+			rl.viIsYanking = false
+			return
+		}
 		rl.viUndoSkipAppend = true
 		rl.moveCursorByAdjust(rl.viJumpBracket())
 
 	case '"':
-		rl.registers.onRegister = true
+		// We might be on a register already, so reset it,
+		// and then wait again for a new register ID.
+		if rl.registers.onRegister {
+			rl.registers.resetRegister()
+		}
+		rl.registers.registerSelectWait = true
 
 	default:
-		if rl.registers.onRegister {
-
-		}
-
 		if r <= '9' && '0' <= r {
 			rl.viIteration += string(r)
 		}
