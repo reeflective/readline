@@ -79,7 +79,6 @@ func (rl *Instance) getRegisterCompletion() {
 		return
 	}
 	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
-	rl.getCurrentGroup()                     // Make sure there is a current group
 
 	// Adjust the index for each group after the first:
 	// this ensures no latency when we will move around them.
