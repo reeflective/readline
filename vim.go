@@ -123,7 +123,10 @@ func (rl *Instance) vi(r rune) {
 	case 'D':
 		rl.saveBufToRegister(rl.line[:rl.pos])
 		rl.line = rl.line[:rl.pos]
-		rl.pos--
+		if len(rl.line) > 0 {
+			rl.pos--
+		}
+		rl.resetHelpers()
 		rl.updateHelpers()
 		rl.viIteration = ""
 
