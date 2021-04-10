@@ -594,7 +594,7 @@ func (rl *Instance) editorInput(r []rune) {
 		rl.refreshVimStatus()
 
 	case vimDelete:
-		rl.vimDelete(r)
+		rl.viDelete(r[0])
 		// rl.vimDelete(r[0])
 		rl.refreshVimStatus()
 

@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -94,7 +93,6 @@ func (rl *Instance) vimDelete(r []rune) {
 	// will thus be dispatched back here (like "2d4 then w).
 	if !(len(r) > 1 && '1' <= r[1] && r[1] <= '9') {
 		defer func() { rl.modeViMode = vimKeys }()
-		fmt.Println("test")
 		return
 	}
 
