@@ -55,6 +55,7 @@ func (rl *Instance) vi(r rune) {
 		validRegs := []string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""}
 		for _, char := range validRegs {
 			if string(r) == char {
+				fmt.Printf("set active !")
 				rl.registers.setActiveRegister(r)
 				return
 			}

@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 
@@ -157,6 +158,8 @@ func (r *registers) setActiveRegister(reg rune) {
 	// We now have an active, identified register
 	r.registerSelectWait = false
 	r.onRegister = true
+
+	fmt.Print("Active register: %s", string(r.currentRegister))
 }
 
 func (r *registers) resetRegister() {
