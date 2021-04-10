@@ -80,6 +80,27 @@ func (rl *Instance) getRegisterCompletion() {
 	}
 	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
 	rl.getCurrentGroup()                     // Make sure there is a current group
+
+	// Adjust the index for each group after the first:
+	// this ensures no latency when we will move around them.
+	for i, group := range rl.tcGroups {
+		group.init(rl)
+		if i != 0 {
+			group.tcPosY = 1
+		}
+	}
+
+	// If there aren't ANY completion candidates, we
+	// escape the completion mode from here directly.
+	var items bool
+	for _, group := range rl.tcGroups {
+		if len(group.Suggestions) > 0 {
+			items = true
+		}
+	}
+	if !items {
+		rl.modeTabCompletion = false
+	}
 }
 
 // getTabSearchCompletion - Populates and sets up completion for completion search.

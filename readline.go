@@ -266,13 +266,13 @@ func (rl *Instance) Readline() (string, error) {
 					rl.insertCandidate()
 
 					// Refresh first, and then quit the completion mode
-					rl.updateHelpers()
+					rl.updateHelpers() // REDUNDANT WITH getTabCompletion()
 					rl.viUndoSkipAppend = true
 					rl.resetTabCompletion()
 					continue
 				}
 
-				rl.updateHelpers()
+				rl.updateHelpers() // REDUNDANT WITH getTabCompletion()
 				rl.viUndoSkipAppend = true
 				continue
 			}
@@ -541,6 +541,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 
 		// Movement -------------------------------------------------------------------------------
 	case seqAltQuote:
+		rl.modeTabCompletion = true
 		rl.modeAutoFind = true
 		rl.searchMode = RegisterFind
 		// Else we might be asked to confirm printing (if too many suggestions), or not.
@@ -555,7 +556,8 @@ func (rl *Instance) escapeSeq(r []rune) {
 		// alt+numeric append / delete
 		if len(r) == 2 && '1' <= r[1] && r[1] <= '9' {
 			if rl.modeViMode == vimDelete {
-				rl.vimDelete(r)
+				// rl.vimDelete(r)
+				rl.viDelete(r[1])
 				return
 			}
 
