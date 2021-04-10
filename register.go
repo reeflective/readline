@@ -29,14 +29,13 @@ func (rl *Instance) initRegisters() {
 
 // saveToRegister - Passing a function that will move around the line in the desired way, we get
 // the number of Vim iterations adn we save the resulting string to the appropriate buffer.
-func (rl *Instance) saveToRegister(adjust int) {
+func (rl *Instance) saveToRegister(adjust int, vii int) {
 
 	// When exiting this function the currently selected register is dropped,
 	defer rl.registers.resetRegister()
 
 	// Get the current cursor position and go the length specified.
 	begin := rl.pos
-	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(adjust)
 	}

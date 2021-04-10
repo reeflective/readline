@@ -92,7 +92,8 @@ func (rl *Instance) vi(r rune) {
 
 	case 'b':
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpB(tokeniseLine))
+			vii := rl.getViIterations()
+			rl.saveToRegister(rl.viJumpB(tokeniseLine), vii)
 			rl.viIsYanking = false
 			return
 		}
@@ -104,7 +105,8 @@ func (rl *Instance) vi(r rune) {
 
 	case 'B':
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces))
+			vii := rl.getViIterations()
+			rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces), vii)
 			rl.viIsYanking = false
 			return
 		}
@@ -127,7 +129,8 @@ func (rl *Instance) vi(r rune) {
 
 	case 'e':
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpE(tokeniseLine))
+			vii := rl.getViIterations()
+			rl.saveToRegister(rl.viJumpE(tokeniseLine), vii)
 			rl.viIsYanking = false
 			return
 		}
@@ -140,7 +143,8 @@ func (rl *Instance) vi(r rune) {
 
 	case 'E':
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces))
+			vii := rl.getViIterations()
+			rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces), vii)
 			rl.viIsYanking = false
 			return
 		}
@@ -248,7 +252,8 @@ func (rl *Instance) vi(r rune) {
 		// If we were yanking, we forge the new yank buffer
 		// and return without moving the cursor.
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpW(tokeniseLine))
+			vii := rl.getViIterations()
+			rl.saveToRegister(rl.viJumpW(tokeniseLine), vii)
 			rl.viIsYanking = false
 			return
 		}
@@ -267,7 +272,8 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpW(tokeniseSplitSpaces))
+			vii := rl.getViIterations()
+			rl.saveToRegister(rl.viJumpW(tokeniseSplitSpaces), vii)
 			rl.viIsYanking = false
 			return
 		}
@@ -280,9 +286,7 @@ func (rl *Instance) vi(r rune) {
 		vii := rl.getViIterations()
 
 		// We might be on an active register, but not yanking...
-		if rl.registers.onRegister {
-			rl.saveToRegister(vii)
-		}
+		rl.saveToRegister(vii, 0)
 
 		// Delete the chars in the line anyway
 		for i := 1; i <= vii; i++ {
@@ -302,7 +306,7 @@ func (rl *Instance) vi(r rune) {
 
 	case '[':
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpPreviousBrace())
+			rl.saveToRegister(rl.viJumpPreviousBrace(), 1)
 			rl.viIsYanking = false
 			return
 		}
@@ -311,7 +315,7 @@ func (rl *Instance) vi(r rune) {
 
 	case ']':
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpNextBrace())
+			rl.saveToRegister(rl.viJumpNextBrace(), 1)
 			rl.viIsYanking = false
 			return
 		}
@@ -320,7 +324,7 @@ func (rl *Instance) vi(r rune) {
 
 	case '$':
 		if rl.viIsYanking {
-			rl.saveToRegister(len(rl.line) - rl.pos)
+			rl.saveToRegister(len(rl.line)-rl.pos, 1)
 			rl.viIsYanking = false
 			return
 		}
@@ -329,7 +333,7 @@ func (rl *Instance) vi(r rune) {
 
 	case '%':
 		if rl.viIsYanking {
-			rl.saveToRegister(rl.viJumpBracket())
+			rl.saveToRegister(rl.viJumpBracket(), 1)
 			rl.viIsYanking = false
 			return
 		}
