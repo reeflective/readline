@@ -189,8 +189,8 @@ func (rl *Instance) completeRegisters() []*CompletionGroup {
 	}
 
 	// Unnamed
-	regs.Suggestions = append(regs.Suggestions, "\"")
-	regs.Descriptions["\""] = string(rl.registers.unnamed)
+	regs.Suggestions = append(regs.Suggestions, string(rl.registers.unnamed))
+	regs.Descriptions[string(rl.registers.unnamed)] = DIM + "\"" + RESET
 
 	// Numbered registers
 	var nums []int
