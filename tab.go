@@ -32,7 +32,7 @@ func (rl *Instance) getTabCompletion() {
 
 	// Populate registers if requested.
 	if rl.modeAutoFind && rl.searchMode == RegisterFind {
-		rl.completeRegisters()
+		rl.getRegisterCompletion()
 		return
 	}
 
