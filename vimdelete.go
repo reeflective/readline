@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -87,92 +86,93 @@ func (rl *Instance) viDelete(r rune) {
 	}
 }
 
-func (rl *Instance) vimDelete(r []rune) {
+// func (rl *Instance) vimDelete(r []rune) {
+//
+//         // We are allowed to type iterations after a delete ('d') command.
+//         // in which case we don't exit the delete mode. The next thing typed
+//         // will thus be dispatched back here (like "2d4 then w).
+//         if r[0] != 27 {
+//                 defer func() { rl.modeViMode = vimKeys }()
+//         }
+//
+//         vii := rl.getViIterations()
+//
+//         switch r[0] {
+//         case 'b':
+//                 rl.saveToRegister(rl.viJumpB(tokeniseLine))
+//                 for i := 1; i <= vii; i++ {
+//                         rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
+//                 }
+//
+//         case 'B':
+//                 rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces))
+//                 for i := 1; i <= vii; i++ {
+//                         rl.viDeleteByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+//                 }
+//
+//         case 'd':
+//                 rl.clearLine()
+//                 rl.resetHelpers()
+//                 rl.getHintText()
+//
+//         case 'e':
+//                 rl.saveToRegister(rl.viJumpE(tokeniseLine) + 1)
+//                 for i := 1; i <= vii; i++ {
+//                         rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
+//                 }
+//
+//         case 'E':
+//                 rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces) + 1)
+//                 for i := 1; i <= vii; i++ {
+//                         rl.viDeleteByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
+//                 }
+//
+//         case 'w':
+//                 rl.saveToRegister(rl.viJumpW(tokeniseLine))
+//                 for i := 1; i <= vii; i++ {
+//                         rl.viDeleteByAdjust(rl.viJumpW(tokeniseLine))
+//                 }
+//
+//         case 'W':
+//                 rl.saveToRegister(rl.viJumpW(tokeniseSplitSpaces))
+//                 for i := 1; i <= vii; i++ {
+//                         rl.viDeleteByAdjust(rl.viJumpW(tokeniseSplitSpaces))
+//                 }
+//
+//         case '%':
+//                 rl.saveToRegister(rl.viJumpBracket())
+//                 rl.viDeleteByAdjust(rl.viJumpBracket())
+//
+//         case '$':
+//                 rl.saveToRegister(len(rl.line) - rl.pos)
+//                 rl.viDeleteByAdjust(len(rl.line) - rl.pos)
+//
+//         case '[':
+//                 rl.saveToRegister(rl.viJumpPreviousBrace())
+//                 rl.viDeleteByAdjust(rl.viJumpPreviousBrace())
+//
+//         case ']':
+//                 rl.saveToRegister(rl.viJumpNextBrace())
+//                 rl.viDeleteByAdjust(rl.viJumpNextBrace())
+//
+//         case 27:
+//                 if len(r) > 1 && '1' <= r[1] && r[1] <= '9' {
+//                         rl.viIteration += string(r)
+//                         //         if rl.vimDeleteToken(r[1]) {
+//                         //                 return
+//                         //         }
+//                 }
+//                 fallthrough
+//
+//         default:
+//                 if len(r) > 1 && r[0] <= '9' && '0' <= r[0] {
+//                         fmt.Printf("test")
+//                         rl.viIteration += string(r)
+//                 }
+//                 rl.viUndoSkipAppend = true
+//         }
+// }
 
-	// We are allowed to type iterations after a delete ('d') command.
-	// in which case we don't exit the delete mode. The next thing typed
-	// will thus be dispatched back here (like "2d4 then w).
-	if r[0] != 27 {
-		defer func() { rl.modeViMode = vimKeys }()
-	}
-
-	vii := rl.getViIterations()
-
-	switch r[0] {
-	case 'b':
-		rl.saveToRegister(rl.viJumpB(tokeniseLine))
-		for i := 1; i <= vii; i++ {
-			rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
-		}
-
-	case 'B':
-		rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces))
-		for i := 1; i <= vii; i++ {
-			rl.viDeleteByAdjust(rl.viJumpB(tokeniseSplitSpaces))
-		}
-
-	case 'd':
-		rl.clearLine()
-		rl.resetHelpers()
-		rl.getHintText()
-
-	case 'e':
-		rl.saveToRegister(rl.viJumpE(tokeniseLine) + 1)
-		for i := 1; i <= vii; i++ {
-			rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
-		}
-
-	case 'E':
-		rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces) + 1)
-		for i := 1; i <= vii; i++ {
-			rl.viDeleteByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
-		}
-
-	case 'w':
-		rl.saveToRegister(rl.viJumpW(tokeniseLine))
-		for i := 1; i <= vii; i++ {
-			rl.viDeleteByAdjust(rl.viJumpW(tokeniseLine))
-		}
-
-	case 'W':
-		rl.saveToRegister(rl.viJumpW(tokeniseSplitSpaces))
-		for i := 1; i <= vii; i++ {
-			rl.viDeleteByAdjust(rl.viJumpW(tokeniseSplitSpaces))
-		}
-
-	case '%':
-		rl.saveToRegister(rl.viJumpBracket())
-		rl.viDeleteByAdjust(rl.viJumpBracket())
-
-	case '$':
-		rl.saveToRegister(len(rl.line) - rl.pos)
-		rl.viDeleteByAdjust(len(rl.line) - rl.pos)
-
-	case '[':
-		rl.saveToRegister(rl.viJumpPreviousBrace())
-		rl.viDeleteByAdjust(rl.viJumpPreviousBrace())
-
-	case ']':
-		rl.saveToRegister(rl.viJumpNextBrace())
-		rl.viDeleteByAdjust(rl.viJumpNextBrace())
-
-	case 27:
-		if len(r) > 1 && '1' <= r[1] && r[1] <= '9' {
-			rl.viIteration += string(r)
-			//         if rl.vimDeleteToken(r[1]) {
-			//                 return
-			//         }
-		}
-		fallthrough
-
-	default:
-		if len(r) > 1 && r[0] <= '9' && '0' <= r[0] {
-			fmt.Printf("test")
-			rl.viIteration += string(r)
-		}
-		rl.viUndoSkipAppend = true
-	}
-}
 func (rl *Instance) viDeleteByAdjust(adjust int) {
 	var (
 		newLine []rune
