@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 
@@ -57,7 +56,7 @@ func (rl *Instance) saveToRegister(adjust int, vii int) {
 
 	// Or additionally on a specific one.
 	// Check if its a numbered of lettered register, and put it in.
-	if rl.registers.registerSelectWait {
+	if rl.registers.onRegister {
 		num, err := strconv.Atoi(string(rl.registers.currentRegister))
 		if err == nil && num < 10 {
 			rl.registers.writeNumberedRegister(num, buffer)
@@ -105,7 +104,7 @@ func (rl *Instance) pasteFromRegister() (buffer []rune) {
 	defer rl.registers.resetRegister()
 
 	// If no actively selected register, return the unnamed buffer
-	if !rl.registers.registerSelectWait {
+	if !rl.registers.registerSelectWait && !rl.registers.onRegister {
 		return rl.registers.unnamed
 	}
 	activeRegister := string(rl.registers.currentRegister)
@@ -139,6 +138,12 @@ func (rl *Instance) pasteFromRegister() (buffer []rune) {
 // if we are about to copy to/from it, so we just set as active, so that when
 // the action to perform on it will be asked, we know which one to use.
 func (r *registers) setActiveRegister(reg rune) {
+	defer func() {
+		// We now have an active, identified register
+		r.registerSelectWait = false
+		r.onRegister = true
+	}()
+
 	// Numbered
 	num, err := strconv.Atoi(string(reg))
 	if err == nil && num < 10 {
@@ -154,12 +159,6 @@ func (r *registers) setActiveRegister(reg rune) {
 
 	// Else, lettered
 	r.currentRegister = reg
-
-	// We now have an active, identified register
-	r.registerSelectWait = false
-	r.onRegister = true
-
-	fmt.Print("Active register: %s", string(r.currentRegister))
 }
 
 func (r *registers) resetRegister() {
@@ -177,25 +176,33 @@ func (r *registers) writeNumberedRegister(idx int, buf []rune) {
 }
 
 // The user can show registers completions and insert, no matter the cursor position.
-func (rl *Instance) completeRegisters() []*CompletionGroup {
+func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
 
 	// We set the hint exceptionally
 	hint := YELLOW + " :registers" + RESET
 	rl.hintText = []rune(hint)
 
 	// Make the groups
-	regs := &CompletionGroup{
-		Name:         tui.DIM + "([0-9], [a-z], [A-Z])" + tui.RESET,
+	anonRegs := &CompletionGroup{
 		DisplayType:  TabDisplayMap,
 		MaxLength:    20,
 		Descriptions: map[string]string{},
 	}
 
-	// Unnamed
-	regs.Suggestions = append(regs.Suggestions, string(rl.registers.unnamed))
-	regs.Descriptions[string(rl.registers.unnamed)] = DIM + "\"" + RESET
+	// Unnamed (the added space is because we must have a unique key.
+	// This space is trimmed when the buffer is being passed to users)
+	anonRegs.Suggestions = append(anonRegs.Suggestions, string(rl.registers.unnamed))
+	anonRegs.Descriptions[string(rl.registers.unnamed)] = DIM + "\"" + RESET
+
+	groups = append(groups, anonRegs)
 
 	// Numbered registers
+	numRegs := &CompletionGroup{
+		Name:         tui.DIM + "([0-9])" + tui.RESET,
+		DisplayType:  TabDisplayMap,
+		MaxLength:    20,
+		Descriptions: map[string]string{},
+	}
 	var nums []int
 	for reg := range rl.registers.num {
 		nums = append(nums, reg)
@@ -203,11 +210,21 @@ func (rl *Instance) completeRegisters() []*CompletionGroup {
 	sort.Ints(nums)
 	for _, reg := range nums {
 		buf := rl.registers.num[reg]
-		regs.Suggestions = append(regs.Suggestions, string(buf))
-		regs.Descriptions[string(buf)] = "\033[38;5;237m" + strconv.Itoa(reg) + RESET
+		numRegs.Suggestions = append(numRegs.Suggestions, string(buf))
+		numRegs.Descriptions[string(buf)] = DIM + strconv.Itoa(reg) + RESET
+	}
+
+	if len(numRegs.Suggestions) > 0 {
+		groups = append(groups, numRegs)
 	}
 
 	// Letter registers
+	alphaRegs := &CompletionGroup{
+		Name:         tui.DIM + "([a-z], [A-Z])" + tui.RESET,
+		DisplayType:  TabDisplayMap,
+		MaxLength:    20,
+		Descriptions: map[string]string{},
+	}
 	var lett []string
 	for reg := range rl.registers.alpha {
 		lett = append(lett, reg)
@@ -215,9 +232,13 @@ func (rl *Instance) completeRegisters() []*CompletionGroup {
 	sort.Strings(lett)
 	for _, reg := range lett {
 		buf := rl.registers.alpha[reg]
-		regs.Suggestions = append(regs.Suggestions, string(buf))
-		regs.Descriptions[string(buf)] = "\033[38;5;237m" + reg + RESET
+		alphaRegs.Suggestions = append(alphaRegs.Suggestions, string(buf))
+		alphaRegs.Descriptions[string(buf)] = DIM + reg + RESET
 	}
 
-	return []*CompletionGroup{regs}
+	if len(alphaRegs.Suggestions) > 0 {
+		groups = append(groups, alphaRegs)
+	}
+
+	return
 }

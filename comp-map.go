@@ -65,6 +65,7 @@ func (g *CompletionGroup) moveTabMapHighlight(rl *Instance, x, y int) (done bool
 	}
 
 	if g.tcOffset+g.tcPosY > len(g.Suggestions) {
+		g.tcOffset--
 		return true, true
 	}
 	return false, false

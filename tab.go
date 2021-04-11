@@ -296,16 +296,20 @@ func (rl *Instance) writeTabCompletion() {
 					group.tcPosY = 1
 				}
 			}
-			completions += group.writeCompletion(rl)
 		}
 	}
 
-	// Else, we already have some completions printed, and we just want to update.
-	// Each group produces its own string, added to the main one.
-	if rl.tabCompletionSelect {
-		for _, group := range rl.tcGroups {
-			completions += group.writeCompletion(rl)
+	// In any case, we write the completions strings, trimmed for redundant
+	// newline occurences that have been put at the end of each group.
+	for _, group := range rl.tcGroups {
+		// If the previous completion group has a trailing
+		// newline and that our current group has one at
+		// the beginning, trim and then add it.
+		if strings.HasSuffix(completions, "\n") {
+			completions = strings.TrimSuffix(completions, "\n")
+			rl.tcUsedY--
 		}
+		completions += group.writeCompletion(rl)
 	}
 
 	// If we are the first group, we delete the newline

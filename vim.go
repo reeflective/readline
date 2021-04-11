@@ -52,10 +52,9 @@ func (rl *Instance) vi(r rune) {
 	// Check if we are in register mode. If yes, and for some characters,
 	// We select the register and exit this func immediately.
 	if rl.registers.registerSelectWait {
-		validRegs := []string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""}
+		validRegs := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
 		for _, char := range validRegs {
-			if string(r) == char {
-				fmt.Printf("set active !")
+			if r == char {
 				rl.registers.setActiveRegister(r)
 				return
 			}
