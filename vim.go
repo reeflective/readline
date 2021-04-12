@@ -37,12 +37,11 @@ var (
 	// registerFreeKeys - Some Vim keys don't act on/ aren't affected by registers,
 	// and using these keys will automatically cancel any active register.
 	// NOTE: Don't forget to update if you add Vim bindings !!
-	registerFreeKeys = []rune{'a', 'A', 'h', 'i', 'I', 'j', 'k', 'l', 'r', 'R', 'u', 'v'}
+	registerFreeKeys = []rune{'a', 'A', 'h', 'i', 'I', 'j', 'k', 'l', 'r', 'R', 'u', 'v', '$', '%', '[', ']'}
+
+	// validRegisterKeys - All valid register IDs (keys) for read/write Vim registers
+	validRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
 )
-
-func (rl *Instance) viRegisterActions(r rune) {
-
-}
 
 // vi - Apply a key to a Vi action. Note that as in the rest of the code, all cursor movements
 // have been moved away, and only the rl.pos is adjusted: when echoing the input line, the shell
@@ -50,10 +49,9 @@ func (rl *Instance) viRegisterActions(r rune) {
 func (rl *Instance) vi(r rune) {
 
 	// Check if we are in register mode. If yes, and for some characters,
-	// We select the register and exit this func immediately.
+	// we select the register and exit this func immediately.
 	if rl.registers.registerSelectWait {
-		validRegs := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
-		for _, char := range validRegs {
+		for _, char := range validRegisterKeys {
 			if r == char {
 				rl.registers.setActiveRegister(r)
 				return
@@ -121,8 +119,13 @@ func (rl *Instance) vi(r rune) {
 		rl.viUndoSkipAppend = true
 
 	case 'D':
-		rl.saveBufToRegister(rl.line[:rl.pos])
-		rl.line = rl.line[:rl.pos]
+		rl.saveBufToRegister(rl.line[rl.pos-1:])
+		// Only go back if there is an input
+		if rl.pos > 0 {
+			rl.line = rl.line[:rl.pos-1]
+		} else {
+			rl.line = rl.line[:rl.pos]
+		}
 		if len(rl.line) > 0 {
 			rl.pos--
 		}
@@ -168,6 +171,7 @@ func (rl *Instance) vi(r rune) {
 		rl.modeViMode = vimInsert
 		rl.viIteration = ""
 		rl.viUndoSkipAppend = true
+		rl.registers.resetRegister()
 
 	case 'I':
 		rl.modeViMode = vimInsert
@@ -289,7 +293,7 @@ func (rl *Instance) vi(r rune) {
 		vii := rl.getViIterations()
 
 		// We might be on an active register, but not yanking...
-		rl.saveToRegister(vii, 0)
+		rl.saveToRegister(1, vii)
 
 		// Delete the chars in the line anyway
 		for i := 1; i <= vii; i++ {
@@ -300,6 +304,10 @@ func (rl *Instance) vi(r rune) {
 		}
 
 	case 'y':
+		if rl.viIsYanking {
+			rl.saveBufToRegister(rl.line)
+			rl.viIsYanking = false
+		}
 		rl.viIsYanking = true
 		rl.viUndoSkipAppend = true
 
@@ -327,7 +335,7 @@ func (rl *Instance) vi(r rune) {
 
 	case '$':
 		if rl.viIsYanking {
-			rl.saveToRegister(len(rl.line)-rl.pos, 1)
+			rl.saveBufToRegister(rl.line[rl.pos:])
 			rl.viIsYanking = false
 			return
 		}
@@ -401,6 +409,7 @@ func (rl *Instance) viJumpB(tokeniser func([]rune, int) ([]string, int, int)) (a
 	case len(split) == 0:
 		return
 	case index == 0 && pos == 0:
+		// fmt.Println("yes")
 		return
 	case pos == 0:
 		adjust = len(split[index-1])
@@ -444,7 +453,6 @@ func (rl *Instance) viJumpW(tokeniser func([]rune, int) ([]string, int, int)) (a
 			adjust = len(rl.line) - rl.pos
 		} else {
 			// Otherwise add it
-			// adjust = len(rl.line) - rl.pos
 			adjust = len(rl.line) - 1 - rl.pos
 		}
 	default:

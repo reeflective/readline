@@ -42,6 +42,19 @@ func tokeniseLine(line []rune, linePos int) ([]string, int, int) {
 			index = len(split) - 1
 			pos = len(split[index]) - 1
 		}
+
+	}
+
+	// Hackish: if we are at the end of the line,
+	// currently appending to it, we return the pos
+	// as we would do when matching linePos
+	if linePos == len(line) {
+		if index == 0 {
+			index = len(split) - 1
+		}
+		if pos == 0 {
+			pos = len(split[index])
+		}
 	}
 
 	return split, index, pos

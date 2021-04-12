@@ -116,12 +116,21 @@ func (rl *Instance) moveCursorByAdjust(adjust int) {
 		rl.pos += adjust
 	}
 
-	if rl.modeViMode != vimInsert && (rl.pos == len(rl.line)-1) && len(rl.line) > 0 {
-		rl.pos--
+	// fmt.Println(adjust)
+
+	// The position can never be negative
+	if rl.pos < 0 {
+		rl.pos = 0
 	}
 
 	// The cursor can never be longer than the line
 	if rl.pos > len(rl.line) {
 		rl.pos = len(rl.line)
 	}
+
+	// If we are at the end of line, and not in Insert mode, move back one.
+	// if rl.modeViMode != vimInsert && (rl.pos == len(rl.line)-1) && len(rl.line) > 0 {
+	//         rl.pos--
+	// }
+
 }

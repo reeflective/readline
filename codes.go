@@ -49,6 +49,7 @@ var (
 	seqEndSc     = string([]byte{27, 91, 52, 126})
 	seqDelete    = string([]byte{27, 91, 51, 126})
 	seqShiftTab  = string([]byte{27, 91, 90})
+	seqAltQuote  = string([]byte{27, 34})
 )
 
 const (
@@ -67,7 +68,7 @@ const (
 	seqCtrlLeftArrow  = "\x1b[1;5D"
 	seqCtrlRightArrow = "\x1b[1;5C"
 
-	seqAltQuote = "\x1b\"" // trigger registers list
+	// seqAltQuote = "\x1b\"" // trigger registers list
 )
 
 // Text effects
