@@ -34,10 +34,9 @@ func (rl *Instance) undoLast() {
 	rl.line = []rune(undo.line)
 	rl.pos = undo.pos
 
-	rl.updateHelpers()
-
 	if rl.modeViMode != vimInsert && len(rl.line) > 0 && rl.pos == len(rl.line) {
 		rl.pos--
 	}
 
+	rl.updateHelpers()
 }

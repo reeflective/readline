@@ -49,7 +49,8 @@ var (
 	seqEndSc     = string([]byte{27, 91, 52, 126})
 	seqDelete    = string([]byte{27, 91, 51, 126})
 	seqShiftTab  = string([]byte{27, 91, 90})
-	seqAltQuote  = string([]byte{27, 34})
+	seqAltQuote  = string([]byte{27, 34})  // Added for showing registers ^["
+	seqAltR      = string([]byte{27, 114}) // Used for alternative history
 )
 
 const (

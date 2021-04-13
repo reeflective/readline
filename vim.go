@@ -120,12 +120,8 @@ func (rl *Instance) vi(r rune) {
 
 	case 'D':
 		rl.saveBufToRegister(rl.line[rl.pos-1:])
+		rl.line = rl.line[:rl.pos]
 		// Only go back if there is an input
-		if rl.pos > 0 {
-			rl.line = rl.line[:rl.pos-1]
-		} else {
-			rl.line = rl.line[:rl.pos]
-		}
 		if len(rl.line) > 0 {
 			rl.pos--
 		}

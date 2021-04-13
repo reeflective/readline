@@ -171,7 +171,7 @@ func (rl *Instance) clearLine() {
 }
 
 func (rl *Instance) deleteToBeginning() {
-	rl.resetVirtualComp()
+	rl.resetVirtualComp(false)
 	// Keep the line length up until the cursor
 	rl.line = rl.line[rl.pos:]
 	rl.pos = 0

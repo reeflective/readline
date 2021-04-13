@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/evilsocket/islazy/tui"
 )
@@ -18,6 +19,7 @@ type registers struct {
 	registerSelectWait bool              // The user wants to use a still unidentified register
 	onRegister         bool              // We have identified the register, and acting on it.
 	currentRegister    rune              // Any of the read/write registers ("/num/alpha)
+	mutex              *sync.Mutex
 }
 
 func (rl *Instance) initRegisters() {
@@ -25,15 +27,13 @@ func (rl *Instance) initRegisters() {
 		num:   make(map[int][]rune, 10),
 		alpha: make(map[string][]rune, 52),
 		ro:    map[string][]rune{},
+		mutex: &sync.Mutex{},
 	}
 }
 
 // saveToRegister - Passing a function that will move around the line in the desired way, we get
 // the number of Vim iterations adn we save the resulting string to the appropriate buffer.
 func (rl *Instance) saveToRegister(adjust int, vii int) {
-
-	// When exiting this function the currently selected register is dropped,
-	defer rl.registers.resetRegister()
 
 	// Get the current cursor position and go the length specified.
 	begin := rl.pos
@@ -55,11 +55,6 @@ func (rl *Instance) saveToRegister(adjust int, vii int) {
 	// Put the buffer in the appropriate registers.
 	// By default, always in the unnamed one first.
 	rl.saveBufToRegister(buffer)
-
-	// Once the buffer is saved, we cannot be acting on the currently
-	// selected register, in case there is one. Instead of letting
-	// the caller take charge of cancelling, we reset the registers now.
-	rl.registers.resetRegister()
 }
 
 // saveBufToRegister - Instead of computing the buffer ourselves based on an adjust,
@@ -67,25 +62,28 @@ func (rl *Instance) saveToRegister(adjust int, vii int) {
 // determine which register will store the buffer.
 func (rl *Instance) saveBufToRegister(buffer []rune) {
 
+	// We must make an immutable version of the buffer first.
+	buf := string(buffer)
+
 	// When exiting this function the currently selected register is dropped,
 	defer rl.registers.resetRegister()
 
 	// Put the buffer in the appropriate registers.
 	// By default, always in the unnamed one first.
-	rl.registers.unnamed = buffer
+	rl.registers.unnamed = []rune(buf)
 
 	// If there is an active register, directly give it the buffer.
 	// Check if its a numbered of lettered register, and put it in.
 	if rl.registers.onRegister {
 		num, err := strconv.Atoi(string(rl.registers.currentRegister))
 		if err == nil && num < 10 {
-			rl.registers.writeNumberedRegister(num, buffer, false)
+			rl.registers.writeNumberedRegister(num, []rune(buf), false)
 		} else if err != nil {
-			rl.registers.writeAlphaRegister(buffer)
+			rl.registers.writeAlphaRegister([]rune(buf))
 		}
 	} else {
 		// Or, if no active register and if there is room on the numbered ones,
-		rl.registers.writeNumberedRegister(0, buffer, true)
+		rl.registers.writeNumberedRegister(0, []rune(buf), true)
 	}
 }
 
