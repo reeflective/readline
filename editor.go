@@ -32,7 +32,7 @@ func (rl *Instance) writeTempFile(content []byte) (string, error) {
 	defer file.Close()
 
 	_, err = file.Write(content)
-	return name, err
+	return path, err
 }
 
 func readTempFile(name string) ([]byte, error) {

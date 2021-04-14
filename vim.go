@@ -235,14 +235,24 @@ func (rl *Instance) vi(r rune) {
 			multiline = rl.GetMultiLine(rl.line)
 		}
 
+		// Keep the previous cursor position
+		prev := rl.pos
+
 		new, err := rl.launchEditor(multiline)
 		if err != nil || len(new) == 0 || string(new) == string(multiline) {
 			fmt.Println(err)
 			rl.viUndoSkipAppend = true
 			return
 		}
+
+		// Clean the shell and put the new buffer, with adjusted pos if needed.
 		rl.clearLine()
 		rl.line = new
+		if prev > len(rl.line) {
+			rl.pos = len(rl.line) - 1
+		} else {
+			rl.pos = prev
+		}
 
 	case 'w':
 		// If we were not yanking
