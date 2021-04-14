@@ -218,6 +218,20 @@ func (rl *Instance) getCompletions() {
 
 	// Avoid nil maps in groups. Maybe we could also pop any empty group.
 	rl.tcGroups = checkNilItems(rl.tcGroups)
+
+	// We have been loading fresh completion sin this function,
+	// so adjust the positions for each group, so that cycling
+	// correctly occurs in both directions (tab/shift+tab)
+	for i, group := range rl.tcGroups {
+		if i > 0 {
+			switch group.DisplayType {
+			case TabDisplayGrid:
+				group.tcPosX = 1
+			case TabDisplayList, TabDisplayMap:
+				group.tcPosY = 1
+			}
+		}
+	}
 }
 
 // moveTabCompletionHighlight - This function is in charge of highlighting the current completion item.
@@ -229,17 +243,6 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 	if g == nil || g.Suggestions == nil {
 		rl.modeTabCompletion = false
 		return
-	}
-
-	// Get the next group that has available suggestions
-	if (x > 0 || y > 0) && (len(g.Suggestions) == 0) {
-		rl.cycleNextGroup()
-		g = rl.getCurrentGroup()
-	}
-	// Or get the previous group, when going reverse
-	if (x < 0 || y < 0) && (len(g.Suggestions) == 0) {
-		rl.cyclePreviousGroup()
-		g = rl.getCurrentGroup()
 	}
 
 	// done means we need to find the next/previous group.
@@ -283,21 +286,6 @@ func (rl *Instance) writeTabCompletion() {
 	// Safecheck
 	if !rl.modeTabCompletion {
 		return
-	}
-
-	// If we are not yet in tab completion mode, this means we just want
-	// to print all suggestions, without selecting a candidate yet.
-	if !rl.tabCompletionSelect {
-		for i, group := range rl.tcGroups {
-			if i > 0 {
-				switch group.DisplayType {
-				case TabDisplayGrid:
-					group.tcPosX = 1
-				case TabDisplayList, TabDisplayMap:
-					group.tcPosY = 1
-				}
-			}
-		}
 	}
 
 	// In any case, we write the completions strings, trimmed for redundant

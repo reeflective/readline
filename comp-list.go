@@ -57,6 +57,7 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 
 	// We dont' pass to x, because not managed by callers
 	g.tcPosY += x
+	g.tcPosY += y
 
 	// Lines
 	if g.tcPosY < 1 {
