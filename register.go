@@ -36,11 +36,16 @@ func (rl *Instance) initRegisters() {
 func (rl *Instance) saveToRegister(adjust int, vii int) {
 
 	// Get the current cursor position and go the length specified.
-	begin := rl.pos
+	var begin = rl.pos
+	var end = rl.pos
 	for i := 1; i <= vii; i++ {
-		rl.moveCursorByAdjust(adjust)
+		end += adjust
 	}
-	end := rl.pos
+	if end > len(rl.line)-1 {
+		end = len(rl.line)
+	} else if end < 0 {
+		end = 0
+	}
 
 	var buffer []rune
 	if end < begin {
@@ -49,12 +54,12 @@ func (rl *Instance) saveToRegister(adjust int, vii int) {
 		buffer = rl.line[begin:end]
 	}
 
-	// Immediately replace cursor
-	rl.pos = begin
+	// Make an immutable copy of the buffer before saving it
+	buf := string(buffer)
 
 	// Put the buffer in the appropriate registers.
 	// By default, always in the unnamed one first.
-	rl.saveBufToRegister(buffer)
+	rl.saveBufToRegister([]rune(buf))
 }
 
 // saveBufToRegister - Instead of computing the buffer ourselves based on an adjust,
@@ -162,9 +167,9 @@ func (r *registers) writeNumberedRegister(idx int, buf []rune, push bool) {
 	// No push to the stack if we are already using 9
 	var max int
 	if push {
-		for idx := range r.num {
-			if idx > max {
-				max = idx
+		for i := range r.num {
+			if i > max {
+				max = i
 			}
 		}
 		if max < 9 {
@@ -174,7 +179,6 @@ func (r *registers) writeNumberedRegister(idx int, buf []rune, push bool) {
 		// Add to the stack with the specified register
 		r.num[idx] = buf
 	}
-
 }
 
 // writeAlphaRegister - Either adds a buffer to a new/existing letterd register,

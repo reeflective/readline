@@ -186,6 +186,19 @@ func (rl *Instance) Readline() (string, error) {
 			rl.updateHelpers()
 
 		case charBackspace, charBackspace2:
+			// When currently in history completion, we refresh and automatically
+			// insert the first (filtered) candidate, virtually
+			if rl.modeAutoFind && rl.searchMode == HistoryFind {
+				rl.resetVirtualComp(true)
+				rl.backspaceTabFind()
+
+				// Then update the printing, with the new candidate
+				rl.updateVirtualComp()
+				rl.renderHelpers()
+				rl.viUndoSkipAppend = true
+				continue
+			}
+
 			if rl.modeTabFind || rl.modeAutoFind {
 				rl.backspaceTabFind()
 				rl.viUndoSkipAppend = true
@@ -366,10 +379,15 @@ func (rl *Instance) Readline() (string, error) {
 				}
 
 				// Else, we insert the completion candidate in the real input line.
-				// This is in fact nothing more than assigning the virtual input line.
 				// By default we add a space, unless completion group asks otherwise.
 				rl.compAddSpace = true
 				rl.resetVirtualComp(false)
+
+				// If we were in history completion, immediately execute the line.
+				if rl.modeAutoFind && rl.searchMode == HistoryFind {
+					rl.carridgeReturn()
+					return string(rl.line), nil
+				}
 
 				// Reset completions and update input line
 				rl.clearHelpers()
@@ -405,19 +423,32 @@ func (rl *Instance) Readline() (string, error) {
 			rl.escapeSeq(r[:i])
 
 		default:
-			rl.resetVirtualComp(false)
 
 			// If we were waiting for completion confirm, abort
 			if rl.compConfirmWait {
+				rl.resetVirtualComp(false)
 				rl.compConfirmWait = false
 				rl.renderHelpers()
 			}
 
+			// When currently in history completion, we refresh and automatically
+			// insert the first (filtered) candidate, virtually
+			if rl.modeAutoFind && rl.searchMode == HistoryFind {
+				rl.resetVirtualComp(true)
+				rl.updateTabFind(r[:i])
+				rl.updateVirtualComp()
+				rl.renderHelpers()
+				rl.viUndoSkipAppend = true
+				continue
+			}
+
 			// Not sure that CompletionFind is useful, nor one of the other two
 			if rl.modeAutoFind || rl.modeTabFind {
+				rl.resetVirtualComp(false)
 				rl.updateTabFind(r[:i])
 				rl.viUndoSkipAppend = true
 			} else {
+				rl.resetVirtualComp(false)
 				rl.editorInput(r[:i])
 				if len(rl.multiline) > 0 && rl.modeViMode == vimKeys {
 					rl.skipStdinRead = true

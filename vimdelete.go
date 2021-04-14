@@ -24,7 +24,7 @@ func (rl *Instance) viDelete(r rune) {
 
 	case 'B':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces), vii)
+		rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces)+1, vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpB(tokeniseSplitSpaces))
 		}
@@ -37,14 +37,14 @@ func (rl *Instance) viDelete(r rune) {
 
 	case 'e':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpE(tokeniseLine)+1, vii)
+		rl.saveToRegister(rl.viJumpE(tokeniseLine), vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
 		}
 
 	case 'E':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces)+1, vii)
+		rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces), vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
 		}

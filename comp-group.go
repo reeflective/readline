@@ -82,6 +82,11 @@ func (g *CompletionGroup) updateTabFind(rl *Instance) {
 
 	// Finally, the group computes its new printing settings
 	g.init(rl)
+
+	// If we are in history completion, we directly pass to the first candidate
+	if rl.modeAutoFind && rl.searchMode == HistoryFind && len(g.Suggestions) > 0 {
+		g.tcPosY = 1
+	}
 }
 
 // checkCycle - Based on the number of groups given to the shell, allows cycling or not

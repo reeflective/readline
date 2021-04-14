@@ -28,25 +28,25 @@ type History interface {
 	Dump() interface{}
 }
 
-// SetHistoryCtrlR - Set the history source triggered with Ctrl-R combination
+// SetHistoryCtrlR - Set the history source triggered with Ctrl-r combination
 func (rl *Instance) SetHistoryCtrlR(name string, history History) {
 	rl.mainHistName = name
 	rl.mainHistory = history
 }
 
-// GetHistoryCtrlE - Returns the history source triggered by CtrlE
+// GetHistoryCtrlR - Returns the history source triggered by Ctrl-r
 func (rl *Instance) GetHistoryCtrlR() History {
 	return rl.mainHistory
 }
 
-// SetHistoryCtrlE - Set the history source triggered with Ctrl-E combination
-func (rl *Instance) SetHistoryCtrlE(name string, history History) {
+// SetHistoryAltR - Set the history source triggered with Alt-r combination
+func (rl *Instance) SetHistoryAltR(name string, history History) {
 	rl.altHistName = name
 	rl.altHistory = history
 }
 
-// GetHistoryCtrlE - Returns the history source triggered by CtrlE
-func (rl *Instance) GetHistoryCtrlE() History {
+// GetHistoryAltR - Returns the history source triggered by Alt-r
+func (rl *Instance) GetHistoryAltR() History {
 	return rl.altHistory
 }
 
@@ -193,7 +193,7 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
 		err  error
 	)
 
-	rl.tcPrefix = string(rl.line) // We use the current full line for filtering
+	// rl.tcPrefix = string(rl.line) // We use the current full line for filtering
 
 	for i := history.Len() - 2; i >= 1; i-- {
 		line, err = history.GetLine(i)

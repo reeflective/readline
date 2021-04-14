@@ -158,6 +158,7 @@ func (rl *Instance) getHistorySearchCompletion() {
 	// If no items matched history, add hint text that we failed to search
 	if len(rl.tcGroups[0].Suggestions) == 0 {
 		rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+		return
 	}
 }
 
