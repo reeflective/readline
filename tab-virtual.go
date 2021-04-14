@@ -128,7 +128,7 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 
 	// If we are asked to drop the completion, move it away from the line and return.
 	if drop {
-		rl.pos -= len([]rune(completion))
+		rl.pos -= len([]rune(completion[prefix:]))
 		// rl.line = append(rl.line[:rl.pos-len(completion)], rl.lineComp[rl.pos+len(completion):]...)
 		rl.lineComp = rl.line
 		rl.clearVirtualComp()

@@ -153,8 +153,8 @@ func (rl *Instance) Readline() (string, error) {
 		case charCtrlC:
 			if rl.modeTabCompletion {
 				rl.resetVirtualComp(true)
-				rl.clearHelpers()
-				rl.updateHelpers()
+				rl.resetHelpers()
+				rl.renderHelpers()
 				continue
 			}
 			rl.clearHelpers()
