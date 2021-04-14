@@ -44,13 +44,18 @@ func (rl *Instance) updateTabFind(r []rune) {
 
 func (rl *Instance) resetTabFind() {
 	rl.modeTabFind = false
-	rl.modeAutoFind = false // Added, because otherwise it gets stuck on search completions
+	// rl.modeAutoFind = false // Added, because otherwise it gets stuck on search completions
 
 	rl.mainHist = false
 	rl.tfLine = []rune{}
 
 	rl.clearHelpers()
 	rl.resetTabCompletion()
+
+	// If we were browsing history, we don't load the completions again
+	// if rl.searchMode != HistoryFind {
 	rl.getTabCompletion()
+	// }
+
 	rl.renderHelpers()
 }

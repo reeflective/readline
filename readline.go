@@ -199,12 +199,26 @@ func (rl *Instance) Readline() (string, error) {
 				continue
 			}
 
+			// Normal completion search does only refresh the search pattern and the comps
 			if rl.modeTabFind || rl.modeAutoFind {
 				rl.backspaceTabFind()
 				rl.viUndoSkipAppend = true
 			} else {
+				// Always cancel any virtual completion
 				rl.resetVirtualComp(false)
 
+				// Vim mode has different behaviors
+				if rl.InputMode == Vim {
+					if rl.modeViMode == vimInsert {
+						rl.backspace()
+					} else {
+						rl.pos--
+					}
+					rl.renderHelpers()
+					continue
+				}
+
+				// Else emacs deletes a character
 				rl.backspace()
 				rl.renderHelpers()
 			}
@@ -267,6 +281,7 @@ func (rl *Instance) Readline() (string, error) {
 			// without getting the completions.
 			if rl.modeViMode != vimInsert {
 				rl.modeViMode = vimInsert
+				rl.computePrompt()
 			}
 
 			rl.mainHist = true // false before
@@ -329,10 +344,13 @@ func (rl *Instance) Readline() (string, error) {
 
 		case charCtrlF:
 			rl.resetVirtualComp(true)
-			// rl.resetVirtualComp(false)
 
 			if !rl.modeTabCompletion {
 				rl.modeTabCompletion = true
+			}
+
+			if rl.compConfirmWait {
+				rl.resetHelpers()
 			}
 
 			// Both these settings apply to when we already
@@ -349,6 +367,14 @@ func (rl *Instance) Readline() (string, error) {
 			rl.viUndoSkipAppend = true
 
 		case charCtrlG:
+			if rl.modeAutoFind && rl.searchMode == HistoryFind {
+				rl.resetVirtualComp(false)
+				rl.resetTabFind()
+				rl.resetHelpers()
+				rl.renderHelpers()
+				continue
+			}
+
 			if rl.modeAutoFind {
 				rl.resetTabFind()
 				rl.resetHelpers()
@@ -422,6 +448,7 @@ func (rl *Instance) Readline() (string, error) {
 			// the change of input modes, etc.
 			rl.escapeSeq(r[:i])
 
+		// Dispatch --------------------------------------------------------------------------------------
 		default:
 
 			// If we were waiting for completion confirm, abort
@@ -659,7 +686,6 @@ func (rl *Instance) escapeSeq(r []rune) {
 		// alt+numeric append / delete
 		if len(r) == 2 && '1' <= r[1] && r[1] <= '9' {
 			if rl.modeViMode == vimDelete {
-				// rl.vimDelete(r)
 				rl.viDelete(r[1])
 				return
 			}

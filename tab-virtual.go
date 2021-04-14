@@ -129,7 +129,6 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	// If we are asked to drop the completion, move it away from the line and return.
 	if drop {
 		rl.pos -= len([]rune(completion[prefix:]))
-		// rl.line = append(rl.line[:rl.pos-len(completion)], rl.lineComp[rl.pos+len(completion):]...)
 		rl.lineComp = rl.line
 		rl.clearVirtualComp()
 		return
@@ -209,7 +208,6 @@ func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
 	}
 
 	if backOne {
-		// moveCursorBackwards(1)
 		rl.pos--
 	}
 }
@@ -244,15 +242,11 @@ func (rl *Instance) deleteVirtual() {
 		return
 	case rl.pos == 0:
 		rl.lineComp = rl.lineComp[1:]
-		// moveCursorBackwards(1)
 	case rl.pos > len(rl.lineComp):
-		// rl.backspace()
 	case rl.pos == len(rl.lineComp):
 		rl.lineComp = rl.lineComp[:rl.pos]
-		// moveCursorBackwards(1)
 	default:
 		rl.lineComp = append(rl.lineComp[:rl.pos], rl.lineComp[rl.pos+1:]...)
-		// moveCursorBackwards(1)
 	}
 }
 
