@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"strings"
@@ -123,7 +124,7 @@ func (rl *Instance) getTabSearchCompletion() {
 	}
 
 	// If total number of matches is zero, we directly change the hint, and return
-	if comps, _ := rl.getCompletionCount(); comps == 0 {
+	if comps, _, _ := rl.getCompletionCount(); comps == 0 {
 		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
 	}
 }
@@ -255,7 +256,6 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 		done, next = g.moveTabGridHighlight(rl, x, y)
 	case TabDisplayList:
 		done, next = g.moveTabListHighlight(rl, x, y)
-
 	case TabDisplayMap:
 		done, next = g.moveTabMapHighlight(rl, x, y)
 	}
@@ -313,8 +313,116 @@ func (rl *Instance) writeTabCompletion() {
 	// We always clear the screen as a result, between writings.
 	print(seqClearScreenBelow)
 
+	// Crop the completions so that it fits within our MaxTabCompleterRows
+	completions, rl.tcUsedY = rl.cropCompletions(completions)
+
 	// Then we print all of them.
 	fmt.Printf(completions)
+}
+
+// cropCompletions - When the user cycles through a completion list longer
+// than the console MaxTabCompleterRows value, we crop the completions string
+// so that "global" cycling (across all groups) is printed correctly.
+func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
+
+	// If we actually fit into the MaxTabCompleterRows, return the comps
+	if rl.tcUsedY < rl.MaxTabCompleterRows {
+		return comps, rl.tcUsedY
+	}
+
+	// Else we go on, but we have more comps than what allowed:
+	// we will add a line to the end of the comps, giving the actualized
+	// number of completions remaining and not printed
+	var moreComps = func(cropped string, offset int) (hinted string, noHint bool) {
+		_, _, adjusted := rl.getCompletionCount()
+		remain := adjusted - offset
+		if remain == 0 {
+			return cropped, true
+		}
+		hint := fmt.Sprintf(DIM+YELLOW+" %d more completions... (scroll down to show)"+RESET, remain)
+		hinted = cropped + hint
+		return hinted, false
+	}
+
+	// Get the current absolute candidate position (prev groups x suggestions + curGroup.tcPosY)
+	var absPos = rl.getAbsPos()
+
+	// Get absPos - MaxTabCompleterRows for having the number of lines to cut at the top
+	// If the number is negative, that means we don't need to cut anything at the top yet.
+	var maxLines = absPos - rl.MaxTabCompleterRows
+	if maxLines < 0 {
+		maxLines = 0
+	}
+
+	// Scan the completions for cutting them at newlines
+	scanner := bufio.NewScanner(strings.NewReader(comps))
+
+	// If absPos < MaxTabCompleterRows, cut below MaxTabCompleterRows and return
+	if absPos <= rl.MaxTabCompleterRows {
+		var count int
+		for scanner.Scan() {
+			line := scanner.Text()
+			if count < rl.MaxTabCompleterRows {
+				cropped += line + "\n"
+				count++
+			} else {
+				count++
+				break
+			}
+		}
+		cropped, _ = moreComps(cropped, count)
+		return cropped, count
+	}
+
+	// If absolute > MaxTabCompleterRows, cut above and below and return
+	//      -> This includes de facto when we tabCompletionReverse
+	if absPos > rl.MaxTabCompleterRows {
+		cutAbove := absPos - rl.MaxTabCompleterRows
+		var count int
+		for scanner.Scan() {
+			line := scanner.Text()
+			if count < cutAbove {
+				count++
+				continue
+			}
+			if count >= cutAbove && count < absPos {
+				cropped += line + "\n"
+				count++
+			} else {
+				count++
+				break
+			}
+		}
+		cropped, noHint := moreComps(cropped, rl.MaxTabCompleterRows+cutAbove)
+		if noHint {
+			count++
+		}
+		return cropped, count - cutAbove
+	}
+
+	return
+}
+
+func (rl *Instance) getAbsPos() int {
+	var prev int
+	var foundCurrent bool
+	for _, grp := range rl.tcGroups {
+		if grp.isCurrent {
+			prev += grp.tcPosY + 1 // + 1 for title
+			foundCurrent = true
+			break
+		} else {
+			prev += grp.tcMaxY + 1 // + 1 for title
+		}
+	}
+
+	// If there was no current group, it means
+	// we showed completions but there is no
+	// candidate selected yet, return 0
+	if !foundCurrent {
+		return 0
+	}
+	return prev
 }
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
@@ -426,13 +534,18 @@ func (rl *Instance) promptCompletionConfirm(sentence string) {
 	rl.renderHelpers()
 }
 
-func (rl *Instance) getCompletionCount() (comps int, lines int) {
+func (rl *Instance) getCompletionCount() (comps int, lines int, adjusted int) {
 	for _, group := range rl.tcGroups {
 		comps += len(group.Suggestions)
+		if group.Name != "" {
+			adjusted++
+		}
 		if group.tcMaxY > len(group.Suggestions) {
 			lines += len(group.Suggestions)
+			adjusted += len(group.Suggestions)
 		} else {
 			lines += group.tcMaxY
+			adjusted += group.tcMaxY
 		}
 	}
 	return

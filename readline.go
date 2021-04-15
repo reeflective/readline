@@ -312,13 +312,13 @@ func (rl *Instance) Readline() (string, error) {
 				rl.getTabCompletion()
 
 				// If too many completions and no yet confirmed, ask user for completion
-				comps, lines := rl.getCompletionCount()
-				if ((lines > GetTermLength()) || (lines > rl.MaxTabCompleterRows)) && !rl.compConfirmWait {
-					sentence := fmt.Sprintf("%s show all %d completions (%d lines) ? tab to confirm",
-						FOREWHITE, comps, lines)
-					rl.promptCompletionConfirm(sentence)
-					continue
-				}
+				// comps, lines := rl.getCompletionCount()
+				// if ((lines > GetTermLength()) || (lines > rl.MaxTabCompleterRows)) && !rl.compConfirmWait {
+				//         sentence := fmt.Sprintf("%s show all %d completions (%d lines) ? tab to confirm",
+				//                 FOREWHITE, comps, lines)
+				//         rl.promptCompletionConfirm(sentence)
+				//         continue
+				// }
 
 				rl.compConfirmWait = false
 				rl.modeTabCompletion = true
@@ -484,6 +484,48 @@ func (rl *Instance) Readline() (string, error) {
 		}
 
 		rl.undoAppendHistory()
+	}
+}
+
+// editorInput is an unexported function used to determine what mode of text
+// entry readline is currently configured for and then update the line entries
+// accordingly.
+func (rl *Instance) editorInput(r []rune) {
+	switch rl.modeViMode {
+	case vimKeys:
+		rl.vi(r[0])
+		rl.refreshVimStatus()
+
+	case vimDelete:
+		rl.viDelete(r[0])
+		rl.refreshVimStatus()
+
+	case vimReplaceOnce:
+		rl.modeViMode = vimKeys
+		rl.deleteX()
+		rl.insert([]rune{r[0]})
+		rl.refreshVimStatus()
+
+	case vimReplaceMany:
+		for _, char := range r {
+			rl.deleteX()
+			rl.insert([]rune{char})
+		}
+		rl.refreshVimStatus()
+
+	default:
+		// For some reason Ctrl+k messes with the input line, so ignore it.
+		if r[0] == 11 {
+			return
+		}
+		// We reset the history nav counter each time we come here:
+		// We don't need it when inserting text.
+		rl.histNavIdx = 0
+		rl.insert(r)
+	}
+
+	if len(rl.multisplit) == 0 {
+		rl.syntaxCompletion()
 	}
 }
 
@@ -710,45 +752,6 @@ func (rl *Instance) escapeSeq(r []rune) {
 		} else {
 			rl.viUndoSkipAppend = true
 		}
-	}
-}
-
-// editorInput is an unexported function used to determine what mode of text
-// entry readline is currently configured for and then update the line entries
-// accordingly.
-func (rl *Instance) editorInput(r []rune) {
-	switch rl.modeViMode {
-	case vimKeys:
-		rl.vi(r[0])
-		rl.refreshVimStatus()
-
-	case vimDelete:
-		rl.viDelete(r[0])
-		// rl.vimDelete(r[0])
-		rl.refreshVimStatus()
-
-	case vimReplaceOnce:
-		rl.modeViMode = vimKeys
-		rl.deleteX()
-		rl.insert([]rune{r[0]})
-		rl.refreshVimStatus()
-
-	case vimReplaceMany:
-		for _, char := range r {
-			rl.deleteX()
-			rl.insert([]rune{char})
-		}
-		rl.refreshVimStatus()
-
-	default:
-		// We reset the history nav counter each time we come here:
-		// We don't need it when inserting text.
-		rl.histNavIdx = 0
-		rl.insert(r)
-	}
-
-	if len(rl.multisplit) == 0 {
-		rl.syntaxCompletion()
 	}
 }
 
