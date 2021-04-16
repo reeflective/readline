@@ -40,8 +40,18 @@ these parameters with custom prompt strings, and for either 1-line or 2-line pro
 ----
 ### Available key strokes & patterns 
 
-In the `NORMAL` mode, the following keys are supported:
+**In the `INSERT` mode, several shortcuts are available:**
 
+- `CtrlW`  - Delete back until the beginning of word under the cursor 
+- `CtrlY`  - Paste back the last yanked/cut buffer
+- `CtrlU`  - Delete everything back until the line beginning.
+- `CtrlA`  - Go back at the beginning of the line.
+- `Ctrl + arrow` - Move backward/forward one word at a time.
+
+
+**In the `NORMAL` mode, the following keys are supported:**
+
+Keys:
 - `h`  - move one character backward
 - `l`  - move one character forward 
 - `a`  - pass in Insert mode after next character.
@@ -59,13 +69,14 @@ In the `NORMAL` mode, the following keys are supported:
 - `u`  - Undo last action
 - `v`  - Open the current line buffer with `$EDITOR`
 
-Other movement key strokes include:
+Other movement key strokes/shortcuts include:
 - `[`          - Move cursor to the first previous **brace** encountered
 - `]`          - Move cursor to the first next **brace** encountered
 - `%`          - Move cursor to the first next **bracket** encountered
 - `j`          - Walk the command history (next item)
 - `k`          - Walk the command history (previous item)
 - `0` to `9`   - Number of Vim iterations to apply on the next keystroke
+- `Ctrl + arrow` - Move backward/forward one word at a time
 
 
 Keys applying in both the `NORMAL` and `DELETE` modes.
@@ -79,6 +90,7 @@ Keys applying in both the `NORMAL` and `DELETE` modes.
 - `x`  - Delete the character under cursor, or the number of characters as defined by the current number of Vim iterations.
 - `$`  - (apply) to everything until the end of line.
 
+Some of the keys and patterns above may be combined with (or override) the [implemented Vim registers]()
 
 ------
 ## Emacs input mode
@@ -87,3 +99,11 @@ The emacs binding are obviously more simple. Setup and usage resume to this:
 ```go
 c.shell.InputMode = readline.Emacs
 ```
+
+**Available shortcuts:**
+
+- `CtrlW`  - Delete back until the beginning of word under the cursor 
+- `CtrlY`  - Paste back the last yanked/cut buffer
+- `CtrlU`  - Delete everything back until the line beginning.
+- `CtrlA`  - Go back at the beginning of the line.
+- `Ctrl + arrow` - Move backward/forward one word at a time.
