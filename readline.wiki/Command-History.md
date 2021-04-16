@@ -3,7 +3,7 @@
 
 Two different history sources can be plugged on the shell:
 - A main one, used with `Ctrl-R`
-- A secondary one, used with `Ctrl-E`
+- A secondary one, used with `Alt-R`
 
 I did this because for some projects were users might need multiple clients connected to a server at once,
 they can either have a user-centralized history record, and an in-memory one for the console lifetime.
