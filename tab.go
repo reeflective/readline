@@ -29,7 +29,6 @@ const (
 // getTabCompletion - This root function sets up all completion items and engines,
 // dealing with all search and completion modes. But it does not perform printing.
 func (rl *Instance) getTabCompletion() {
-	// rl.tcOffset = 0
 
 	// Populate registers if requested.
 	if rl.modeAutoFind && rl.searchMode == RegisterFind {
@@ -51,25 +50,6 @@ func (rl *Instance) getTabCompletion() {
 
 	// Else, yield normal completions
 	rl.getNormalCompletion()
-}
-
-// We pass a special subset of the current input line, so that
-// completions are available no matter where the cursor is.
-func (rl *Instance) getCompletionLine() (line []rune, pos int) {
-	switch {
-	case rl.pos == len(rl.line):
-		pos = rl.pos - len(rl.currentComp)
-		return rl.line, pos
-
-	case rl.pos < len(rl.line):
-		pos = rl.pos - len(rl.currentComp)
-		line = rl.line[:pos]
-		return
-
-	default:
-		pos = rl.pos - len(rl.currentComp)
-		return rl.line, pos
-	}
 }
 
 // getRegisterCompletion - Populates and sets up completion for Vim registers.
@@ -235,7 +215,8 @@ func (rl *Instance) getCompletions() {
 	}
 }
 
-// moveTabCompletionHighlight - This function is in charge of highlighting the current completion item.
+// moveTabCompletionHighlight - This function is in charge of
+// computing the new position in the current completions liste.
 func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 
 	g := rl.getCurrentGroup()
@@ -423,6 +404,25 @@ func (rl *Instance) getAbsPos() int {
 		return 0
 	}
 	return prev
+}
+
+// We pass a special subset of the current input line, so that
+// completions are available no matter where the cursor is.
+func (rl *Instance) getCompletionLine() (line []rune, pos int) {
+	switch {
+	case rl.pos == len(rl.line):
+		pos = rl.pos - len(rl.currentComp)
+		return rl.line, pos
+
+	case rl.pos < len(rl.line):
+		pos = rl.pos - len(rl.currentComp)
+		line = rl.line[:pos]
+		return
+
+	default:
+		pos = rl.pos - len(rl.currentComp)
+		return rl.line, pos
+	}
 }
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {

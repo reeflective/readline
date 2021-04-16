@@ -232,16 +232,19 @@ func (rl *Instance) Readline() (string, error) {
 			if rl.modeViMode != vimInsert {
 				continue
 			}
-			rl.saveToRegister(rl.viJumpB(tokeniseLine), 1)
+			rl.saveToRegister(rl.viJumpB(tokeniseLine))
 			rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
 			rl.updateHelpers()
 
 		case charCtrlY:
+			if rl.modeTabCompletion {
+				rl.resetVirtualComp(false)
+			}
 			// paste after the cursor position
 			rl.viUndoSkipAppend = true
 			buffer := rl.pasteFromRegister()
 			rl.insert(buffer)
-			// rl.pos--
+			rl.updateHelpers()
 
 		case charCtrlE:
 			if rl.modeTabCompletion {

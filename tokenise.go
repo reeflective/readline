@@ -2,6 +2,9 @@ package readline
 
 import "strings"
 
+// tokeniser - The input line must be splitted according to different rules (split between spaces, brackets, etc ?).
+type tokeniser func(line []rune, cursorPos int) (split []string, index int, newPos int)
+
 func tokeniseLine(line []rune, linePos int) ([]string, int, int) {
 	if len(line) == 0 {
 		return nil, 0, 0

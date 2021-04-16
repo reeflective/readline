@@ -32,15 +32,53 @@ func (rl *Instance) initRegisters() {
 }
 
 // saveToRegister - Passing a function that will move around the line in the desired way, we get
-// the number of Vim iterations adn we save the resulting string to the appropriate buffer.
-func (rl *Instance) saveToRegister(adjust int, vii int) {
+// the number of Vim iterations and we save the resulting string to the appropriate buffer.
+// It's the same as saveToRegisterTokenize, but without the need to generate tokenized &
+// cursor-pos-actualized versions of the input line.
+func (rl *Instance) saveToRegister(adjust int) {
 
 	// Get the current cursor position and go the length specified.
 	var begin = rl.pos
 	var end = rl.pos
-	for i := 1; i <= vii; i++ {
-		end += adjust
+	end += adjust
+	if end > len(rl.line)-1 {
+		end = len(rl.line)
+	} else if end < 0 {
+		end = 0
 	}
+
+	var buffer []rune
+	if end < begin {
+		buffer = rl.line[end:begin]
+	} else {
+		buffer = rl.line[begin:end]
+	}
+
+	// Make an immutable copy of the buffer before saving it
+	buf := string(buffer)
+
+	// Put the buffer in the appropriate registers.
+	// By default, always in the unnamed one first.
+	rl.saveBufToRegister([]rune(buf))
+}
+
+// saveToRegisterTokenize - Passing a function that will move around the line in the desired way, we get
+// the number of Vim iterations and we save the resulting string to the appropriate buffer. Because we
+// need the cursor position to be really moved around between calls to the jumper, we also need the tokeniser.
+func (rl *Instance) saveToRegisterTokenize(tokeniser tokeniser, jumper func(tokeniser) int, vii int) {
+
+	// The register is going to have to heavily manipulate the cursor position.
+	// Remember the original one first, for the end.
+	var beginPos = rl.pos
+
+	// Get the current cursor position and go the length specified.
+	var begin = rl.pos
+	for i := 1; i <= vii; i++ {
+		rl.moveCursorByAdjust(jumper(tokeniser))
+	}
+	var end = rl.pos
+	rl.pos = beginPos
+
 	if end > len(rl.line)-1 {
 		end = len(rl.line)
 	} else if end < 0 {

@@ -17,14 +17,14 @@ func (rl *Instance) viDelete(r rune) {
 	switch r {
 	case 'b':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpB(tokeniseLine), vii)
+		rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpB, vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
 		}
 
 	case 'B':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpB(tokeniseSplitSpaces)+1, vii)
+		rl.saveToRegisterTokenize(tokeniseSplitSpaces, rl.viJumpB, vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpB(tokeniseSplitSpaces))
 		}
@@ -37,34 +37,34 @@ func (rl *Instance) viDelete(r rune) {
 
 	case 'e':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpE(tokeniseLine), vii)
+		rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpE, vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
 		}
 
 	case 'E':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpE(tokeniseSplitSpaces), vii)
+		rl.saveToRegisterTokenize(tokeniseSplitSpaces, rl.viJumpE, vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
 		}
 
 	case 'w':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpW(tokeniseLine), vii)
+		rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpW, vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpW(tokeniseLine))
 		}
 
 	case 'W':
 		vii := rl.getViIterations()
-		rl.saveToRegister(rl.viJumpW(tokeniseSplitSpaces), vii)
+		rl.saveToRegisterTokenize(tokeniseSplitSpaces, rl.viJumpW, vii)
 		for i := 1; i <= vii; i++ {
 			rl.viDeleteByAdjust(rl.viJumpW(tokeniseSplitSpaces))
 		}
 
 	case '%':
-		rl.saveToRegister(rl.viJumpBracket(), 1)
+		rl.saveToRegister(rl.viJumpBracket())
 		rl.viDeleteByAdjust(rl.viJumpBracket())
 
 	case '$':
@@ -76,11 +76,11 @@ func (rl *Instance) viDelete(r rune) {
 		}
 
 	case '[':
-		rl.saveToRegister(rl.viJumpPreviousBrace(), 1)
+		rl.saveToRegister(rl.viJumpPreviousBrace())
 		rl.viDeleteByAdjust(rl.viJumpPreviousBrace())
 
 	case ']':
-		rl.saveToRegister(rl.viJumpNextBrace(), 1)
+		rl.saveToRegister(rl.viJumpNextBrace())
 		rl.viDeleteByAdjust(rl.viJumpNextBrace())
 
 	default:

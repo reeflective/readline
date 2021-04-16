@@ -156,7 +156,7 @@ type Instance struct {
 	viUndoHistory    []undoItem
 	viUndoSkipAppend bool
 	viIsYanking      bool
-	registers        *registers // All memory text registers, can be consulted with Ctrl"
+	registers        *registers // All memory text registers, can be consulted with Alt"
 
 	//
 	// Other -------------------------------------------------------------------------------------
