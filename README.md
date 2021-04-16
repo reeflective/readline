@@ -127,15 +127,6 @@ Being alone working on this project and having only one lifetime (anyone able to
 - Being available for any blame you'd like to make for my humble but passioned work. I don't mind, I need to go up.
 
 
-## Fixes & Planned Enhancements
-
-### Completers package (working with go-flags)
-
-Things I do intend to add in a more or less foreseeable future:
-- A better recursive command/subcommand default completer (see utilities), because the current one supports only `command subcommand --options` patterns, not `command subcommand subsubcommand`.
-- A recursive option group completer: tools like `nmap` will use options like `-PA`, or `-sT`, etc. These are not supported.
-
-
 ## Version Information
 
 Because the last thing a developer wants is to do is fix breaking changes after
