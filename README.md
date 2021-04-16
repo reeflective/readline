@@ -35,7 +35,7 @@ and [github.com/lmorg/readline](https://github.com/lmorg/readline)), but being s
 This project is not an integrated REPL/command-line application, which means it does not automatically understand nor executes any commands.
 However, having been developed in a project using the CLI [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) library,
 it also includes some default utilities (completers) that are made to work with this library, which I humbly but highly recommend.
-Please see the [Wiki](https://github.com/bishopfox/sliver/client/readline/wiki) (or the `examples/` directory) for information on how to use these utilities.
+Please see the [Wiki](https://github.com/maxlandon/readline/wiki) (or the `examples/` directory) for information on how to use these utilities.
 
 A summarized list of features supported by this library is the following:
 
@@ -75,7 +75,7 @@ A summarized list of features supported by this library is the following:
 
 ### Utilities
 - Default Tab completer, Hint formatter and Syntax highlighter provided, using [github.com/jessevdk/go-flags](https://github.com/jessevdk/go-flags) 
-command parser to build themselves. These are in the  `completers/` directory. Please look at the [Wiki page](https://github.com/bishopfox/sliver/client/readline/wiki) 
+command parser to build themselves. These are in the  `completers/` directory. Please look at the [Wiki page](https://github.com/maxlandon/readline/wiki) 
 for how to use them. Also feel free to use them as an inspiration source to make your owns.
 - Colors mercilessly copied from [github.com/evilsocket/islazy/](https://github.com/evilsocket/islazy) `tui/` package.
 - Also in the `completers` directory, completion functions for environment variables (using Go's std lib for getting them), and dir/file path completions.
@@ -85,38 +85,38 @@ for how to use them. Also feel free to use them as an inspiration source to make
 
 As usual with Go, installation:
 ```
-go get github.com/bishopfox/sliver/client/readline
+go get github.com/maxlandon/readline
 ```
 Please see either the `examples` directory, or the Wiki for detailed instructions on how to use this library.
 
 
 ## Documentation
 
-The complete documentation for this library can be found in the repo's [Wiki](https://github.com/bishopfox/sliver/client/readline/wiki). Below is the Table of Contents:
+The complete documentation for this library can be found in the repo's [Wiki](https://github.com/maxlandon/readline/wiki). Below is the Table of Contents:
 
 **Getting started**
-* [ Embedding readline in a project ](https://github.com/bishopfox/sliver/client/readline/wiki/Embedding-Readline-In-A-Project)
-* [ Input Modes ](https://github.com/bishopfox/sliver/client/readline/wiki/Input-Modes)
+* [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
+* [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
 
 **Prompt system**
-* [ Setting the Prompts](https://github.com/bishopfox/sliver/client/readline/wiki/Prompt-Setup)
-* [ Prompt Refresh ](https://github.com/bishopfox/sliver/client/readline/wiki/Prompt-Refresh)
+* [ Setting the Prompts](https://github.com/maxlandon/readline/wiki/Prompt-Setup)
+* [ Prompt Refresh ](https://github.com/maxlandon/readline/wiki/Prompt-Refresh)
 
 **Completion Engine**
-* [ Completion Groups ](https://github.com/bishopfox/sliver/client/readline/wiki/Completion-Groups)
-* [ Completion Search ](https://github.com/bishopfox/sliver/client/readline/wiki/Completion-Search)
+* [ Completion Groups ](https://github.com/maxlandon/readline/wiki/Completion-Groups)
+* [ Completion Search ](https://github.com/maxlandon/readline/wiki/Completion-Search)
 
 **Hint Formatter & Syntax Highlighter**
-* [ Live Refresh Demonstration ](https://github.com/bishopfox/sliver/client/readline/wiki/Live-Refresh-Demonstration)
+* [ Live Refresh Demonstration ](https://github.com/maxlandon/readline/wiki/Live-Refresh-Demonstration)
 
 **Command History**
-* [ Main & Alternative Sources ](https://github.com/bishopfox/sliver/client/readline/wiki/Main-&-Alternative-Sources)
-* [ Navigation & Search ](https://github.com/bishopfox/sliver/client/readline/wiki/Navigation-&-Search)
+* [ Main & Alternative Sources ](https://github.com/maxlandon/readline/wiki/Main-&-Alternative-Sources)
+* [ Navigation & Search ](https://github.com/maxlandon/readline/wiki/Navigation-&-Search)
 
 #### Command & Completion utilities
-* [ Interfacing with the go-flags library](https://github.com/bishopfox/sliver/client/readline/wiki/Interfacing-With-Go-Flags)
-* [ Declaring go-flags commands](https://github.com/bishopfox/sliver/client/readline/wiki/Declaring-Commands)
-* [ Colors/Effects Usage ](https://github.com/bishopfox/sliver/client/readline/wiki/Colors-&-Effects-Usage)
+* [ Interfacing with the go-flags library](https://github.com/maxlandon/readline/wiki/Interfacing-With-Go-Flags)
+* [ Declaring go-flags commands](https://github.com/maxlandon/readline/wiki/Declaring-Commands)
+* [ Colors/Effects Usage ](https://github.com/maxlandon/readline/wiki/Colors-&-Effects-Usage)
 
 
 ## Project Status & Support
