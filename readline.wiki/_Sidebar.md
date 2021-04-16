@@ -3,6 +3,7 @@
 #### Getting started
 * [ Embedding readline in a project ](https://github.com/maxlandon/readline/wiki/Embedding-Readline-In-A-Project)
 * [ Input Modes ](https://github.com/maxlandon/readline/wiki/Input-Modes)
+* [ Vim Registers ](https://github.com/maxlandon/readline/wiki/Vim-Registers)
 * [ Command History ](https://github.com/maxlandon/readline/wiki/Command-History)
 
 ### Prompt system
