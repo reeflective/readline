@@ -1,5 +1,50 @@
 ## Changes
 
+### 4.1.0
+---------
+
+Many new features and improvements in this version:
+- New keybindings (working on Emacs, and in `Vim Insert Mode`):
+    * `CtrlW` to cut the previous word at the cursor
+    * `CtrlA` to go back to the beginning of the line
+    * `CtrlY` to paste the laste copy/paste buffer (see Registers)
+    * `CtrlU` to cut the whole line.
+
+- More precise Vim iterations:
+    * Iterations can now be applied to some Vim actions (`y4w`, `d3b`)
+
+- Implemented Vim registers:
+    * Yank/paste operations of any sort can occur and be assigned to registers.
+    * The default `""` register
+    * 10 numbered registers, to which bufffers are automatically added
+    * 26 lettered registers (lowercase), to which you can append with `"D` (D being the uppercase of the `"d` register)
+    * Triggered in Insert Mode with `Alt"` (buggy sometimes: goes back to Normal mode selecting a register, will have to fix this)
+
+- Unified iterations and registers:
+    * To copy to the `d` register the next 4 words: `"d y4w`
+    * To append to this `d` register the cuttend end of line: `"D d$"`
+    * In this example, the `d` register buffer is also the buffer in the default register `""`
+    * You could either:
+        - Paste 3 times this buffer while in Normal mode: `3p`
+        - Paste the buffer once in Insert mode: `CtrlY`
+
+- History completions:
+    * The binding for the alternative history changed to `AltR` (the normal remains `CtrlR`)
+    * By defaul the history filters only against the search pattern.
+    * If there are matches for this patten, the first occurence is insert (virtually)
+    * This is refreshed as the pattern changes
+    * `CtrlG` to exit the comps, while leaving the current candidate 
+    * `CtrlC` to exit and delete the current candidate
+
+- Completions:
+    * When a candidate is inserted virtually, `CtrlC` to abort both completions and the candidate
+    * Implemented global printing size: If the overall number of completions is biffer, will roll over them.
+
+**Notes:**
+    * The `rl.Readline()` function dispatch has some big cases, maybe a bit of refactoring would be nice 
+    * The way the buffer storing bytes from key strokes sometimes gives weird results (like `Alt"` for showing Vim registers)
+    * Some defer/cancel calls related to DelayedTabContext that should have been merged from lmorg/readline are still missing.
+
 
 ### 4.0.0-beta
 ---------

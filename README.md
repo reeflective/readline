@@ -42,8 +42,11 @@ A summarized list of features supported by this library is the following:
 ### Input & Editing 
 - Vim / Emacs input and editing modes.
 - Optional, live-refresh Vim status.
+- Vim modes (Insert, Normal, Replace, Delete) with visual prompt Vim status indicator
 - line editing using `$EDITOR` (`vi` in the example - enabled by pressing `[ESC]` followed by `[v]`)
-- `readline`'s warning before pasting multiple lines of data into the buffer
+- Vim registers (one default, 10 numbered, and 26 lettered)
+- Vim iterations
+- Most default keybindings you might find in Emacs-like readline. Some are still missing though
 
 ### Completion engine
 - 3 types of completion categories (`Grid`, `List` and `Map`)
@@ -64,7 +67,7 @@ A summarized list of features supported by this library is the following:
 - The Hint system is now refreshed depending on the cursor position as well, like completions.
 - A syntax highlighting system. A default one is also available.
 
-### Command history
+### Command history 
 - Ability to have 2 different history sources (I used this for clients connected to a server, used by a single user).
 - History is searchable like completions.
 - Default history is an in-memory list.
