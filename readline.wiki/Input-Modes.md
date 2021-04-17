@@ -90,7 +90,7 @@ Keys applying in both the `NORMAL` and `DELETE` modes.
 - `x`  - Delete the character under cursor, or the number of characters as defined by the current number of Vim iterations.
 - `$`  - (apply) to everything until the end of line.
 
-Some of the keys and patterns above may be combined with (or override) the [implemented Vim registers]()
+Some of the keys and patterns above may be combined with (or override) the [implemented Vim registers](https://github.com/maxlandon/readline/wiki/Vim-Registers)
 
 ------
 ## Emacs input mode
