@@ -100,8 +100,8 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 	comp += "\n"
 	if g.Name != "" {
 		comp += fmt.Sprintf(" %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
-		rl.tcUsedY++
 	}
+	rl.tcUsedY++
 
 	cellWidth := strconv.Itoa((GetTermWidth() / g.tcMaxX) - 2)
 	x := 0

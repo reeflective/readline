@@ -59,7 +59,7 @@ A summarized list of features supported by this library is the following:
 
 ### Prompt system & Colors
 - 1-line and 2-line prompts, both being customizable.
-- Function for refreshing the prompt, with optional behavior settings.
+- Functions for refreshing the prompt, with optional behavior settings.
 - Optional colors (can be disabled).
 
 ### Hints & Syntax highlighting

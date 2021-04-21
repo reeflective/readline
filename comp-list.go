@@ -159,8 +159,8 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	comp += "\n"
 	if g.Name != "" {
 		comp += fmt.Sprintf(" %s%s%s %s", BOLD, YELLOW, g.Name, RESET)
-		rl.tcUsedY++
 	}
+	rl.tcUsedY++
 
 	termWidth := GetTermWidth()
 	if termWidth < 20 {

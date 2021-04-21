@@ -78,8 +78,8 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	if g.Name != "" {
 		// Print group title (changes with line returns depending on type)
 		comp += fmt.Sprintf(" %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
-		rl.tcUsedY++
 	}
+	rl.tcUsedY++
 
 	termWidth := GetTermWidth()
 	if termWidth < 20 {
