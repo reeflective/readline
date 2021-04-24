@@ -23,7 +23,7 @@ c.shell.RefreshPromptInPlace("a new prompt that will only survive until the next
 ![refresh-in-place](https://github.com/maxlandon/readline/blob/assets/refresh-in-place.gif)
 
 
-### Example 2 - Push the prompt below, a new message
+### Example 2 - Refresh the prompt below a new message
 
 As a general rule, for each line you want to print, add increment `offset` by 1. 
 Setting clearLine to false keeps our current line.
