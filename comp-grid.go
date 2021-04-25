@@ -3,6 +3,7 @@ package readline
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // initGrid - Grid display details. Called each time we want to be sure to have
@@ -97,11 +98,10 @@ func (g *CompletionGroup) moveTabGridHighlight(rl *Instance, x, y int) (done boo
 func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 
 	// If group title, print it and adjust offset.
-	comp += "\n"
 	if g.Name != "" {
 		comp += fmt.Sprintf(" %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
+		rl.tcUsedY++
 	}
-	rl.tcUsedY++
 
 	cellWidth := strconv.Itoa((GetTermWidth() / g.tcMaxX) - 2)
 	x := 0
@@ -125,6 +125,11 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 		}
 
 		comp += fmt.Sprintf("%-"+cellWidth+"s %s", g.Suggestions[i], seqReset)
+	}
+
+	// Always add a newline to the group if the end if not punctuated with one
+	if !strings.HasSuffix(comp, "\n") {
+		comp += "\n"
 	}
 
 	// Add the equivalent of this group's size to final screen clearing.

@@ -122,7 +122,7 @@ func (rl *Instance) renderHelpers() {
 		print("\n")
 		rl.writeTabCompletion()
 		moveCursorBackwards(GetTermWidth())
-		moveCursorUp(rl.tcUsedY - 1)
+		moveCursorUp(rl.tcUsedY)
 	}
 
 	// If we are still waiting for the user to confirm too long completions

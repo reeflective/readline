@@ -272,20 +272,7 @@ func (rl *Instance) writeTabCompletion() {
 	// In any case, we write the completions strings, trimmed for redundant
 	// newline occurences that have been put at the end of each group.
 	for _, group := range rl.tcGroups {
-		// If the previous completion group has a trailing
-		// newline and that our current group has one at
-		// the beginning, trim and then add it.
-		if strings.HasSuffix(completions, "\n") {
-			completions = strings.TrimSuffix(completions, "\n")
-			rl.tcUsedY--
-		}
 		completions += group.writeCompletion(rl)
-	}
-
-	// If we are the first group, we delete the newline
-	// because cursor movements are handled by the caller
-	if strings.HasPrefix(completions, "\n") {
-		completions = strings.TrimPrefix(completions, "\n")
 	}
 
 	// Because some completion groups might have more suggestions
@@ -320,7 +307,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 		if remain == 0 {
 			return cropped, true
 		}
-		hint := fmt.Sprintf(DIM+YELLOW+" %d more completions... (scroll down to show)"+RESET, remain)
+		hint := fmt.Sprintf(DIM+YELLOW+" %d more completions... (scroll down to show)"+RESET+"\n", remain)
 		hinted = cropped + hint
 		return hinted, false
 	}
@@ -374,10 +361,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 				break
 			}
 		}
-		cropped, noHint := moreComps(cropped, rl.MaxTabCompleterRows+cutAbove)
-		if noHint {
-			count++
-		}
+		cropped, _ := moreComps(cropped, rl.MaxTabCompleterRows+cutAbove)
 		return cropped, count - cutAbove
 	}
 
@@ -409,20 +393,22 @@ func (rl *Instance) getAbsPos() int {
 // We pass a special subset of the current input line, so that
 // completions are available no matter where the cursor is.
 func (rl *Instance) getCompletionLine() (line []rune, pos int) {
+
+	pos = rl.pos - len(rl.currentComp)
+	if pos < 0 {
+		pos = 0
+	}
+
 	switch {
 	case rl.pos == len(rl.line):
-		pos = rl.pos - len(rl.currentComp)
-		return rl.line, pos
-
+		line = rl.line
 	case rl.pos < len(rl.line):
-		pos = rl.pos - len(rl.currentComp)
 		line = rl.line[:pos]
-		return
-
 	default:
-		pos = rl.pos - len(rl.currentComp)
-		return rl.line, pos
+		line = rl.line
 	}
+
+	return
 }
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {

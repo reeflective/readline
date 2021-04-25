@@ -156,11 +156,10 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 
 	// Print group title and adjust offset if there is one.
-	comp += "\n"
 	if g.Name != "" {
-		comp += fmt.Sprintf(" %s%s%s %s", BOLD, YELLOW, g.Name, RESET)
+		comp += fmt.Sprintf(" %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
+		rl.tcUsedY++
 	}
-	rl.tcUsedY++
 
 	termWidth := GetTermWidth()
 	if termWidth < 20 {
@@ -207,7 +206,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 		if len(item) > maxLength {
 			item = item[:maxLength-3] + "..."
 		}
-		sugg := fmt.Sprintf("\r\n%s%-"+cellWidth+"s", highlight(y, 0), item)
+		sugg := fmt.Sprintf("\r%s%-"+cellWidth+"s", highlight(y, 0), item)
 
 		// Alt suggestion
 		alt, ok := g.Aliases[item]
@@ -221,7 +220,9 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 		// Description
 		description := g.Descriptions[g.Suggestions[i]]
 		if len(description) > maxDescWidth {
-			description = description[:maxDescWidth-3] + "..." + RESET
+			description = description[:maxDescWidth-3] + "..." + RESET + "\n"
+		} else {
+			description += "\n"
 		}
 
 		// Total completion line
@@ -238,11 +239,6 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 		}
 	} else {
 		rl.tcUsedY += len(g.Suggestions)
-	}
-
-	// Special case: history search handles titles differently.
-	if rl.modeAutoFind && rl.modeTabFind && rl.searchMode == HistoryFind {
-		rl.tcUsedY--
 	}
 
 	return

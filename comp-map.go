@@ -74,12 +74,11 @@ func (g *CompletionGroup) moveTabMapHighlight(rl *Instance, x, y int) (done bool
 // writeMap - A map or list completion string
 func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 
-	comp += "\n"
 	if g.Name != "" {
 		// Print group title (changes with line returns depending on type)
 		comp += fmt.Sprintf(" %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
+		rl.tcUsedY++
 	}
-	rl.tcUsedY++
 
 	termWidth := GetTermWidth()
 	if termWidth < 20 {
@@ -132,9 +131,9 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 
 	// Add the equivalent of this group's size to final screen clearing
 	if len(g.Suggestions) > g.MaxLength {
-		rl.tcUsedY += g.MaxLength + 1
+		rl.tcUsedY += g.MaxLength
 	} else {
-		rl.tcUsedY += len(g.Suggestions) + 1
+		rl.tcUsedY += len(g.Suggestions)
 	}
 
 	return
