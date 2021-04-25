@@ -116,6 +116,11 @@ func (rl *Instance) walkHistory(i int) {
 		history = rl.mainHistory
 	}
 
+	// Nothing happens if the history is nil
+	if history == nil {
+		return
+	}
+
 	// When we are exiting the current line buffer to move around
 	// the history, we make buffer the current line
 	if rl.histPos == 0 && (rl.histPos+i) == 1 {
@@ -131,7 +136,6 @@ func (rl *Instance) walkHistory(i int) {
 	case -1:
 		rl.histPos = 0
 		rl.lineBuf = string(rl.line)
-		// return
 	default:
 		dedup = true
 		old = string(rl.line)
@@ -147,6 +151,9 @@ func (rl *Instance) walkHistory(i int) {
 		rl.histPos += i
 		rl.line = []rune(new)
 		rl.pos = len(rl.line)
+		if rl.pos > 0 {
+			rl.pos--
+		}
 	}
 
 	// Update the line, and any helpers
