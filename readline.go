@@ -179,6 +179,9 @@ func (rl *Instance) Readline() (string, error) {
 
 		// Line Editing ------------------------------------------------------------------------------------
 		case charCtrlU:
+			if rl.modeTabCompletion {
+				rl.resetVirtualComp(true)
+			}
 			// Delete everything from the beginning of the line to the cursor position
 			rl.saveBufToRegister(rl.line[:rl.pos])
 			rl.deleteToBeginning()

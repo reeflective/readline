@@ -112,6 +112,11 @@ func (rl *Instance) saveBufToRegister(buffer []rune) {
 	// When exiting this function the currently selected register is dropped,
 	defer rl.registers.resetRegister()
 
+	// If the buffer is empty, just return
+	if len(buffer) == 0 || buf == "" {
+		return
+	}
+
 	// Put the buffer in the appropriate registers.
 	// By default, always in the unnamed one first.
 	rl.registers.unnamed = []rune(buf)
