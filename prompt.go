@@ -58,7 +58,7 @@ func (rl *Instance) RefreshPromptLog(log string) (err error) {
 	}
 
 	// Refresh the line
-	rl.renderHelpers()
+	rl.updateHelpers()
 
 	return
 }
@@ -101,7 +101,7 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 	}
 
 	// Refresh the line
-	rl.renderHelpers()
+	rl.updateHelpers()
 
 	return
 }
@@ -131,7 +131,6 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 
 	// Then clear everything below our new position
 	print(seqClearScreenBelow)
-	// print("\r\n" + seqClearScreenBelow)
 
 	// Update the prompt if a special has been passed.
 	if prompt != "" {
@@ -147,7 +146,7 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 	}
 
 	// Refresh the line
-	rl.renderHelpers()
+	rl.updateHelpers()
 
 	// If input line was empty, check that we clear it from detritus
 	// The three lines are borrowed from clearLine(), we don't need more.

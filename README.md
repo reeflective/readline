@@ -129,9 +129,6 @@ Being alone working on this project and having only one lifetime (anyone able to
 
 ## Version Information
 
-Because the last thing a developer wants is to do is fix breaking changes after
-updating modules, I will make the following guarantees:
-
 * The version string will be based on Semantic Versioning. ie version numbers
   will be formatted `(major).(minor).(patch)` - for example `2.0.1`
 
@@ -154,10 +151,6 @@ updating modules, I will make the following guarantees:
   not result in a version bump because they will not affect the output of the
   go compiler. However if this concerns you then I recommend pinning your
   project to the git commit hash rather than a `patch` release
-
-My recommendation is to pin to either the `minor` or `patch` release and I will
-endeavour to keep breaking changes to an absolute minimum.
-
 
 ## License Information
 

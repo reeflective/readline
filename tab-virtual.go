@@ -67,7 +67,7 @@ func (rl *Instance) insertCandidate() {
 		// Ensure no indexing error happens with prefix
 		if len(completion) >= prefix {
 			rl.insert([]rune(completion[prefix:]))
-			if !cur.TrimSlash {
+			if !cur.TrimSlash && !cur.NoSpace {
 				rl.insert([]rune(" "))
 			}
 		}
