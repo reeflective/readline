@@ -18,9 +18,13 @@ type CompletionGroup struct {
 	// When this is true, the completion is inserted really (not virtually) without
 	// the trailing slash, if any. This is used when we want to complete paths.
 	TrimSlash bool
+	// PathSeparator - If you intend to write path completions, you can specify the path separator to use, depending on which OS you want completion for. By default, this will be set to the GOOS of the binary. This is also used internally for many things.
+	PathSeparator string
+
 	// When this is true, we don't add a space after entering the candidate.
 	// Can be used for multi-stage completions, like URLS (scheme:// + host)
 	NoSpace bool
+
 	// For each group, we can define the min and max tab item length
 	MinTabItemLength int
 	MaxTabItemLength int
