@@ -64,6 +64,13 @@ func (rl *Instance) insertCandidate() {
 		completion := cur.getCurrentCell(rl)
 		prefix := len(rl.tcPrefix)
 
+		// Special case for the only special escape, which
+		// if not handled, will make us insert the first
+		// character of our actual rl.tcPrefix in the candidate.
+		if strings.HasPrefix(string(rl.tcPrefix), "%") {
+			prefix++
+		}
+
 		// Ensure no indexing error happens with prefix
 		if len(completion) >= prefix {
 			rl.insert([]rune(completion[prefix:]))
@@ -91,6 +98,14 @@ func (rl *Instance) updateVirtualComp() {
 			rl.viUndoSkipAppend = true
 			rl.resetTabCompletion()
 		} else {
+
+			// Special case for the only special escape, which
+			// if not handled, will make us insert the first
+			// character of our actual rl.tcPrefix in the candidate.
+			if strings.HasPrefix(string(rl.tcPrefix), "%") {
+				prefix++
+			}
+
 			// Or insert it virtually.
 			if len(completion) >= prefix {
 				rl.insertCandidateVirtual([]rune(completion[prefix:]))
@@ -125,6 +140,12 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 
 	// We will only insert the net difference between prefix and completion.
 	prefix := len(rl.tcPrefix)
+	// Special case for the only special escape, which
+	// if not handled, will make us insert the first
+	// character of our actual rl.tcPrefix in the candidate.
+	if strings.HasPrefix(string(rl.tcPrefix), "%") {
+		prefix++
+	}
 
 	// If we are asked to drop the completion, move it away from the line and return.
 	if drop {
