@@ -35,13 +35,6 @@ func (rl *Instance) updateReferences() {
 		fullLine = len(rl.lineComp)
 		cPosLine = len(rl.lineComp[:rl.pos])
 	} else {
-		// The cursor position might still be
-		// the one made by the virtual completion,
-		// so we check that and fix it if needed.
-		// if rl.pos > len(rl.line) {
-		//         rl.pos = len(rl.line)
-		// }
-
 		fullLine = len(rl.line)
 		cPosLine = len(rl.line[:rl.pos])
 	}
