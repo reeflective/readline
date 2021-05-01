@@ -2,6 +2,8 @@ package readline
 
 import (
 	"fmt"
+
+	ansi "github.com/acarl005/stripansi"
 )
 
 // SetPrompt will define the readline prompt string.
@@ -171,8 +173,7 @@ func (rl *Instance) computePrompt() (prompt []rune) {
 
 func (rl *Instance) computePromptVim() {
 
-	var vimStatus []rune      // Here we use this as a temporary prompt string
-	var colorPromptOffset int // We may have to adjust for effective length
+	var vimStatus []rune // Here we use this as a temporary prompt string
 
 	// Compute Vim status string first
 	if rl.ShowVimMode {
@@ -189,12 +190,7 @@ func (rl *Instance) computePromptVim() {
 			vimStatus = []rune(vimDeleteStr)
 		}
 
-		// Process colors, and get offset for correct cursor position
-		bwPromptLen := len(vimStatus)
 		vimStatus = rl.colorizeVimPrompt(vimStatus)
-
-		colorPromptLen := len(vimStatus)
-		colorPromptOffset = colorPromptLen - bwPromptLen
 	}
 
 	// Append any optional prompts for multiline mode
@@ -211,17 +207,18 @@ func (rl *Instance) computePromptVim() {
 		if rl.mainPrompt != "" {
 			rl.realPrompt = append(vimStatus, []rune(" "+rl.mainPrompt)...)
 		} else {
+			// Vim status might be empty, but we don't care
 			rl.realPrompt = append(rl.realPrompt, vimStatus...)
 		}
 		if rl.MultilinePrompt != "" {
 			rl.realPrompt = append(rl.realPrompt, []rune(rl.MultilinePrompt)...)
-			// } else {
-			//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
+		} else {
+			rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
 		}
 	}
 
-	// Compute lengths and return
-	rl.promptLen = len(rl.realPrompt) - colorPromptOffset
+	// Strip color escapes
+	rl.promptLen = getRealLength(string(rl.realPrompt))
 }
 
 func (rl *Instance) computePromptEmacs() {
@@ -231,11 +228,10 @@ func (rl *Instance) computePromptEmacs() {
 		} else {
 			rl.realPrompt = rl.defaultPrompt
 		}
-
 	}
 	if !rl.Multiline {
 		if rl.mainPrompt != "" {
-			rl.realPrompt = append([]rune(rl.mainPrompt), rl.defaultPrompt...)
+			rl.realPrompt = []rune(rl.mainPrompt)
 		}
 		if rl.MultilinePrompt != "" {
 			rl.realPrompt = append(rl.realPrompt, []rune(rl.MultilinePrompt)...)
@@ -244,8 +240,8 @@ func (rl *Instance) computePromptEmacs() {
 		}
 	}
 
-	// Compute lengths and return
-	rl.promptLen = len(rl.realPrompt)
+	// Strip color escapes
+	rl.promptLen = getRealLength(string(rl.realPrompt))
 }
 
 func (rl *Instance) colorizeVimPrompt(p []rune) (cp []rune) {
@@ -254,4 +250,12 @@ func (rl *Instance) colorizeVimPrompt(p []rune) (cp []rune) {
 	}
 
 	return p
+}
+
+// getRealLength - Some strings will have ANSI escape codes, which might be wrongly
+// interpreted as legitimate parts of the strings. This will bother if some prompt
+// components depend on other's length, so we always pass the string in this for
+// getting its real-printed length.
+func getRealLength(s string) (l int) {
+	return len(ansi.Strip(s))
 }
