@@ -453,13 +453,7 @@ func (rl *Instance) viJumpW(tokeniser tokeniser) (adjust int) {
 	case len(split) == 0:
 		return
 	case index+1 == len(split):
-		if len(split) == 1 {
-			// If there is only one word in input, don't add a useless backspace
-			adjust = len(rl.line) - rl.pos
-		} else {
-			// Otherwise add it
-			adjust = len(rl.line) - 1 - rl.pos
-		}
+		adjust = len(rl.line) - rl.pos
 	default:
 		adjust = len(split[index]) - pos
 	}
