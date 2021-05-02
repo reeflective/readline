@@ -522,18 +522,16 @@ func (rl *Instance) promptCompletionConfirm(sentence string) {
 
 func (rl *Instance) getCompletionCount() (comps int, lines int, adjusted int) {
 	for _, group := range rl.tcGroups {
-		if len(group.Suggestions) > 0 {
-			comps += len(group.Suggestions)
-			// if group.Name != "" {
-			adjusted++ // Title
-			// }
-			if group.tcMaxY > len(group.Suggestions) {
-				lines += len(group.Suggestions)
-				adjusted += len(group.Suggestions)
-			} else {
-				lines += group.tcMaxY
-				adjusted += group.tcMaxY
-			}
+		comps += len(group.Suggestions)
+		// if group.Name != "" {
+		adjusted++ // Title
+		// }
+		if group.tcMaxY > len(group.Suggestions) {
+			lines += len(group.Suggestions)
+			adjusted += len(group.Suggestions)
+		} else {
+			lines += group.tcMaxY
+			adjusted += group.tcMaxY
 		}
 	}
 	return
