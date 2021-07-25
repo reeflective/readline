@@ -233,11 +233,13 @@ func (rl *Instance) computePromptEmacs() {
 		if rl.mainPrompt != "" {
 			rl.realPrompt = []rune(rl.mainPrompt)
 		}
-		if rl.MultilinePrompt != "" {
-			rl.realPrompt = append(rl.realPrompt, []rune(rl.MultilinePrompt)...)
-		} else {
-			rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
-		}
+		// We add the multiline prompt anyway, because it might be empty and thus have
+		// no effect on our user interface, or be specified and thus needed.
+		// if rl.MultilinePrompt != "" {
+		rl.realPrompt = append(rl.realPrompt, []rune(rl.MultilinePrompt)...)
+		// } else {
+		//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
+		// }
 	}
 
 	// Strip color escapes
