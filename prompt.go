@@ -210,11 +210,13 @@ func (rl *Instance) computePromptVim() {
 			// Vim status might be empty, but we don't care
 			rl.realPrompt = append(rl.realPrompt, vimStatus...)
 		}
-		if rl.MultilinePrompt != "" {
-			rl.realPrompt = append(rl.realPrompt, []rune(rl.MultilinePrompt)...)
-		} else {
-			rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
-		}
+		// We add the multiline prompt anyway, because it might be empty and thus have
+		// no effect on our user interface, or be specified and thus needed.
+		// if rl.MultilinePrompt != "" {
+		rl.realPrompt = append(rl.realPrompt, []rune(rl.MultilinePrompt)...)
+		// } else {
+		//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
+		// }
 	}
 
 	// Strip color escapes
