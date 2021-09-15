@@ -157,7 +157,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 
 	// Print group title and adjust offset if there is one.
 	if g.Name != "" {
-		comp += fmt.Sprintf(" %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
+		comp += fmt.Sprintf("%s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
 		rl.tcUsedY++
 	}
 

@@ -99,7 +99,7 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 
 	// If group title, print it and adjust offset.
 	if g.Name != "" {
-		comp += fmt.Sprintf(" %s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
+		comp += fmt.Sprintf("%s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
 		rl.tcUsedY++
 	}
 
