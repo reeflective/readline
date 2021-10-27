@@ -1,4 +1,4 @@
-// +build !windows,!plan9
+//go:build !windows && !plan9
 
 package readline
 
@@ -9,7 +9,11 @@ import (
 
 const defaultEditor = "vi"
 
-func (rl *Instance) launchEditor(multiline []rune) ([]rune, error) {
+// StartEditorWithBuffer - Enables a consumer of this console application to
+// open an arbitrary buffer into the system editor. Currently only implemnted
+// on *Nix systems. The modified buffer is returned when the editor quits, and
+// depending on the actions taken by the user within it (eg: x or q! in Vim)
+func (rl *Instance) StartEditorWithBuffer(multiline []rune) ([]rune, error) {
 	name, err := rl.writeTempFile([]byte(string(multiline)))
 	if err != nil {
 		return multiline, err

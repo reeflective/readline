@@ -1,3 +1,6 @@
+# github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
+## explicit
+github.com/acarl005/stripansi
 # github.com/evilsocket/islazy v1.10.6
 ## explicit
 github.com/evilsocket/islazy/tui
