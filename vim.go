@@ -238,7 +238,7 @@ func (rl *Instance) vi(r rune) {
 		// Keep the previous cursor position
 		prev := rl.pos
 
-		new, err := rl.StartEditorWithBuffer(multiline)
+		new, err := rl.StartEditorWithBuffer(multiline, "")
 		if err != nil || len(new) == 0 || string(new) == string(multiline) {
 			fmt.Println(err)
 			rl.viUndoSkipAppend = true
