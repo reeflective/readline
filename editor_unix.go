@@ -13,8 +13,10 @@ const defaultEditor = "vi"
 // open an arbitrary buffer into the system editor. Currently only implemnted
 // on *Nix systems. The modified buffer is returned when the editor quits, and
 // depending on the actions taken by the user within it (eg: x or q! in Vim)
-func (rl *Instance) StartEditorWithBuffer(multiline []rune) ([]rune, error) {
-	name, err := rl.writeTempFile([]byte(string(multiline)))
+// The filename parameter can be used to pass a specific filename.ext pattern,
+// which might be useful if the editor has builtin filetype plugin functionality.
+func (rl *Instance) StartEditorWithBuffer(multiline []rune, filename string) ([]rune, error) {
+	name, err := rl.writeTempFile([]byte(string(multiline)), filename)
 	if err != nil {
 		return multiline, err
 	}
