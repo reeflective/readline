@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"regexp"
@@ -19,47 +18,15 @@ func (rl *Instance) Readline() (string, error) {
 	}
 	defer Restore(fd, state)
 
-	// In Vim mode, we always start in Input mode. The prompt needs this.
-	rl.modeViMode = vimInsert
-
-	// Prompt Init
-	// Here we have to either print prompt
-	// and return new line (multiline)
-	if rl.Multiline {
-		fmt.Println(rl.mainPrompt)
-	}
-	rl.stillOnRefresh = false
-	rl.computePrompt() // initialise the prompt for first print
-
-	// Line Init & Cursor
-	rl.line = []rune{}
-	rl.currentComp = []rune{} // No virtual completion yet
-	rl.lineComp = []rune{}    // So no virtual line either
-	rl.modeViMode = vimInsert
-	rl.pos = 0
-	rl.posY = 0
-
-	// Completion && hints init
-	rl.resetHintText()
-	rl.resetTabCompletion()
-	rl.getHintText()
-
-	// History Init
-	// We need this set to the last command, so that we can access it quickly
-	rl.histPos = 0
-	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
+	rl.initInput()
+	rl.initPrompt()
+	rl.initLine()
+	rl.initHelpers()
+	rl.initHistory()
 
 	// Multisplit
 	if len(rl.multisplit) > 0 {
-		r := []rune(rl.multisplit[0])
-		rl.editorInput(r)
-		rl.carridgeReturn()
-		if len(rl.multisplit) > 1 {
-			rl.multisplit = rl.multisplit[1:]
-		} else {
-			rl.multisplit = []string{}
-		}
-		return string(rl.line), nil
+		return rl.initMultiline()
 	}
 
 	// Finally, print any hints or completions
@@ -83,70 +50,30 @@ func (rl *Instance) Readline() (string, error) {
 		rl.skipStdinRead = false
 		r := []rune(string(b))
 
+		// If the last input is a carriage return, process according
+		// to configured multiline behavior.
 		if isMultiline(r[:i]) || len(rl.multiline) > 0 {
-			rl.multiline = append(rl.multiline, b[:i]...)
-			if i == len(b) {
+			done, ret, val, err := rl.processMultiline(r, b, i)
+			if ret {
+				return val, err
+			} else if done {
 				continue
 			}
-
-			if !rl.allowMultiline(rl.multiline) {
-				rl.multiline = []byte{}
-				continue
-			}
-
-			s := string(rl.multiline)
-			rl.multisplit = rxMultiline.Split(s, -1)
-
-			r = []rune(rl.multisplit[0])
-			rl.modeViMode = vimInsert
-			rl.editorInput(r)
-			rl.carridgeReturn()
-			rl.multiline = []byte{}
-			if len(rl.multisplit) > 1 {
-				rl.multisplit = rl.multisplit[1:]
-			} else {
-				rl.multisplit = []string{}
-			}
-			return string(rl.line), nil
 		}
 
+		// If we caught a key press for which a handler is registered, execute it.
 		s := string(r[:i])
 		if rl.evtKeyPress[s] != nil {
-			rl.clearHelpers()
-
-			ret := rl.evtKeyPress[s](s, rl.line, rl.pos)
-
-			rl.clearLine()
-			rl.line = append(ret.NewLine, []rune{}...)
-			rl.updateHelpers() // rl.echo
-			rl.pos = ret.NewPos
-
-			if ret.ClearHelpers {
-				rl.resetHelpers()
-			} else {
-				rl.updateHelpers()
-			}
-
-			if len(ret.HintText) > 0 {
-				rl.hintText = ret.HintText
-				rl.clearHelpers()
-				rl.renderHelpers()
-			}
-			if !ret.ForwardKey {
+			done, ret, val, err := rl.handleKeyPress(s)
+			if ret {
+				return val, err
+			} else if done {
 				continue
 			}
-			if ret.CloseReadline {
-				rl.clearHelpers()
-				return string(rl.line), nil
-			}
 		}
 
-		// Before anything: we can never be both in modeTabCompletion and compConfirmWait,
-		// because we need to confirm before entering completion. If both are true, there
-		// is a problem (at least, the user has escaped the confirm hint some way).
-		if (rl.modeTabCompletion && rl.searchMode != HistoryFind) && rl.compConfirmWait {
-			rl.compConfirmWait = false
-		}
+		// Ensure the completion system is in a sane state before processing an input key
+		rl.ensureCompState()
 
 		switch b[0] {
 		// Errors & Returns --------------------------------------------------------------------------------
@@ -406,7 +333,7 @@ func (rl *Instance) Readline() (string, error) {
 				completion := cur.getCurrentCell(rl)
 				prefix := len(rl.tcPrefix)
 				if prefix > len(completion) {
-					rl.carridgeReturn()
+					rl.carriageReturn()
 					return string(rl.line), nil
 				}
 
@@ -417,7 +344,7 @@ func (rl *Instance) Readline() (string, error) {
 
 				// If we were in history completion, immediately execute the line.
 				if rl.modeAutoFind && rl.searchMode == HistoryFind {
-					rl.carridgeReturn()
+					rl.carriageReturn()
 					return string(rl.line), nil
 				}
 
@@ -428,7 +355,7 @@ func (rl *Instance) Readline() (string, error) {
 
 				continue
 			}
-			rl.carridgeReturn()
+			rl.carriageReturn()
 			return string(rl.line), nil
 
 		// Vim --------------------------------------------------------------------------------------
@@ -532,24 +459,6 @@ func (rl *Instance) editorInput(r []rune) {
 
 	if len(rl.multisplit) == 0 {
 		rl.syntaxCompletion()
-	}
-}
-
-// viEscape - In case th user is using Vim input, and the escape sequence has not
-// been handled by other cases, we dispatch it to Vim and handle a few cases here.
-func (rl *Instance) viEscape(r []rune) {
-
-	// Sometimes the escape sequence is interleaved with another one,
-	// but key strokes might be in the wrong order, so we double check
-	// and escape the Insert mode only if needed.
-	if rl.modeViMode == vimInsert && len(r) == 1 && r[0] == 27 {
-		if len(rl.line) > 0 && rl.pos > 0 {
-			rl.pos--
-		}
-		rl.modeViMode = vimKeys
-		rl.viIteration = ""
-		rl.refreshVimStatus()
-		return
 	}
 }
 
@@ -765,7 +674,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 	}
 }
 
-func (rl *Instance) carridgeReturn() {
+func (rl *Instance) carriageReturn() {
 	rl.clearHelpers()
 	print("\r\n")
 	if rl.HistoryAutoWrite {
@@ -784,53 +693,6 @@ func (rl *Instance) carridgeReturn() {
 			if err != nil {
 				print(err.Error() + "\r\n")
 			}
-		}
-	}
-}
-
-func isMultiline(r []rune) bool {
-	for i := range r {
-		if (r[i] == '\r' || r[i] == '\n') && i != len(r)-1 {
-			return true
-		}
-	}
-	return false
-}
-
-func (rl *Instance) allowMultiline(data []byte) bool {
-	rl.clearHelpers()
-	printf("\r\nWARNING: %d bytes of multiline data was dumped into the shell!", len(data))
-	for {
-		print("\r\nDo you wish to proceed (yes|no|preview)? [y/n/p] ")
-
-		b := make([]byte, 1024)
-
-		i, err := os.Stdin.Read(b)
-		if err != nil {
-			return false
-		}
-
-		s := string(b[:i])
-		print(s)
-
-		switch s {
-		case "y", "Y":
-			print("\r\n" + rl.mainPrompt)
-			return true
-
-		case "n", "N":
-			print("\r\n" + rl.mainPrompt)
-			return false
-
-		case "p", "P":
-			preview := string(bytes.Replace(data, []byte{'\r'}, []byte{'\r', '\n'}, -1))
-			if rl.SyntaxHighlighter != nil {
-				preview = rl.SyntaxHighlighter([]rune(preview))
-			}
-			print("\r\n" + preview)
-
-		default:
-			print("\r\nInvalid response. Please answer `y` (yes), `n` (no) or `p` (preview)")
 		}
 	}
 }

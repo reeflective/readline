@@ -29,7 +29,6 @@ const (
 // getTabCompletion - This root function sets up all completion items and engines,
 // dealing with all search and completion modes. But it does not perform printing.
 func (rl *Instance) getTabCompletion() {
-
 	// Populate registers if requested.
 	if rl.modeAutoFind && rl.searchMode == RegisterFind {
 		rl.getRegisterCompletion()
@@ -54,7 +53,6 @@ func (rl *Instance) getTabCompletion() {
 
 // getRegisterCompletion - Populates and sets up completion for Vim registers.
 func (rl *Instance) getRegisterCompletion() {
-
 	rl.tcGroups = rl.completeRegisters()
 	if len(rl.tcGroups) == 0 {
 		return
@@ -85,7 +83,6 @@ func (rl *Instance) getRegisterCompletion() {
 
 // getTabSearchCompletion - Populates and sets up completion for completion search.
 func (rl *Instance) getTabSearchCompletion() {
-
 	// Get completions from the engine, and make sure there is a current group.
 	rl.getCompletions()
 	if len(rl.tcGroups) == 0 {
@@ -111,7 +108,6 @@ func (rl *Instance) getTabSearchCompletion() {
 
 // getHistorySearchCompletion - Populates and sets up completion for command history search
 func (rl *Instance) getHistorySearchCompletion() {
-
 	// Refresh full list each time
 	rl.tcGroups = rl.completeHistory()
 	if len(rl.tcGroups) == 0 {
@@ -146,7 +142,6 @@ func (rl *Instance) getHistorySearchCompletion() {
 // getNormalCompletion - Populates and sets up completion for normal comp mode.
 // Will automatically cancel the completion mode if there are no candidates.
 func (rl *Instance) getNormalCompletion() {
-
 	// Get completions groups, pass delayedTabContext and check nils
 	rl.getCompletions()
 
@@ -176,7 +171,6 @@ func (rl *Instance) getNormalCompletion() {
 // sets up a delayed tab context and passes it on to the tab completion engine function, and ensure no
 // nil groups/items will pass through. This function is called by different comp search/nav modes.
 func (rl *Instance) getCompletions() {
-
 	// If there is no wired tab completion engine, nothing we can do.
 	if rl.TabCompleter == nil {
 		return
@@ -218,7 +212,6 @@ func (rl *Instance) getCompletions() {
 // moveTabCompletionHighlight - This function is in charge of
 // computing the new position in the current completions liste.
 func (rl *Instance) moveTabCompletionHighlight(x, y int) {
-
 	g := rl.getCurrentGroup()
 
 	// If there is no current group, we leave any current completion mode.
@@ -257,7 +250,6 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 
 // writeTabCompletion - Prints all completion groups and their items
 func (rl *Instance) writeTabCompletion() {
-
 	// The final completions string to print.
 	var completions string
 
@@ -292,7 +284,6 @@ func (rl *Instance) writeTabCompletion() {
 // than the console MaxTabCompleterRows value, we crop the completions string
 // so that "global" cycling (across all groups) is printed correctly.
 func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
-
 	// If we actually fit into the MaxTabCompleterRows, return the comps
 	if rl.tcUsedY < rl.MaxTabCompleterRows {
 		return comps, rl.tcUsedY
@@ -301,7 +292,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	// Else we go on, but we have more comps than what allowed:
 	// we will add a line to the end of the comps, giving the actualized
 	// number of completions remaining and not printed
-	var moreComps = func(cropped string, offset int) (hinted string, noHint bool) {
+	moreComps := func(cropped string, offset int) (hinted string, noHint bool) {
 		_, _, adjusted := rl.getCompletionCount()
 		remain := adjusted - offset
 		if remain == 0 {
@@ -313,11 +304,11 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	}
 
 	// Get the current absolute candidate position (prev groups x suggestions + curGroup.tcPosY)
-	var absPos = rl.getAbsPos()
+	absPos := rl.getAbsPos()
 
 	// Get absPos - MaxTabCompleterRows for having the number of lines to cut at the top
 	// If the number is negative, that means we don't need to cut anything at the top yet.
-	var maxLines = absPos - rl.MaxTabCompleterRows
+	maxLines := absPos - rl.MaxTabCompleterRows
 	if maxLines < 0 {
 		maxLines = 0
 	}
@@ -393,7 +384,6 @@ func (rl *Instance) getAbsPos() int {
 // We pass a special subset of the current input line, so that
 // completions are available no matter where the cursor is.
 func (rl *Instance) getCompletionLine() (line []rune, pos int) {
-
 	pos = rl.pos - len(rl.currentComp)
 	if pos < 0 {
 		pos = 0
@@ -553,5 +543,16 @@ func (rl *Instance) resetTabCompletion() {
 			g.isCurrent = false
 		}
 		rl.tcGroups[0].isCurrent = true
+	}
+}
+
+// ensureCompState is called before we process
+// an input key in the main readline loop.
+func (rl *Instance) ensureCompState() {
+	// Before anything: we can never be both in modeTabCompletion and compConfirmWait,
+	// because we need to confirm before entering completion. If both are true, there
+	// is a problem (at least, the user has escaped the confirm hint some way).
+	if (rl.modeTabCompletion && rl.searchMode != HistoryFind) && rl.compConfirmWait {
+		rl.compConfirmWait = false
 	}
 }

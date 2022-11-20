@@ -4,11 +4,20 @@ import (
 	"strings"
 )
 
+// initLine is ran once at the beginning of an instance start.
+func (rl *Instance) initLine() {
+	rl.line = []rune{}
+	rl.currentComp = []rune{} // No virtual completion yet
+	rl.lineComp = []rune{}    // So no virtual line either
+	rl.modeViMode = vimInsert
+	rl.pos = 0
+	rl.posY = 0
+}
+
 // When the DelayedSyntaxWorker gives us a new line, we need to check if there
 // is any processing to be made, that all lines match in terms of content.
 func (rl *Instance) updateLine(line []rune) {
 	if len(rl.currentComp) > 0 {
-
 	} else {
 		rl.line = line
 	}
@@ -31,7 +40,6 @@ func (rl *Instance) getLine() []rune {
 // and having printed the line: this is so that at any moment, everyone has the good
 // values for moving around, synchronized with the update input line.
 func (rl *Instance) echo() {
-
 	// Then we print the prompt, and the line,
 	switch {
 	case rl.PasswordMask != 0:
@@ -175,4 +183,43 @@ func (rl *Instance) deleteToBeginning() {
 	// Keep the line length up until the cursor
 	rl.line = rl.line[rl.pos:]
 	rl.pos = 0
+}
+
+// handleKeyPress is in charge of executing the handler that is register for a given keypress.
+func (rl *Instance) handleKeyPress(s string) (done, mustReturn bool, val string, err error) {
+	rl.clearHelpers()
+
+	ret := rl.evtKeyPress[s](s, rl.line, rl.pos)
+
+	rl.clearLine()
+	rl.line = append(ret.NewLine, []rune{}...)
+	rl.updateHelpers() // rl.echo
+	rl.pos = ret.NewPos
+
+	if ret.ClearHelpers {
+		rl.resetHelpers()
+	} else {
+		rl.updateHelpers()
+	}
+
+	if len(ret.HintText) > 0 {
+		rl.hintText = ret.HintText
+		rl.clearHelpers()
+		rl.renderHelpers()
+	}
+	if !ret.ForwardKey {
+		done = true
+
+		return
+	}
+
+	if ret.CloseReadline {
+		rl.clearHelpers()
+		mustReturn = true
+		val = string(rl.line)
+
+		return
+	}
+
+	return
 }

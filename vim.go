@@ -43,11 +43,33 @@ var (
 	validRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
 )
 
+// initInput is ran once at the beginning of an instance start.
+func (rl *Instance) initInput() {
+	// In Vim mode, we always start in Input mode. The prompt needs this.
+	rl.modeViMode = vimInsert
+}
+
+// viEscape - In case th user is using Vim input, and the escape sequence has not
+// been handled by other cases, we dispatch it to Vim and handle a few cases here.
+func (rl *Instance) viEscape(r []rune) {
+	// Sometimes the escape sequence is interleaved with another one,
+	// but key strokes might be in the wrong order, so we double check
+	// and escape the Insert mode only if needed.
+	if rl.modeViMode == vimInsert && len(r) == 1 && r[0] == 27 {
+		if len(rl.line) > 0 && rl.pos > 0 {
+			rl.pos--
+		}
+		rl.modeViMode = vimKeys
+		rl.viIteration = ""
+		rl.refreshVimStatus()
+		return
+	}
+}
+
 // vi - Apply a key to a Vi action. Note that as in the rest of the code, all cursor movements
 // have been moved away, and only the rl.pos is adjusted: when echoing the input line, the shell
 // will compute the new cursor pos accordingly.
 func (rl *Instance) vi(r rune) {
-
 	// Check if we are in register mode. If yes, and for some characters,
 	// we select the register and exit this func immediately.
 	if rl.registers.registerSelectWait {

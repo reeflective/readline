@@ -100,6 +100,13 @@ func (h *NullHistory) Dump() interface{} {
 	return []string{}
 }
 
+// initHistory is ran once at the beginning of an instance start.
+func (rl *Instance) initHistory() {
+	// We need this set to the last command, so that we can access it quickly
+	rl.histPos = 0
+	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
+}
+
 // Browse historic lines:
 func (rl *Instance) walkHistory(i int) {
 	var (

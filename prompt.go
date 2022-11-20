@@ -15,7 +15,6 @@ func (rl *Instance) SetPrompt(s string) {
 // RefreshPromptLog - A simple function to print a string message (a log, or more broadly,
 // an asynchronous event) without bothering the user, and by "pushing" the prompt below the message.
 func (rl *Instance) RefreshPromptLog(log string) (err error) {
-
 	// We adjust cursor movement, depending on which mode we're currently in.
 	if !rl.modeTabCompletion {
 		rl.tcUsedY = 1
@@ -67,7 +66,6 @@ func (rl *Instance) RefreshPromptLog(log string) (err error) {
 
 // RefreshPromptInPlace - Refreshes the prompt in the very same place he is.
 func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
-
 	// We adjust cursor movement, depending on which mode we're currently in.
 	// Prompt data intependent
 	if !rl.modeTabCompletion {
@@ -97,7 +95,6 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 	// Add a new line if needed
 	if rl.Multiline {
 		fmt.Println(rl.mainPrompt)
-
 	} else {
 		fmt.Print(rl.mainPrompt)
 	}
@@ -113,7 +110,6 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 // @offset      => Used to set the number of lines to go upward, before reprinting. Set to 0 if not used.
 // @clearLine   => If true, will clean the current input line on the next refresh.
 func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine bool) (err error) {
-
 	// We adjust cursor movement, depending on which mode we're currently in.
 	if !rl.modeTabCompletion {
 		rl.tcUsedY = 1
@@ -159,6 +155,17 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 	return
 }
 
+// initPrompt is ran once at the beginning of an instance start.
+func (rl *Instance) initPrompt() {
+	// Here we have to either print prompt
+	// and return new line (multiline)
+	if rl.Multiline {
+		fmt.Println(rl.mainPrompt)
+	}
+	rl.stillOnRefresh = false
+	rl.computePrompt() // initialise the prompt for first print
+}
+
 // computePrompt - At any moment, returns an (1st or 2nd line) actualized prompt,
 // considering all input mode parameters and prompt string values.
 func (rl *Instance) computePrompt() (prompt []rune) {
@@ -172,7 +179,6 @@ func (rl *Instance) computePrompt() (prompt []rune) {
 }
 
 func (rl *Instance) computePromptVim() {
-
 	var vimStatus []rune // Here we use this as a temporary prompt string
 
 	// Compute Vim status string first

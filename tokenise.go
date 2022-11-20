@@ -72,8 +72,8 @@ func tokeniseSplitSpaces(line []rune, linePos int) ([]string, int, int) {
 	split := make([]string, 1)
 
 	for i, r := range line {
-		switch {
-		case r == ' ' || r == '\t':
+		switch r {
+		case ' ', '\t':
 			split[len(split)-1] += string(r)
 
 		default:

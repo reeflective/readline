@@ -1,10 +1,16 @@
 package readline
 
+// initHelpers is called once at the very beginning of a readline start.
+func (rl *Instance) initHelpers() {
+	rl.resetHintText()
+	rl.resetTabCompletion()
+	rl.getHintText()
+}
+
 // updateHelpers is a key part of the whole refresh process:
 // it should coordinate reprinting the input line, any hints and completions
 // and manage to get back to the current (computed) cursor coordinates
 func (rl *Instance) updateHelpers() {
-
 	// Load all hints & completions before anything.
 	// Thus overwrites anything having been dirtily added/forced/modified, like rl.SetHintText()
 	rl.getHintText()
@@ -22,7 +28,6 @@ func (rl *Instance) updateHelpers() {
 
 // Update reference should be called only once in a "loop" (not Readline(), but key control loop)
 func (rl *Instance) updateReferences() {
-
 	// We always need to work with clean data,
 	// since we will have incrementers all around
 	rl.posX = 0
@@ -82,7 +87,6 @@ func (rl *Instance) resetHelpers() {
 // clearHelpers - Clears everything: prompt, input, hints & comps,
 // and comes back at the prompt.
 func (rl *Instance) clearHelpers() {
-
 	// Now go down to the last line of input
 	moveCursorDown(rl.fullY - rl.posY)
 	moveCursorBackwards(rl.posX)
@@ -101,7 +105,6 @@ func (rl *Instance) clearHelpers() {
 // and replaces the cursor to its current position. This function never
 // computes or refreshes any value, except from inside the echo function.
 func (rl *Instance) renderHelpers() {
-
 	// Optional, because neutral on placement
 	rl.echo()
 

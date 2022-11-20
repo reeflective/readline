@@ -4,9 +4,8 @@ import (
 	"strings"
 )
 
-// vimDelete -
+// vimDelete - key dispatcher for keys when the console is in Delete mode.
 func (rl *Instance) viDelete(r rune) {
-
 	// We are allowed to type iterations after a delete ('d') command.
 	// in which case we don't exit the delete mode. The next thing typed
 	// will thus be dispatched back here (like "2d4 then w).
@@ -150,7 +149,7 @@ func (rl *Instance) vimDeleteToken(r rune) bool {
 	}
 
 	s := string(rl.line)
-	newLine := strings.Replace(s, tokens[pos-1], "", -1)
+	newLine := strings.ReplaceAll(s, tokens[pos-1], "")
 	if newLine == s {
 		return false
 	}
