@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/evilsocket/islazy/tui"
 )
 
 // registers - Contains all memory registers resulting from delete/paste/search
@@ -37,10 +35,9 @@ func (rl *Instance) initRegisters() {
 // It's the same as saveToRegisterTokenize, but without the need to generate tokenized &
 // cursor-pos-actualized versions of the input line.
 func (rl *Instance) saveToRegister(adjust int) {
-
 	// Get the current cursor position and go the length specified.
-	var begin = rl.pos
-	var end = rl.pos
+	begin := rl.pos
+	end := rl.pos
 	end += adjust
 	if end > len(rl.line)-1 {
 		end = len(rl.line)
@@ -67,17 +64,16 @@ func (rl *Instance) saveToRegister(adjust int) {
 // the number of Vim iterations and we save the resulting string to the appropriate buffer. Because we
 // need the cursor position to be really moved around between calls to the jumper, we also need the tokeniser.
 func (rl *Instance) saveToRegisterTokenize(tokeniser tokeniser, jumper func(tokeniser) int, vii int) {
-
 	// The register is going to have to heavily manipulate the cursor position.
 	// Remember the original one first, for the end.
-	var beginPos = rl.pos
+	beginPos := rl.pos
 
 	// Get the current cursor position and go the length specified.
-	var begin = rl.pos
+	begin := rl.pos
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(jumper(tokeniser))
 	}
-	var end = rl.pos
+	end := rl.pos
 	rl.pos = beginPos
 
 	if end > len(rl.line)-1 {
@@ -105,7 +101,6 @@ func (rl *Instance) saveToRegisterTokenize(tokeniser tokeniser, jumper func(toke
 // let the caller pass directly this buffer, yet relying on the register system to
 // determine which register will store the buffer.
 func (rl *Instance) saveBufToRegister(buffer []rune) {
-
 	// We must make an immutable version of the buffer first.
 	buf := string(buffer)
 
@@ -139,7 +134,6 @@ func (rl *Instance) saveBufToRegister(buffer []rune) {
 // The user asked to paste a buffer onto the line, so we check from which register
 // we are supposed to select the buffer, and return it to the caller for insertion.
 func (rl *Instance) pasteFromRegister() (buffer []rune) {
-
 	// When exiting this function the currently selected register is dropped,
 	defer rl.registers.resetRegister()
 
@@ -258,7 +252,6 @@ func (r *registers) resetRegister() {
 
 // The user can show registers completions and insert, no matter the cursor position.
 func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
-
 	// We set the hint exceptionally
 	hint := BLUE + "-- registers --" + RESET
 	rl.hintText = []rune(hint)
@@ -279,7 +272,7 @@ func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
 
 	// Numbered registers
 	numRegs := &CompletionGroup{
-		Name:         tui.DIM + "num ([0-9])" + tui.RESET,
+		Name:         DIM + "num ([0-9])" + RESET,
 		DisplayType:  TabDisplayMap,
 		MaxLength:    20,
 		Descriptions: map[string]string{},
@@ -301,7 +294,7 @@ func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
 
 	// Letter registers
 	alphaRegs := &CompletionGroup{
-		Name:         tui.DIM + "alpha ([a-z], [A-Z])" + tui.RESET,
+		Name:         DIM + "alpha ([a-z], [A-Z])" + RESET,
 		DisplayType:  TabDisplayMap,
 		MaxLength:    20,
 		Descriptions: map[string]string{},

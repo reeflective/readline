@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"unicode/utf8"
 
-	"github.com/olekukonko/ts"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // GetTermWidth returns the width of Stdout or 80 if the width cannot be established
@@ -23,14 +23,13 @@ func GetTermWidth() (termWidth int) {
 
 // GetTermLength returns the length of the terminal
 // (Y length), or 80 if it cannot be established
-func GetTermLength() (termLength int) {
-	size, err := ts.GetSize()
-	if err != nil || size.Row() == 0 {
+func GetTermLength() int {
+	width, _, err := terminal.GetSize(0)
+	if err != nil || width == 0 {
 		return 80
 	}
-	termLength = size.Row()
 
-	return
+	return width
 }
 
 func printf(format string, a ...interface{}) {
