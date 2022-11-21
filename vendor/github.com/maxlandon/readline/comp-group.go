@@ -5,7 +5,7 @@ package readline
 // The output, if there are multiple groups available for a given completion input,
 // will look like ZSH's completion system.
 type CompletionGroup struct {
-	Name        string // If not nil, printed on top of the group's completions
+	Name        string
 	Description string
 
 	// Candidates & related
@@ -18,18 +18,6 @@ type CompletionGroup struct {
 	// When this is true, the completion is inserted really (not virtually) without
 	// the trailing slash, if any. This is used when we want to complete paths.
 	TrimSlash bool
-	// PathSeparator - If you intend to write path completions, you can specify the path
-	// separator to use, depending on which OS you want completion for. By default, this
-	// will be set to the GOOS of the binary. This is also used internally for many things.
-	PathSeparator rune
-
-	// When this is true, we don't add a space after entering the candidate.
-	// Can be used for multi-stage completions, like URLS (scheme:// + host)
-	NoSpace bool
-
-	// For each group, we can define the min and max tab item length
-	MinTabItemLength int
-	MaxTabItemLength int
 
 	// Values used by the shell
 	tcPosX         int
@@ -49,6 +37,7 @@ type CompletionGroup struct {
 
 // init - The completion group computes and sets all its values, and is then ready to work.
 func (g *CompletionGroup) init(rl *Instance) {
+
 	// Details common to all displays
 	g.checkCycle(rl) // Based on the number of groups given to the shell, allows cycling or not
 	g.checkMaxLength(rl)
@@ -69,6 +58,7 @@ func (g *CompletionGroup) init(rl *Instance) {
 // we ask each of them to filter its own items and return the results to the shell for aggregating them.
 // The rx parameter is passed, as the shell already checked that the search pattern is valid.
 func (g *CompletionGroup) updateTabFind(rl *Instance) {
+
 	suggs := make([]string, 0)
 
 	// We perform filter right here, so we create a new completion group, and populate it with our results.
@@ -86,11 +76,6 @@ func (g *CompletionGroup) updateTabFind(rl *Instance) {
 
 	// Finally, the group computes its new printing settings
 	g.init(rl)
-
-	// If we are in history completion, we directly pass to the first candidate
-	if rl.modeAutoFind && rl.searchMode == HistoryFind && len(g.Suggestions) > 0 {
-		g.tcPosY = 1
-	}
 }
 
 // checkCycle - Based on the number of groups given to the shell, allows cycling or not
@@ -101,10 +86,12 @@ func (g *CompletionGroup) checkCycle(rl *Instance) {
 	if len(rl.tcGroups) >= 10 {
 		g.allowCycle = false
 	}
+
 }
 
 // checkMaxLength - Based on the number of groups given to the shell, check/set MaxLength defaults
 func (g *CompletionGroup) checkMaxLength(rl *Instance) {
+
 	// This means the user forgot to set it
 	if g.MaxLength == 0 {
 		if len(rl.tcGroups) < 5 {
@@ -121,10 +108,12 @@ func (g *CompletionGroup) checkMaxLength(rl *Instance) {
 			g.MaxLength = 1000 // Should be enough not to trigger anything related.
 		}
 	}
+
 }
 
 // checkNilItems - For each completion group we avoid nil maps and possibly other items
 func checkNilItems(groups []*CompletionGroup) (checked []*CompletionGroup) {
+
 	for _, grp := range groups {
 		if grp.Descriptions == nil || len(grp.Descriptions) == 0 {
 			grp.Descriptions = make(map[string]string)
@@ -141,6 +130,7 @@ func checkNilItems(groups []*CompletionGroup) (checked []*CompletionGroup) {
 // writeCompletion - This function produces a formatted string containing all appropriate items
 // and according to display settings. This string is then appended to the main completion string.
 func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
+
 	// Avoids empty groups in suggestions
 	if len(g.Suggestions) == 0 {
 		return
@@ -162,6 +152,7 @@ func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
 // getCurrentCell - The completion groups computes the current cell value,
 // depending on its display type and its different parameters
 func (g *CompletionGroup) getCurrentCell(rl *Instance) string {
+
 	switch g.DisplayType {
 	case TabDisplayGrid:
 		// x & y coodinates + safety check
@@ -224,6 +215,7 @@ func (g *CompletionGroup) goFirstCell() {
 		g.tcPosY = 1
 		g.tcOffset = 0
 	}
+
 }
 
 func (g *CompletionGroup) goLastCell() {

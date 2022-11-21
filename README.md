@@ -4,11 +4,61 @@
 ![Demo](../assets/readline-demo.gif)
 *This demo GIF has been made with a Sliver project client.*
 
+# Table of Contents
+
+- [Readline - Console library in Go](#readline---console-library-in-go)
+- [Table of Contents](#table-of-contents)
+    - [Introduction](#introduction)
+            - [lmorg](#lmorg)
+            - [maxlandon](#maxlandon)
+    - [Features Summary](#features-summary)
+        - [Input & Editing](#input--editing)
+        - [Completion engine](#completion-engine)
+        - [Prompt system & Colors](#prompt-system--colors)
+        - [Hints & Syntax highlighting](#hints--syntax-highlighting)
+        - [Command history](#command-history)
+        - [Utilities](#utilities)
+    - [Installation & Usage](#installation--usage)
+    - [Documentation](#documentation)
+            - [Command & Completion utilities](#command--completion-utilities)
+    - [Project Status & Support](#project-status--support)
+    - [Version Information](#version-information)
+    - [License Information](#license-information)
+    - [Warmest Thanks](#warmest-thanks)
 
 ## Introduction
 
+1. This is a list item
+2. And another one spanning two lines
+   2.1. And it works
+   2.2. another section
+
+1. Another list item
+2. Another list subsection
+3. With yet another
+    3.1. And another node here
+        3.1.1. Which we might reindent
+        3.1.2. In some short time
+
+- [x] Here are list items
+    - [x] That are not yet
+    - [x] considered as such
+
 **This project is actually the merging of an original project (github.com/lmorg/readline) and one of its
 forks (github.com/maxlandon/readline): both introductions are thus here given, in chronological order.**
+
+```go
+package main
+
+// Test is a function empty for documentation purposes
+func Test() {
+    // And it seems that the CPU graphics spike a little,
+    // altough they don't increase the card's temperature anymore
+    // and I'm slowly getting better at typing with an american keyboard !
+    // Still some work though ! 
+    // Ah ! Here we go ! the temperature is going up ! 40C !!!!
+}
+```
 
 #### lmorg
 

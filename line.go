@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// inputMenuMove updates helpers when keys have an effect on them,
+// in normal (non-insert) editing mode, so most of the time in things
+// like completion menus.
 func (rl *Instance) inputMenuMove(r []rune) (ret bool) {
 	switch string(r) {
 
