@@ -24,7 +24,7 @@ func (rl *Instance) Readline() (string, error) {
 	rl.initHistory()
 
 	// Multisplit
-	if len(rl.multisplit) > 0 {
+	if len(rl.multilineSplit) > 0 {
 		return rl.initMultiline()
 	}
 
@@ -45,7 +45,7 @@ func (rl *Instance) Readline() (string, error) {
 
 		// If the last input is a carriage return, process
 		// according to configured multiline behavior.
-		if isMultiline(r[:i]) || len(rl.multiline) > 0 {
+		if isMultiline(r[:i]) || len(rl.multilineBuffer) > 0 {
 			done, ret, val, err := rl.processMultiline(r, b, i)
 			if ret {
 				return val, err
@@ -177,7 +177,7 @@ func (rl *Instance) inputEditor(r []rune) {
 		rl.insert(r)
 	}
 
-	if len(rl.multisplit) == 0 {
+	if len(rl.multilineSplit) == 0 {
 		rl.syntaxCompletion()
 	}
 }

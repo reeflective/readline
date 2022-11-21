@@ -210,7 +210,7 @@ func (rl *Instance) inputDispatch(r []rune, i int) (done, ret bool, val string, 
 	} else {
 		rl.resetVirtualComp(false)
 		rl.inputEditor(r[:i])
-		if len(rl.multiline) > 0 && rl.modeViMode == vimKeys {
+		if len(rl.multilineBuffer) > 0 && rl.modeViMode == vimKeys {
 			rl.skipStdinRead = true
 		}
 	}

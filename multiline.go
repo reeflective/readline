@@ -7,13 +7,13 @@ import (
 
 // initMultiline is ran once at the beginning of an instance start.
 func (rl *Instance) initMultiline() (string, error) {
-	r := []rune(rl.multisplit[0])
+	r := []rune(rl.multilineSplit[0])
 	rl.inputEditor(r)
 	rl.carriageReturn()
-	if len(rl.multisplit) > 1 {
-		rl.multisplit = rl.multisplit[1:]
+	if len(rl.multilineSplit) > 1 {
+		rl.multilineSplit = rl.multilineSplit[1:]
 	} else {
-		rl.multisplit = []string{}
+		rl.multilineSplit = []string{}
 	}
 
 	return string(rl.line), nil
@@ -21,7 +21,7 @@ func (rl *Instance) initMultiline() (string, error) {
 
 // processMultiline handles line input/editing when the last entered key was a carriage return.
 func (rl *Instance) processMultiline(r []rune, b []byte, i int) (done, ret bool, val string, err error) {
-	rl.multiline = append(rl.multiline, b[:i]...)
+	rl.multilineBuffer = append(rl.multilineBuffer, b[:i]...)
 
 	if i == len(b) {
 		done = true
@@ -29,25 +29,25 @@ func (rl *Instance) processMultiline(r []rune, b []byte, i int) (done, ret bool,
 		return
 	}
 
-	if !rl.allowMultiline(rl.multiline) {
-		rl.multiline = []byte{}
+	if !rl.allowMultiline(rl.multilineBuffer) {
+		rl.multilineBuffer = []byte{}
 		done = true
 
 		return
 	}
 
-	s := string(rl.multiline)
-	rl.multisplit = rxMultiline.Split(s, -1)
+	s := string(rl.multilineBuffer)
+	rl.multilineSplit = rxMultiline.Split(s, -1)
 
-	r = []rune(rl.multisplit[0])
+	r = []rune(rl.multilineSplit[0])
 	rl.modeViMode = vimInsert
 	rl.inputEditor(r)
 	rl.carriageReturn()
-	rl.multiline = []byte{}
-	if len(rl.multisplit) > 1 {
-		rl.multisplit = rl.multisplit[1:]
+	rl.multilineBuffer = []byte{}
+	if len(rl.multilineSplit) > 1 {
+		rl.multilineSplit = rl.multilineSplit[1:]
 	} else {
-		rl.multisplit = []string{}
+		rl.multilineSplit = []string{}
 	}
 
 	ret = true
