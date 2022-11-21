@@ -10,7 +10,6 @@ import (
 // readline instance so that you can reuse the readline API for multiple entry
 // captures without having to repeatedly unload configuration.
 type Instance struct {
-
 	//
 	// Input Modes  -------------------------------------------------------------------------------
 
@@ -21,20 +20,25 @@ type Instance struct {
 	// ShowVimMode - If set to true, a string '[i]' or '[N]' indicating the
 	// current Vim mode will be appended to the prompt variable, therefore added to
 	// the user's custom prompt is set. Applies for both single and multiline prompts
-	ShowVimMode     bool
+	// TODO: Write prompt segments/indicators for Vim mode and modifiers.
+	ShowVimMode bool
+	// Would not need this.
 	VimModeColorize bool // If set to true, varies colors of the VimModePrompt
 
 	//
 	// Prompt -------------------------------------------------------------------------------------
 
-	Multiline       bool   // If set to true, the shell will have a two-line prompt.
-	MultilinePrompt string // If multiline is true, this is the content of the 2nd line.
+	isMultiline     bool   // If set to true, the shell will have a two-line prompt.
+	promptMultiline string // If multiline is true, this is the content of the 2nd line.
 
-	mainPrompt     string // If multiline true, the full prompt string / If false, the 1st line of the prompt
-	realPrompt     []rune // The prompt that is actually on the same line as the beginning of the input line.
-	defaultPrompt  []rune
-	promptLen      int
-	stillOnRefresh bool // True if some logs have printed asynchronously since last loop. Check refresh prompt funcs
+	prompt          string // If multiline true, the full prompt string / If false, the 1st line of the prompt
+	promptRight     string
+	promptSecondary string
+	promptTransient string
+	realPrompt      []rune // The prompt that is actually on the same line as the beginning of the input line.
+	defaultPrompt   []rune
+	promptLen       int
+	stillOnRefresh  bool // True if some logs have printed asynchronously since last loop. Check refresh prompt funcs
 
 	//
 	// Input Line ---------------------------------------------------------------------------------
@@ -52,9 +56,9 @@ type Instance struct {
 	fullY int // Y offset to the end of input line.
 
 	// Buffer received from host programms
-	multiline     []byte
-	multisplit    []string
-	skipStdinRead bool
+	multilineBuffer []byte
+	multilineSplit  []string
+	skipStdinRead   bool
 
 	// SyntaxHighlight is a helper function to provide syntax highlighting.
 	// Once enabled, set to nil to disable again.
@@ -87,7 +91,7 @@ type Instance struct {
 
 	// tab completion operating parameters
 	tcGroups []*CompletionGroup // All of our suggestions tree is in here
-	tcPrefix string             // The current tab completion prefix  aggainst which to build candidates
+	tcPrefix string             // The current tab completion prefix  against which to build candidates
 
 	modeTabCompletion    bool
 	compConfirmWait      bool // When too many completions, we ask the user to confirm with another Tab keypress.
@@ -185,8 +189,8 @@ func NewInstance() *Instance {
 	rl := new(Instance)
 
 	// Prompt
-	rl.Multiline = false
-	rl.mainPrompt = "$ "
+	rl.isMultiline = false
+	rl.prompt = "$ "
 	rl.defaultPrompt = []rune{' ', '$', ' '}
 	rl.promptLen = len(rl.computePrompt())
 

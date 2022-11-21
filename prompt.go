@@ -9,7 +9,19 @@ import (
 // SetPrompt will define the readline prompt string.
 // It also calculates the runes in the string as well as any non-printable escape codes.
 func (rl *Instance) SetPrompt(s string) {
-	rl.mainPrompt = s
+	rl.prompt = s
+}
+
+// SetPromptRight sets the right-most prompt for the shell
+func (rl *Instance) SetPromptRight(s string) {
+}
+
+// SetPromptTransient sets a transient prompt for the shell
+func (rl *Instance) SetPromptTransient(s string) {
+}
+
+// SetPromptSecondary sets the secondary prompt for the shell.
+func (rl *Instance) SetPromptSecondary(s string) {
 }
 
 // RefreshPromptLog - A simple function to print a string message (a log, or more broadly,
@@ -26,7 +38,7 @@ func (rl *Instance) RefreshPromptLog(log string) (err error) {
 	}
 
 	// Prompt offset
-	if rl.Multiline {
+	if rl.multilinePrompt {
 		rl.tcUsedY += 1
 	} else {
 		rl.tcUsedY += 0
@@ -49,13 +61,13 @@ func (rl *Instance) RefreshPromptLog(log string) (err error) {
 	print("\n")
 
 	// Print the prompt
-	if rl.Multiline {
+	if rl.multilinePrompt {
 		rl.tcUsedY += 3
-		fmt.Println(rl.mainPrompt)
+		fmt.Println(rl.prompt)
 
 	} else {
 		rl.tcUsedY += 2
-		fmt.Print(rl.mainPrompt)
+		fmt.Print(rl.prompt)
 	}
 
 	// Refresh the line
@@ -79,10 +91,10 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 
 	// Update the prompt if a special has been passed.
 	if prompt != "" {
-		rl.mainPrompt = prompt
+		rl.prompt = prompt
 	}
 
-	if rl.Multiline {
+	if rl.multilinePrompt {
 		rl.tcUsedY += 1
 	}
 
@@ -93,10 +105,10 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 	print("\r\n" + seqClearScreenBelow)
 
 	// Add a new line if needed
-	if rl.Multiline {
-		fmt.Println(rl.mainPrompt)
+	if rl.multilinePrompt {
+		fmt.Println(rl.prompt)
 	} else {
-		fmt.Print(rl.mainPrompt)
+		fmt.Print(rl.prompt)
 	}
 
 	// Refresh the line
@@ -132,15 +144,15 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 
 	// Update the prompt if a special has been passed.
 	if prompt != "" {
-		rl.mainPrompt = prompt
+		rl.prompt = prompt
 	}
 
 	// Add a new line if needed
-	if rl.Multiline && prompt == "" {
-	} else if rl.Multiline {
-		fmt.Println(rl.mainPrompt)
+	if rl.multilinePrompt && prompt == "" {
+	} else if rl.multilinePrompt {
+		fmt.Println(rl.prompt)
 	} else {
-		fmt.Print(rl.mainPrompt)
+		fmt.Print(rl.prompt)
 	}
 
 	// Refresh the line
@@ -159,8 +171,8 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 func (rl *Instance) initPrompt() {
 	// Here we have to either print prompt
 	// and return new line (multiline)
-	if rl.Multiline {
-		fmt.Println(rl.mainPrompt)
+	if rl.multilinePrompt {
+		fmt.Println(rl.prompt)
 	}
 	rl.stillOnRefresh = false
 	rl.computePrompt() // initialise the prompt for first print
@@ -200,18 +212,18 @@ func (rl *Instance) computePromptVim() {
 	}
 
 	// Append any optional prompts for multiline mode
-	if rl.Multiline {
-		if rl.MultilinePrompt != "" {
-			rl.realPrompt = append(vimStatus, []rune(rl.MultilinePrompt)...)
+	if rl.multilinePrompt {
+		if rl.promptMultiline != "" {
+			rl.realPrompt = append(vimStatus, []rune(rl.promptMultiline)...)
 		} else {
 			rl.realPrompt = vimStatus
 			rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
 		}
 	}
 	// Equivalent for non-multiline
-	if !rl.Multiline {
-		if rl.mainPrompt != "" {
-			rl.realPrompt = append(vimStatus, []rune(" "+rl.mainPrompt)...)
+	if !rl.multilinePrompt {
+		if rl.prompt != "" {
+			rl.realPrompt = append(vimStatus, []rune(" "+rl.prompt)...)
 		} else {
 			// Vim status might be empty, but we don't care
 			rl.realPrompt = append(rl.realPrompt, vimStatus...)
@@ -219,7 +231,7 @@ func (rl *Instance) computePromptVim() {
 		// We add the multiline prompt anyway, because it might be empty and thus have
 		// no effect on our user interface, or be specified and thus needed.
 		// if rl.MultilinePrompt != "" {
-		rl.realPrompt = append(rl.realPrompt, []rune(rl.MultilinePrompt)...)
+		rl.realPrompt = append(rl.realPrompt, []rune(rl.promptMultiline)...)
 		// } else {
 		//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
 		// }
@@ -230,21 +242,21 @@ func (rl *Instance) computePromptVim() {
 }
 
 func (rl *Instance) computePromptEmacs() {
-	if rl.Multiline {
-		if rl.MultilinePrompt != "" {
-			rl.realPrompt = []rune(rl.MultilinePrompt)
+	if rl.multilinePrompt {
+		if rl.promptMultiline != "" {
+			rl.realPrompt = []rune(rl.promptMultiline)
 		} else {
 			rl.realPrompt = rl.defaultPrompt
 		}
 	}
-	if !rl.Multiline {
-		if rl.mainPrompt != "" {
-			rl.realPrompt = []rune(rl.mainPrompt)
+	if !rl.multilinePrompt {
+		if rl.prompt != "" {
+			rl.realPrompt = []rune(rl.prompt)
 		}
 		// We add the multiline prompt anyway, because it might be empty and thus have
 		// no effect on our user interface, or be specified and thus needed.
 		// if rl.MultilinePrompt != "" {
-		rl.realPrompt = append(rl.realPrompt, []rune(rl.MultilinePrompt)...)
+		rl.realPrompt = append(rl.realPrompt, []rune(rl.promptMultiline)...)
 		// } else {
 		//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
 		// }

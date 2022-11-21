@@ -255,9 +255,9 @@ func (rl *Instance) carriageReturn() {
 func (rl *Instance) clearScreen() {
 	print(seqClearScreen)
 	print(seqCursorTopLeft)
-	if rl.Multiline {
+	if rl.multilinePrompt {
 		// TODO: here rander prompt in function correctly, all prompts.
-		fmt.Println(rl.mainPrompt)
+		fmt.Println(rl.prompt)
 	}
 	print(seqClearScreenBelow)
 
