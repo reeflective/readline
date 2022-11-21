@@ -7,25 +7,24 @@ import (
 	ansi "github.com/acarl005/stripansi"
 )
 
-// SetPrompt will define the readline prompt string.
-// It also calculates the runes in the string as well as any non-printable escape codes.
-func (rl *Instance) SetPrompt(s string) {
-	rl.prompt = s
+// Prompt uses a function returning the string to use as the primary prompt
+func (rl *Instance) Prompt(prompt func() string) {
+	rl.promptFunc = prompt
 }
 
-// SetPromptRight sets the right-most prompt for the shell
-func (rl *Instance) SetPromptRight(s string) {
-	rl.promptRight = s
+// PromptRight uses a function returning the string to use as the right prompt
+func (rl *Instance) PromptRight(prompt func() string) {
+	rl.promptRightFunc = prompt
 }
 
-// SetPromptTransient sets a transient prompt for the shell
-func (rl *Instance) SetPromptTransient(s string) {
-	rl.promptTransient = s
+// PromptTransient uses a function returning the prompt to use as a transcient prompt.
+func (rl *Instance) PromptTransient(prompt func() string) {
+	rl.promptTransientFunc = prompt
 }
 
-// SetPromptSecondary sets the secondary prompt for the shell.
-func (rl *Instance) SetPromptSecondary(s string) {
-	rl.promptSecondary = s
+// PromptSecondary uses a function returning the prompt to use as the secondary prompt.
+func (rl *Instance) PromptSecondary(prompt func() string) {
+	rl.promptSecondaryFunc = prompt
 }
 
 // RefreshPromptLog - A simple function to print a string message (a log, or more broadly,
@@ -121,32 +120,6 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 	return
 }
 
-// printPrompt assumes we are at the very beginning of the line
-// in which we will start printing the input buffer, and redraws
-// the various prompts, taking care of offsetting its initial position.
-func (rl *Instance) printPrompt() {
-	// 1 - Get the number of lines which we must go up before printing
-	var multilineOffset int
-	multilineOffset += strings.Count(rl.prompt, "\n")
-	multilineOffset += strings.Count(rl.promptRight, "\n")
-
-	moveCursorUp(multilineOffset)
-
-	// First draw the primary prompt. We are now where the input
-	// zone starts, but we still might have to print the right prompt.
-	print(rl.prompt)
-
-	if rl.promptRight != "" {
-		forwardOffset := GetTermWidth() - rl.inputAt - getRealLength(rl.promptRight)
-		moveCursorForwards(forwardOffset)
-		print(rl.promptRight)
-
-		// Normally we are on a newline, since we just completed the previous.
-		moveCursorUp(1)
-		moveCursorForwards(rl.inputAt)
-	}
-}
-
 // RefreshPromptCustom - Refresh the console prompt with custom values.
 // @prompt      => If not nil (""), will use this prompt instead of the currently set prompt.
 // @offset      => Used to set the number of lines to go upward, before reprinting. Set to 0 if not used.
@@ -199,18 +172,92 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 
 // initPrompt is ran once at the beginning of an instance start.
 func (rl *Instance) initPrompt() {
-	// Here we have to either print prompt
-	// and return new line (multiline)
-	if rl.isMultiline {
-		fmt.Println(rl.prompt)
-	}
+	// Generate the prompt strings for this run
+	rl.prompt = rl.promptFunc()
+	rl.promptRight = rl.promptRightFunc()
+
+	// Print the primary prompt, potentially excluding the last line.
+	print(rl.getPromptPrimary())
 	rl.stillOnRefresh = false
-	rl.computePrompt() // initialise the prompt for first print
+
+	// Compute some offsets needed by the last line.
+	rl.computePrompt()
+}
+
+// computePromptAlt computes the correct lengths and offsets
+// for all prompt components, but does not print any of them.
+func (rl *Instance) computePrompt() {
+	lastLineIndex := strings.LastIndex(rl.prompt, "\n")
+	if lastLineIndex != -1 {
+		rl.inputAt = len([]rune(ansi.Strip(rl.prompt[lastLineIndex:])))
+	} else {
+		rl.inputAt = len([]rune(ansi.Strip(rl.prompt)))
+	}
+}
+
+// Prompt refresh offsets
+// // 1 - Get the number of lines which we must go up before printing
+// var multilineOffset int
+// multilineOffset += strings.Count(prompt, "\n")
+// multilineOffset += strings.Count(promptRight, "\n")
+//
+// moveCursorUp(multilineOffset)
+// print(seqClearScreenBelow)
+
+// printPrompt assumes we are at the very beginning of the line
+// in which we will start printing the input buffer, and redraws
+// the various prompts, taking care of offsetting its initial position.
+func (rl *Instance) printPrompt() {
+	// TODO: Here don't perform this if the line is longer than terminal
+	if rl.promptRight != "" {
+		// First go back to beginning of line, and clear everything
+		moveCursorBackwards(GetTermWidth())
+		print(seqClearLine)
+		print(seqClearScreenBelow)
+
+		forwardOffset := GetTermWidth() - getRealLength(rl.promptRight) - 1
+		moveCursorForwards(forwardOffset)
+		print(rl.promptRight)
+
+		// Normally we are on a newline, since we just completed the previous.
+		moveCursorBackwards(GetTermWidth())
+	}
+
+	print(rl.getPromptLastLine())
+}
+
+// getPromptPrimary returns either the entire prompt if
+// it's a single-line, or everything except the last line.
+func (rl *Instance) getPromptPrimary() string {
+	var primary string
+
+	// Get the last line of the prompt to be printed.
+	lastLineIndex := strings.LastIndex(rl.prompt, "\n")
+	if lastLineIndex != -1 {
+		primary = rl.prompt[:lastLineIndex+1]
+	} else {
+		primary = rl.prompt
+	}
+
+	return primary
+}
+
+// Get the last line of the prompt to be printed.
+func (rl *Instance) getPromptLastLine() string {
+	var lastLine string
+	lastLineIndex := strings.LastIndex(rl.prompt, "\n")
+	if lastLineIndex != -1 {
+		lastLine = rl.prompt[lastLineIndex+1:]
+	} else {
+		lastLine = rl.prompt
+	}
+
+	return lastLine
 }
 
 // computePrompt - At any moment, returns an (1st or 2nd line) actualized prompt,
 // considering all input mode parameters and prompt string values.
-func (rl *Instance) computePrompt() (prompt []rune) {
+func (rl *Instance) computePromptAlt() (prompt []rune) {
 	switch rl.InputMode {
 	case Vim:
 		rl.computePromptVim()
@@ -218,19 +265,6 @@ func (rl *Instance) computePrompt() (prompt []rune) {
 		rl.computePromptEmacs()
 	}
 	return
-}
-
-// computePromptAlt computes the correct lengths and offsets
-// for all prompt components, but does not print any of them.
-func (rl *Instance) computePromptAlt() {
-	// The length of the prompt on the last line is where
-	// the input line starts. Get this line and compute.
-	lastLineIndex := strings.LastIndex(rl.prompt, "\n")
-	if lastLineIndex != -1 {
-		rl.inputAt = getRealLength(rl.prompt[lastLineIndex:])
-	} else {
-		rl.inputAt = getRealLength(rl.prompt[lastLineIndex:])
-	}
 }
 
 func (rl *Instance) computePromptVim() {

@@ -327,12 +327,10 @@ func (rl *Instance) echo() {
 
 	default:
 		// Go back to prompt position, and clear everything below
+		// TODO this is redundant with printPrompt() initial moves.
 		moveCursorBackwards(GetTermWidth())
 		moveCursorUp(rl.posY)
 		print(seqClearScreenBelow)
-
-		// Print the prompt
-		// print(string(rl.realPrompt))
 
 		// We are the very beginning of the line ON WHICH we are
 		// going to write the input line, but the prompt, if any

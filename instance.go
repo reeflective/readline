@@ -28,17 +28,22 @@ type Instance struct {
 	//
 	// Prompt -------------------------------------------------------------------------------------
 
-	isMultiline     bool   // If set to true, the shell will have a two-line prompt.
-	promptMultiline string // If multiline is true, this is the content of the 2nd line.
+	isMultiline     bool   // If set to true, the shell will have a two-line prompt.        TODO: not needed
+	promptMultiline string // If multiline is true, this is the content of the 2nd line.    TODO: not needed
 
-	prompt          string // If multiline true, the full prompt string / If false, the 1st line of the prompt
-	promptRight     string
-	promptSecondary string
-	promptTransient string
-	realPrompt      []rune // The prompt that is actually on the same line as the beginning of the input line.
-	defaultPrompt   []rune
-	inputAt         int
-	stillOnRefresh  bool // True if some logs have printed asynchronously since last loop. Check refresh prompt funcs
+	prompt              string // If multiline true, the full prompt string / If false, the 1st line of the prompt
+	promptFunc          func() string
+	promptRight         string
+	promptRightFunc     func() string
+	promptSecondary     string
+	promptSecondaryFunc func() string
+	promptTransient     string
+	promptTransientFunc func() string
+
+	realPrompt     []rune // The prompt that is actually on the same line as the beginning of the input line. TODO: not needed
+	defaultPrompt  []rune
+	inputAt        int
+	stillOnRefresh bool // True if some logs have printed asynchronously since last loop. Check refresh prompt funcs
 
 	//
 	// Input Line ---------------------------------------------------------------------------------
@@ -192,7 +197,7 @@ func NewInstance() *Instance {
 	rl.isMultiline = false
 	rl.prompt = "$ "
 	rl.defaultPrompt = []rune{' ', '$', ' '}
-	rl.inputAt = len(rl.computePrompt())
+	rl.computePrompt()
 
 	// Input Editing
 	rl.InputMode = Emacs
