@@ -70,31 +70,44 @@ func (rl *Instance) Readline() (string, error) {
 		// state before processing an input key.
 		rl.ensureCompState()
 
-		// Error key signals have priority on input editors
-		// and any helpers (completions, prompts, etc)
-		done, ret, val, err := rl.inputErrorKeys(b, i)
-		if done || ret {
-			return val, err
-		}
-
-		// Emacs key strokes, not settable through user options.
-		done, ret, val, err = rl.inputEmacs(b, i)
-		if done || ret {
-			return val, err
-		}
-
-		// Except from the Emacs bindings and error key codes,
-		// there not many keys bound to core components, and most
-		// of them are sawked by the default case, where the key
-		// is sent to the editor component for action/treatment/use.
 		switch b[0] {
-		// Root keypresses.
+		// Root keypresses. ---------------------------------------------------
 		case charEscape:
 			rl.inputEsc(r, b, i)
 		case charCtrlL:
 			rl.clearScreen()
 
-		// Special non-nil characters
+			// Error sequences ------------------------------------------------
+		case charCtrlC:
+			done, ret := rl.errorCtrlC()
+			if ret {
+				return "", CtrlC
+			} else if done {
+				continue
+			}
+		case charEOF:
+			rl.clearHelpers()
+			return "", EOF
+
+		// Emacs bindings -----------------------------------------------------
+		case charCtrlU:
+			rl.deleteLine()
+		case charCtrlW:
+			if done := rl.deleteWord(); done {
+				continue
+			}
+		case charCtrlY:
+			rl.pasteDefaultRegister()
+		case charCtrlE:
+			if done := rl.goToInputEnd(); done {
+				continue
+			}
+		case charCtrlA:
+			if done := rl.goToInputBegin(); done {
+				continue
+			}
+
+		// Special non-nil characters -----------------------------------------
 		case '\r':
 			fallthrough
 		case '\n':
@@ -105,7 +118,12 @@ func (rl *Instance) Readline() (string, error) {
 				continue
 			}
 
-		// Completion and history/menu helpers.
+		case charBackspace, charBackspace2:
+			if done := rl.inputBackspace(); done {
+				continue
+			}
+
+		// Completion and history/menu helpers. -------------------------------
 		case charCtrlR:
 			rl.inputCompletionHelper(b, i)
 		case charTab:

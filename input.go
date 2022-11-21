@@ -1,28 +1,54 @@
 package readline
 
-// NOTE: To this is where we must change things like ErrorCtrlC
-// Note also that this function will most of the time return an error, or will probably trigger
-// a new key read loop, aborting any other editor/completion components to use the signal key.
-func (rl *Instance) inputErrorKeys(b []byte, i int) (done, ret bool, val string, err error) {
-	switch b[0] {
-	case charCtrlC:
-		if rl.modeTabCompletion {
-			rl.resetVirtualComp(true)
-			rl.resetHelpers()
+func (rl *Instance) errorCtrlC() (done, ret bool) {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(true)
+		rl.resetHelpers()
+		rl.renderHelpers()
+
+		return true, false
+	}
+	rl.clearHelpers()
+
+	return false, true
+}
+
+func (rl *Instance) inputBackspace() (done bool) {
+	// When currently in history completion, we refresh and automatically
+	// insert the first (filtered) candidate, virtually
+	if rl.modeAutoFind && rl.searchMode == HistoryFind {
+		rl.resetVirtualComp(true)
+		rl.backspaceTabFind()
+
+		// Then update the printing, with the new candidate
+		rl.updateVirtualComp()
+		rl.renderHelpers()
+		rl.viUndoSkipAppend = true
+		return true
+	}
+
+	// Normal completion search does only refresh the search pattern and the comps
+	if rl.modeTabFind || rl.modeAutoFind {
+		rl.backspaceTabFind()
+		rl.viUndoSkipAppend = true
+	} else {
+		// Always cancel any virtual completion
+		rl.resetVirtualComp(false)
+
+		// Vim mode has different behaviors
+		if rl.InputMode == Vim {
+			if rl.modeViMode == vimInsert {
+				rl.backspace()
+			} else {
+				rl.pos--
+			}
 			rl.renderHelpers()
-			done = true
-
-			return
+			return true
 		}
-		rl.clearHelpers()
 
-		return done, true, val, CtrlC
-
-	case charEOF:
-		rl.clearHelpers()
-		ret = true
-
-		return done, true, val, EOF
+		// Else emacs deletes a character
+		rl.backspace()
+		rl.renderHelpers()
 	}
 
 	return
@@ -110,70 +136,71 @@ func (rl *Instance) inputEnter() (done, ret bool, val string, err error) {
 	return
 }
 
-// inputEmacs runs the provided keystroke if its a line modifier in Emacs mode.
-func (rl *Instance) inputEmacs(b []byte, i int) (done, ret bool, val string, err error) {
-	switch b[0] {
-	case charCtrlU:
-		if rl.modeTabCompletion {
-			rl.resetVirtualComp(true)
-		}
-		// Delete everything from the beginning of the line to the cursor position
-		rl.saveBufToRegister(rl.line[:rl.pos])
-		rl.deleteToBeginning()
-		rl.resetHelpers()
-		rl.updateHelpers()
-
-	case charCtrlW:
-		if rl.modeTabCompletion {
-			rl.resetVirtualComp(false)
-		}
-		// This is only available in Insert mode
-		if rl.modeViMode != vimInsert {
-			done = true
-			return
-		}
-		rl.saveToRegister(rl.viJumpB(tokeniseLine))
-		rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
-		rl.updateHelpers()
-
-	case charCtrlY:
-		if rl.modeTabCompletion {
-			rl.resetVirtualComp(false)
-		}
-		// paste after the cursor position
-		rl.viUndoSkipAppend = true
-		buffer := rl.pasteFromRegister()
-		rl.insert(buffer)
-		rl.updateHelpers()
-
-	case charCtrlE:
-		if rl.modeTabCompletion {
-			rl.resetVirtualComp(false)
-		}
-		// This is only available in Insert mode
-		if rl.modeViMode != vimInsert {
-			done = true
-			return
-		}
-		if len(rl.line) > 0 {
-			rl.pos = len(rl.line)
-		}
-		rl.viUndoSkipAppend = true
-		rl.updateHelpers()
-
-	case charCtrlA:
-		if rl.modeTabCompletion {
-			rl.resetVirtualComp(false)
-		}
-		// This is only available in Insert mode
-		if rl.modeViMode != vimInsert {
-			done = true
-			return
-		}
-		rl.viUndoSkipAppend = true
-		rl.pos = 0
-		rl.updateHelpers()
+func (rl *Instance) deleteLine() {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(true)
 	}
+	// Delete everything from the beginning of the line to the cursor position
+	rl.saveBufToRegister(rl.line[:rl.pos])
+	rl.deleteToBeginning()
+	rl.resetHelpers()
+	rl.updateHelpers()
+}
+
+func (rl *Instance) deleteWord() (done bool) {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(false)
+	}
+	// This is only available in Insert mode
+	if rl.modeViMode != vimInsert {
+		return true
+	}
+	rl.saveToRegister(rl.viJumpB(tokeniseLine))
+	rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
+	rl.updateHelpers()
+
+	return
+}
+
+func (rl *Instance) pasteDefaultRegister() {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(false)
+	}
+	// paste after the cursor position
+	rl.viUndoSkipAppend = true
+	buffer := rl.pasteFromRegister()
+	rl.insert(buffer)
+	rl.updateHelpers()
+}
+
+func (rl *Instance) goToInputEnd() (done bool) {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(false)
+	}
+	// This is only available in Insert mode
+	if rl.modeViMode != vimInsert {
+		return true
+	}
+	if len(rl.line) > 0 {
+		rl.pos = len(rl.line)
+	}
+	rl.viUndoSkipAppend = true
+	rl.updateHelpers()
+
+	return
+}
+
+func (rl *Instance) goToInputBegin() (done bool) {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(false)
+	}
+	// This is only available in Insert mode
+	if rl.modeViMode != vimInsert {
+		return true
+	}
+	rl.viUndoSkipAppend = true
+	rl.pos = 0
+	rl.updateHelpers()
 
 	return
 }
