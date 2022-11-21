@@ -73,7 +73,7 @@ func TestLineWrap(t *testing.T) {
 	for i, test := range tests {
 		rl := NewInstance()
 		rl.SetPrompt(test.Prompt)
-		//rl.lineBuf = test.Line
+		// rl.lineBuf = test.Line
 		rl.line = []rune(test.Line)
 
 		wrap := lineWrap(rl, test.TermWidth)
@@ -87,10 +87,10 @@ func TestLineWrap(t *testing.T) {
 			t.Logf("  len(act):  %d", len(wrap))
 			t.Logf("  Slice e:  '%s'", fmt.Sprint(test.Expected))
 			t.Logf("  Slice a:  '%s'", fmt.Sprint(wrap))
-			t.Logf("  rl.promptLen: %d'", rl.promptLen)
+			t.Logf("  rl.promptLen: %d'", rl.inputAt)
 			t.Logf("  rl.line:     '%s'", string(rl.line))
 			t.Logf("  rl.lineBuf:  '%s'", rl.lineBuf)
-			t.Logf("  n:            %.10f'", float64(len(rl.line))/(float64(test.TermWidth)-float64(rl.promptLen)))
+			t.Logf("  n:            %.10f'", float64(len(rl.line))/(float64(test.TermWidth)-float64(rl.inputAt)))
 		}
 
 		for j := range wrap {
@@ -177,42 +177,42 @@ func TestLineWrapPos(t *testing.T) {
 			Prompt:    "foobar",
 			Line:      "123456789012345678901234567890",
 			TermWidth: 20,
-			//Expected:  []string{"12345678901234", "56789012345678", "90"},
+			// Expected:  []string{"12345678901234", "56789012345678", "90"},
 			Expected: ExpectedT{6 + 2, 2},
 		},
 		{
 			Prompt:    "foobar",
 			Line:      "1234567890",
 			TermWidth: 4,
-			//Expected:  []string{"1234", "5678", "90"},
+			// Expected:  []string{"1234", "5678", "90"},
 			Expected: ExpectedT{0 + 2, 2},
 		},
 		{
 			Prompt:    "foobar",
 			Line:      "1234567890",
 			TermWidth: 5,
-			//Expected:  []string{"12345", "67890"},
+			// Expected:  []string{"12345", "67890"},
 			Expected: ExpectedT{0 + 0, 2},
 		},
 		{
 			Prompt:    "foobar",
 			Line:      "1234567890",
 			TermWidth: 6,
-			//Expected:  []string{"123456", "7890"},
+			// Expected:  []string{"123456", "7890"},
 			Expected: ExpectedT{0 + 4, 1},
 		},
 		{
 			Prompt:    "foobar",
 			Line:      "1234567890",
 			TermWidth: 7,
-			//Expected:  []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"},
+			// Expected:  []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"},
 			Expected: ExpectedT{6 + 0, 10},
 		},
 		{
 			Prompt:    "foobar",
 			Line:      "1234567890",
 			TermWidth: 8,
-			//Expected:  []string{"12", "34", "56", "78", "90"},
+			// Expected:  []string{"12", "34", "56", "78", "90"},
 			Expected: ExpectedT{6 + 0, 5},
 		},
 	}

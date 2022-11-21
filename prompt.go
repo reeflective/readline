@@ -2,6 +2,7 @@ package readline
 
 import (
 	"fmt"
+	"strings"
 
 	ansi "github.com/acarl005/stripansi"
 )
@@ -14,14 +15,17 @@ func (rl *Instance) SetPrompt(s string) {
 
 // SetPromptRight sets the right-most prompt for the shell
 func (rl *Instance) SetPromptRight(s string) {
+	rl.promptRight = s
 }
 
 // SetPromptTransient sets a transient prompt for the shell
 func (rl *Instance) SetPromptTransient(s string) {
+	rl.promptTransient = s
 }
 
 // SetPromptSecondary sets the secondary prompt for the shell.
 func (rl *Instance) SetPromptSecondary(s string) {
+	rl.promptSecondary = s
 }
 
 // RefreshPromptLog - A simple function to print a string message (a log, or more broadly,
@@ -38,7 +42,7 @@ func (rl *Instance) RefreshPromptLog(log string) (err error) {
 	}
 
 	// Prompt offset
-	if rl.multilinePrompt {
+	if rl.isMultiline {
 		rl.tcUsedY += 1
 	} else {
 		rl.tcUsedY += 0
@@ -61,7 +65,7 @@ func (rl *Instance) RefreshPromptLog(log string) (err error) {
 	print("\n")
 
 	// Print the prompt
-	if rl.multilinePrompt {
+	if rl.isMultiline {
 		rl.tcUsedY += 3
 		fmt.Println(rl.prompt)
 
@@ -94,7 +98,7 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 		rl.prompt = prompt
 	}
 
-	if rl.multilinePrompt {
+	if rl.isMultiline {
 		rl.tcUsedY += 1
 	}
 
@@ -105,7 +109,7 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 	print("\r\n" + seqClearScreenBelow)
 
 	// Add a new line if needed
-	if rl.multilinePrompt {
+	if rl.isMultiline {
 		fmt.Println(rl.prompt)
 	} else {
 		fmt.Print(rl.prompt)
@@ -115,6 +119,32 @@ func (rl *Instance) RefreshPromptInPlace(prompt string) (err error) {
 	rl.updateHelpers()
 
 	return
+}
+
+// printPrompt assumes we are at the very beginning of the line
+// in which we will start printing the input buffer, and redraws
+// the various prompts, taking care of offsetting its initial position.
+func (rl *Instance) printPrompt() {
+	// 1 - Get the number of lines which we must go up before printing
+	var multilineOffset int
+	multilineOffset += strings.Count(rl.prompt, "\n")
+	multilineOffset += strings.Count(rl.promptRight, "\n")
+
+	moveCursorUp(multilineOffset)
+
+	// First draw the primary prompt. We are now where the input
+	// zone starts, but we still might have to print the right prompt.
+	print(rl.prompt)
+
+	if rl.promptRight != "" {
+		forwardOffset := GetTermWidth() - rl.inputAt - getRealLength(rl.promptRight)
+		moveCursorForwards(forwardOffset)
+		print(rl.promptRight)
+
+		// Normally we are on a newline, since we just completed the previous.
+		moveCursorUp(1)
+		moveCursorForwards(rl.inputAt)
+	}
 }
 
 // RefreshPromptCustom - Refresh the console prompt with custom values.
@@ -148,8 +178,8 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 	}
 
 	// Add a new line if needed
-	if rl.multilinePrompt && prompt == "" {
-	} else if rl.multilinePrompt {
+	if rl.isMultiline && prompt == "" {
+	} else if rl.isMultiline {
 		fmt.Println(rl.prompt)
 	} else {
 		fmt.Print(rl.prompt)
@@ -171,7 +201,7 @@ func (rl *Instance) RefreshPromptCustom(prompt string, offset int, clearLine boo
 func (rl *Instance) initPrompt() {
 	// Here we have to either print prompt
 	// and return new line (multiline)
-	if rl.multilinePrompt {
+	if rl.isMultiline {
 		fmt.Println(rl.prompt)
 	}
 	rl.stillOnRefresh = false
@@ -188,6 +218,19 @@ func (rl *Instance) computePrompt() (prompt []rune) {
 		rl.computePromptEmacs()
 	}
 	return
+}
+
+// computePromptAlt computes the correct lengths and offsets
+// for all prompt components, but does not print any of them.
+func (rl *Instance) computePromptAlt() {
+	// The length of the prompt on the last line is where
+	// the input line starts. Get this line and compute.
+	lastLineIndex := strings.LastIndex(rl.prompt, "\n")
+	if lastLineIndex != -1 {
+		rl.inputAt = getRealLength(rl.prompt[lastLineIndex:])
+	} else {
+		rl.inputAt = getRealLength(rl.prompt[lastLineIndex:])
+	}
 }
 
 func (rl *Instance) computePromptVim() {
@@ -212,7 +255,7 @@ func (rl *Instance) computePromptVim() {
 	}
 
 	// Append any optional prompts for multiline mode
-	if rl.multilinePrompt {
+	if rl.isMultiline {
 		if rl.promptMultiline != "" {
 			rl.realPrompt = append(vimStatus, []rune(rl.promptMultiline)...)
 		} else {
@@ -221,7 +264,7 @@ func (rl *Instance) computePromptVim() {
 		}
 	}
 	// Equivalent for non-multiline
-	if !rl.multilinePrompt {
+	if !rl.isMultiline {
 		if rl.prompt != "" {
 			rl.realPrompt = append(vimStatus, []rune(" "+rl.prompt)...)
 		} else {
@@ -238,18 +281,18 @@ func (rl *Instance) computePromptVim() {
 	}
 
 	// Strip color escapes
-	rl.promptLen = getRealLength(string(rl.realPrompt))
+	rl.inputAt = getRealLength(string(rl.realPrompt))
 }
 
 func (rl *Instance) computePromptEmacs() {
-	if rl.multilinePrompt {
+	if rl.isMultiline {
 		if rl.promptMultiline != "" {
 			rl.realPrompt = []rune(rl.promptMultiline)
 		} else {
 			rl.realPrompt = rl.defaultPrompt
 		}
 	}
-	if !rl.multilinePrompt {
+	if !rl.isMultiline {
 		if rl.prompt != "" {
 			rl.realPrompt = []rune(rl.prompt)
 		}
@@ -263,7 +306,7 @@ func (rl *Instance) computePromptEmacs() {
 	}
 
 	// Strip color escapes
-	rl.promptLen = getRealLength(string(rl.realPrompt))
+	rl.inputAt = getRealLength(string(rl.realPrompt))
 }
 
 func (rl *Instance) colorizeVimPrompt(p []rune) (cp []rune) {

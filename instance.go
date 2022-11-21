@@ -37,7 +37,7 @@ type Instance struct {
 	promptTransient string
 	realPrompt      []rune // The prompt that is actually on the same line as the beginning of the input line.
 	defaultPrompt   []rune
-	promptLen       int
+	inputAt         int
 	stillOnRefresh  bool // True if some logs have printed asynchronously since last loop. Check refresh prompt funcs
 
 	//
@@ -192,7 +192,7 @@ func NewInstance() *Instance {
 	rl.isMultiline = false
 	rl.prompt = "$ "
 	rl.defaultPrompt = []rune{' ', '$', ' '}
-	rl.promptLen = len(rl.computePrompt())
+	rl.inputAt = len(rl.computePrompt())
 
 	// Input Editing
 	rl.InputMode = Emacs

@@ -255,7 +255,7 @@ func (rl *Instance) carriageReturn() {
 func (rl *Instance) clearScreen() {
 	print(seqClearScreen)
 	print(seqCursorTopLeft)
-	if rl.multilinePrompt {
+	if rl.isMultiline {
 		// TODO: here rander prompt in function correctly, all prompts.
 		fmt.Println(rl.prompt)
 	}
@@ -332,7 +332,14 @@ func (rl *Instance) echo() {
 		print(seqClearScreenBelow)
 
 		// Print the prompt
-		print(string(rl.realPrompt))
+		// print(string(rl.realPrompt))
+
+		// We are the very beginning of the line ON WHICH we are
+		// going to write the input line, but the prompt, if any
+		// has erased.
+		// We need to go up the number of lines for the prompts,
+		// and then print them again.
+		rl.printPrompt()
 
 		// Assemble the line, taking virtual completions into account
 		var line []rune
@@ -439,7 +446,7 @@ func (rl *Instance) clearLine() {
 	// We need to go back to prompt
 	moveCursorUp(rl.posY)
 	moveCursorBackwards(GetTermWidth())
-	moveCursorForwards(rl.promptLen)
+	moveCursorForwards(rl.inputAt)
 
 	// Clear everything after & below the cursor
 	print(seqClearScreenBelow)

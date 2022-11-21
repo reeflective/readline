@@ -45,14 +45,14 @@ func (rl *Instance) updateReferences() {
 	}
 
 	// We need the X offset of the whole line
-	toEndLine := rl.promptLen + fullLine
+	toEndLine := rl.inputAt + fullLine
 	fullOffset := toEndLine / GetTermWidth()
 	rl.fullY = fullOffset
 	fullRest := toEndLine % GetTermWidth()
 	rl.fullX = fullRest
 
 	// Use rl.pos value to get the offset to go TO/FROM the CURRENT POSITION
-	lineToCursorPos := rl.promptLen + cPosLine
+	lineToCursorPos := rl.inputAt + cPosLine
 	offsetToCursor := lineToCursorPos / GetTermWidth()
 	cPosRest := lineToCursorPos % GetTermWidth()
 
@@ -101,7 +101,7 @@ func (rl *Instance) clearHelpers() {
 	moveCursorForwards(rl.posX)
 }
 
-// renderHelpers - pritns all components (prompt, line, hints & comps)
+// renderHelpers - prints all components (prompt, line, hints & comps)
 // and replaces the cursor to its current position. This function never
 // computes or refreshes any value, except from inside the echo function.
 func (rl *Instance) renderHelpers() {
