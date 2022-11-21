@@ -1,9 +1,6 @@
 # github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 ## explicit
 github.com/acarl005/stripansi
-# github.com/maxlandon/readline v0.1.0-beta
-## explicit
-github.com/maxlandon/readline
 # golang.org/x/crypto v0.3.0
 ## explicit
 golang.org/x/crypto/ssh/terminal
