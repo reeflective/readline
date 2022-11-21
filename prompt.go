@@ -189,7 +189,7 @@ func (rl *Instance) initPrompt() {
 func (rl *Instance) computePrompt() {
 	lastLineIndex := strings.LastIndex(rl.prompt, "\n")
 	if lastLineIndex != -1 {
-		rl.inputAt = len([]rune(ansi.Strip(rl.prompt[lastLineIndex:])))
+		rl.inputAt = len([]rune(ansi.Strip(rl.prompt[lastLineIndex+1:])))
 	} else {
 		rl.inputAt = len([]rune(ansi.Strip(rl.prompt)))
 	}
@@ -208,19 +208,22 @@ func (rl *Instance) computePrompt() {
 // in which we will start printing the input buffer, and redraws
 // the various prompts, taking care of offsetting its initial position.
 func (rl *Instance) printPrompt() {
-	// TODO: Here don't perform this if the line is longer than terminal
 	if rl.promptRight != "" {
-		// First go back to beginning of line, and clear everything
-		moveCursorBackwards(GetTermWidth())
-		print(seqClearLine)
-		print(seqClearScreenBelow)
+		// Only print the right prompt if the input line is shorter than the adjusted term width
+		lineFits := (rl.inputAt + len(rl.line) + getRealLength(rl.promptRight) + 1) < GetTermWidth()
 
-		forwardOffset := GetTermWidth() - getRealLength(rl.promptRight) - 1
-		moveCursorForwards(forwardOffset)
-		print(rl.promptRight)
+		if lineFits {
+			// First go back to beginning of line, and clear everything
+			moveCursorBackwards(GetTermWidth())
+			print(seqClearLine)
+			print(seqClearScreenBelow)
 
-		// Normally we are on a newline, since we just completed the previous.
-		moveCursorBackwards(GetTermWidth())
+			// Go to where we must print the right prompt, print and go back
+			forwardOffset := GetTermWidth() - getRealLength(rl.promptRight) - 1
+			moveCursorForwards(forwardOffset)
+			print(rl.promptRight)
+			moveCursorBackwards(GetTermWidth())
+		}
 	}
 
 	print(rl.getPromptLastLine())
@@ -257,91 +260,91 @@ func (rl *Instance) getPromptLastLine() string {
 
 // computePrompt - At any moment, returns an (1st or 2nd line) actualized prompt,
 // considering all input mode parameters and prompt string values.
-func (rl *Instance) computePromptAlt() (prompt []rune) {
-	switch rl.InputMode {
-	case Vim:
-		rl.computePromptVim()
-	case Emacs:
-		rl.computePromptEmacs()
-	}
-	return
-}
+// func (rl *Instance) computePromptAlt() (prompt []rune) {
+// 	switch rl.InputMode {
+// 	case Vim:
+// 		rl.computePromptVim()
+// 	case Emacs:
+// 		rl.computePromptEmacs()
+// 	}
+// 	return
+// }
 
-func (rl *Instance) computePromptVim() {
-	var vimStatus []rune // Here we use this as a temporary prompt string
+// func (rl *Instance) computePromptVim() {
+// 	var vimStatus []rune // Here we use this as a temporary prompt string
+//
+// 	// Compute Vim status string first
+// 	if rl.ShowVimMode {
+// 		switch rl.modeViMode {
+// 		case vimKeys:
+// 			vimStatus = []rune(vimKeysStr)
+// 		case vimInsert:
+// 			vimStatus = []rune(vimInsertStr)
+// 		case vimReplaceOnce:
+// 			vimStatus = []rune(vimReplaceOnceStr)
+// 		case vimReplaceMany:
+// 			vimStatus = []rune(vimReplaceManyStr)
+// 		case vimDelete:
+// 			vimStatus = []rune(vimDeleteStr)
+// 		}
+//
+// 		vimStatus = rl.colorizeVimPrompt(vimStatus)
+// 	}
+//
+// 	// Append any optional prompts for multiline mode
+// 	if rl.isMultiline {
+// 		if rl.promptMultiline != "" {
+// 			rl.realPrompt = append(vimStatus, []rune(rl.promptMultiline)...)
+// 		} else {
+// 			rl.realPrompt = vimStatus
+// 			rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
+// 		}
+// 	}
+// 	// Equivalent for non-multiline
+// 	if !rl.isMultiline {
+// 		if rl.prompt != "" {
+// 			rl.realPrompt = append(vimStatus, []rune(" "+rl.prompt)...)
+// 		} else {
+// 			// Vim status might be empty, but we don't care
+// 			rl.realPrompt = append(rl.realPrompt, vimStatus...)
+// 		}
+// 		// We add the multiline prompt anyway, because it might be empty and thus have
+// 		// no effect on our user interface, or be specified and thus needed.
+// 		// if rl.MultilinePrompt != "" {
+// 		rl.realPrompt = append(rl.realPrompt, []rune(rl.promptMultiline)...)
+// 		// } else {
+// 		//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
+// 		// }
+// 	}
+//
+// 	// Strip color escapes
+// 	// rl.inputAt = getRealLength(string(rl.realPrompt))
+// }
 
-	// Compute Vim status string first
-	if rl.ShowVimMode {
-		switch rl.modeViMode {
-		case vimKeys:
-			vimStatus = []rune(vimKeysStr)
-		case vimInsert:
-			vimStatus = []rune(vimInsertStr)
-		case vimReplaceOnce:
-			vimStatus = []rune(vimReplaceOnceStr)
-		case vimReplaceMany:
-			vimStatus = []rune(vimReplaceManyStr)
-		case vimDelete:
-			vimStatus = []rune(vimDeleteStr)
-		}
-
-		vimStatus = rl.colorizeVimPrompt(vimStatus)
-	}
-
-	// Append any optional prompts for multiline mode
-	if rl.isMultiline {
-		if rl.promptMultiline != "" {
-			rl.realPrompt = append(vimStatus, []rune(rl.promptMultiline)...)
-		} else {
-			rl.realPrompt = vimStatus
-			rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
-		}
-	}
-	// Equivalent for non-multiline
-	if !rl.isMultiline {
-		if rl.prompt != "" {
-			rl.realPrompt = append(vimStatus, []rune(" "+rl.prompt)...)
-		} else {
-			// Vim status might be empty, but we don't care
-			rl.realPrompt = append(rl.realPrompt, vimStatus...)
-		}
-		// We add the multiline prompt anyway, because it might be empty and thus have
-		// no effect on our user interface, or be specified and thus needed.
-		// if rl.MultilinePrompt != "" {
-		rl.realPrompt = append(rl.realPrompt, []rune(rl.promptMultiline)...)
-		// } else {
-		//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
-		// }
-	}
-
-	// Strip color escapes
-	rl.inputAt = getRealLength(string(rl.realPrompt))
-}
-
-func (rl *Instance) computePromptEmacs() {
-	if rl.isMultiline {
-		if rl.promptMultiline != "" {
-			rl.realPrompt = []rune(rl.promptMultiline)
-		} else {
-			rl.realPrompt = rl.defaultPrompt
-		}
-	}
-	if !rl.isMultiline {
-		if rl.prompt != "" {
-			rl.realPrompt = []rune(rl.prompt)
-		}
-		// We add the multiline prompt anyway, because it might be empty and thus have
-		// no effect on our user interface, or be specified and thus needed.
-		// if rl.MultilinePrompt != "" {
-		rl.realPrompt = append(rl.realPrompt, []rune(rl.promptMultiline)...)
-		// } else {
-		//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
-		// }
-	}
-
-	// Strip color escapes
-	rl.inputAt = getRealLength(string(rl.realPrompt))
-}
+// func (rl *Instance) computePromptEmacs() {
+// 	if rl.isMultiline {
+// 		if rl.promptMultiline != "" {
+// 			rl.realPrompt = []rune(rl.promptMultiline)
+// 		} else {
+// 			rl.realPrompt = rl.defaultPrompt
+// 		}
+// 	}
+// 	if !rl.isMultiline {
+// 		if rl.prompt != "" {
+// 			rl.realPrompt = []rune(rl.prompt)
+// 		}
+// 		// We add the multiline prompt anyway, because it might be empty and thus have
+// 		// no effect on our user interface, or be specified and thus needed.
+// 		// if rl.MultilinePrompt != "" {
+// 		rl.realPrompt = append(rl.realPrompt, []rune(rl.promptMultiline)...)
+// 		// } else {
+// 		//         rl.realPrompt = append(rl.realPrompt, rl.defaultPrompt...)
+// 		// }
+// 	}
+//
+// 	// Strip color escapes
+// 	// rl.inputAt = getRealLength(string(rl.realPrompt))
+// }
 
 func (rl *Instance) colorizeVimPrompt(p []rune) (cp []rune) {
 	if rl.VimModeColorize {

@@ -40,7 +40,7 @@ type Instance struct {
 	promptTransient     string
 	promptTransientFunc func() string
 
-	realPrompt     []rune // The prompt that is actually on the same line as the beginning of the input line. TODO: not needed
+	// realPrompt     []rune // The prompt that is actually on the same line as the beginning of the input line. TODO: not needed
 	defaultPrompt  []rune
 	inputAt        int
 	stillOnRefresh bool // True if some logs have printed asynchronously since last loop. Check refresh prompt funcs

@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"os"
 	"strings"
 )
@@ -255,10 +254,9 @@ func (rl *Instance) carriageReturn() {
 func (rl *Instance) clearScreen() {
 	print(seqClearScreen)
 	print(seqCursorTopLeft)
-	if rl.isMultiline {
-		// TODO: here rander prompt in function correctly, all prompts.
-		fmt.Println(rl.prompt)
-	}
+
+	// Print the prompt, all or part of it.
+	print(rl.getPromptPrimary())
 	print(seqClearScreenBelow)
 
 	rl.resetHintText()
@@ -327,16 +325,13 @@ func (rl *Instance) echo() {
 
 	default:
 		// Go back to prompt position, and clear everything below
-		// TODO this is redundant with printPrompt() initial moves.
 		moveCursorBackwards(GetTermWidth())
 		moveCursorUp(rl.posY)
 		print(seqClearScreenBelow)
 
 		// We are the very beginning of the line ON WHICH we are
-		// going to write the input line, but the prompt, if any
-		// has erased.
-		// We need to go up the number of lines for the prompts,
-		// and then print them again.
+		// going to write the input line, not higher, even if the
+		// entire primary+right prompt span several lines.
 		rl.printPrompt()
 
 		// Assemble the line, taking virtual completions into account
