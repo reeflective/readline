@@ -30,6 +30,22 @@ func (rl *Instance) initRegisters() {
 	}
 }
 
+// inputRegisters shows the application clipboard registers.
+func (rl *Instance) inputRegisters() (ret bool) {
+	if rl.modeViMode != vimInsert {
+		return true
+	}
+	rl.modeTabCompletion = true
+	rl.modeAutoFind = true
+	rl.searchMode = RegisterFind
+	// Else we might be asked to confirm printing (if too many suggestions), or not.
+	rl.getTabCompletion()
+	rl.viUndoSkipAppend = true
+	rl.renderHelpers()
+
+	return
+}
+
 // saveToRegister - Passing a function that will move around the line in the desired way, we get
 // the number of Vim iterations and we save the resulting string to the appropriate buffer.
 // It's the same as saveToRegisterTokenize, but without the need to generate tokenized &

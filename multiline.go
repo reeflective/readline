@@ -8,7 +8,7 @@ import (
 // initMultiline is ran once at the beginning of an instance start.
 func (rl *Instance) initMultiline() (string, error) {
 	r := []rune(rl.multisplit[0])
-	rl.editorInput(r)
+	rl.inputEditor(r)
 	rl.carriageReturn()
 	if len(rl.multisplit) > 1 {
 		rl.multisplit = rl.multisplit[1:]
@@ -41,7 +41,7 @@ func (rl *Instance) processMultiline(r []rune, b []byte, i int) (done, ret bool,
 
 	r = []rune(rl.multisplit[0])
 	rl.modeViMode = vimInsert
-	rl.editorInput(r)
+	rl.inputEditor(r)
 	rl.carriageReturn()
 	rl.multiline = []byte{}
 	if len(rl.multisplit) > 1 {
