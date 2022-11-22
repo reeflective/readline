@@ -23,25 +23,27 @@ type prompt struct {
 	transient  string
 	transientF func() string
 
-	stillOnRefresh bool // True if some logs have printed asynchronously since last loop. Check refresh prompt funcs
+	// True if some logs have printed asynchronously
+	// since last loop. Check refresh prompt funcs.
+	stillOnRefresh bool
 }
 
-// Prompt uses a function returning the string to use as the primary prompt
+// Primary uses a function returning the string to use as the primary prompt
 func (p *prompt) Primary(prompt func() string) {
 	p.primaryF = prompt
 }
 
-// PromptRight uses a function returning the string to use as the right prompt
+// Right uses a function returning the string to use as the right prompt
 func (p *prompt) Right(prompt func() string) {
 	p.rightF = prompt
 }
 
-// PromptSecondary uses a function returning the prompt to use as the secondary prompt.
+// Secondary uses a function returning the prompt to use as the secondary prompt.
 func (p *prompt) Secondary(prompt func() string) {
 	p.secondaryF = prompt
 }
 
-// PromptTransient uses a function returning the prompt to use as a transcient prompt.
+// Transient uses a function returning the prompt to use as a transcient prompt.
 func (p *prompt) Transient(prompt func() string) {
 	p.transientF = prompt
 }
@@ -114,11 +116,13 @@ func (p *prompt) getPrimaryLastLine() string {
 // computePromptAlt computes the correct lengths and offsets
 // for all prompt components, but does not print any of them.
 func (rl *Instance) computePrompt() {
-	lastLineIndex := strings.LastIndex(rl.Prompt.primary, "\n")
+	prompt := rl.Prompt.primary
+
+	lastLineIndex := strings.LastIndex(prompt, "\n")
 	if lastLineIndex != -1 {
-		rl.inputAt = len([]rune(ansi.Strip(rl.Prompt.primary[lastLineIndex+1:])))
+		rl.inputAt = len([]rune(ansi.Strip(prompt[lastLineIndex+1:])))
 	} else {
-		rl.inputAt = len([]rune(ansi.Strip(rl.Prompt.primary)))
+		rl.inputAt = len([]rune(ansi.Strip(prompt)))
 	}
 }
 

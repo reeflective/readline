@@ -22,6 +22,7 @@ type Instance struct {
 	// the user's custom prompt is set. Applies for both single and multiline prompts
 	// TODO: Write prompt segments/indicators for Vim mode and modifiers.
 	ShowVimMode bool
+
 	// Would not need this.
 	VimModeColorize bool // If set to true, varies colors of the VimModePrompt
 
@@ -139,6 +140,7 @@ type Instance struct {
 
 	// HintColor any ANSI escape codes you wish to use for hint formatting. By
 	// default this will just be blue.
+	// NOTE: Probably not needed either
 	HintFormatting string
 
 	hintText []rune // The actual hint text
@@ -169,7 +171,7 @@ type Instance struct {
 
 	EnableGetCursorPos bool
 
-	// event
+	// User-defined keypress events
 	evtKeyPress map[string]func(string, []rune, int) *EventReturn
 
 	// concurency
