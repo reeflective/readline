@@ -18,7 +18,7 @@ func (rl *Instance) Readline() (string, error) {
 	defer Restore(fd, state)
 
 	rl.initInput()
-	rl.initPrompt()
+	rl.Prompt.init(rl)
 	rl.initLine()
 	rl.initHelpers()
 	rl.initHistory()
@@ -99,11 +99,11 @@ func (rl *Instance) Readline() (string, error) {
 		case charCtrlY:
 			rl.pasteDefaultRegister()
 		case charCtrlE:
-			if done := rl.goToInputEnd(); done {
+			if done := rl.goToLineEnd(); done {
 				continue
 			}
 		case charCtrlA:
-			if done := rl.goToInputBegin(); done {
+			if done := rl.goToLineBegin(); done {
 				continue
 			}
 

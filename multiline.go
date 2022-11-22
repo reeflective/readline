@@ -72,13 +72,14 @@ func (rl *Instance) allowMultiline(data []byte) bool {
 		s := string(b[:i])
 		print(s)
 
+		// NOTE: Where should we print the prompt more properly ?
 		switch s {
 		case "y", "Y":
-			print("\r\n" + rl.prompt)
+			print("\r\n" + rl.Prompt.primary)
 			return true
 
 		case "n", "N":
-			print("\r\n" + rl.prompt)
+			print("\r\n" + rl.Prompt.primary)
 			return false
 
 		case "p", "P":

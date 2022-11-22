@@ -13,47 +13,6 @@ func (rl *Instance) errorCtrlC() (done, ret bool) {
 	return false, true
 }
 
-func (rl *Instance) inputBackspace() (done bool) {
-	// When currently in history completion, we refresh and automatically
-	// insert the first (filtered) candidate, virtually
-	if rl.modeAutoFind && rl.searchMode == HistoryFind {
-		rl.resetVirtualComp(true)
-		rl.backspaceTabFind()
-
-		// Then update the printing, with the new candidate
-		rl.updateVirtualComp()
-		rl.renderHelpers()
-		rl.viUndoSkipAppend = true
-		return true
-	}
-
-	// Normal completion search does only refresh the search pattern and the comps
-	if rl.modeTabFind || rl.modeAutoFind {
-		rl.backspaceTabFind()
-		rl.viUndoSkipAppend = true
-	} else {
-		// Always cancel any virtual completion
-		rl.resetVirtualComp(false)
-
-		// Vim mode has different behaviors
-		if rl.InputMode == Vim {
-			if rl.modeViMode == vimInsert {
-				rl.backspace()
-			} else {
-				rl.pos--
-			}
-			rl.renderHelpers()
-			return true
-		}
-
-		// Else emacs deletes a character
-		rl.backspace()
-		rl.renderHelpers()
-	}
-
-	return
-}
-
 // Escape key generally aborts most completion/prompt helpers.
 func (rl *Instance) inputEsc(r []rune, b []byte, i int) {
 	// If we were waiting for completion confirm, abort
@@ -136,71 +95,43 @@ func (rl *Instance) inputEnter() (done, ret bool, val string, err error) {
 	return
 }
 
-func (rl *Instance) deleteLine() {
-	if rl.modeTabCompletion {
+func (rl *Instance) inputBackspace() (done bool) {
+	// When currently in history completion, we refresh and automatically
+	// insert the first (filtered) candidate, virtually
+	if rl.modeAutoFind && rl.searchMode == HistoryFind {
 		rl.resetVirtualComp(true)
-	}
-	// Delete everything from the beginning of the line to the cursor position
-	rl.saveBufToRegister(rl.line[:rl.pos])
-	rl.deleteToBeginning()
-	rl.resetHelpers()
-	rl.updateHelpers()
-}
+		rl.backspaceTabFind()
 
-func (rl *Instance) deleteWord() (done bool) {
-	if rl.modeTabCompletion {
-		rl.resetVirtualComp(false)
-	}
-	// This is only available in Insert mode
-	if rl.modeViMode != vimInsert {
+		// Then update the printing, with the new candidate
+		rl.updateVirtualComp()
+		rl.renderHelpers()
+		rl.viUndoSkipAppend = true
 		return true
 	}
-	rl.saveToRegister(rl.viJumpB(tokeniseLine))
-	rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
-	rl.updateHelpers()
 
-	return
-}
-
-func (rl *Instance) pasteDefaultRegister() {
-	if rl.modeTabCompletion {
+	// Normal completion search does only refresh the search pattern and the comps
+	if rl.modeTabFind || rl.modeAutoFind {
+		rl.backspaceTabFind()
+		rl.viUndoSkipAppend = true
+	} else {
+		// Always cancel any virtual completion
 		rl.resetVirtualComp(false)
-	}
-	// paste after the cursor position
-	rl.viUndoSkipAppend = true
-	buffer := rl.pasteFromRegister()
-	rl.insert(buffer)
-	rl.updateHelpers()
-}
 
-func (rl *Instance) goToInputEnd() (done bool) {
-	if rl.modeTabCompletion {
-		rl.resetVirtualComp(false)
-	}
-	// This is only available in Insert mode
-	if rl.modeViMode != vimInsert {
-		return true
-	}
-	if len(rl.line) > 0 {
-		rl.pos = len(rl.line)
-	}
-	rl.viUndoSkipAppend = true
-	rl.updateHelpers()
+		// Vim mode has different behaviors
+		if rl.InputMode == Vim {
+			if rl.modeViMode == vimInsert {
+				rl.backspace()
+			} else {
+				rl.pos--
+			}
+			rl.renderHelpers()
+			return true
+		}
 
-	return
-}
-
-func (rl *Instance) goToInputBegin() (done bool) {
-	if rl.modeTabCompletion {
-		rl.resetVirtualComp(false)
+		// Else emacs deletes a character
+		rl.backspace()
+		rl.renderHelpers()
 	}
-	// This is only available in Insert mode
-	if rl.modeViMode != vimInsert {
-		return true
-	}
-	rl.viUndoSkipAppend = true
-	rl.pos = 0
-	rl.updateHelpers()
 
 	return
 }
@@ -244,5 +175,74 @@ func (rl *Instance) inputDispatch(r []rune, i int) (done, ret bool, val string, 
 
 	// Notice we don't return done = true, since any action independent of our
 	// while could still have to run while us not knowing it, so just shut up.
+	return
+}
+
+func (rl *Instance) deleteLine() {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(true)
+	}
+	// Delete everything from the beginning of the line to the cursor position
+	rl.saveBufToRegister(rl.line[:rl.pos])
+	rl.deleteToBeginning()
+	rl.resetHelpers()
+	rl.updateHelpers()
+}
+
+func (rl *Instance) deleteWord() (done bool) {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(false)
+	}
+	// This is only available in Insert mode
+	if rl.modeViMode != vimInsert {
+		return true
+	}
+	rl.saveToRegister(rl.viJumpB(tokeniseLine))
+	rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
+	rl.updateHelpers()
+
+	return
+}
+
+func (rl *Instance) pasteDefaultRegister() {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(false)
+	}
+	// paste after the cursor position
+	rl.viUndoSkipAppend = true
+	buffer := rl.pasteFromRegister()
+	rl.insert(buffer)
+	rl.updateHelpers()
+}
+
+func (rl *Instance) goToLineEnd() (done bool) {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(false)
+	}
+	// This is only available in Insert mode
+	if rl.modeViMode != vimInsert {
+		return true
+	}
+	if len(rl.line) > 0 {
+		rl.pos = len(rl.line)
+	}
+	rl.viUndoSkipAppend = true
+	rl.updateHelpers()
+
+	return
+}
+
+func (rl *Instance) goToLineBegin() (done bool) {
+	if rl.modeTabCompletion {
+		rl.resetVirtualComp(false)
+	}
+	// This is only available in Insert mode
+	if rl.modeViMode != vimInsert {
+		return true
+	}
+	rl.viUndoSkipAppend = true
+	rl.pos = 0
+	rl.updateHelpers()
+
 	return
 }

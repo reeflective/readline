@@ -150,7 +150,8 @@ func (rl *Instance) walkHistory(i int) {
 		if err != nil {
 			rl.resetHelpers()
 			print("\r\n" + err.Error() + "\r\n")
-			print(rl.prompt)
+			// NOTE: Same here ? Should we print the prompt more properly ?
+			print(rl.Prompt.primary)
 			return
 		}
 

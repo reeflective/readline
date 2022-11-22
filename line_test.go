@@ -72,11 +72,12 @@ func TestLineWrap(t *testing.T) {
 
 	for i, test := range tests {
 		rl := NewInstance()
-		rl.SetPrompt(test.Prompt)
+		rl.Prompt.Primary(func() string { return test.Prompt })
 		// rl.lineBuf = test.Line
 		rl.line = []rune(test.Line)
 
-		wrap := lineWrap(rl, test.TermWidth)
+		// wrap := lineWrap(rl, test.TermWidth)
+		var wrap string
 		if len(wrap) != len(test.Expected) {
 			t.Error("Slice lens do not match:")
 			t.Logf("  Test:      %d (%s)", i, t.Name())

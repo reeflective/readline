@@ -256,7 +256,7 @@ func (rl *Instance) clearScreen() {
 	print(seqCursorTopLeft)
 
 	// Print the prompt, all or part of it.
-	print(rl.getPromptPrimary())
+	print(rl.Prompt.getPrimary())
 	print(seqClearScreenBelow)
 
 	rl.resetHintText()
@@ -332,7 +332,7 @@ func (rl *Instance) echo() {
 		// We are the very beginning of the line ON WHICH we are
 		// going to write the input line, not higher, even if the
 		// entire primary+right prompt span several lines.
-		rl.printPrompt()
+		rl.Prompt.printLast(rl)
 
 		// Assemble the line, taking virtual completions into account
 		var line []rune
