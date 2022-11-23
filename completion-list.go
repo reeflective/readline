@@ -11,7 +11,7 @@ import (
 func (g *CompletionGroup) initList(rl *Instance) {
 	// Get the number of columns in which to print candidates/aliases,
 	// and the max pad for any given row (sum of all columns + spaces)
-	g.grouped, g.columnsWidth, g.rows = g.getPaddings()
+	g.grouped, g.columnsWidth, g.rows = g.groupValues()
 
 	for _, col := range g.columnsWidth {
 		g.tcMaxLength += col + 1 // +1 for spacing // NOTE: Should that +1 be added in groupCompletions() ?
@@ -43,6 +43,9 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 			if g.tcOffset > 0 {
 				g.tcPosY = 1
 				g.tcOffset--
+			} else if g.tcPosX > 0 {
+				g.tcPosX--
+				g.tcPosY = g.rows
 			} else {
 				return true, false
 			}
@@ -65,13 +68,13 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 	row, inRow := g.getCurrentRowValues()
 
 	if rl.tabCompletionReverse {
-		newY, found := g.getPreviousCandidate(row, inRow)
+		newY, found := g.getPreviousCandidate(row+1, inRow)
 		if found {
 			g.tcPosY -= newY
 			return false, false
 		} else {
 			// HERE GO TO last candidate of PREVIOUS COLUMN
-			g.tcPosX = 0
+			g.tcPosX--
 			g.tcPosY = g.tcMaxY
 			// return true, false
 		}
@@ -96,8 +99,10 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 	return false, false
 }
 
-func (g *CompletionGroup) getNextCandidate(i int, inRow int) (newY int, found bool) {
-	remaining := g.grouped[i:] // NOTE: maybe i-1
+// getNextCandidate recursively searches for a next candidate to be found in this group,
+// going across each series of rows and columns.
+func (g *CompletionGroup) getNextCandidate(i int, inRow int) (y int, found bool) {
+	remaining := g.grouped[i:]
 
 	for i, row := range remaining {
 
@@ -124,7 +129,7 @@ func (g *CompletionGroup) getNextCandidate(i int, inRow int) (newY int, found bo
 
 		// Skip if its does not have enough columns
 		if len(row)-1 < g.tcPosX {
-			newY++
+			y++
 			continue
 		}
 
@@ -136,11 +141,21 @@ func (g *CompletionGroup) getNextCandidate(i int, inRow int) (newY int, found bo
 		break
 	}
 
+	// If this column did not yield a candidate, perform
+	// the same lookup on the next column, starting on top.
+	if !found && g.tcPosX < len(g.columnsWidth)-1 {
+		g.tcPosX++
+		g.tcPosY = 1
+		g.tcOffset = 0
+		return g.getNextCandidate(0, 0)
+	}
+
 	return
 }
 
-func (g *CompletionGroup) getPreviousCandidate(i int, inRow int) (newY int, done bool) {
-	remaining := g.grouped[:i] // NOTE: maybe i-1
+// getPreviousCandidate goes up the list of completions and aliases to find one.
+func (g *CompletionGroup) getPreviousCandidate(i int, inRow int) (y int, found bool) {
+	remaining := g.grouped[:i]
 
 	for i := len(remaining); i > 0; i-- {
 		row := remaining[i-1]
@@ -151,27 +166,40 @@ func (g *CompletionGroup) getPreviousCandidate(i int, inRow int) (newY int, done
 		}
 
 		// Skip if its does not have enough columns
-		if len(row) < g.tcPosX {
-			newY++
+		if len(row)-1 < g.tcPosX {
+			y++
 			continue
 		}
 
 		// Else we have candidate for the given column,
 		// just break since our posY has been updated.
-		newY++
-		done = true
+		g.selected = row[g.tcPosX]
+
+		found = true
 		break
+	}
+
+	// If this column did not yield a candidate, perform
+	// the same lookup on the previous column, starting at bottom.
+	if !found && g.tcPosX > 0 {
+		g.tcPosX--
+		g.tcPosY = g.rows
+		return g.getPreviousCandidate(len(g.grouped), 0)
 	}
 
 	return
 }
 
+// getCurrentRowValues returns the Y coordinate at which we currently are,
+// as well as an additional Y coordinate if the current conceptual row spans
+// several lines (happening with many aliases of the same description).
 func (g *CompletionGroup) getCurrentRowValues() (rowIndex, inRow int) {
 	y := 0
 
 	for i, row := range g.grouped {
 		y++
 		rowIndex = i
+
 		if y == g.tcPosY {
 			break
 		}
@@ -213,9 +241,9 @@ func (g *CompletionGroup) goNextLineColumn() (done bool, next bool) {
 	return true, true
 }
 
-// writeList - A list completion string
+// writeList writes the entire group completions string with title,
+// and reports on the space this group uses on the terminal.
 func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
-	// Print group title and adjust offset if there is one.
 	if g.Name != "" {
 		comp += fmt.Sprintf("%s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
 		rl.tcUsedY++
@@ -238,7 +266,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	maxDescWidth := termWidth - maxLength - 4
 
 	// Generate the aggregated completions block as a string.
-	comps, usedY := g.buildCompList(maxLength, maxDescWidth)
+	comps, usedY := g.buildList(maxLength, maxDescWidth)
 	comp += comps
 	rl.tcUsedY += usedY
 
@@ -254,55 +282,53 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	return
 }
 
-func (g *CompletionGroup) buildCompList(maxLength, maxDescWidth int) (comp string, y int) {
-	// Our values are grouped under the same description in here,
-	// including those that have no description.
-
+// buildList generates the string for the entire group of completions, excluding its title.
+func (g *CompletionGroup) buildList(maxLength, maxDescWidth int) (comp string, y int) {
 	for i := g.tcOffset; i < len(g.grouped); i++ {
 		y++ // Consider next item
 		if y > g.tcMaxY {
 			return
 		}
 
-		colCounter := 0
+		column := 0
 
 		// If the number of values will span a number of lines that
 		// will overflow on tcMaxY, we cut the list to what is possible.
 		for _, val := range g.grouped[i] {
-			if colCounter == len(g.columnsWidth) {
+			if column == len(g.columnsWidth) {
 				y++
-				colCounter = 0
+				column = 0
 			}
 
-			// If we have reached our max, we will append the description and return
+			// If we have reached our max, we will
+			// append the description and return
 			if y-1 == g.tcMaxY {
 				break
 			}
 
-			// Else, good to print the candidate.
-			colCounter += 1
-
-			// NOTE: This might have to be removed
 			item := val.Value
 			if len(item) > maxLength {
 				item = item[:maxLength-3] + "..."
 			}
 
-			columnPad := strconv.Itoa(g.columnsWidth[colCounter-1])
+			pad := strconv.Itoa(g.columnsWidth[column])
 
-			item = fmt.Sprintf("%s%-"+columnPad+"s", g.highlight(val.Style, y, colCounter-1), item)
+			item = fmt.Sprintf("%s%-"+pad+"s", g.highlight(val.Style, y, column), item)
 			comp += item + seqReset
+
+			// Proceed with next column in this row (next alias)
+			column += 1
 		}
 
 		// Here we must add the description for this(ose) candidates,
 		// and potentially add the remaining padding needed before it.
-		comp += strings.Repeat(" ", sum(g.columnsWidth[colCounter:]))
+		comp += strings.Repeat(" ", sum(g.columnsWidth[column:]))
 
 		// And add the description
 		desc := g.grouped[i][0].Description
 		if desc != "" {
 			if len(desc) > maxDescWidth {
-				desc = g.ListSeparator + " " + desc[:maxDescWidth-3] + "..." + RESET // TODO: here change with seqReset ?
+				desc = g.ListSeparator + " " + desc[:maxDescWidth-3] + "..." + seqReset
 			} else {
 				desc = g.ListSeparator + " " + desc + RESET
 			}
@@ -313,37 +339,36 @@ func (g *CompletionGroup) buildCompList(maxLength, maxDescWidth int) (comp strin
 	return
 }
 
-// getMaxColumns computes the maximum number of completion candidate
-// columns we'll have to use, if any of them have one or more aliases,
-// computes the padding for each of these columns and the total one.
-func (g *CompletionGroup) getPaddings() (values [][]CompletionValue, columns []int, actualY int) {
+// getMaxColumns computes the maximum number of completion candidate columns we'll have to use,
+// if any have one or more aliases, computes padding for each of these columns and max y position.
+func (g *CompletionGroup) groupValues() (values [][]CompletionValue, columns []int, y int) {
 	// We have at least one column
 	columns = append(columns, 0)
-	g.rowsStartAt = make(map[int]int)
 
 NEXT_VALUE:
-	for _, value := range g.Values {
+	for _, val := range g.Values {
 
-		valLen := len([]rune(value.Value))
+		valLen := len([]rune(val.Value))
 
 		// If there is an existing group row for this description.
-		for i, aliased := range values {
-			if len(aliased) > 0 && aliased[0].Description == value.Description {
-				aliased = append(aliased, value)
-				values[i] = aliased
+		for i, alias := range values {
+			if len(alias) > 0 && alias[0].Description == val.Description {
+				alias = append(alias, val)
+				values[i] = alias
 
-				// If the total space taken by columns is greater than half the terminal,
-				// we find the column under which this value will be shown, and update pad.
+				// If the total space taken by columns is greater
+				// than half the terminal, we find the column under
+				// which this value will be shown, and update pad.
 				if (sum(columns) + valLen) > (GetTermWidth() / 2) {
-					columnX := len(aliased) % len(columns)
+					columnX := len(alias) % len(columns)
 
 					if columns[columnX] < valLen {
 						columns[columnX] = valLen
 					}
-				} else if len(aliased) > len(columns) {
+				} else if len(alias) > len(columns) {
 					columns = append(columns, valLen)
-				} else if columns[len(aliased)-1] < valLen {
-					columns[len(aliased)-1] = valLen
+				} else if columns[len(alias)-1] < valLen {
+					columns[len(alias)-1] = valLen
 				}
 
 				continue NEXT_VALUE
@@ -351,7 +376,7 @@ NEXT_VALUE:
 		}
 
 		// Else create a new row, and update the row pad.
-		values = append(values, []CompletionValue{value})
+		values = append(values, []CompletionValue{val})
 		if columns[0] < valLen {
 			columns[0] = valLen
 		}
@@ -359,9 +384,9 @@ NEXT_VALUE:
 
 	// Compute the actual number of lines for this group
 	for _, vals := range values {
-		actualY += len(vals) / len(columns)
+		y += len(vals) / len(columns)
 		if (len(vals) % len(columns)) > 0 {
-			actualY++
+			y++
 		}
 	}
 

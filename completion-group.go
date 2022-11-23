@@ -41,7 +41,6 @@ type CompletionGroup struct {
 	// Internal completions listed, grouped and with columns/paddings computed
 	grouped      [][]CompletionValue
 	columnsWidth []int
-	rowsStartAt  map[int]int
 	selected     CompletionValue
 
 	// Values used by the shell
@@ -194,6 +193,17 @@ func (g *CompletionGroup) getCurrentCell(rl *Instance) CompletionValue {
 		}
 
 		return g.selected
+		// // TODO: rewrite all of this for arbitrary aliases
+		// sugg := g.Values[cell]
+		//
+		// // If we are in the alt suggestions column, check key and return
+		// if g.tcPosX == 1 {
+		// 	// if alt, ok := g.Aliases[sugg]; ok {
+		// 	// 	return alt
+		// 	// }
+		// 	return sugg
+		// }
+		// return sugg
 	}
 
 	// We should never get here
