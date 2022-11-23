@@ -50,43 +50,42 @@ func (dtc DelayedTabContext) AppendGroupSuggestions(groupName string, suggestion
 	defer dtc.rl.mutex.Unlock()
 
 	// Get the group, and return if not found
-	var grp *CompletionGroup
-	for _, g := range dtc.rl.tcGroups {
-		if g.Name == groupName {
-			grp = g
-		}
-	}
-	if grp == nil {
-		return
-	}
-
-	// Add candidate items
-	for i := range suggestions {
-		select {
-		case <-dtc.Context.Done():
-			return
-
-		default:
-			// Drop duplicates
-			for _, actual := range grp.Suggestions {
-				if actual == suggestions[i] {
-					continue
-				}
-			}
-
-			// Descriptions might be used by tabdisplay maps or grids, but not lists.
-			if grp.DisplayType != TabDisplayList {
-				grp.Descriptions[suggestions[i]] = suggestions[i]
-			}
-
-			// Suggestions are used by all groups no matter their display type
-			grp.Suggestions = append(grp.Suggestions, suggestions[i])
-		}
-	}
-
-	dtc.rl.clearHelpers()
-	dtc.rl.renderHelpers()
-
+	// var grp *CompletionGroup
+	// for _, g := range dtc.rl.tcGroups {
+	// 	if g.Name == groupName {
+	// 		grp = g
+	// 	}
+	// }
+	// if grp == nil {
+	// 	return
+	// }
+	//
+	// // Add candidate items
+	// for i := range suggestions {
+	// 	select {
+	// 	case <-dtc.Context.Done():
+	// 		return
+	//
+	// 	default:
+	// 		// Drop duplicates
+	// 		for _, actual := range grp.Suggestions {
+	// 			if actual == suggestions[i] {
+	// 				continue
+	// 			}
+	// 		}
+	//
+	// 		// Descriptions might be used by tabdisplay maps or grids, but not lists.
+	// 		if grp.DisplayType != TabDisplayList {
+	// 			grp.Descriptions[suggestions[i]] = suggestions[i]
+	// 		}
+	//
+	// 		// Suggestions are used by all groups no matter their display type
+	// 		grp.Suggestions = append(grp.Suggestions, suggestions[i])
+	// 	}
+	// }
+	//
+	// dtc.rl.clearHelpers()
+	// dtc.rl.renderHelpers()
 }
 
 // AppendGroupAliases - Given a group name, append a list of completion candidates' ALIASES, that is, a second candidate item.
@@ -98,43 +97,43 @@ func (dtc DelayedTabContext) AppendGroupAliases(groupName string, aliases map[st
 	defer dtc.rl.mutex.Unlock()
 
 	// Get the group, and return if not found
-	var grp *CompletionGroup
-	for _, g := range dtc.rl.tcGroups {
-		if g.Name == groupName {
-			grp = g
-		}
-	}
-	if grp == nil {
-		return
-	}
-
-	// Add candidate aliases
-	for sugg, alias := range aliases {
-		select {
-		case <-dtc.Context.Done():
-			return
-
-		default:
-			// Add to suggestions list if not existing yet
-			var found bool
-			for _, actual := range grp.Suggestions {
-				if actual == sugg {
-					found = true
-				}
-			}
-			if !found {
-				grp.Suggestions = append(grp.Suggestions, sugg)
-			}
-
-			// Map the new description anyway
-			grp.Aliases[sugg] = alias
-		}
-	}
-
-	// Reinit all completion groups (recomputes sizes)
-	for _, grp := range dtc.rl.tcGroups {
-		grp.init(dtc.rl)
-	}
+	// var grp *CompletionGroup
+	// for _, g := range dtc.rl.tcGroups {
+	// 	if g.Name == groupName {
+	// 		grp = g
+	// 	}
+	// }
+	// if grp == nil {
+	// 	return
+	// }
+	//
+	// // Add candidate aliases
+	// for sugg, alias := range aliases {
+	// 	select {
+	// 	case <-dtc.Context.Done():
+	// 		return
+	//
+	// 	default:
+	// 		// Add to suggestions list if not existing yet
+	// 		var found bool
+	// 		for _, actual := range grp.Suggestions {
+	// 			if actual == sugg {
+	// 				found = true
+	// 			}
+	// 		}
+	// 		if !found {
+	// 			grp.Suggestions = append(grp.Suggestions, sugg)
+	// 		}
+	//
+	// 		// Map the new description anyway
+	// 		grp.Aliases[sugg] = alias
+	// 	}
+	// }
+	//
+	// // Reinit all completion groups (recomputes sizes)
+	// for _, grp := range dtc.rl.tcGroups {
+	// 	grp.init(dtc.rl)
+	// }
 
 	// dtc.rl.clearHelpers()
 	// dtc.rl.renderHelpers()
@@ -148,54 +147,54 @@ func (dtc DelayedTabContext) AppendGroupDescriptions(groupName string, descripti
 	defer dtc.rl.mutex.Unlock()
 
 	// Get the group, and return if not found
-	var grp *CompletionGroup
-	for _, g := range dtc.rl.tcGroups {
-		if g.Name == groupName {
-			grp = g
-		}
-	}
-	if grp == nil {
-		return
-	}
-
-	// Add candidate descriptions
-	for sugg, desc := range descriptions {
-		select {
-		case <-dtc.Context.Done():
-			return
-
-		default:
-			// Add to suggestions list if not existing yet
-			var found bool
-			for _, actual := range grp.Suggestions {
-				if actual == sugg {
-					found = true
-				}
-			}
-			if !found {
-				grp.Suggestions = append(grp.Suggestions, sugg)
-			}
-
-			// Map the new description anyway
-			grp.Descriptions[sugg] = desc
-		}
-	}
-
-	// Reinit all completion groups (recomputes sizes)
-	for _, grp := range dtc.rl.tcGroups {
-		grp.init(dtc.rl)
-	}
-	dtc.rl.clearHelpers()
-	dtc.rl.renderHelpers()
+	// var grp *CompletionGroup
+	// for _, g := range dtc.rl.tcGroups {
+	// 	if g.Name == groupName {
+	// 		grp = g
+	// 	}
+	// }
+	// if grp == nil {
+	// 	return
+	// }
+	//
+	// // Add candidate descriptions
+	// for sugg, desc := range descriptions {
+	// 	select {
+	// 	case <-dtc.Context.Done():
+	// 		return
+	//
+	// 	default:
+	// 		// Add to suggestions list if not existing yet
+	// 		var found bool
+	// 		for _, actual := range grp.Suggestions {
+	// 			if actual == sugg {
+	// 				found = true
+	// 			}
+	// 		}
+	// 		if !found {
+	// 			grp.Suggestions = append(grp.Suggestions, sugg)
+	// 		}
+	//
+	// 		// Map the new description anyway
+	// 		grp.Descriptions[sugg] = desc
+	// 	}
+	// }
+	//
+	// // Reinit all completion groups (recomputes sizes)
+	// for _, grp := range dtc.rl.tcGroups {
+	// 	grp.init(dtc.rl)
+	// }
+	// dtc.rl.clearHelpers()
+	// dtc.rl.renderHelpers()
 }
 
 // AppendGroup - Asynchronously add an entire group of completions to the current list
-func (dtc DelayedTabContext) AppendGroup(group *CompletionGroup) {
+func (dtc DelayedTabContext) AppendGroup(group *CompletionGroupOld) {
 	dtc.rl.mutex.Lock()
 	defer dtc.rl.mutex.Unlock()
 
 	// Simply append group to the list
-	dtc.rl.tcGroups = append(dtc.rl.tcGroups, group)
+	// dtc.rl.tcGroups = append(dtc.rl.tcGroups, group)
 
 	dtc.rl.clearHelpers()
 	dtc.rl.renderHelpers()

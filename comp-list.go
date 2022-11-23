@@ -8,8 +8,7 @@ import (
 
 // initList - List display details. Because of the way alternative completions
 // are handled, MaxLength cannot be set when there are alternative completions.
-func (g *CompletionGroup) initList(rl *Instance) {
-
+func (g *CompletionGroupOld) initList(rl *Instance) {
 	// We may only ever have two different
 	// columns: (suggestions, and alternatives)
 	g.tcMaxX = 2
@@ -23,7 +22,7 @@ func (g *CompletionGroup) initList(rl *Instance) {
 	}
 
 	// Compute size of each completion item box. Group independent
-	g.tcMaxLength = rl.getListPad()
+	// g.tcMaxLength = rl.getListPad()
 
 	// Same for suggestions alt
 	g.tcMaxLengthAlt = 0
@@ -53,8 +52,7 @@ func (g *CompletionGroup) initList(rl *Instance) {
 
 // moveTabListHighlight - Moves the highlighting for currently selected completion item (list display)
 // We don't care about the x, because only can have 2 columns of selectable choices (--long and -s)
-func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done bool, next bool) {
-
+func (g *CompletionGroupOld) moveTabListHighlight(rl *Instance, x, y int) (done bool, next bool) {
 	// We dont' pass to x, because not managed by callers
 	g.tcPosY += x
 	g.tcPosY += y
@@ -153,8 +151,7 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 }
 
 // writeList - A list completion string
-func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
-
+func (g *CompletionGroupOld) writeList(rl *Instance) (comp string) {
 	// Print group title and adjust offset if there is one.
 	if g.Name != "" {
 		comp += fmt.Sprintf("%s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
@@ -244,16 +241,16 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	return
 }
 
-func (rl *Instance) getListPad() (pad int) {
-	for _, group := range rl.tcGroups {
-		if group.DisplayType == TabDisplayList {
-			for i := range group.Suggestions {
-				if len(group.Suggestions[i]) > pad {
-					pad = len([]rune(group.Suggestions[i]))
-				}
-			}
-		}
-	}
-
-	return
-}
+// func (rl *Instance) getListPadAlt() (pad int) {
+// 	for _, group := range rl.tcGroups {
+// 		if group.DisplayType == TabDisplayList {
+// 			for i := range group.Suggestions {
+// 				if len(group.Suggestions[i]) > pad {
+// 					pad = len([]rune(group.Suggestions[i]))
+// 				}
+// 			}
+// 		}
+// 	}
+//
+// 	return
+// }

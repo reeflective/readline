@@ -54,7 +54,7 @@ func (rl *Instance) inputEnter() (done, ret bool, val string, err error) {
 		// (in which case the completion is ""), we immediately return.
 		completion := cur.getCurrentCell(rl)
 		prefix := len(rl.tcPrefix)
-		if prefix > len(completion) {
+		if prefix > len(completion.Value) {
 			rl.carriageReturn()
 
 			val = string(rl.line)

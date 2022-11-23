@@ -106,13 +106,6 @@ func (rl *Instance) inputCompletionTab(b []byte, i int) (done, ret bool, val str
 		return
 	}
 
-	defer func() {
-		rl.updateHelpers() // WARN: Redundant with update helpers below
-		rl.viUndoSkipAppend = true
-
-		done = true
-	}()
-
 	// If we have asked for completions, already printed, and we want to move selection.
 	if rl.modeTabCompletion && !rl.compConfirmWait {
 		rl.tabCompletionSelect = true
@@ -123,6 +116,14 @@ func (rl *Instance) inputCompletionTab(b []byte, i int) (done, ret bool, val str
 
 		return
 	}
+
+	defer func() {
+		rl.updateHelpers() // WARN: Redundant with update helpers below
+		rl.viUndoSkipAppend = true
+
+		done = true
+	}()
+
 	// Else we might be asked to confirm printing (if too many suggestions), or not.
 	rl.getTabCompletion()
 
@@ -138,6 +139,8 @@ func (rl *Instance) inputCompletionTab(b []byte, i int) (done, ret bool, val str
 	rl.compConfirmWait = false
 	rl.modeTabCompletion = true
 
+	done = true
+
 	// Also here, if only one candidate is available, automatically
 	// insert it and don't bother printing completions.
 	// Quit the tab completion mode to avoid asking to the user
@@ -148,6 +151,7 @@ func (rl *Instance) inputCompletionTab(b []byte, i int) (done, ret bool, val str
 		// Refresh first, and then quit the completion mode
 		rl.updateHelpers() // REDUNDANT WITH getTabCompletion()
 		rl.resetTabCompletion()
+
 	}
 
 	return
@@ -184,7 +188,13 @@ func (rl *Instance) getRegisterCompletion() {
 	if len(rl.tcGroups) == 0 {
 		return
 	}
-	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
+
+	// Avoid nil maps in groups
+	var groups []CompletionGroup
+	for _, group := range rl.tcGroups {
+		groups = append(groups, *group)
+	}
+	rl.tcGroups = checkNilItems(groups)
 
 	// Adjust the index for each group after the first:
 	// this ensures no latency when we will move around them.
@@ -199,7 +209,7 @@ func (rl *Instance) getRegisterCompletion() {
 	// escape the completion mode from here directly.
 	var items bool
 	for _, group := range rl.tcGroups {
-		if len(group.Suggestions) > 0 {
+		if len(group.Values) > 0 {
 			items = true
 		}
 	}
@@ -236,34 +246,42 @@ func (rl *Instance) getTabSearchCompletion() {
 // getHistorySearchCompletion - Populates and sets up completion for command history search
 func (rl *Instance) getHistorySearchCompletion() {
 	// Refresh full list each time
-	rl.tcGroups = rl.completeHistory()
-	if len(rl.tcGroups) == 0 {
-		return
-	}
-	rl.tcGroups = checkNilItems(rl.tcGroups) // Avoid nil maps in groups
-	rl.getCurrentGroup()                     // Make sure there is a current group
-
-	// The history hint is already set, but overwrite it if we don't have completions
-	if len(rl.tcGroups[0].Suggestions) == 0 {
-		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
-			"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
-		rl.hintText = rl.histHint
-		return
-	}
-
-	// Set the hint line with everything
-	rl.histHint = append([]rune("\033[38;5;183m"+string(rl.histHint)+RESET), rl.tfLine...)
-	rl.histHint = append(rl.histHint, []rune(RESET)...)
-	rl.hintText = rl.histHint
-
-	// Refresh filtered candidates
-	rl.tcGroups[0].updateTabFind(rl)
-
-	// If no items matched history, add hint text that we failed to search
-	if len(rl.tcGroups[0].Suggestions) == 0 {
-		rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
-		return
-	}
+	// rl.tcGroups = rl.completeHistory()
+	// if len(rl.tcGroups) == 0 {
+	// 	return
+	// }
+	//
+	// // Avoid nil maps in groups
+	// var groups []CompletionGroup
+	// for _, group := range rl.tcGroups {
+	// 	groups = append(groups, *group)
+	// }
+	// rl.tcGroups = checkNilItems(groups)
+	//
+	// // Make sure there is a current group
+	// rl.getCurrentGroup()
+	//
+	// // The history hint is already set, but overwrite it if we don't have completions
+	// if len(rl.tcGroups[0].Suggestions) == 0 {
+	// 	rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
+	// 		"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
+	// 	rl.hintText = rl.histHint
+	// 	return
+	// }
+	//
+	// // Set the hint line with everything
+	// rl.histHint = append([]rune("\033[38;5;183m"+string(rl.histHint)+RESET), rl.tfLine...)
+	// rl.histHint = append(rl.histHint, []rune(RESET)...)
+	// rl.hintText = rl.histHint
+	//
+	// // Refresh filtered candidates
+	// rl.tcGroups[0].updateTabFind(rl)
+	//
+	// // If no items matched history, add hint text that we failed to search
+	// if len(rl.tcGroups[0].Suggestions) == 0 {
+	// 	rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+	// 	return
+	// }
 }
 
 // getNormalCompletion - Populates and sets up completion for normal comp mode.
@@ -285,7 +303,7 @@ func (rl *Instance) getNormalCompletion() {
 	// escape the completion mode from here directly.
 	var items bool
 	for _, group := range rl.tcGroups {
-		if len(group.Suggestions) > 0 {
+		if len(group.Values) > 0 {
 			items = true
 		}
 	}
@@ -316,10 +334,12 @@ func (rl *Instance) getCompletions() {
 	compLine, compPos := rl.getCompletionLine()
 
 	// Call up the completion engine/function to yield completion groups
-	rl.tcPrefix, rl.tcGroups = rl.TabCompleter(compLine, compPos, rl.delayedTabContext)
+	prefix, groups := rl.TabCompleter(compLine, compPos, rl.delayedTabContext)
+
+	rl.tcPrefix = prefix
 
 	// Avoid nil maps in groups. Maybe we could also pop any empty group.
-	rl.tcGroups = checkNilItems(rl.tcGroups)
+	rl.tcGroups = checkNilItems(groups)
 
 	// We have been loading fresh completion sin this function,
 	// so adjust the positions for each group, so that cycling
@@ -342,7 +362,7 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 	g := rl.getCurrentGroup()
 
 	// If there is no current group, we leave any current completion mode.
-	if g == nil || g.Suggestions == nil {
+	if g == nil || len(g.Values) == 0 {
 		rl.modeTabCompletion = false
 		return
 	}
@@ -358,19 +378,26 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 	case TabDisplayList:
 		done, next = g.moveTabListHighlight(rl, x, y)
 	case TabDisplayMap:
-		done, next = g.moveTabMapHighlight(rl, x, y)
+		// done, next = g.moveTabMapHighlight(rl, x, y)
 	}
 
 	// Cycle to next/previous group, if done with current one.
 	if done {
+		g.selected = CompletionValue{}
+
 		if next {
 			rl.cycleNextGroup()
 			nextGroup := rl.getCurrentGroup()
 			nextGroup.goFirstCell()
+
+			nextGroup.selected = nextGroup.grouped[0][0]
 		} else {
 			rl.cyclePreviousGroup()
 			prevGroup := rl.getCurrentGroup()
 			prevGroup.goLastCell()
+
+			lastRow := g.grouped[len(g.grouped)-1]
+			g.selected = lastRow[len(lastRow)-1]
 		}
 	}
 }
@@ -530,7 +557,7 @@ func (rl *Instance) getCompletionLine() (line []rune, pos int) {
 
 func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
 	for _, g := range rl.tcGroups {
-		if g.isCurrent && len(g.Suggestions) > 0 {
+		if g.isCurrent && len(g.Values) > 0 {
 			return g
 		}
 	}
@@ -539,7 +566,7 @@ func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
 	if len(rl.tcGroups) > 0 {
 		// Find first group that has list > 0, as another checkup
 		for _, g := range rl.tcGroups {
-			if len(g.Suggestions) > 0 {
+			if len(g.Values) > 0 {
 				g.isCurrent = true
 				return g
 			}
@@ -560,8 +587,8 @@ func (rl *Instance) cycleNextGroup() {
 				rl.tcGroups[i+1].isCurrent = true
 				// Here, we check if the cycled group is not empty.
 				// If yes, cycle to next one now.
-				new := rl.getCurrentGroup()
-				if len(new.Suggestions) == 0 {
+				next := rl.getCurrentGroup()
+				if len(next.Values) == 0 {
 					rl.cycleNextGroup()
 				}
 			}
@@ -579,8 +606,8 @@ func (rl *Instance) cyclePreviousGroup() {
 				rl.tcGroups[len(rl.tcGroups)-1].isCurrent = true
 			} else {
 				rl.tcGroups[i-1].isCurrent = true
-				new := rl.getCurrentGroup()
-				if len(new.Suggestions) == 0 {
+				prev := rl.getCurrentGroup()
+				if len(prev.Values) == 0 {
 					rl.cyclePreviousGroup()
 				}
 			}
@@ -601,7 +628,7 @@ func (rl *Instance) hasOneCandidate() bool {
 		if cur == nil {
 			return false
 		}
-		if len(cur.Suggestions) == 1 {
+		if len(cur.Values) == 1 {
 			return true
 		}
 		return false
@@ -611,7 +638,7 @@ func (rl *Instance) hasOneCandidate() bool {
 	if len(rl.tcGroups) > 1 {
 		var count int
 		for _, group := range rl.tcGroups {
-			for range group.Suggestions {
+			for range group.Values {
 				count++
 			}
 		}
@@ -639,13 +666,13 @@ func (rl *Instance) promptCompletionConfirm(sentence string) {
 
 func (rl *Instance) getCompletionCount() (comps int, lines int, adjusted int) {
 	for _, group := range rl.tcGroups {
-		comps += len(group.Suggestions)
+		comps += group.rows
 		// if group.Name != "" {
 		adjusted++ // Title
 		// }
-		if group.tcMaxY > len(group.Suggestions) {
-			lines += len(group.Suggestions)
-			adjusted += len(group.Suggestions)
+		if group.tcMaxY > group.rows {
+			lines += group.rows
+			adjusted += group.rows
 		} else {
 			lines += group.tcMaxY
 			adjusted += group.tcMaxY

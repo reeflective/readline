@@ -51,8 +51,12 @@ func (p *prompt) Transient(prompt func() string) {
 // initPrompt is ran once at the beginning of an instance start.
 func (p *prompt) init(rl *Instance) {
 	// Generate the prompt strings for this run
-	p.primary = p.primaryF()
-	p.right = p.rightF()
+	if p.primaryF != nil {
+		p.primary = p.primaryF()
+	}
+	if p.rightF != nil {
+		p.right = p.rightF()
+	}
 
 	// Print the primary prompt, potentially excluding the last line.
 	print(p.getPrimary())

@@ -176,9 +176,9 @@ func (rl *Instance) walkHistory(i int) {
 
 // completeHistory - Populates a CompletionGroup with history and returns it the shell
 // we populate only one group, so as to pass it to the main completion engine.
-func (rl *Instance) completeHistory() (hist []*CompletionGroup) {
-	hist = make([]*CompletionGroup, 1)
-	hist[0] = &CompletionGroup{
+func (rl *Instance) completeHistory() (hist []*CompletionGroupOld) {
+	hist = make([]*CompletionGroupOld, 1)
+	hist[0] = &CompletionGroupOld{
 		DisplayType: TabDisplayMap,
 		MaxLength:   10,
 	}

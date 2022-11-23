@@ -57,11 +57,10 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 // This candidate might either be the currently selected one (white frame),
 // or the only candidate available, if the total number of candidates is 1.
 func (rl *Instance) insertCandidate() {
-
 	cur := rl.getCurrentGroup()
 
 	if cur != nil {
-		completion := cur.getCurrentCell(rl)
+		completion := cur.getCurrentCell(rl).Value
 		prefix := len(rl.tcPrefix)
 
 		// Special case for the only special escape, which
@@ -86,7 +85,7 @@ func (rl *Instance) updateVirtualComp() {
 	cur := rl.getCurrentGroup()
 	if cur != nil {
 
-		completion := cur.getCurrentCell(rl)
+		completion := cur.getCurrentCell(rl).Value
 		prefix := len(rl.tcPrefix)
 
 		// If the total number of completions is one, automatically insert it.
@@ -102,6 +101,7 @@ func (rl *Instance) updateVirtualComp() {
 			// Special case for the only special escape, which
 			// if not handled, will make us insert the first
 			// character of our actual rl.tcPrefix in the candidate.
+			// TODO: This should changed.
 			if strings.HasPrefix(string(rl.tcPrefix), "%") {
 				prefix++
 			}
@@ -118,7 +118,6 @@ func (rl *Instance) updateVirtualComp() {
 // and makes sure that the current completion (virtually inserted) is either inserted or dropped,
 // and that all related parameters are reinitialized.
 func (rl *Instance) resetVirtualComp(drop bool) {
-
 	// If we don't have a current virtual completion, there's nothing to do.
 	// IMPORTANT: this MUST be first, to avoid nil problems with empty comps.
 	if len(rl.currentComp) == 0 {
@@ -126,12 +125,12 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	}
 
 	// Get the current candidate and its group.
-	//It contains info on how we must process it
+	// It contains info on how we must process it
 	cur := rl.getCurrentGroup()
 	if cur == nil {
 		return
 	}
-	completion := cur.getCurrentCell(rl)
+	completion := cur.getCurrentCell(rl).Value
 	// Avoid problems with empty completions
 	if completion == "" {
 		rl.clearVirtualComp()

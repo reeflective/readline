@@ -8,8 +8,7 @@ import (
 
 // initGrid - Grid display details. Called each time we want to be sure to have
 // a working completion group either immediately, or later on. Generally defered.
-func (g *CompletionGroup) initGrid(rl *Instance) {
-
+func (g *CompletionGroupOld) initGrid(rl *Instance) {
 	// Compute size of each completion item box
 	tcMaxLength := 1
 	for i := range g.Suggestions {
@@ -43,8 +42,7 @@ func (g *CompletionGroup) initGrid(rl *Instance) {
 }
 
 // moveTabGridHighlight - Moves the highlighting for currently selected completion item (grid display)
-func (g *CompletionGroup) moveTabGridHighlight(rl *Instance, x, y int) (done bool, next bool) {
-
+func (g *CompletionGroupOld) moveTabGridHighlight(rl *Instance, x, y int) (done bool, next bool) {
 	g.tcPosX += x
 	g.tcPosY += y
 
@@ -95,8 +93,7 @@ func (g *CompletionGroup) moveTabGridHighlight(rl *Instance, x, y int) (done boo
 }
 
 // writeGrid - A grid completion string
-func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
-
+func (g *CompletionGroupOld) writeGrid(rl *Instance) (comp string) {
 	// If group title, print it and adjust offset.
 	if g.Name != "" {
 		comp += fmt.Sprintf("%s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)

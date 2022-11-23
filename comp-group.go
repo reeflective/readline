@@ -1,10 +1,10 @@
 package readline
 
-// CompletionGroup - A group/category of items offered to completion, with its own
+// CompletionGroupOld - A group/category of items offered to completion, with its own
 // name, descriptions and completion display format/type.
 // The output, if there are multiple groups available for a given completion input,
 // will look like ZSH's completion system.
-type CompletionGroup struct {
+type CompletionGroupOld struct {
 	Name        string // If not nil, printed on top of the group's completions
 	Description string
 
@@ -48,7 +48,7 @@ type CompletionGroup struct {
 }
 
 // init - The completion group computes and sets all its values, and is then ready to work.
-func (g *CompletionGroup) init(rl *Instance) {
+func (g *CompletionGroupOld) init(rl *Instance) {
 	// Details common to all displays
 	g.checkCycle(rl) // Based on the number of groups given to the shell, allows cycling or not
 	g.checkMaxLength(rl)
@@ -68,7 +68,7 @@ func (g *CompletionGroup) init(rl *Instance) {
 // updateTabFind - When searching through all completion groups (whether it be command history or not),
 // we ask each of them to filter its own items and return the results to the shell for aggregating them.
 // The rx parameter is passed, as the shell already checked that the search pattern is valid.
-func (g *CompletionGroup) updateTabFind(rl *Instance) {
+func (g *CompletionGroupOld) updateTabFind(rl *Instance) {
 	suggs := make([]string, 0)
 
 	// We perform filter right here, so we create a new completion group, and populate it with our results.
@@ -94,7 +94,7 @@ func (g *CompletionGroup) updateTabFind(rl *Instance) {
 }
 
 // checkCycle - Based on the number of groups given to the shell, allows cycling or not
-func (g *CompletionGroup) checkCycle(rl *Instance) {
+func (g *CompletionGroupOld) checkCycle(rl *Instance) {
 	if len(rl.tcGroups) == 1 {
 		g.allowCycle = true
 	}
@@ -104,7 +104,7 @@ func (g *CompletionGroup) checkCycle(rl *Instance) {
 }
 
 // checkMaxLength - Based on the number of groups given to the shell, check/set MaxLength defaults
-func (g *CompletionGroup) checkMaxLength(rl *Instance) {
+func (g *CompletionGroupOld) checkMaxLength(rl *Instance) {
 	// This means the user forgot to set it
 	if g.MaxLength == 0 {
 		if len(rl.tcGroups) < 5 {
@@ -124,7 +124,7 @@ func (g *CompletionGroup) checkMaxLength(rl *Instance) {
 }
 
 // checkNilItems - For each completion group we avoid nil maps and possibly other items
-func checkNilItems(groups []*CompletionGroup) (checked []*CompletionGroup) {
+func checkNilItemsAlt(groups []CompletionGroupOld) (checked []*CompletionGroupOld) {
 	for _, grp := range groups {
 		if grp.Descriptions == nil || len(grp.Descriptions) == 0 {
 			grp.Descriptions = make(map[string]string)
@@ -132,7 +132,7 @@ func checkNilItems(groups []*CompletionGroup) (checked []*CompletionGroup) {
 		if grp.Aliases == nil || len(grp.Aliases) == 0 {
 			grp.Aliases = make(map[string]string)
 		}
-		checked = append(checked, grp)
+		checked = append(checked, &grp)
 	}
 
 	return
@@ -140,7 +140,7 @@ func checkNilItems(groups []*CompletionGroup) (checked []*CompletionGroup) {
 
 // writeCompletion - This function produces a formatted string containing all appropriate items
 // and according to display settings. This string is then appended to the main completion string.
-func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
+func (g *CompletionGroupOld) writeCompletion(rl *Instance) (comp string) {
 	// Avoids empty groups in suggestions
 	if len(g.Suggestions) == 0 {
 		return
@@ -161,7 +161,7 @@ func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
 
 // getCurrentCell - The completion groups computes the current cell value,
 // depending on its display type and its different parameters
-func (g *CompletionGroup) getCurrentCell(rl *Instance) string {
+func (g *CompletionGroupOld) getCurrentCell(rl *Instance) string {
 	switch g.DisplayType {
 	case TabDisplayGrid:
 		// x & y coodinates + safety check
@@ -208,7 +208,7 @@ func (g *CompletionGroup) getCurrentCell(rl *Instance) string {
 	return ""
 }
 
-func (g *CompletionGroup) goFirstCell() {
+func (g *CompletionGroupOld) goFirstCell() {
 	switch g.DisplayType {
 	case TabDisplayGrid:
 		g.tcPosX = 1
@@ -226,7 +226,7 @@ func (g *CompletionGroup) goFirstCell() {
 	}
 }
 
-func (g *CompletionGroup) goLastCell() {
+func (g *CompletionGroupOld) goLastCell() {
 	switch g.DisplayType {
 	case TabDisplayGrid:
 		g.tcPosY = g.tcMaxY
