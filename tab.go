@@ -245,43 +245,36 @@ func (rl *Instance) getTabSearchCompletion() {
 
 // getHistorySearchCompletion - Populates and sets up completion for command history search
 func (rl *Instance) getHistorySearchCompletion() {
-	// Refresh full list each time
-	// rl.tcGroups = rl.completeHistory()
-	// if len(rl.tcGroups) == 0 {
-	// 	return
-	// }
-	//
-	// // Avoid nil maps in groups
-	// var groups []CompletionGroup
-	// for _, group := range rl.tcGroups {
-	// 	groups = append(groups, *group)
-	// }
-	// rl.tcGroups = checkNilItems(groups)
-	//
-	// // Make sure there is a current group
-	// rl.getCurrentGroup()
-	//
-	// // The history hint is already set, but overwrite it if we don't have completions
-	// if len(rl.tcGroups[0].Suggestions) == 0 {
-	// 	rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
-	// 		"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
-	// 	rl.hintText = rl.histHint
-	// 	return
-	// }
-	//
-	// // Set the hint line with everything
-	// rl.histHint = append([]rune("\033[38;5;183m"+string(rl.histHint)+RESET), rl.tfLine...)
-	// rl.histHint = append(rl.histHint, []rune(RESET)...)
-	// rl.hintText = rl.histHint
-	//
-	// // Refresh filtered candidates
-	// rl.tcGroups[0].updateTabFind(rl)
-	//
-	// // If no items matched history, add hint text that we failed to search
-	// if len(rl.tcGroups[0].Suggestions) == 0 {
-	// 	rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
-	// 	return
-	// }
+	hist, notEmpty := rl.completeHistory()
+	rl.tcGroups = []*CompletionGroup{hist}
+	if len(rl.tcGroups) == 0 {
+		return
+	}
+
+	// Make sure there is a current group
+	rl.getCurrentGroup()
+
+	// The history hint is already set, but overwrite it if we don't have completions
+	if len(rl.tcGroups[0].Values) == 0 && !notEmpty {
+		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
+			"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
+		rl.hintText = rl.histHint
+		return
+	}
+
+	// Set the hint line with everything
+	rl.histHint = append([]rune(seqFgBlueBright+string(rl.histHint)+RESET), rl.tfLine...)
+	rl.histHint = append(rl.histHint, []rune(RESET)...)
+	rl.hintText = rl.histHint
+
+	// Refresh filtered candidates
+	rl.tcGroups[0].updateTabFind(rl)
+
+	// If no items matched history, add hint text that we failed to search
+	if len(rl.tcGroups[0].Values) == 0 {
+		rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+		return
+	}
 }
 
 // getNormalCompletion - Populates and sets up completion for normal comp mode.
@@ -431,7 +424,7 @@ func (rl *Instance) writeTabCompletion() {
 	completions, rl.tcUsedY = rl.cropCompletions(completions)
 
 	// Then we print all of them.
-	fmt.Printf(completions)
+	print(completions)
 }
 
 // cropCompletions - When the user cycles through a completion list longer

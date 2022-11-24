@@ -176,9 +176,8 @@ func (rl *Instance) walkHistory(i int) {
 
 // completeHistory - Populates a CompletionGroup with history and returns it the shell
 // we populate only one group, so as to pass it to the main completion engine.
-func (rl *Instance) completeHistory() (hist []*CompletionGroupOld) {
-	hist = make([]*CompletionGroupOld, 1)
-	hist[0] = &CompletionGroupOld{
+func (rl *Instance) completeHistory() (hist *CompletionGroup, notEmpty bool) {
+	hist = &CompletionGroup{
 		DisplayType: TabDisplayMap,
 		MaxLength:   10,
 	}
@@ -199,36 +198,44 @@ func (rl *Instance) completeHistory() (hist []*CompletionGroupOld) {
 		rl.histHint = []rune(rl.mainHistName + ": ")
 	}
 
-	hist[0].init(rl)
+	if history.Len() > 0 {
+		notEmpty = true
+	}
+
+	hist.init(rl)
 
 	var (
 		line string
-		num  string
 		err  error
 	)
 
 	// rl.tcPrefix = string(rl.line) // We use the current full line for filtering
 
-	for i := history.Len() - 2; i >= 1; i-- {
+NEXT_LINE:
+	for i := history.Len() - 1; i > -1; i-- {
 		line, err = history.GetLine(i)
 		if err != nil {
 			continue
 		}
 
-		if !strings.HasPrefix(line, rl.tcPrefix) {
+		if !strings.HasPrefix(line, rl.tcPrefix) || strings.TrimSpace(line) == "" {
 			continue
 		}
 
 		line = strings.ReplaceAll(line, "\n", ` `)
 
-		if hist[0].Descriptions[line] != "" {
-			continue
+		for _, val := range hist.Values {
+			if val.Display == line {
+				continue NEXT_LINE
+			}
 		}
 
-		hist[0].Suggestions = append(hist[0].Suggestions, line)
-		num = strconv.Itoa(i)
-
-		hist[0].Descriptions[line] = "\033[38;5;237m" + num + RESET
+		value := CompletionValue{
+			Display:     line,
+			Value:       line,
+			Description: DIM + strconv.Itoa(i) + seqReset,
+		}
+		hist.Values = append(hist.Values, value)
 	}
 
 	return
