@@ -378,7 +378,7 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 	case TabDisplayList:
 		done, next = g.moveTabListHighlight(rl, x, y)
 	case TabDisplayMap:
-		// done, next = g.moveTabMapHighlight(rl, x, y)
+		done, next = g.moveTabMapHighlight(rl, x, y)
 	}
 
 	// Cycle to next/previous group, if done with current one.

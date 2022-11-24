@@ -2,7 +2,6 @@ package readline
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -14,7 +13,7 @@ func (g *CompletionGroup) initList(rl *Instance) {
 	g.grouped, g.columnsWidth, g.rows = g.groupValues()
 
 	for _, col := range g.columnsWidth {
-		g.tcMaxLength += col + 1 // +1 for spacing // NOTE: Should that +1 be added in groupCompletions() ?
+		g.tcMaxLength += col + 1
 	}
 
 	g.tcMaxX = len(g.columnsWidth)
@@ -38,6 +37,7 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 	g.tcPosY += y
 
 	// Lines
+	// TODO: Refactor in function
 	if g.tcPosY < 1 {
 		if rl.tabCompletionReverse {
 			if g.tcOffset > 0 {
@@ -153,7 +153,7 @@ func (g *CompletionGroup) getNextCandidate(i int, inRow int) (y int, found bool)
 	return
 }
 
-// getPreviousCandidate goes up the list of completions and aliases to find one.
+// getPreviousCandidate recursively goes up the list of completions and aliases to find one.
 func (g *CompletionGroup) getPreviousCandidate(i int, inRow int) (y int, found bool) {
 	remaining := g.grouped[:i]
 
@@ -311,10 +311,13 @@ func (g *CompletionGroup) buildList(maxLength, maxDescWidth int) (comp string, y
 				item = item[:maxLength-3] + "..."
 			}
 
-			pad := strconv.Itoa(g.columnsWidth[column])
+			pad := g.columnsWidth[column] - len(item)
+			styling := g.highlight(val.Style, y, column)
 
-			item = fmt.Sprintf("%s%-"+pad+"s", g.highlight(val.Style, y, column), item)
-			comp += item + seqReset
+			item = fmt.Sprintf("%s%s%s", styling, item+seqReset, strings.Repeat(" ", pad)+" ")
+			comp += item
+
+			// TODO: If that was the last column, add the newline here
 
 			// Proceed with next column in this row (next alias)
 			column += 1
@@ -322,7 +325,7 @@ func (g *CompletionGroup) buildList(maxLength, maxDescWidth int) (comp string, y
 
 		// Here we must add the description for this(ose) candidates,
 		// and potentially add the remaining padding needed before it.
-		comp += strings.Repeat(" ", sum(g.columnsWidth[column:]))
+		comp += strings.Repeat(" ", sum(g.columnsWidth[column:])+(len(g.columnsWidth[column:])))
 
 		// And add the description
 		desc := g.grouped[i][0].Description

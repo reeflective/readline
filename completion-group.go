@@ -70,8 +70,8 @@ func (g *CompletionGroup) init(rl *Instance) {
 	switch g.DisplayType {
 	case TabDisplayGrid:
 		g.initGrid(rl)
-	// case TabDisplayMap:
-	// 	g.initMap(rl)
+	case TabDisplayMap:
+		g.initMap(rl)
 	case TabDisplayList:
 		g.initList(rl)
 	}
@@ -150,8 +150,8 @@ func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
 	switch g.DisplayType {
 	case TabDisplayGrid:
 		comp += g.writeGrid(rl)
-	// case TabDisplayMap:
-	// comp += g.writeMap(rl)
+	case TabDisplayMap:
+		comp += g.writeMap(rl)
 	case TabDisplayList:
 		comp += g.writeList(rl)
 	}
@@ -186,24 +186,7 @@ func (g *CompletionGroup) getCurrentCell(rl *Instance) CompletionValue {
 		return sugg
 
 	case TabDisplayList:
-		// x & y coodinates + safety check
-		cell := g.tcOffset + g.tcPosY - 1
-		if cell < 0 {
-			cell = 0
-		}
-
 		return g.selected
-		// // TODO: rewrite all of this for arbitrary aliases
-		// sugg := g.Values[cell]
-		//
-		// // If we are in the alt suggestions column, check key and return
-		// if g.tcPosX == 1 {
-		// 	// if alt, ok := g.Aliases[sugg]; ok {
-		// 	// 	return alt
-		// 	// }
-		// 	return sugg
-		// }
-		// return sugg
 	}
 
 	// We should never get here
@@ -254,16 +237,20 @@ func (g *CompletionGroup) goLastCell() {
 
 	case TabDisplayList:
 		// By default, the last item is at maxY
-		g.tcPosY = g.tcMaxY
+		g.tcPosY = g.tcMaxY - 1
+		//
+		// // If the max length is smaller than the number
+		// // of suggestions, we need to adjust the offset.
+		// if g.rows > g.MaxLength {
+		// 	g.tcOffset = g.rows - g.tcMaxY
+		// }
+		//
+		// // We do not take into account the alternative suggestions
+		// g.tcPosX = 0
 
-		// If the max length is smaller than the number
-		// of suggestions, we need to adjust the offset.
-		if g.rows > g.MaxLength {
-			g.tcOffset = g.rows - g.tcMaxY
-		}
-
-		// We do not take into account the alternative suggestions
-		g.tcPosX = 0
+		// ALTERNATIVE
+		g.tcPosX = len(g.columnsWidth) - 1
+		g.lastCellList()
 
 	case TabDisplayMap:
 		// By default, the last item is at maxY
@@ -278,6 +265,46 @@ func (g *CompletionGroup) goLastCell() {
 		// We do not take into account the alternative suggestions
 		g.tcPosX = 0
 	}
+}
+
+func (g *CompletionGroup) lastCellList() {
+	remaining := g.grouped
+	y := 0
+	found := false
+
+	for i := len(remaining); i > 0; i-- {
+		row := remaining[i-1]
+
+		// Adjust the first row if it has multiple subrows
+		// if i == len(remaining) && inRow > 0 {
+		// 	row = row[:(inRow * len(g.columnsWidth))]
+		// }
+
+		// Skip if its does not have enough columns
+		if len(row)-1 < g.tcPosX {
+			y++
+			continue
+		}
+
+		// Else we have candidate for the given column,
+		// just break since our posY has been updated.
+		g.selected = row[g.tcPosX]
+
+		found = true
+		break
+	}
+
+	// If this column did not yield a candidate, perform
+	// the same lookup on the previous column, starting at bottom.
+	if !found && g.tcPosX > 0 {
+		g.tcPosX--
+		g.tcPosY = g.rows
+		g.lastCellList()
+
+		return
+	}
+
+	g.tcPosY -= y - 1
 }
 
 // numValues returns the number of unique completion values, which
@@ -328,5 +355,13 @@ func (g *CompletionGroup) highlight(style string, y int, x int) string {
 		return seqCtermFg255 + seqFgBlackBright
 	}
 
-	return style
+	return sgrStart + fgColorStart + style + sgrEnd
+	// return style
 }
+
+const (
+	sgrStart     = "\x1b["
+	fgColorStart = "38;05;"
+	bgColorStart = "48;05;"
+	sgrEnd       = "m"
+)

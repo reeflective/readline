@@ -9,6 +9,8 @@ import (
 // initGrid - Grid display details. Called each time we want to be sure to have
 // a working completion group either immediately, or later on. Generally defered.
 func (g *CompletionGroup) initGrid(rl *Instance) {
+	g.grouped, g.columnsWidth, g.rows = g.groupValues()
+
 	// Compute size of each completion item box
 	tcMaxLength := 1
 	for i := range g.Values {

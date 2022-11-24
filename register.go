@@ -1,8 +1,8 @@
 package readline
 
 import (
-	// "fmt"
-	// "sort"
+	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -273,62 +273,85 @@ func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
 	rl.hintText = []rune(hint)
 
 	// Make the groups
-	// anonRegs := &CompletionGroup{
-	// 	DisplayType:  TabDisplayMap,
-	// 	MaxLength:    20,
-	// 	Descriptions: map[string]string{},
-	// }
-	//
-	// // Unnamed (the added space is because we must have a unique key.
-	// // This space is trimmed when the buffer is being passed to users)
-	// anonRegs.Suggestions = append(anonRegs.Suggestions, string(rl.registers.unnamed))
-	// anonRegs.Descriptions[string(rl.registers.unnamed)] = DIM + "\"" + "\"" + RESET
-	//
-	// groups = append(groups, anonRegs)
-	//
-	// // Numbered registers
-	// numRegs := &CompletionGroup{
-	// 	Name:         DIM + "num ([0-9])" + RESET,
-	// 	DisplayType:  TabDisplayMap,
-	// 	MaxLength:    20,
-	// 	Descriptions: map[string]string{},
-	// }
-	// var nums []int
-	// for reg := range rl.registers.num {
-	// 	nums = append(nums, reg)
-	// }
-	// sort.Ints(nums)
-	// for _, val := range nums {
-	// 	buf := rl.registers.num[val]
-	// 	numRegs.Suggestions = append(numRegs.Suggestions, string(buf))
-	// 	numRegs.Descriptions[string(buf)] = fmt.Sprintf("%s\"%d%s", DIM, val, RESET)
-	// }
-	//
-	// if len(numRegs.Suggestions) > 0 {
-	// 	groups = append(groups, numRegs)
-	// }
-	//
-	// // Letter registers
-	// alphaRegs := &CompletionGroup{
-	// 	Name:         DIM + "alpha ([a-z], [A-Z])" + RESET,
-	// 	DisplayType:  TabDisplayMap,
-	// 	MaxLength:    20,
-	// 	Descriptions: map[string]string{},
-	// }
-	// var lett []string
-	// for reg := range rl.registers.alpha {
-	// 	lett = append(lett, reg)
-	// }
-	// sort.Strings(lett)
-	// for _, reg := range lett {
-	// 	buf := rl.registers.alpha[reg]
-	// 	alphaRegs.Suggestions = append(alphaRegs.Suggestions, string(buf))
-	// 	alphaRegs.Descriptions[string(buf)] = DIM + "\"" + reg + RESET
-	// }
-	//
-	// if len(alphaRegs.Suggestions) > 0 {
-	// 	groups = append(groups, alphaRegs)
-	// }
+	anonRegs := &CompletionGroup{
+		DisplayType: TabDisplayMap,
+		MaxLength:   20,
+	}
+
+	// Unnamed (the added space is because we must have a unique key.
+	// This space is trimmed when the buffer is being passed to users)
+	unnamed := CompletionValue{
+		Value:       string(rl.registers.unnamed),
+		Display:     string(rl.registers.unnamed),
+		Description: DIM + "\"\"" + seqReset,
+	}
+	anonRegs.Values = append(anonRegs.Values, unnamed)
+	groups = append(groups, anonRegs)
+
+	// Numbered registers
+	numRegs := rl.completeNumRegisters()
+
+	if len(numRegs.Values) > 0 {
+		groups = append(groups, numRegs)
+	}
+
+	// Letter registers
+	alphaRegs := rl.completeAlphaRegisters()
+
+	if len(alphaRegs.Values) > 0 {
+		groups = append(groups, alphaRegs)
+	}
 
 	return
+}
+
+func (rl *Instance) completeNumRegisters() *CompletionGroup {
+	// Numbered registers
+	numRegs := &CompletionGroup{
+		Name:        DIM + "num ([0-9])" + RESET,
+		DisplayType: TabDisplayMap,
+		MaxLength:   20,
+	}
+	var nums []int
+	for reg := range rl.registers.num {
+		nums = append(nums, reg)
+	}
+
+	sort.Ints(nums)
+
+	for _, val := range nums {
+		buf := rl.registers.num[val]
+		value := CompletionValue{
+			Value:       string(buf),
+			Display:     string(buf),
+			Description: fmt.Sprintf("%s\"%d%s", DIM, val, seqReset),
+		}
+		numRegs.Values = append(numRegs.Values, value)
+	}
+
+	return numRegs
+}
+
+func (rl *Instance) completeAlphaRegisters() *CompletionGroup {
+	alphaRegs := &CompletionGroup{
+		Name:        DIM + "alpha ([a-z], [A-Z])" + RESET,
+		DisplayType: TabDisplayMap,
+		MaxLength:   20,
+	}
+	var lett []string
+	for reg := range rl.registers.alpha {
+		lett = append(lett, reg)
+	}
+	sort.Strings(lett)
+	for _, reg := range lett {
+		buf := rl.registers.alpha[reg]
+		value := CompletionValue{
+			Value:       string(buf),
+			Display:     string(buf),
+			Description: fmt.Sprintf("%s\"%s%s", DIM, reg, seqReset),
+		}
+		alphaRegs.Values = append(alphaRegs.Values, value)
+	}
+
+	return alphaRegs
 }
