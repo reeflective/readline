@@ -110,7 +110,7 @@ func (rl *Instance) inputBackspace() (done bool) {
 	}
 
 	// Normal completion search does only refresh the search pattern and the comps
-	if rl.modeTabFind || rl.modeAutoFind {
+	if rl.modeTabFind || rl.modeAutoFind && rl.searchMode != RegisterFind {
 		rl.backspaceTabFind()
 		rl.viUndoSkipAppend = true
 	} else {
@@ -161,7 +161,7 @@ func (rl *Instance) inputDispatch(r []rune, i int) (done, ret bool, val string, 
 	}
 
 	// Not sure that CompletionFind is useful, nor one of the other two
-	if rl.modeAutoFind || rl.modeTabFind {
+	if (rl.modeAutoFind || rl.modeTabFind) && rl.searchMode != RegisterFind {
 		rl.resetVirtualComp(false)
 		rl.updateTabFind(r[:i])
 		rl.viUndoSkipAppend = true
