@@ -8,6 +8,16 @@ import (
 	"sync"
 )
 
+var (
+	// registerFreeKeys - Some Vim keys don't act on/ aren't affected by registers,
+	// and using these keys will automatically cancel any active register.
+	// NOTE: Don't forget to update if you add Vim bindings !!
+	registerFreeKeys = []rune{'a', 'A', 'h', 'i', 'I', 'j', 'k', 'l', 'r', 'R', 'u', 'v', '$', '%', '[', ']'}
+
+	// validRegisterKeys - All valid register IDs (keys) for read/write Vim registers
+	validRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
+)
+
 // registers - Contains all memory registers resulting from delete/paste/search
 // or other operations in the command line input.
 type registers struct {

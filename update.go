@@ -2,6 +2,10 @@ package readline
 
 // initHelpers is called once at the very beginning of a readline start.
 func (rl *Instance) initHelpers() {
+	// Line parameters
+	rl.mark = -1
+
+	// Descriptive helpers
 	rl.resetHintText()
 	rl.resetTabCompletion()
 	rl.getHintText()

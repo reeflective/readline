@@ -13,6 +13,7 @@ type Instance struct {
 	//
 	// Input Modes  -------------------------------------------------------------------------------
 
+	// TODO: Remove
 	// InputMode - The shell can be used in Vim editing mode, or Emacs (classic).
 	InputMode InputMode
 
@@ -25,6 +26,27 @@ type Instance struct {
 
 	// Would not need this.
 	VimModeColorize bool // If set to true, varies colors of the VimModePrompt
+
+	main          keymap // The main/global keymap, partially overridden by any local keymap.
+	mainKeymap    keyMap // All keys mapped to the name of their corresponding widgets/actions.
+	local         keymap // The local keymap is used when completing menus, using Vim operators, etc.
+	localKeymap   keyMap // All keys mapped to the name of their corresponding widgets/actions.
+	specialKeymap keyMap // A keymap that is matched using regexp, (for things like digit arguments, etc.)
+
+	// The shell maintains a list of all its keymaps, so that users can modify them, or add some.
+	keymaps map[keymap]keyMap
+
+	//
+	// Vim Operating Parameters -------------------------------------------------------------------
+
+	modeViMode       viMode //= vimInsert
+	viIteration      string
+	viUndoHistory    []undoItem
+	viUndoSkipAppend bool
+	viIsYanking      bool
+	visualLine       bool       // Is the visual mode VISUAL_LINE
+	mark             int        // Visual selection mark. -1 when unactive
+	registers        *registers // All memory text registers, can be consulted with Alt"
 
 	//
 	// Prompt -------------------------------------------------------------------------------------
@@ -147,16 +169,6 @@ type Instance struct {
 	hintY    int    // Offset to hints, if it spans multiple lines
 
 	//
-	// Vim Operatng Parameters -------------------------------------------------------------------
-
-	modeViMode       viMode //= vimInsert
-	viIteration      string
-	viUndoHistory    []undoItem
-	viUndoSkipAppend bool
-	viIsYanking      bool
-	registers        *registers // All memory text registers, can be consulted with Alt"
-
-	//
 	// Other -------------------------------------------------------------------------------------
 
 	// TempDirectory is the path to write temporary files when editing a line in
@@ -191,6 +203,9 @@ func NewInstance() *Instance {
 	// Input Editing
 	rl.InputMode = Emacs
 	rl.ShowVimMode = true // In case the user sets input mode to Vim, everything is ready.
+
+	// Keymaps
+	rl.setBaseKeymap()
 
 	// Completion
 	rl.MaxTabCompleterRows = 50

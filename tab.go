@@ -54,6 +54,104 @@ func (rl *Instance) inputCompletionHelper(b []byte, i int) (done, ret bool, val 
 	return
 }
 
+func menuSelect(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
+	// The user cannot show completions if currently in Vim Normal mode
+	if rl.InputMode == Vim && rl.modeViMode != vimInsert {
+		read = true
+
+		return
+	}
+
+	// If we have asked for completions, already printed, and we want to move selection.
+	if rl.modeTabCompletion && !rl.compConfirmWait {
+		rl.tabCompletionSelect = true
+		rl.moveTabCompletionHighlight(1, 0)
+		rl.updateVirtualComp()
+		rl.renderHelpers()
+		rl.viUndoSkipAppend = true
+
+		return
+	}
+
+	defer func() {
+		rl.updateHelpers() // WARN: Redundant with update helpers below
+		rl.viUndoSkipAppend = true
+
+		read = true
+	}()
+
+	// Else we might be asked to confirm printing (if too many suggestions), or not.
+	rl.getTabCompletion()
+
+	// If too many completions and no yet confirmed, ask user for completion
+	// comps, lines := rl.getCompletionCount()
+	// if ((lines > GetTermLength()) || (lines > rl.MaxTabCompleterRows)) && !rl.compConfirmWait {
+	//         sentence := fmt.Sprintf("%s show all %d completions (%d lines) ? tab to confirm",
+	//                 FOREWHITE, comps, lines)
+	//         rl.promptCompletionConfirm(sentence)
+	//         continue
+	// }
+
+	rl.compConfirmWait = false
+	rl.modeTabCompletion = true
+
+	// Also here, if only one candidate is available, automatically
+	// insert it and don't bother printing completions.
+	// Quit the tab completion mode to avoid asking to the user
+	// to press Enter twice to actually run the command.
+	if rl.hasOneCandidate() {
+		rl.insertCandidate()
+
+		// Refresh first, and then quit the completion mode
+		rl.updateHelpers() // REDUNDANT WITH getTabCompletion()
+		rl.resetTabCompletion()
+	}
+
+	return
+}
+
+func historyMenuComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
+	rl.resetVirtualComp(false)
+	// For some modes only, if we are in vim Keys mode,
+	// we toogle back to insert mode. For others, we return
+	// without getting the completions.
+	if rl.modeViMode != vimInsert {
+		rl.modeViMode = vimInsert
+		rl.computePrompt()
+	}
+
+	rl.mainHist = true // false before
+	rl.searchMode = HistoryFind
+	rl.modeAutoFind = true
+	rl.modeTabCompletion = true
+
+	rl.modeTabFind = true
+	rl.updateTabFind([]rune{})
+	rl.viUndoSkipAppend = true
+
+	return
+}
+
+func exitComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
+	if rl.modeAutoFind && rl.searchMode == HistoryFind {
+		rl.resetVirtualComp(false)
+		rl.resetTabFind()
+		rl.resetHelpers()
+		rl.renderHelpers()
+
+		read = true
+		return
+	}
+
+	if rl.modeAutoFind {
+		rl.resetTabFind()
+		rl.resetHelpers()
+		rl.renderHelpers()
+	}
+
+	return
+}
+
 func (rl *Instance) inputCompletionReset() (done, ret bool, val string, err error) {
 	if rl.modeAutoFind && rl.searchMode == HistoryFind {
 		rl.resetVirtualComp(false)
@@ -69,6 +167,33 @@ func (rl *Instance) inputCompletionReset() (done, ret bool, val string, err erro
 		rl.resetHelpers()
 		rl.renderHelpers()
 	}
+
+	return
+}
+
+func searchComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
+	rl.resetVirtualComp(true)
+
+	if !rl.modeTabCompletion {
+		rl.modeTabCompletion = true
+	}
+
+	if rl.compConfirmWait {
+		rl.resetHelpers()
+	}
+
+	// Both these settings apply to when we already
+	// are in completion mode and when we are not.
+	rl.searchMode = CompletionFind
+	rl.modeAutoFind = true
+
+	// Switch from history to completion search
+	if rl.modeTabCompletion && rl.searchMode == HistoryFind {
+		rl.searchMode = CompletionFind
+	}
+
+	rl.updateTabFind([]rune{})
+	rl.viUndoSkipAppend = true
 
 	return
 }

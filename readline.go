@@ -7,8 +7,12 @@ import (
 
 var rxMultiline = regexp.MustCompile(`[\r\n]+`)
 
-// Readline displays the readline prompt.
-// It will return a string (user entered data) or an error.
+// Readline displays the readline prompt and reads for user input.
+// It can return on several things:
+// - When the user accepts the line (generally with Enter),
+//   in which case the input line is returned to the caller.
+// - If a particular keystroke mapping returns an error
+//   (like Ctrl-C, Ctrl-D, etc), and an empty string.
 func (rl *Instance) Readline() (string, error) {
 	fd := int(os.Stdin.Fd())
 	state, err := MakeRaw(fd)
@@ -17,11 +21,16 @@ func (rl *Instance) Readline() (string, error) {
 	}
 	defer Restore(fd, state)
 
-	rl.initInput()
-	rl.Prompt.init(rl)
 	rl.initLine()
 	rl.initHelpers()
 	rl.initHistory()
+	rl.initKeymap()
+
+	// The prompt reevaluates itself when its corresponding
+	// functions are bound. Some of its components (PS1/RPROMPT)
+	// are normally only computed here (until the next Readline loop),
+	// but other components (PS2/tips) are computed more than once.
+	rl.Prompt.init(rl)
 
 	// Multisplit
 	if len(rl.multilineSplit) > 0 {
@@ -32,8 +41,29 @@ func (rl *Instance) Readline() (string, error) {
 	// if the TabCompletion engines so desires
 	rl.renderHelpers()
 
-	// Start handling keystrokes. Classified by subject for most.
+	// Start handling keystrokes.
 	for {
+		// Keymaps actualization/initialization. ------------------------------
+		//
+		// The last key might have modified both the local keymap mode or
+		// the global keymap (main), which is either emacs or viins/vicmd.
+		//
+		// Here we must ensure/actualize the reference to the main keymap:
+		// - If we are now in viins, the main keymap is viins
+		// - If in vicmd, the main keymap is vicmd.
+		//
+		// These are the only keymaps that actually can be bound to main:
+		// If we are now in a viopp, or menu-select, or isearch, this main
+		// keymap reference does NOT change, so that any of its keys that
+		// are not hidden by the local keymap ones can still be used.
+		rl.updateKeymaps()
+
+		// Ensure the completion system is in a sane
+		// state before processing an input key.
+		rl.ensureCompState()
+
+		// Read user key stroke(s) --------------------------------------------
+		//
 		// Read the input from stdin if any, and upon successfull
 		// read, convert the input into runes for better scanning.
 		b, i, readErr := rl.readInput()
@@ -42,6 +72,7 @@ func (rl *Instance) Readline() (string, error) {
 		}
 
 		r := []rune(string(b))
+		key := string(r[:i]) // This allows to read all special sequences.
 
 		// If the last input is a carriage return, process
 		// according to configured multiline behavior.
@@ -54,176 +85,62 @@ func (rl *Instance) Readline() (string, error) {
 			}
 		}
 
-		// If we caught a key press for which a
-		// handler is registered, execute it.
-		s := string(r[:i])
-		if rl.evtKeyPress[s] != nil {
-			done, ret, val, err := rl.handleKeyPress(s)
+		// Main dispatchers ---------------------------------------------------
+		//
+		// Test the key against the local widget keymap, if any.
+		// - In emacs mode, this local keymap is empty, except when performing
+		// completions or performing history/incremental search.
+		// - In Vim, this can be either 'visual', 'viopp', 'completion' or
+		//   'incremental' search.
+		if widget, found := rl.localKeymap[key]; found && widget != "" {
+			ret, val, err := rl.runWidget(widget, b, i, r)
 			if ret {
 				return val, err
-			} else if done {
-				continue
 			}
+
+			rl.updateHelpers()
+			continue
 		}
 
-		// Ensure the completion system is in a sane
-		// state before processing an input key.
-		rl.ensureCompState()
-
-		switch b[0] {
-		// Root keypresses. ---------------------------------------------------
-		case charEscape:
-			rl.inputEsc(r, b, i)
-		case charCtrlL:
-			rl.clearScreen()
-
-			// Error sequences ------------------------------------------------
-		case charCtrlC:
-			done, ret := rl.errorCtrlC()
-			if ret {
-				return "", CtrlC
-			} else if done {
-				continue
-			}
-		case charEOF:
-			rl.clearHelpers()
-			return "", EOF
-
-		// Emacs bindings -----------------------------------------------------
-		case charCtrlU:
-			rl.deleteLine()
-		case charCtrlW:
-			if done := rl.deleteWord(); done {
-				continue
-			}
-		case charCtrlY:
-			rl.pasteDefaultRegister()
-		case charCtrlE:
-			if done := rl.goToLineEnd(); done {
-				continue
-			}
-		case charCtrlA:
-			if done := rl.goToLineBegin(); done {
-				continue
-			}
-
-		// Special non-nil characters -----------------------------------------
-		case '\r':
-			fallthrough
-		case '\n':
-			done, ret, val, err := rl.inputEnter()
+		// If the key was not matched against any local widget,
+		// check the global widget, which can never be nil.
+		// - In Emacs mode, this widget is 'emacs'.
+		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
+		if widget, found := rl.mainKeymap[key]; found && widget != "" {
+			ret, val, err := rl.runWidget(widget, b, i, r)
 			if ret {
 				return val, err
-			} else if done {
-				continue
 			}
 
-		case charBackspace, charBackspace2:
-			if done := rl.inputBackspace(); done {
-				continue
-			}
+			rl.updateHelpers()
+			continue
+		}
 
-		// Completion and history/menu helpers. -------------------------------
-		case charCtrlR:
-			rl.inputCompletionHelper(b, i)
-		case charTab:
-			done, ret, val, err := rl.inputCompletionTab(b, i)
+		// When no widgets are matched neither locally nor globally,
+		// and if we are in an insert mode (either 'emacs' or 'viins'),
+		// we run the self-insert widget to input the key in the line.
+		if rl.main == emacs || rl.main == viins {
+			ret, val, err := rl.runWidget("self-insert", b, i, r)
 			if ret {
 				return val, err
-			} else if done {
-				continue
 			}
-		case charCtrlF:
-			rl.inputCompletionFind()
-		case charCtrlG:
-			done, ret, val, err := rl.inputCompletionReset()
+
+			rl.updateHelpers()
+			continue
+		}
+
+		// Else, we are not in an insert mode either.
+		// We try to match the key against the special keymap, which
+		// is done using regular expressions. This allows to use digit
+		// arguments, or other special patterns and ranges.
+		if widget := rl.matchRegexKeymap(key); widget != "" {
+			ret, val, err := rl.runWidget(widget, b, i, r)
 			if ret {
 				return val, err
-			} else if done {
-				continue
 			}
-		default:
-			done, ret, val, err := rl.inputDispatch(r, i)
-			if ret {
-				return val, err
-			} else if done {
-				continue
-			}
+
+			rl.updateHelpers()
+			continue
 		}
-
-		// If no core helper has not caugth on the provided key,
-		// neither completions or editors for inputing it in the
-		// line, we store the key in our Undo history (Vim mode)
-		rl.undoAppendHistory()
-	}
-}
-
-// inputEditor is an unexported function used to determine what mode of text
-// entry readline is currently configured for and then update the line entries
-// accordingly.
-func (rl *Instance) inputEditor(r []rune) {
-	switch rl.modeViMode {
-	case vimKeys:
-		rl.vi(r[0])
-		rl.refreshVimStatus()
-
-	case vimDelete:
-		rl.viDelete(r[0])
-		rl.refreshVimStatus()
-
-	case vimReplaceOnce:
-		rl.modeViMode = vimKeys
-		rl.deleteX()
-		rl.insert([]rune{r[0]})
-		rl.refreshVimStatus()
-
-	case vimReplaceMany:
-		for _, char := range r {
-			rl.deleteX()
-			rl.insert([]rune{char})
-		}
-		rl.refreshVimStatus()
-
-	default:
-		// For some reason Ctrl+k messes with the input line, so ignore it.
-		if r[0] == 11 {
-			return
-		}
-		// We reset the history nav counter each time we come here:
-		// We don't need it when inserting text.
-		rl.histNavIdx = 0
-		rl.insert(r)
-	}
-
-	if len(rl.multilineSplit) == 0 {
-		rl.syntaxCompletion()
-	}
-}
-
-func (rl *Instance) escapeSeq(r []rune) {
-	// Test input movements
-	if moved := rl.inputLineMove(r); moved {
-		return
-	}
-
-	// Movement keys while not being inserting the stroke in a buffer.
-	// Test input movements
-	if moved := rl.inputMenuMove(r); moved {
-		return
-	}
-
-	switch string(r) {
-	case string(charEscape):
-		if skip := rl.inputEscAll(r); skip {
-			return
-		}
-		rl.viUndoSkipAppend = true
-
-	case seqAltQuote:
-		if rl.inputRegisters() {
-			return
-		}
-	default:
-		rl.inputInsertKey(r)
 	}
 }

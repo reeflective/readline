@@ -6,6 +6,16 @@ import (
 	"strconv"
 )
 
+const (
+	cursorBlock             = "\x1b[2 q"
+	cursorUnderline         = "\x1b[4 q"
+	cursorBeam              = "\x1b[6 q"
+	cursorBlinkingBlock     = "\x1b[1 q"
+	cursorBlinkingUnderline = "\x1b[3 q"
+	cursorBlinkingBeam      = "\x1b[5 q"
+	cursorUserDefault       = "\x1b[0 q"
+)
+
 // Lmorg code
 // -------------------------------------------------------------------------------
 
@@ -134,4 +144,10 @@ func (rl *Instance) moveCursorByAdjust(adjust int) {
 			rl.pos--
 		}
 	}
+}
+
+func (rl *Instance) getCursorStyle(mode string) (style string) {
+	switch mode {
+	}
+	return
 }

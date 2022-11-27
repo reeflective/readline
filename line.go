@@ -3,6 +3,8 @@ package readline
 import (
 	"os"
 	"strings"
+
+	"github.com/acarl005/stripansi"
 )
 
 // inputMenuMove updates helpers when keys have an effect on them,
@@ -22,7 +24,7 @@ func (rl *Instance) inputMenuMove(r []rune) (ret bool) {
 			return true
 		}
 
-	case seqUp:
+	case seqArrowUp:
 		if rl.modeTabCompletion {
 			rl.tabCompletionSelect = true
 			rl.tabCompletionReverse = true
@@ -35,7 +37,7 @@ func (rl *Instance) inputMenuMove(r []rune) (ret bool) {
 		rl.mainHist = true
 		rl.walkHistory(1)
 
-	case seqDown:
+	case seqArrowDown:
 		if rl.modeTabCompletion {
 			rl.tabCompletionSelect = true
 			rl.moveTabCompletionHighlight(1, 0)
@@ -46,7 +48,7 @@ func (rl *Instance) inputMenuMove(r []rune) (ret bool) {
 		rl.mainHist = true
 		rl.walkHistory(-1)
 
-	case seqForwards:
+	case seqArrowRight:
 		if rl.modeTabCompletion {
 			rl.tabCompletionSelect = true
 			rl.moveTabCompletionHighlight(1, 0)
@@ -62,7 +64,7 @@ func (rl *Instance) inputMenuMove(r []rune) (ret bool) {
 		rl.updateHelpers()
 		rl.viUndoSkipAppend = true
 
-	case seqBackwards:
+	case seqArrowLeft:
 		if rl.modeTabCompletion {
 			rl.tabCompletionSelect = true
 			rl.tabCompletionReverse = true
@@ -251,19 +253,6 @@ func (rl *Instance) carriageReturn() {
 	}
 }
 
-func (rl *Instance) clearScreen() {
-	print(seqClearScreen)
-	print(seqCursorTopLeft)
-
-	// Print the prompt, all or part of it.
-	print(rl.Prompt.getPrimary())
-	print(seqClearScreenBelow)
-
-	rl.resetHintText()
-	rl.getHintText()
-	rl.renderHelpers()
-}
-
 // initLine is ran once at the beginning of an instance start.
 func (rl *Instance) initLine() {
 	rl.line = []rune{}
@@ -342,12 +331,21 @@ func (rl *Instance) echo() {
 			line = rl.line
 		}
 
+		highlighted := string(line) + " "
+
 		// Print the input line with optional syntax highlighting
 		if rl.SyntaxHighlighter != nil {
-			print(rl.SyntaxHighlighter(line) + " ")
-		} else {
-			print(string(line) + " ")
+			highlighted = rl.SyntaxHighlighter(line) + " "
+			// print(rl.SyntaxHighlighter(line) + " ")
+			// } else {
+			// 	print(string(line) + " ")
 		}
+
+		// Adapt if there is a visual selection active
+		highlighted = string(rl.highlightVisualLine([]rune(highlighted)))
+
+		// And print
+		print(highlighted)
 	}
 
 	// Update references with new coordinates only now, because
@@ -359,6 +357,44 @@ func (rl *Instance) echo() {
 	moveCursorUp(rl.fullY)
 	moveCursorDown(rl.posY)
 	moveCursorForwards(rl.posX)
+}
+
+// highlightVisualLine adds highlighting of the region if we are in a visual mode.
+func (rl *Instance) highlightVisualLine(line []rune) string {
+	if rl.local != visual || rl.mark == -1 {
+		return string(line)
+	}
+
+	// Compute begin and end of region
+	var start, end int
+	if rl.mark < rl.pos {
+		start = rl.mark
+		end = rl.pos
+	} else {
+		start = rl.pos
+		end = rl.mark
+	}
+
+	// Adjust if we are in visual line mode
+	if rl.local == visual && rl.visualLine {
+		end = len(line) - 1
+	}
+
+	// First strip the current line (potentially highlighted by user)
+	// from its colors sequences, to get the correct indexes.
+	stripped := []rune(stripansi.Strip(string(line)))
+
+	// Make the highlighted region
+	highlightedRegion := []rune(seqBgRed)
+	highlightedRegion = append(highlightedRegion, stripped[start:end+1]...)
+	highlightedRegion = append(highlightedRegion, []rune(seqReset)...)
+
+	// And assemble it into the entire line
+	visualLine := string(stripped[:start])
+	visualLine += string(highlightedRegion)
+	visualLine += string(stripped[end+1:])
+
+	return visualLine
 }
 
 func (rl *Instance) insert(r []rune) {
@@ -380,8 +416,8 @@ func (rl *Instance) insert(r []rune) {
 
 	// We are inserting somewhere in the middle
 	case rl.pos < len(rl.line):
-		r := append(r, rl.line[rl.pos:]...)
-		rl.line = append(rl.line[:rl.pos], r...)
+		forwardLine := append(r, rl.line[rl.pos:]...)
+		rl.line = append(rl.line[:rl.pos], forwardLine...)
 
 	// We are at the end of the input line
 	case rl.pos == len(rl.line):
@@ -394,7 +430,7 @@ func (rl *Instance) insert(r []rune) {
 	rl.updateHelpers()
 }
 
-func (rl *Instance) deleteX() {
+func (rl *Instance) deletex() {
 	switch {
 	case len(rl.line) == 0:
 		return
@@ -412,12 +448,35 @@ func (rl *Instance) deleteX() {
 	rl.updateHelpers()
 }
 
+// TODO: Identical to deleteBackspace/
+func (rl *Instance) deleteX() {
+	switch {
+	case len(rl.line) == 0:
+		return
+	case rl.pos == 0:
+		return
+	case rl.pos > len(rl.line):
+		rl.pos = len(rl.line)
+	case rl.pos == len(rl.line):
+		rl.pos--
+		rl.line = rl.line[:rl.pos]
+	default:
+		rl.pos--
+		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
+	}
+
+	rl.updateHelpers()
+}
+
 func (rl *Instance) deleteBackspace() {
 	switch {
 	case len(rl.line) == 0:
 		return
 	case rl.pos == 0:
-		rl.line = rl.line[1:]
+		return
+		// if len(rl.line) > 0 {
+		// 	rl.line = rl.line[1:]
+		// }
 	case rl.pos > len(rl.line):
 		rl.backspace() // There is an infite loop going on here...
 	case rl.pos == len(rl.line):
