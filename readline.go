@@ -2,10 +2,7 @@ package readline
 
 import (
 	"os"
-	"regexp"
 )
-
-var rxMultiline = regexp.MustCompile(`[\r\n]+`)
 
 // Readline displays the readline prompt and reads for user input.
 // It can return on several things:
@@ -85,9 +82,15 @@ func (rl *Instance) Readline() (string, error) {
 			}
 		}
 
+		//
 		// Main dispatchers ---------------------------------------------------
 		//
-		// Test the key against the local widget keymap, if any.
+		// Note that some widgets, like vi-yank, vi-delete, vi-change, will
+		// try to recursively read further keys in order for them to work.
+		// This means that some keys might potentially be read out of this
+		// loop.
+
+		// First test the key against the local widget keymap, if any.
 		// - In emacs mode, this local keymap is empty, except when performing
 		// completions or performing history/incremental search.
 		// - In Vim, this can be either 'visual', 'viopp', 'completion' or

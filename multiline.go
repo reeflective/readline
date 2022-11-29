@@ -3,7 +3,10 @@ package readline
 import (
 	"bytes"
 	"os"
+	"regexp"
 )
+
+var rxMultiline = regexp.MustCompile(`[\r\n]+`)
 
 // initMultiline is ran once at the beginning of an instance start.
 func (rl *Instance) initMultiline() (string, error) {
