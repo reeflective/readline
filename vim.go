@@ -107,3 +107,112 @@ func (rl *Instance) viEscape(r []rune) {
 		return
 	}
 }
+
+// readkeysForWidget recursively reads for input keys and tries to match any widget against them.
+// It will return either a widget if matched, or none if not, along with any residual keys not matched.
+func (rl *Instance) readkeysForWidget(key string, keymap keyMap) (widget string, keys []rune) {
+	// The compounded keys that we read, including the caller key, (like yiW => y + iW)
+	keys = []rune(key)
+
+	for {
+		// We already have a "root" key (like y, c, d)
+		// In the provided keymap, find all widgets which keybinding
+		// has the key as prefix (like ya, yiW, for key y)
+
+		// If we have a single widget, or none, we are done reading keys. Break
+
+		// Now we must read a new key.
+		// CHECK WHY AND HOW zsh-vi-mode matches the default widget to save if fully matching here.
+		// If not matching, note that are entering operator pending mode here.
+		key = ""
+
+		// Start again with this new key, which is going to filter again the widgets list.
+	}
+
+	// We have either a widget or none of them.
+	// First exit operator pending mode.
+
+	// If the last key entered is not empty but we don't have a match, we return this key
+	// to be used another way. Example: yb => b is not matched, but will actually trigger
+	// everything back to the previous word to be yanked.
+
+	return
+}
+
+// readNavigationKey tries to match a key against a navigation widget.
+func (rl *Instance) readNavigationKey(key string, keymap keyMap) {
+	// When no keys are provided, we return.
+
+	// Catch some special key actions (fFtT) for forwarding to chars after looking them up.
+	// This should give us also an action/widget to run
+
+	// Else, match against movement keys.
+
+	// Return if we have no widget.
+
+	// Match any count in the action, or set it to one.
+
+	// And run the widget we found 'count' times.
+	// (At the first loop, check if cursor moved: if not, save time and break the loop)
+
+	// Only reset the cursor to its position before the loop if the loop failed.
+}
+
+func (rl *Instance) viYank(b []byte, i int, r []rune) {
+	// We always try to read further keys for a matching widget:
+	// In some modes we will get a different one, while in others (like visual)
+	// we will just fallback on this current widget (vi-yank), which will be executed
+	// as is, since we won't get any remaining key.
+
+	// If we got a remaining key with the widget, we
+	// first check for special keys such as Escape.
+
+	// If the widget we found is also returned with some remaining keys,
+	// (such as Vi iterations, range keys, etc) we must keep reading them
+	// with a range handler before coming back here.
+
+	// All handlers have caught and ran, and we are now ready
+	// to perform yanking itself, either on a visual range or not.
+}
+
+func (rl *Instance) viDeleteHandler(b []byte, i int, r []rune) {
+	// We always try to read further keys for a matching widget:
+	// In some modes we will get a different one, while in others (like visual)
+	// we will just fallback on this current widget (vi-delete), which will be executed
+	// as is, since we won't get any remaining key.
+
+	// If we got a remaining key with the widget, we
+	// first check for special keys such as Escape.
+
+	// If the widget we found is also returned with some remaining keys,
+	// (such as Vi iterations, range keys, etc) we must keep reading them
+	// with a range handler before coming back here.
+
+	// All handlers have caught and ran, and we are now ready
+	// to perform yanking itself, either on a visual range or not.
+
+	// Reset the repeat commands, instead of doing it in the range handler function
+
+	// And reset the cursor position if not nil (moved)
+}
+
+func (rl *Instance) viChange(b []byte, i int, r []rune) {
+	// We always try to read further keys for a matching widget:
+	// In some modes we will get a different one, while in others (like visual)
+	// we will just fallback on this current widget (vi-delete), which will be executed
+	// as is, since we won't get any remaining key.
+
+	// If we got a remaining key with the widget, we
+	// first check for special keys such as Escape.
+
+	// If the widget we found is also returned with some remaining keys,
+	// (such as Vi iterations, range keys, etc) we must keep reading them
+	// with a range handler before coming back here.
+
+	// All handlers have caught and ran, and we are now ready
+	// to perform yanking itself, either on a visual range or not.
+
+	// Reset the repeat commands, instead of doing it in the range handler function
+
+	// And reset the cursor position if not nil (moved)
+}

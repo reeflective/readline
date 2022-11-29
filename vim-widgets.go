@@ -503,6 +503,7 @@ func viJumpBracket(rl *Instance) {
 	rl.moveCursorByAdjust(rl.viJumpBracket())
 }
 
+// TODO: Currently we don't handle the argument in this widget.
 func viSetBuffer(rl *Instance) {
 	// We might be on a register already, so reset it,
 	// and then wait again for a new register ID.
