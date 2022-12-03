@@ -40,8 +40,12 @@ func (rl *Instance) Readline() (string, error) {
 
 	// Start handling keystrokes.
 	for {
-		// Keymaps actualization/initialization. ------------------------------
+		// Readline actualization/initialization. ------------------------------
 		//
+		// Since we always update helpers after being asked to read
+		// for user input again, we do it before actually reading it.
+		rl.updateHelpers()
+
 		// The last key might have modified both the local keymap mode or
 		// the global keymap (main), which is either emacs or viins/vicmd.
 		//
@@ -109,7 +113,6 @@ func (rl *Instance) Readline() (string, error) {
 				return val, err
 			}
 
-			rl.updateHelpers()
 			continue
 		}
 
@@ -123,8 +126,6 @@ func (rl *Instance) Readline() (string, error) {
 			if ret || err != nil {
 				return val, err
 			} else if read {
-				rl.updateHelpers()
-
 				continue
 			}
 		}
@@ -139,13 +140,13 @@ func (rl *Instance) Readline() (string, error) {
 				return val, err
 			}
 
-			// TODO: HERE we should execute an operator pending action.
-			// like in yw: we just executed word, now we are ready to yank
+			// If a widget of the main keymap was executed while the shell
+			// was in operator pending mode (only Vim), then the caller widget
+			// is waiting to be executed again.
 			if pending {
 				rl.runPendingWidget(key)
 			}
 
-			rl.updateHelpers()
 			continue
 		}
 
@@ -158,7 +159,6 @@ func (rl *Instance) Readline() (string, error) {
 				return val, err
 			}
 
-			rl.updateHelpers()
 			continue
 		}
 
@@ -172,7 +172,6 @@ func (rl *Instance) Readline() (string, error) {
 				return val, err
 			}
 
-			rl.updateHelpers()
 			continue
 		}
 	}
