@@ -99,6 +99,8 @@ var vicmdKeymaps = keyMap{
 	"D":                    "vi-kill-eol",
 	"e":                    "vi-forward-word-end",
 	"E":                    "vi-forward-blank-word-end",
+	"f":                    "vi-find-next-char",
+	"t":                    "vi-find-next-char-skip",
 	"I":                    "vi-insert-bol",
 	"h":                    "vi-backward-char",
 	"l":                    "vi-forward-char",
@@ -108,6 +110,8 @@ var vicmdKeymaps = keyMap{
 	"P":                    "vi-put-before",
 	"r":                    "vi-replace-chars",
 	"R":                    "vi-replace",
+	"F":                    "vi-find-prev-char",
+	"T":                    "vi-find-prev-char-skip",
 	"u":                    "undo",
 	"v":                    "visual-mode", // Detects if v or V
 	"V":                    "visual-mode", // Detects if v or V
@@ -123,11 +127,11 @@ var vicmdKeymaps = keyMap{
 
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode
 var vioppKeymaps = keyMap{
-	// TODO: In ZSH the mapping for escaping to cmd-mode is here
-	"a": "vi-select-surround", // SPECIAL HANDLER, probably different from 'a' in visual mode, less choices.
-	"i": "vi-select-surround", // SAME THING.
-	"j": "down-line",          // Not sure since no multiline
-	"k": "up-line",            // Not sure since no multiline
+	string(charEscape): "vi-cmd-mode",
+	"a":                "vi-select-surround", // SPECIAL HANDLER, probably different from 'a' in visual mode, less choices.
+	"i":                "vi-select-surround", // SAME THING.
+	"j":                "down-line",          // Not sure since no multiline
+	"k":                "up-line",            // Not sure since no multiline
 }
 
 // viinsKeymaps are the default keymaps in Vim Visual mode

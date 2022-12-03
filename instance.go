@@ -32,6 +32,7 @@ type Instance struct {
 	local         keymap // The local keymap is used when completing menus, using Vim operators, etc.
 	localKeymap   keyMap // All keys mapped to the name of their corresponding widgets/actions.
 	specialKeymap keyMap // A keymap that is matched using regexp, (for things like digit arguments, etc.)
+	oppendMode    bool   // Operator pending mode. TODO: Remove
 
 	// The shell maintains a list of all its keymaps, so that users can modify them, or add some.
 	keymaps map[keymap]keyMap
@@ -39,14 +40,19 @@ type Instance struct {
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
 
-	modeViMode       viMode //= vimInsert
+	modeViMode       viMode //= vimInsert TODO: REMOVE
 	viIteration      string
 	viUndoHistory    []undoItem
 	viUndoSkipAppend bool
-	viIsYanking      bool
 	visualLine       bool       // Is the visual mode VISUAL_LINE
 	mark             int        // Visual selection mark. -1 when unactive
+	activeRegion     bool       // Is a current range region active ?
 	registers        *registers // All memory text registers, can be consulted with Alt"
+
+	pending           []string // A list of widget names that are currently waiting for an operator. TODO: REMOVE
+	pendingIterations string   // Iterations specific to viopp mode. (2y2w => "2"w)
+	navKey            string   // A pending navigation key, stored waiting for a complement.
+	pendingActions    []action
 
 	//
 	// Prompt -------------------------------------------------------------------------------------
@@ -54,6 +60,7 @@ type Instance struct {
 
 	// The index at which the input line starts,
 	// after the last line of the prompt has been printed.
+	// TODO: Move in prompt struct ?
 	inputAt int
 
 	// Input Line ---------------------------------------------------------------------------------
@@ -134,6 +141,7 @@ type Instance struct {
 	//
 	// History -----------------------------------------------------------------------------------
 
+	// TODO: Should we store histories in a list or map, with name/bindkey as keys of the map ?
 	// mainHistory - current mapped to CtrlR by default, with rl.SetHistoryCtrlR()
 	mainHistory  History
 	mainHistName string
@@ -202,7 +210,8 @@ func NewInstance() *Instance {
 
 	// Input Editing
 	rl.InputMode = Emacs
-	rl.ShowVimMode = true // In case the user sets input mode to Vim, everything is ready.
+	rl.ShowVimMode = true
+	rl.initLine()
 
 	// Keymaps
 	rl.setBaseKeymap()

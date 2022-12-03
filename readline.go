@@ -85,12 +85,20 @@ func (rl *Instance) Readline() (string, error) {
 		//
 		// Main dispatchers ---------------------------------------------------
 		//
-		// Note that some widgets, like vi-yank, vi-delete, vi-change, will
-		// try to recursively read further keys in order for them to work.
-		// This means that some keys might potentially be read out of this
-		// loop.
+		//
+		// The dispatching process grossly works in two steps:
+		// 1)  It tries to match against the local keymap (visual/viopp/etc),
+		// 2)  Just after, if some local keymap is active but has not matched
+		//     the key, the key is checked/processed against some secondary stuff.
+		//
+		// 3)  If none of the above have notified us to read a key again, we check
+		//     against the main keymap (vicmd/viins/emacs).
+		// 4)  If not matched, we again process the key against some secondary stuff
+		//     (like in 2.), but here for inserting the key if in insert mode.
+		//
+		// 5)  If the key was not inserted on the line, check against special patterns.
 
-		// First test the key against the local widget keymap, if any.
+		// 1) First test the key against the local widget keymap, if any.
 		// - In emacs mode, this local keymap is empty, except when performing
 		// completions or performing history/incremental search.
 		// - In Vim, this can be either 'visual', 'viopp', 'completion' or
@@ -105,7 +113,23 @@ func (rl *Instance) Readline() (string, error) {
 			continue
 		}
 
-		// If the key was not matched against any local widget,
+		// 2) If in operator pending mode, most of the keys will be absorbed
+		//    by a widget, including iterations as operating argument.
+		//    We don't always continue and read the next key, as some of them
+		//    might have to be matched against the main keyboard.
+		pending := rl.local == viopp
+		if pending {
+			read, ret, val, err := rl.matchPendingAction(key)
+			if ret || err != nil {
+				return val, err
+			} else if read {
+				rl.updateHelpers()
+
+				continue
+			}
+		}
+
+		// 3) If the key was not matched against any local widget,
 		// check the global widget, which can never be nil.
 		// - In Emacs mode, this widget is 'emacs'.
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
@@ -115,11 +139,17 @@ func (rl *Instance) Readline() (string, error) {
 				return val, err
 			}
 
+			// TODO: HERE we should execute an operator pending action.
+			// like in yw: we just executed word, now we are ready to yank
+			if pending {
+				rl.runPendingWidget(key)
+			}
+
 			rl.updateHelpers()
 			continue
 		}
 
-		// When no widgets are matched neither locally nor globally,
+		// 4) When no widgets are matched neither locally nor globally,
 		// and if we are in an insert mode (either 'emacs' or 'viins'),
 		// we run the self-insert widget to input the key in the line.
 		if rl.main == emacs || rl.main == viins {
@@ -132,7 +162,7 @@ func (rl *Instance) Readline() (string, error) {
 			continue
 		}
 
-		// Else, we are not in an insert mode either.
+		// 5) Else, we are not in an insert mode either.
 		// We try to match the key against the special keymap, which
 		// is done using regular expressions. This allows to use digit
 		// arguments, or other special patterns and ranges.

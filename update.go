@@ -110,7 +110,7 @@ func (rl *Instance) clearHelpers() {
 // computes or refreshes any value, except from inside the echo function.
 func (rl *Instance) renderHelpers() {
 	// Optional, because neutral on placement
-	rl.echo()
+	rl.printLine()
 
 	// Go at beginning of first line after input remainder
 	moveCursorDown(rl.fullY - rl.posY)

@@ -16,6 +16,79 @@ const (
 	cursorUserDefault       = "\x1b[0 q"
 )
 
+func (rl *Instance) updateCursor() {
+	// The local keymap most of the time has priority
+	switch rl.local {
+	case viopp:
+		print(cursorUnderline)
+		return
+	case visual:
+		print(cursorBlock)
+		return
+	default:
+	}
+
+	// But if not, we check for the global keymap
+	switch rl.main {
+	case emacs:
+		print(cursorBlinkingBlock)
+	case viins:
+		print(cursorBlinkingBeam)
+	case vicmd:
+		print(cursorBlinkingBlock)
+	}
+}
+
+// findAndMoveCursor finds a specified character in the line, either forward
+// or backward, a specified number of times, and moves the cursor to it.
+func (rl *Instance) findAndMoveCursor(key string, count int, forward, skip bool) {
+	if key == "" {
+		return
+	}
+
+	cursor := rl.pos
+
+	for {
+		// Move the cursor in the specified direction and within bounds.
+		if forward {
+			cursor++
+			if cursor > len(rl.line)-1 {
+				break
+			}
+		} else {
+			cursor--
+			if cursor < 0 {
+				break
+			}
+		}
+
+		// Check if character matches
+		if string(rl.line[cursor]) == key {
+			count--
+		}
+
+		// When the count is 0, we matched the character count times
+		if count == 0 {
+			break
+		}
+	}
+
+	if count > 0 {
+		return
+	}
+
+	if skip {
+		if forward {
+			cursor--
+		} else {
+			cursor++
+		}
+	}
+
+	// TODO: Should we return it instead of assigning it ?
+	rl.pos = cursor
+}
+
 // Lmorg code
 // -------------------------------------------------------------------------------
 
@@ -118,6 +191,12 @@ func (rl *Instance) backspace() {
 	rl.deleteBackspace()
 }
 
+func (rl *Instance) getCursorStyle(mode string) (style string) {
+	switch mode {
+	}
+	return
+}
+
 func (rl *Instance) moveCursorByAdjust(adjust int) {
 	switch {
 	case adjust > 0:
@@ -137,17 +216,9 @@ func (rl *Instance) moveCursorByAdjust(adjust int) {
 	}
 
 	// If we are at the end of line, and not in Insert mode, move back one.
-	if rl.modeViMode != vimInsert && (rl.pos == len(rl.line)) && len(rl.line) > 0 {
-		if rl.modeViMode != vimInsert {
-			rl.pos--
-		} else if rl.modeViMode == vimInsert && rl.searchMode == HistoryFind && rl.modeAutoFind {
-			rl.pos--
-		}
+	if rl.main == vicmd && (rl.pos == len(rl.line)) && len(rl.line) > 0 {
+		rl.pos--
+	} else if rl.main == viins && rl.searchMode == HistoryFind && rl.modeAutoFind {
+		rl.pos--
 	}
-}
-
-func (rl *Instance) getCursorStyle(mode string) (style string) {
-	switch mode {
-	}
-	return
 }

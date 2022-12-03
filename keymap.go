@@ -2,6 +2,7 @@ package readline
 
 import (
 	"regexp"
+	"strings"
 )
 
 type keymap string
@@ -204,5 +205,35 @@ func (rl *Instance) matchRegexKeymap(key string) (widget string) {
 		}
 	}
 
+	return
+}
+
+func findBindkeyWidget(key rune, keymap keyMap) keyMap {
+	widgets := make(keyMap)
+
+	for wkey, widget := range keymap {
+		if strings.HasPrefix(wkey, string(key)) {
+			widgets[wkey] = widget
+		}
+	}
+
+	return widgets
+}
+
+// getWidget returns the first widget in the keymap
+func getWidget(keymap keyMap) (key, widget string) {
+	for key, widget := range keymap {
+		return key, widget
+	}
+
+	return
+}
+
+func getWidgetMatch(key rune, keymap keyMap) (widget string) {
+	for wkey, widget := range keymap {
+		if wkey == string(key) {
+			return widget
+		}
+	}
 	return
 }

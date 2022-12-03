@@ -391,5 +391,7 @@ func digitArgument(rl *Instance, _ []byte, i int, r []rune) (read, ret bool, val
 		rl.viIteration += string(arg)
 	}
 
+	rl.viUndoSkipAppend = true
+
 	return
 }

@@ -7,6 +7,9 @@ import (
 // vimHandlers maps keys to Vim actions.
 type viWidgets map[string]func(rl *Instance)
 
+// var standardViWidgets viWidgets
+
+// func init() {
 var standardViWidgets = viWidgets{
 	"vi-cmd-mode":               viCommandMode,
 	"vi-insert-mode":            viInsertMode,
@@ -29,7 +32,14 @@ var standardViWidgets = viWidgets{
 	"vi-put-after":              viPutAfter,
 	"vi-end-of-line":            viEndOfLine,
 	"vi-set-buffer":             viSetBuffer,
+	"vi-yank":                   viYank,
+	"vi-find-next-char":         viFindNextChar,
+	"vi-find-next-char-skip":    viFindNextCharSkip,
+	"vi-find-prev-char":         viFindPrevChar,
+	"vi-find-prev-char-skip":    viFindPrevCharSkip,
 }
+
+// }
 
 var viinsWidgets = map[string]keyHandler{
 	"visual-mode":                   viVisualMode,
@@ -39,15 +49,14 @@ var viinsWidgets = map[string]keyHandler{
 // vimEditorWidgets maps Vim widget names (named almost identically to ZSH ones)
 // to their function implementation. All widgets should be mapped in here.
 var vimEditorWidgets = viWidgets{
-	"vi-delete":               viDelete,      // d
-	"down-line-or-history":    viHistoryNext, // j
-	"up-line-or-history":      viHistoryPrev, // k
-	"vi-put-before":           viPasteP,      // P
-	"vi-replace-chars":        viReplace,     // r
-	"vi-replace":              viReplaceR,    // R
-	"vi-yank":                 viYank,        // y "vi-yank": dummyHandler, // y
-	"vi-yank-whole-line":      viYankY,       // Y
-	"vi-move-around-surround": viJumpBracket, // %
+	"vi-delete":               viDelete,        // d
+	"down-line-or-history":    viHistoryNext,   // j
+	"up-line-or-history":      viHistoryPrev,   // k
+	"vi-put-before":           viPasteP,        // P
+	"vi-replace-chars":        viReplace,       // r
+	"vi-replace":              viReplaceR,      // R
+	"vi-yank-whole-line":      viYankWholeLine, // Y
+	"vi-move-around-surround": viJumpBracket,   // %
 
 	// Non-standard
 	"vi-jump-previous-brace": viJumpPreviousBrace,
@@ -61,8 +70,7 @@ func viInsertMode(rl *Instance) {
 	rl.viUndoSkipAppend = true
 	rl.mark = -1
 
-	// Change the cursor
-	print(cursorBlinkingBeam)
+	rl.updateCursor()
 
 	rl.refreshVimStatus()
 }
@@ -80,8 +88,7 @@ func viCommandMode(rl *Instance) {
 	rl.local = ""
 	rl.main = vicmd
 
-	// Change the cursor
-	print(cursorBlinkingBlock)
+	rl.updateCursor()
 
 	rl.refreshVimStatus()
 }
@@ -95,13 +102,9 @@ func viVisualMode(rl *Instance, _ []byte, i int, r []rune) (read, ret bool, val 
 
 	switch string(r[:i]) {
 	case "V":
-		rl.local = visual
-		rl.visualLine = true
-		rl.mark = 0 // start at the beginning of the line.
+		rl.enterVisualLineMode()
 	case "v":
-		rl.local = visual
-		rl.visualLine = false
-		rl.mark = rl.pos // Or rl.posX ? combined with rl.posY ?
+		rl.enterVisualMode()
 	default:
 		rl.local = lastMode
 	}
@@ -111,7 +114,7 @@ func viVisualMode(rl *Instance, _ []byte, i int, r []rune) (read, ret bool, val 
 		return
 	}
 
-	print(cursorBlock)
+	rl.updateCursor()
 
 	return
 }
@@ -124,8 +127,7 @@ func viInsertBol(rl *Instance) {
 
 	rl.pos = 0
 
-	// Change the cursor
-	print(cursorBlinkingBeam)
+	rl.updateCursor()
 
 	rl.refreshVimStatus()
 }
@@ -160,12 +162,6 @@ func viAddEol(rl *Instance) {
 }
 
 func viBackwardWord(rl *Instance) {
-	if rl.viIsYanking {
-		vii := rl.getViIterations()
-		rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpB, vii)
-		rl.viIsYanking = false
-		return
-	}
 	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -174,12 +170,6 @@ func viBackwardWord(rl *Instance) {
 }
 
 func viBackwardBlankWord(rl *Instance) {
-	if rl.viIsYanking {
-		vii := rl.getViIterations()
-		rl.saveToRegisterTokenize(tokeniseSplitSpaces, rl.viJumpB, vii)
-		rl.viIsYanking = false
-		return
-	}
 	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -215,13 +205,6 @@ func viChangeEol(rl *Instance) {
 }
 
 func viForwardWordEnd(rl *Instance) {
-	if rl.viIsYanking {
-		vii := rl.getViIterations()
-		rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpE, vii)
-		rl.viIsYanking = false
-		return
-	}
-
 	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -230,13 +213,6 @@ func viForwardWordEnd(rl *Instance) {
 }
 
 func viForwardBlankWordEnd(rl *Instance) {
-	if rl.viIsYanking {
-		vii := rl.getViIterations()
-		rl.saveToRegisterTokenize(tokeniseSplitSpaces, rl.viJumpE, vii)
-		rl.viIsYanking = false
-		return
-	}
-
 	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -361,26 +337,22 @@ func viEditCommandLine(rl *Instance) {
 }
 
 func viForwardWord(rl *Instance) {
-	// If we were not yanking
 	rl.viUndoSkipAppend = true
+
 	// If the input line is empty, we don't do anything
 	if rl.pos == 0 && len(rl.line) == 0 {
 		return
 	}
 
-	// If we were yanking, we forge the new yank buffer
-	// and return without moving the cursor.
-	if rl.viIsYanking {
-		vii := rl.getViIterations()
-		rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpW, vii)
-		rl.viIsYanking = false
-		return
-	}
-
-	// Else get iterations and move
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
+	}
+
+	// We make an adjustment to the mark if we are currently
+	// yanking, and this widget is the argument action.
+	if rl.local == viopp && rl.activeRegion {
+		rl.pos--
 	}
 }
 
@@ -389,14 +361,9 @@ func viForwardBlankWord(rl *Instance) {
 	if rl.pos == 0 && len(rl.line) == 0 {
 		return
 	}
+
 	rl.viUndoSkipAppend = true
 
-	if rl.viIsYanking {
-		vii := rl.getViIterations()
-		rl.saveToRegisterTokenize(tokeniseSplitSpaces, rl.viJumpW, vii)
-		rl.viIsYanking = false
-		return
-	}
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces))
@@ -450,55 +417,60 @@ func viBackwardDeleteChar(rl *Instance) {
 }
 
 func viYank(rl *Instance) {
-	if rl.viIsYanking {
-		rl.saveBufToRegister(rl.line)
-		rl.viIsYanking = false
+	// When we are called after a pending operator action, we are a pending
+	// usually not in visual mode, but have an active selection.
+	// In this case we yank the active region and return.
+	if rl.activeRegion || rl.local == visual {
+		rl.yankSelection()
+		rl.resetSelection()
+
+		if rl.local == visual {
+			rl.local = vicmd
+			rl.updateCursor()
+		}
+
+		return
 	}
-	rl.viIsYanking = true
-	rl.viUndoSkipAppend = true
+
+	// If we are in operator pending mode, that means the command
+	// is 'yy' (optionally with iterations), so we copy the required
+	if rl.local == viopp {
+	}
+
+	// Else if we are actually starting a yank action. We need an argument:
+	// Enter operator pending mode for the next key to be considered this
+	// argument (more precisely, the widget to be executed before this argument).
+	rl.enterVioppMode("vi-yank")
+	rl.updateCursor()
+
+	// We set the initial mark, so that when executing this
+	// widget back after the argument, we have a selection.
+	// rl.enterVisualMode()
+	rl.mark = rl.pos
+	rl.activeRegion = true
 }
 
-func viYankY(rl *Instance) {
+func viYankWholeLine(rl *Instance) {
 	rl.saveBufToRegister(rl.line)
 	rl.viUndoSkipAppend = true
 }
 
 func viJumpPreviousBrace(rl *Instance) {
-	if rl.viIsYanking {
-		rl.saveToRegister(rl.viJumpPreviousBrace())
-		rl.viIsYanking = false
-		return
-	}
 	rl.viUndoSkipAppend = true
 	rl.moveCursorByAdjust(rl.viJumpPreviousBrace())
 }
 
 func viJumpNextBrace(rl *Instance) {
-	if rl.viIsYanking {
-		rl.saveToRegister(rl.viJumpNextBrace())
-		rl.viIsYanking = false
-		return
-	}
 	rl.viUndoSkipAppend = true
 	rl.moveCursorByAdjust(rl.viJumpNextBrace())
 }
 
 func viEndOfLine(rl *Instance) {
-	if rl.viIsYanking {
-		rl.saveBufToRegister(rl.line[rl.pos:])
-		rl.viIsYanking = false
-		return
-	}
 	rl.pos = len(rl.line)
 	rl.viUndoSkipAppend = true
 }
 
 func viJumpBracket(rl *Instance) {
-	if rl.viIsYanking {
-		rl.saveToRegister(rl.viJumpBracket())
-		rl.viIsYanking = false
-		return
-	}
 	rl.viUndoSkipAppend = true
 	rl.moveCursorByAdjust(rl.viJumpBracket())
 }
@@ -511,4 +483,73 @@ func viSetBuffer(rl *Instance) {
 		rl.registers.resetRegister()
 	}
 	rl.registers.registerSelectWait = true
+}
+
+// TODO: only use a single rune to match against in those widgets
+func viFindNextChar(rl *Instance) {
+	print(cursorUnderline)
+
+	// Read the argument key to use as a pattern to search
+	key, esc := rl.readArgumentKey()
+	if esc {
+		return
+	}
+	rl.updateCursor()
+
+	forward := true
+	skip := false
+	times := rl.getViIterations()
+
+	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
+}
+
+func viFindNextCharSkip(rl *Instance) {
+	print(cursorUnderline)
+
+	// Read the argument key to use as a pattern to search
+	key, esc := rl.readArgumentKey()
+	if esc {
+		return
+	}
+	rl.updateCursor()
+
+	forward := true
+	skip := true
+	times := rl.getViIterations()
+
+	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
+}
+
+func viFindPrevChar(rl *Instance) {
+	print(cursorUnderline)
+
+	// Read the argument key to use as a pattern to search
+	key, esc := rl.readArgumentKey()
+	if esc {
+		return
+	}
+	rl.updateCursor()
+
+	forward := false
+	skip := false
+	times := rl.getViIterations()
+
+	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
+}
+
+func viFindPrevCharSkip(rl *Instance) {
+	print(cursorUnderline)
+
+	// Read the argument key to use as a pattern to search
+	key, esc := rl.readArgumentKey()
+	if esc {
+		return
+	}
+	rl.updateCursor()
+
+	forward := false
+	skip := true
+	times := rl.getViIterations()
+
+	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }

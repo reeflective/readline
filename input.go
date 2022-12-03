@@ -1,5 +1,9 @@
 package readline
 
+import (
+	"os"
+)
+
 // InputMode - The shell input mode
 type InputMode int
 
@@ -9,6 +13,23 @@ const (
 	// Emacs - Emacs (classic) editing mode
 	Emacs
 )
+
+// readInput reads input from stdin and returns the result, length or an error.
+func (rl *Instance) readInput() (b []byte, i int, err error) {
+	rl.viUndoSkipAppend = false
+	b = make([]byte, 1024)
+
+	if !rl.skipStdinRead {
+		i, err = os.Stdin.Read(b)
+		if err != nil {
+			return
+		}
+	}
+
+	rl.skipStdinRead = false
+
+	return
+}
 
 func errorCtrlC(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
 	err = CtrlC
@@ -139,7 +160,7 @@ func (rl *Instance) escapeSeq(r []rune) {
 			return
 		}
 	default:
-		rl.inputInsertKey(r)
+		// rl.inputInsertKey(r)
 	}
 }
 
@@ -185,6 +206,188 @@ func (rl *Instance) inputDispatch(r []rune, i int) (done, ret bool, val string, 
 	return
 }
 
+// inputMenuMove updates helpers when keys have an effect on them,
+// in normal (non-insert) editing mode, so most of the time in things
+// like completion menus.
+func (rl *Instance) inputMenuMove(r []rune) (ret bool) {
+	switch string(r) {
+
+	case seqShiftTab:
+		if rl.modeTabCompletion && !rl.compConfirmWait {
+			rl.tabCompletionReverse = true
+			rl.moveTabCompletionHighlight(-1, 0)
+			rl.updateVirtualComp()
+			rl.tabCompletionReverse = false
+			rl.renderHelpers()
+			rl.viUndoSkipAppend = true
+			return true
+		}
+
+	case seqArrowUp:
+		if rl.modeTabCompletion {
+			rl.tabCompletionSelect = true
+			rl.tabCompletionReverse = true
+			rl.moveTabCompletionHighlight(-1, 0)
+			rl.updateVirtualComp()
+			rl.tabCompletionReverse = false
+			rl.renderHelpers()
+			return true
+		}
+		rl.mainHist = true
+		rl.walkHistory(1)
+
+	case seqArrowDown:
+		if rl.modeTabCompletion {
+			rl.tabCompletionSelect = true
+			rl.moveTabCompletionHighlight(1, 0)
+			rl.updateVirtualComp()
+			rl.renderHelpers()
+			return true
+		}
+		rl.mainHist = true
+		rl.walkHistory(-1)
+
+	case seqArrowRight:
+		if rl.modeTabCompletion {
+			rl.tabCompletionSelect = true
+			rl.moveTabCompletionHighlight(1, 0)
+			rl.updateVirtualComp()
+			rl.renderHelpers()
+			return true
+		}
+		if (rl.modeViMode == vimInsert && rl.pos < len(rl.line)) ||
+			(rl.modeViMode != vimInsert && rl.pos < len(rl.line)-1) {
+			moveCursorForwards(1)
+			rl.pos++
+		}
+		rl.updateHelpers()
+		rl.viUndoSkipAppend = true
+
+	case seqArrowLeft:
+		if rl.modeTabCompletion {
+			rl.tabCompletionSelect = true
+			rl.tabCompletionReverse = true
+			rl.moveTabCompletionHighlight(-1, 0)
+			rl.updateVirtualComp()
+			rl.tabCompletionReverse = false
+			rl.renderHelpers()
+			return true
+		}
+		if rl.pos > 0 {
+			moveCursorBackwards(1)
+			rl.pos--
+		}
+		rl.viUndoSkipAppend = true
+		rl.updateHelpers()
+	}
+
+	return
+}
+
+// inputEscAll is different from inputEsc in that this
+// function is triggered when the shell is already in a
+// non insert state, which happens in some completion modes,
+// and in Vim mode.
+func (rl *Instance) inputEscAll(r []rune) (ret bool) {
+	switch {
+	case rl.modeAutoFind:
+		rl.resetTabFind()
+		rl.clearHelpers()
+		rl.resetTabCompletion()
+		rl.resetHelpers()
+		rl.renderHelpers()
+
+	case rl.modeTabFind:
+		rl.resetTabFind()
+		rl.resetTabCompletion()
+
+	case rl.modeTabCompletion:
+		rl.clearHelpers()
+		rl.resetTabCompletion()
+		rl.renderHelpers()
+
+	default:
+		// No matter the input mode, we exit
+		// any completion confirm if there's one.
+		if rl.compConfirmWait {
+			rl.compConfirmWait = false
+			rl.clearHelpers()
+			rl.renderHelpers()
+			return true
+		}
+
+		// If we are in Vim mode, the escape key has its usage.
+		// Otherwise in emacs mode the escape key does nothing.
+		// if rl.InputMode == Vim {
+		// 	rl.viEscape(r)
+		// 	return true
+		// }
+
+		// This refreshed and actually prints the new Vim status
+		// if we have indeed change the Vim mode.
+		rl.clearHelpers()
+		rl.renderHelpers()
+	}
+
+	return
+}
+
+func (rl *Instance) inputLineMove(r []rune) (ret bool) {
+	switch string(r) {
+	case seqCtrlLeftArrow:
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		rl.updateHelpers()
+		return true
+	case seqCtrlRightArrow:
+		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
+		rl.updateHelpers()
+		return true
+
+	case seqDelete:
+		if rl.modeTabFind {
+			rl.backspaceTabFind()
+		} else {
+			rl.deleteBackspace()
+		}
+	case seqHome, seqHomeSc:
+		if rl.modeTabCompletion {
+			return true
+		}
+		moveCursorBackwards(rl.pos)
+		rl.pos = 0
+		rl.viUndoSkipAppend = true
+
+	case seqEnd, seqEndSc:
+		if rl.modeTabCompletion {
+			return true
+		}
+		moveCursorForwards(len(rl.line) - rl.pos)
+		rl.pos = len(rl.line)
+		rl.viUndoSkipAppend = true
+
+	case seqAltR:
+		// TODO: Same here, that is a completion helper, should not be here.
+		rl.resetVirtualComp(false)
+		// For some modes only, if we are in vim Keys mode,
+		// we toogle back to insert mode. For others, we return
+		// without getting the completions.
+		if rl.modeViMode != vimInsert {
+			rl.modeViMode = vimInsert
+		}
+
+		rl.mainHist = false // true before
+		rl.searchMode = HistoryFind
+		rl.modeAutoFind = true
+		rl.modeTabCompletion = true
+
+		rl.modeTabFind = true
+		rl.updateTabFind([]rune{})
+		rl.viUndoSkipAppend = true
+	}
+
+	return
+}
+
 // func (rl *Instance) inputBackspace() (done bool) {
 // 	// When currently in history completion, we refresh and automatically
 // 	// insert the first (filtered) candidate, virtually
@@ -224,4 +427,45 @@ func (rl *Instance) inputDispatch(r []rune, i int) (done, ret bool, val string, 
 // 	}
 //
 // 	return
+// }
+
+// inputInsertKey is the last helper that can be caught in the key dispatcher
+// process, and it will either use this key as an action modifier (Vim) or input
+// it into the current shell line.
+// func (rl *Instance) inputInsertKey(r []rune) {
+// 	if rl.modeTabFind {
+// 		return
+// 	}
+//
+// 	// alt+numeric append / delete
+// 	if len(r) == 2 && '1' <= r[1] && r[1] <= '9' {
+// 		if rl.modeViMode == vimDelete {
+// 			rl.viDelete(r[1])
+// 			return
+// 		}
+//
+// 		line, err := rl.mainHistory.GetLine(rl.mainHistory.Len() - 1)
+// 		if err != nil {
+// 			return
+// 		}
+// 		if !rl.mainHist {
+// 			line, err = rl.altHistory.GetLine(rl.altHistory.Len() - 1)
+// 			if err != nil {
+// 				return
+// 			}
+// 		}
+//
+// 		tokens, _, _ := tokeniseSplitSpaces([]rune(line), 0)
+// 		pos := int(r[1]) - 48 // convert ASCII to integer
+// 		if pos > len(tokens) {
+// 			return
+// 		}
+// 		rl.insert([]rune(tokens[pos-1]))
+//
+// 		return
+// 	}
+//
+// 	// The character has been inserted as a buffer, or caught
+// 	// as an action modifier, so we don't add it to our undo buffer.
+// 	rl.viUndoSkipAppend = true
 // }

@@ -1,35 +1,14 @@
 package readline
 
-import (
-	"regexp"
-)
+// 	// Out loop:
+// 	// If last key is i or a, read one more key
+// 	surroundMatcher, _ := regexp.Compile(`[ia]`)
+// 	for surroundMatcher.MatchString(string(key[len(key)-1])) {
+// 		b, i, _ := rl.readInput()
+// 		key += string(b[:i])
+// 	}
 
-// readRangeKeys recursively reads for input keys that have an effect on a range
-// (iterations, movement keys, etc), and updates the current readline state accordingly.
-// This handler is used with widgets accepting such range arguments, such as y,c, and d.
-func (rl *Instance) readRangeKeys(key string, keymap keyMap) {
-	// We always enter the operator pending mode when using ranges/movements.
-
-	// We need at least 2 keys (one is the key parameter, the other is to be read here)
-
-	// In loop:
-	// If the last key is a number, add to iterations.
-
-	// Out loop:
-	// If last key is i or a, read one more key
-
-	// Enter visual mode (this will not be noticed by the readline user)
-
-	// Now we match the keys against some regular expressions.
-	// This will basically split the keys in 3 parts: a caller key, a count, and a navigation key.
-
-	// Finally, handle navigation
-
-	// When no range was selected, we are done with visual mode (resets mark/cursor ranges)
-
-	// Post-navigation handling.
-}
-
+// TODO: This should return a boolean to notify if a range was actually selected.
 // matchRangeAction tries to match a range expression against a series of regular expressions,
 // returning the count (if any, or 1) and an optional navigation action key.
 //
@@ -90,41 +69,80 @@ func (rl *Instance) readRangeKeys(key string, keymap keyMap) {
 //   [cdyv]tz -> `r.ba`
 //   [cdy]Tf -> `oo.ba`
 //
-func matchRangeAction(keys string) (count, navAction string) {
-	count = "1"
-
-	// All matchers
-	changeAroundWord, _ := regexp.Compile(`^c([1-9][0-9]*)?[ia][wW]$`)
-	aroundWordEnd, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?[ia][eE]$`)
-	changeForwardWord, _ := regexp.Compile(`^c([1-9][0-9]*)?w$`)
-	changeForwardBlanWord, _ := regexp.Compile(`^c([1-9][0-9]*)?W$`)
-	changeForwardWordEnd, _ := regexp.Compile(`^c([1-9][0-9]*)?e$`)
-	changeForwardBlankWordEnd, _ := regexp.Compile(`^c([1-9][0-9]*)?E$`)
-	backwardWord, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?[bB]$`)
-	charNextMatch, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?([FT].?)$`)
-	nextLine, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?j$`)
-	previousLine, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?h$`)
-	forwardChar, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?l$`)
-	repeat, _ := regexp.Compile(`^.([1-9][0-9]*)?([^0-9]+)$`)
-
-	// Note that in all cases, the submatch of interest is the counter:
-	// The navigation action is known by us automatically if we have a match.
-	//
-	// Note that when no numeric argument is found, match[1] will be empty.
-	if match := changeAroundWord.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := aroundWordEnd.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := changeForwardWord.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := changeForwardBlanWord.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := changeForwardWordEnd.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := changeForwardBlankWordEnd.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := backwardWord.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := charNextMatch.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := nextLine.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := previousLine.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := forwardChar.FindStringSubmatch(keys); len(match) > 0 {
-	} else if match := repeat.FindStringSubmatch(keys); len(match) > 0 {
-	} else {
-	}
-
-	return
-}
+// func matchRangeAction(keys string) (command, count, navKey string) {
+// 	// All matchers
+// 	changeAroundWord, _ := regexp.Compile(`^c([1-9][0-9]*)?[ia][wW]$`)
+// 	aroundWordEnd, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?[ia][eE]$`)
+// 	changeForwardWord, _ := regexp.Compile(`^c([1-9][0-9]*)?w$`)
+// 	changeForwardBlankWord, _ := regexp.Compile(`^c([1-9][0-9]*)?W$`)
+// 	changeForwardWordEnd, _ := regexp.Compile(`^c([1-9][0-9]*)?e$`)
+// 	changeForwardBlankWordEnd, _ := regexp.Compile(`^c([1-9][0-9]*)?E$`)
+// 	backwardWord, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?[bB]$`)
+// 	charNextMatch, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?([FT].?)$`)
+// 	downLine, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?j$`)
+// 	upLine, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?j$`)
+// 	backwardChar, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?h$`)
+// 	forwardChar, _ := regexp.Compile(`^[cdy]([1-9][0-9]*)?l$`)
+// 	repeat, _ := regexp.Compile(`^.([1-9][0-9]*)?([^0-9]+)$`)
+//
+// 	// Note that in all cases, the submatch of interest is the counter:
+// 	// The navigation action is known by us automatically if we have a match.
+// 	if match := changeAroundWord.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = keys[len(keys)-2:]
+// 	} else if match := aroundWordEnd.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 	} else if match := changeForwardWord.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = "e"
+// 	} else if match := changeForwardBlankWord.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = "E"
+// 	} else if match := changeForwardWordEnd.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = "e"
+// 	} else if match := changeForwardBlankWordEnd.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = "E"
+// 	} else if match := backwardWord.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = keys[len(keys)-1:]
+// 	} else if match := charNextMatch.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = match[2]
+// 	} else if match := downLine.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 	} else if match := upLine.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 	} else if match := backwardChar.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = "h"
+// 	} else if match := forwardChar.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		// TODO HERE: substract 1 from count
+// 		navKey = count + "l"
+// 	} else if match := repeat.FindStringSubmatch(keys); len(match) > 0 {
+// 		command = string(keys[0])
+// 		count = match[1]
+// 		navKey = match[2]
+// 	}
+//
+// 	// We perform at least one action.
+// 	if count == "" {
+// 		count = "1"
+// 	}
+//
+// 	return
+// }

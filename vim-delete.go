@@ -128,8 +128,6 @@ func (rl *Instance) viDeleteByAdjust(adjust int) {
 
 	rl.line = newLine
 
-	// rl.updateHelpers()
-
 	if adjust < 0 {
 		rl.moveCursorByAdjust(adjust)
 	}
