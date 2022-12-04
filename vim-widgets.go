@@ -37,7 +37,8 @@ var standardViWidgets = viWidgets{
 	"vi-find-prev-char":         viFindPrevChar,
 	"vi-find-prev-char-skip":    viFindPrevCharSkip,
 	"vi-delete":                 viDelete,
-	"vi-replace-chars":          viReplace,
+	"vi-replace-chars":          viReplaceChars,
+	"vi-replace":                viReplace,
 }
 
 var viinsWidgets = map[string]keyHandler{
@@ -48,7 +49,6 @@ var viinsWidgets = map[string]keyHandler{
 // vimEditorWidgets maps Vim widget names (named almost identically to ZSH ones)
 // to their function implementation. All widgets should be mapped in here.
 var vimEditorWidgets = viWidgets{
-	"vi-replace":              viReplaceR,    // R
 	"vi-move-around-surround": viJumpBracket, // %
 
 	// Non-standard
@@ -276,7 +276,7 @@ func viPutBefore(rl *Instance) {
 	}
 }
 
-func viReplace(rl *Instance) {
+func viReplaceChars(rl *Instance) {
 	rl.viUndoSkipAppend = true
 
 	// We read a character to use first.
@@ -308,10 +308,62 @@ func viReplace(rl *Instance) {
 	rl.pos--
 }
 
-func viReplaceR(rl *Instance) {
-	rl.modeViMode = vimReplaceMany
-	rl.viIteration = ""
+func viReplace(rl *Instance) {
+	// We store the current line as an undo item first, but will not
+	// store any intermediate changes (in the loop below) as undo items.
+	rl.undoAppendHistory()
 	rl.viUndoSkipAppend = true
+
+	// All replaced characters are stored, to be used with backspace
+	cache := make([]rune, 0)
+
+	// The replace mode is quite special in that it does escape back
+	// to the main readline loop: it keeps reading characters and inserts
+	// them as long as the escape key is not pressed.
+	for {
+		print(cursorBlinkingUnderline)
+
+		// Read a new key
+		keys, esc := rl.readArgumentKey()
+		if esc {
+			print(cursorBlinkingBlock)
+			break
+		}
+		key := rune(keys[0])
+
+		// If the key is a backspace, we go back one character
+		if key == charBackspace || key == charBackspace2 {
+			if rl.pos > 0 {
+				rl.pos--
+			}
+
+			// And recover the last replaced character
+			if len(cache) > 0 {
+				key = cache[len(cache)-1]
+				cache = cache[:len(cache)-1]
+				rl.line[rl.pos] = key
+			}
+		} else {
+			// If the cursor is at the end of the line,
+			// we insert the character instead of replacing.
+			if len(rl.line)-1 < rl.pos {
+				cache = append(cache, rune(0))
+				rl.line = append(rl.line, key)
+			} else {
+				cache = append(cache, rl.line[rl.pos])
+				rl.line[rl.pos] = key
+			}
+
+			rl.pos++
+		}
+
+		// Update the line
+		rl.updateHelpers()
+	}
+
+	// When exiting the replace mode, move the cursor back
+	rl.pos--
+	print(cursorBlinkingBlock)
 }
 
 func viEditCommandLine(rl *Instance) {
