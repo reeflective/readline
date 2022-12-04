@@ -41,6 +41,48 @@ func (rl *Instance) getLine() []rune {
 	return rl.line
 }
 
+// computeLine computes the number of lines that the input line spans.
+func (rl *Instance) computeLine() {
+	var usedLines, usedX int
+
+	var line string
+	if len(rl.currentComp) > 0 {
+		line = string(rl.lineComp)
+	} else {
+		line = string(rl.line)
+	}
+
+	// We split the input line on every newline first
+	// We determine if each line alone spans more than one line.
+	for i, line := range strings.Split(line, "\n") {
+
+		lineLen := len(line)
+		usedX += lineLen
+
+		// Adjust for the first line that is printed after the prompt.
+		if i == 0 {
+			lineLen += rl.inputAt
+		}
+
+		usedLines += lineLen / GetTermWidth()
+		remain := lineLen % GetTermWidth()
+		if remain != 0 {
+			usedLines++
+		}
+
+		// The last line gives us the full rest
+		if i == len(strings.Split(line, "\n"))-1 {
+			rl.fullX = remain
+		}
+	}
+
+	rl.fullY = usedLines
+}
+
+// computeCursorPos determines the X and Y coordinates of the cursor.
+func (rl *Instance) computeCursorPos() {
+}
+
 // printLine - refresh the current input line, either virtually completed or not.
 // also renders the current completions and hints. To be noted, the updateReferences()
 // function is only ever called once, and after having moved back to prompt position

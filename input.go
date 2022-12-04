@@ -2,6 +2,7 @@ package readline
 
 import (
 	"os"
+	"regexp"
 )
 
 // InputMode - The shell input mode
@@ -27,6 +28,30 @@ func (rl *Instance) readInput() (b []byte, i int, err error) {
 	}
 
 	rl.skipStdinRead = false
+
+	return
+}
+
+// readArgumentKey reads a key required by some (rare) widgets
+// that directly read/need their argument/operator, without
+// going though operator pending mode first.
+func (rl *Instance) readArgumentKey() (key string, ret bool) {
+	b, i, _ := rl.readInput()
+	key = string(b[:i])
+
+	// If the last key is a number, add to iterations instead,
+	// and read another key input.
+	numMatcher, _ := regexp.Compile(`^[1-9][0-9]*$`)
+	for numMatcher.MatchString(string(key[len(key)-1])) {
+		rl.viIteration += string(key[len(key)-1])
+
+		b, i, _ = rl.readInput()
+		key = string(b[:i])
+	}
+
+	if b[0] == charEscape {
+		ret = true
+	}
 
 	return
 }
@@ -104,7 +129,7 @@ func (rl *Instance) inputEditor(r []rune) {
 		rl.refreshVimStatus()
 
 	case vimDelete:
-		rl.viDelete(r[0])
+		// rl.viDelete(r[0])
 		rl.refreshVimStatus()
 
 	case vimReplaceOnce:

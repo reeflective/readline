@@ -107,12 +107,11 @@ func (rl *Instance) initHistory() {
 	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
 }
 
-// Browse historic lines:
+// walkHistory - Browse historic lines
 func (rl *Instance) walkHistory(i int) {
 	var (
-		old, new string
-		dedup    bool
-		err      error
+		new string
+		err error
 	)
 
 	// Work with correct history source (depends on CtrlR/CtrlE)
@@ -123,8 +122,8 @@ func (rl *Instance) walkHistory(i int) {
 		history = rl.mainHistory
 	}
 
-	// Nothing happens if the history is nil
-	if history == nil {
+	// Nothing happens if the history is nil or empty.
+	if history == nil || history.Len() == 0 {
 		return
 	}
 
@@ -134,19 +133,27 @@ func (rl *Instance) walkHistory(i int) {
 		rl.lineBuf = string(rl.line)
 	}
 
-	switch rl.histPos + i {
-	case 0, history.Len() + 1:
-		rl.histPos = 0
+	// Move the history position first. It is caught below if out of bounds.
+	rl.histPos += i
+
+	switch {
+	case rl.histPos > history.Len():
+		// The history is greater than the length of history: maintain
+		// it at the last index, to keep the same line in the buffer.
+		rl.histPos--
+	case rl.histPos < 0:
+		// We can never go lower than the last history line, which is our current line.
+		rl.histPos++
+	case rl.histPos == 0:
+		// The 0 index is our current line
 		rl.line = []rune(rl.lineBuf)
 		rl.pos = len(rl.lineBuf)
-		return
-	case -1:
-		rl.histPos = 0
-		rl.lineBuf = string(rl.line)
-	default:
-		dedup = true
-		old = string(rl.line)
-		new, err = history.GetLine(history.Len() - rl.histPos - 1)
+	}
+
+	// We now have the correct history index. Use it to find the history line.
+	// If the history position is not zero, we need to use a history line.
+	if rl.histPos > 0 {
+		new, err = history.GetLine(history.Len() - rl.histPos)
 		if err != nil {
 			rl.resetHelpers()
 			print("\r\n" + err.Error() + "\r\n")
@@ -156,21 +163,11 @@ func (rl *Instance) walkHistory(i int) {
 		}
 
 		rl.clearLine()
-		rl.histPos += i
 		rl.line = []rune(new)
 		rl.pos = len(rl.line)
 		if rl.pos > 0 {
 			rl.pos--
 		}
-	}
-
-	// Update the line, and any helpers
-	rl.updateHelpers()
-
-	// In order to avoid having to type j/k twice each time for history navigation,
-	// we walk once again. This only ever happens when we aren't out of bounds.
-	if dedup && old == new {
-		rl.walkHistory(i)
 	}
 }
 

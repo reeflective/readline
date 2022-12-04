@@ -76,7 +76,7 @@ func (rl *Instance) exitVioppMode() {
 // }
 
 func inputViDelete(rl *Instance, r []rune) {
-	rl.viDelete(r[0])
+	// rl.viDelete(r[0])
 	rl.refreshVimStatus()
 }
 
@@ -95,30 +95,6 @@ func inputViReplaceMany(rl *Instance, r []rune) {
 	rl.refreshVimStatus()
 }
 
-// readArgumentKey reads a key required by some (rare) widgets
-// that directly read/need their argument/operator, without
-// going though operator pending mode first.
-func (rl *Instance) readArgumentKey() (key string, ret bool) {
-	b, i, _ := rl.readInput()
-	key = string(b[:i])
-
-	// If the last key is a number, add to iterations instead,
-	// and read another key input.
-	numMatcher, _ := regexp.Compile(`^[1-9][0-9]*$`)
-	for numMatcher.MatchString(string(key[len(key)-1])) {
-		rl.viIteration += string(key[len(key)-1])
-
-		b, i, _ = rl.readInput()
-		key = string(b[:i])
-	}
-
-	if b[0] == charEscape {
-		ret = true
-	}
-
-	return
-}
-
 // Compute begin and end of region
 func (rl *Instance) selection() (start, end int) {
 	if rl.mark < rl.pos {
@@ -127,6 +103,19 @@ func (rl *Instance) selection() (start, end int) {
 	} else {
 		start = rl.pos
 		end = rl.mark
+	}
+
+	// Here, compute for visual line mode if needed.
+	// We select the whole line.
+	if rl.visualLine {
+		start = 0
+
+		for i, char := range rl.line[end:] {
+			if string(char) == "\n" {
+				break
+			}
+			end = end + i
+		}
 	}
 
 	// Ensure nothing is out of bounds
@@ -145,7 +134,10 @@ func (rl *Instance) getSelection() (bpos, epos, cpos int) {
 	bpos, epos = rl.selection()
 	cpos = bpos
 
-	// Here, compute for visual line mode if needed.
+	// Ensure selection is within bounds
+	if bpos < 0 {
+		bpos = 0
+	}
 
 	return
 }
@@ -164,8 +156,30 @@ func (rl *Instance) yankSelection() {
 	// And copy to active register
 	rl.saveBufToRegister([]rune(selection))
 
-	// and reset the cursor position
+	// and reset the cursor position if not in visual mode
+	if !rl.visualLine {
+		rl.pos = cpos
+	}
+}
+
+func (rl *Instance) deleteSelection() {
+	var newline []rune
+
+	// Get the selection.
+	bpos, epos, cpos := rl.getSelection()
+	selection := string(rl.line[bpos:epos])
+
+	// Here, adapt cursor position if visual line
+
+	rl.saveBufToRegister([]rune(selection))
+	newline = append(rl.line[:bpos], rl.line[epos:]...)
+	rl.line = newline
+
+	// Adapt cursor position when at the end of the
 	rl.pos = cpos
+	if rl.pos == len(newline) && len(newline) > 0 {
+		rl.pos--
+	}
 }
 
 func (rl *Instance) resetSelection() {
@@ -173,6 +187,12 @@ func (rl *Instance) resetSelection() {
 	rl.mark = -1
 }
 
+// action is represents the action of a widget, the number of times
+// this widget needs to be run, and an optional operator argument.
+// Most of the time we don't need this operator.
+//
+// Those actions are mostly used by widgets which make the shell enter
+// the Vim operator pending mode, and thus require another key to be read.
 type action struct {
 	widget     string
 	iterations int
@@ -323,28 +343,6 @@ func (rl *Instance) vi(r rune) {
 // 		return
 // 	}
 // }
-
-func (rl *Instance) viDeleteHandler(b []byte, i int, r []rune) {
-	// key := r[0]
-	// We always try to read further keys for a matching widget:
-	// In some modes we will get a different one, while in others (like visual)
-	// we will just fallback on this current widget (vi-delete), which will be executed
-	// as is, since we won't get any remaining key.
-
-	// If we got a remaining key with the widget, we
-	// first check for special keys such as Escape.
-
-	// If the widget we found is also returned with some remaining keys,
-	// (such as Vi iterations, range keys, etc) we must keep reading them
-	// with a range handler before coming back here.
-
-	// All handlers have caught and ran, and we are now ready
-	// to perform yanking itself, either on a visual range or not.
-
-	// Reset the repeat commands, instead of doing it in the range handler function
-
-	// And reset the cursor position if not nil (moved)
-}
 
 func (rl *Instance) viChange(b []byte, i int, r []rune) {
 	// key := r[0]

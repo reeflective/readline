@@ -23,6 +23,8 @@ var standardLineWidgets = map[string]func(rl *Instance) (read, ret bool, err err
 	"forward-word":         forwardWord,
 	"backward-word":        backwardWord,
 	"undo":                 undo,
+	"down-line-or-history": historyNext,
+	"up-line-or-history":   historyPrev,
 }
 
 var standardHistoryWidgets = map[string]func(rl *Instance) (read, ret bool, err error){
@@ -31,6 +33,8 @@ var standardHistoryWidgets = map[string]func(rl *Instance) (read, ret bool, err 
 }
 
 func selfInsert(rl *Instance, _ []byte, _ int, r []rune) (read, ret bool, val string, err error) {
+	rl.viUndoSkipAppend = true
+
 	// Prepare the line
 	// line, err := rl.mainHistory.GetLine(rl.mainHistory.Len() - 1)
 	// if err != nil {
@@ -290,7 +294,6 @@ func backwardDeleteChar(rl *Instance) (read, ret bool, err error) {
 		rl.deleteX()
 	}
 
-	// read = true
 	return
 }
 
@@ -392,6 +395,22 @@ func digitArgument(rl *Instance, _ []byte, i int, r []rune) (read, ret bool, val
 	}
 
 	rl.viUndoSkipAppend = true
+
+	return
+}
+
+func historyNext(rl *Instance) (read, ret bool, err error) {
+	rl.viUndoSkipAppend = true
+	rl.mainHist = true
+	rl.walkHistory(-1)
+
+	return
+}
+
+func historyPrev(rl *Instance) (read, ret bool, err error) {
+	rl.viUndoSkipAppend = true
+	rl.mainHist = true
+	rl.walkHistory(1)
 
 	return
 }

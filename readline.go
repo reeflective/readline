@@ -154,6 +154,7 @@ func (rl *Instance) Readline() (string, error) {
 		// and if we are in an insert mode (either 'emacs' or 'viins'),
 		// we run the self-insert widget to input the key in the line.
 		if rl.main == emacs || rl.main == viins {
+			rl.viUndoSkipAppend = true
 			ret, val, err := rl.runWidget("self-insert", b, i, r)
 			if ret {
 				return val, err

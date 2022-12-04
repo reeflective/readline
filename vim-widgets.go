@@ -7,9 +7,6 @@ import (
 // vimHandlers maps keys to Vim actions.
 type viWidgets map[string]func(rl *Instance)
 
-// var standardViWidgets viWidgets
-
-// func init() {
 var standardViWidgets = viWidgets{
 	"vi-cmd-mode":               viCommandMode,
 	"vi-insert-mode":            viInsertMode,
@@ -30,16 +27,18 @@ var standardViWidgets = viWidgets{
 	"vi-add-eol":                viAddEol,
 	"vi-add-next":               viAddNext,
 	"vi-put-after":              viPutAfter,
+	"vi-put-before":             viPutBefore,
 	"vi-end-of-line":            viEndOfLine,
 	"vi-set-buffer":             viSetBuffer,
 	"vi-yank":                   viYank,
+	"vi-yank-whole-line":        viYankWholeLine,
 	"vi-find-next-char":         viFindNextChar,
 	"vi-find-next-char-skip":    viFindNextCharSkip,
 	"vi-find-prev-char":         viFindPrevChar,
 	"vi-find-prev-char-skip":    viFindPrevCharSkip,
+	"vi-delete":                 viDelete,
+	"vi-replace-chars":          viReplace,
 }
-
-// }
 
 var viinsWidgets = map[string]keyHandler{
 	"visual-mode":                   viVisualMode,
@@ -49,14 +48,8 @@ var viinsWidgets = map[string]keyHandler{
 // vimEditorWidgets maps Vim widget names (named almost identically to ZSH ones)
 // to their function implementation. All widgets should be mapped in here.
 var vimEditorWidgets = viWidgets{
-	"vi-delete":               viDelete,        // d
-	"down-line-or-history":    viHistoryNext,   // j
-	"up-line-or-history":      viHistoryPrev,   // k
-	"vi-put-before":           viPasteP,        // P
-	"vi-replace-chars":        viReplace,       // r
-	"vi-replace":              viReplaceR,      // R
-	"vi-yank-whole-line":      viYankWholeLine, // Y
-	"vi-move-around-surround": viJumpBracket,   // %
+	"vi-replace":              viReplaceR,    // R
+	"vi-move-around-surround": viJumpBracket, // %
 
 	// Non-standard
 	"vi-jump-previous-brace": viJumpPreviousBrace,
@@ -67,8 +60,9 @@ func viInsertMode(rl *Instance) {
 	rl.main = viins
 
 	rl.viIteration = ""
-	rl.viUndoSkipAppend = true
 	rl.mark = -1
+	rl.activeRegion = false
+	rl.visualLine = false
 
 	rl.updateCursor()
 
@@ -79,6 +73,8 @@ func viCommandMode(rl *Instance) {
 	rl.viIteration = ""
 	rl.viUndoSkipAppend = true
 	rl.mark = -1
+	rl.activeRegion = false
+	rl.visualLine = false
 
 	// Only go back if not in insert mode
 	if rl.main == viins && len(rl.line) > 0 && rl.pos > 0 {
@@ -177,11 +173,6 @@ func viBackwardBlankWord(rl *Instance) {
 	}
 }
 
-func viDelete(rl *Instance) {
-	rl.modeViMode = vimDelete
-	rl.viUndoSkipAppend = true
-}
-
 func viKillEol(rl *Instance) {
 	rl.saveBufToRegister(rl.line[rl.pos-1:])
 	rl.line = rl.line[:rl.pos]
@@ -261,16 +252,6 @@ func viBackwardChar(rl *Instance) {
 	}
 }
 
-func viHistoryNext(rl *Instance) {
-	rl.mainHist = true
-	rl.walkHistory(-1)
-}
-
-func viHistoryPrev(rl *Instance) {
-	rl.mainHist = true
-	rl.walkHistory(1)
-}
-
 // TODO: If pasting multiple lines, instead of only characters, paste below the current line.
 func viPutAfter(rl *Instance) {
 	// paste after the cursor position
@@ -285,7 +266,7 @@ func viPutAfter(rl *Instance) {
 	rl.pos--
 }
 
-func viPasteP(rl *Instance) {
+func viPutBefore(rl *Instance) {
 	// paste before
 	rl.viUndoSkipAppend = true
 	buffer := rl.pasteFromRegister()
@@ -296,9 +277,35 @@ func viPasteP(rl *Instance) {
 }
 
 func viReplace(rl *Instance) {
-	rl.modeViMode = vimReplaceOnce
-	rl.viIteration = ""
 	rl.viUndoSkipAppend = true
+
+	// We read a character to use first.
+	print(cursorBlinkingUnderline)
+
+	key, esc := rl.readArgumentKey()
+	if esc {
+		print(cursorBlinkingBlock)
+		return
+	}
+	rl.updateCursor()
+
+	// In visual mode, we replace all chars of the selection
+	if rl.activeRegion || rl.local == visual {
+		bpos, epos, _ := rl.getSelection()
+		for i := bpos; i < epos; i++ {
+			rl.line[i] = []rune(key)[0]
+		}
+		rl.pos = bpos
+
+		viCommandMode(rl)
+
+		return
+	}
+
+	// Or simply the character under the cursor.
+	rl.deletex()
+	rl.insert([]rune(key))
+	rl.pos--
 }
 
 func viReplaceR(rl *Instance) {
@@ -425,7 +432,7 @@ func viYank(rl *Instance) {
 		rl.resetSelection()
 
 		if rl.local == visual {
-			rl.local = vicmd
+			viCommandMode(rl)
 			rl.updateCursor()
 		}
 
@@ -482,7 +489,20 @@ func viSetBuffer(rl *Instance) {
 	if rl.registers.onRegister {
 		rl.registers.resetRegister()
 	}
-	rl.registers.registerSelectWait = true
+
+	// Then read a key to select the register
+	b, _, _ := rl.readInput()
+	key := rune(b[0])
+	if b[0] == charEscape {
+		return
+	}
+
+	for _, char := range validRegisterKeys {
+		if key == char {
+			rl.registers.setActiveRegister(key)
+			return
+		}
+	}
 }
 
 // TODO: only use a single rune to match against in those widgets
@@ -552,4 +572,38 @@ func viFindPrevCharSkip(rl *Instance) {
 	times := rl.getViIterations()
 
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
+}
+
+func viDelete(rl *Instance) {
+	// When we are called after a pending operator action, we are a pending
+	// usually not in visual mode, but have an active selection.
+	// In this case we yank the active region and return.
+	if rl.activeRegion || rl.local == visual {
+		rl.deleteSelection()
+		rl.resetSelection()
+
+		if rl.local == visual {
+			viCommandMode(rl)
+			rl.updateCursor()
+		}
+
+		return
+	}
+
+	// If we are in operator pending mode, that means the command
+	// is 'yy' (optionally with iterations), so we copy the required
+	if rl.local == viopp {
+	}
+
+	// Else if we are actually starting a yank action. We need an argument:
+	// Enter operator pending mode for the next key to be considered this
+	// argument (more precisely, the widget to be executed before this argument).
+	rl.enterVioppMode("vi-delete")
+	rl.updateCursor()
+
+	// We set the initial mark, so that when executing this
+	// widget back after the argument, we have a selection.
+	// rl.enterVisualMode()
+	rl.mark = rl.pos
+	rl.activeRegion = true
 }
