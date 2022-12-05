@@ -86,7 +86,7 @@ var vicmdKeymaps = keyMap{
 	seqArrowLeft:           "vi-backward-char",
 	" ":                    "vi-forward-char",
 	"$":                    "vi-end-of-line",
-	"%":                    "vi-move-around-surround",
+	"%":                    "vi-match-bracket",
 	"\"":                   "vi-set-buffer",
 	"0":                    "vi-digit-or-beginning-of-line",
 	"a":                    "vi-add-next", // SPECIAL HANDLER

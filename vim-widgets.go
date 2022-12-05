@@ -39,21 +39,12 @@ var standardViWidgets = viWidgets{
 	"vi-delete":                 viDelete,
 	"vi-replace-chars":          viReplaceChars,
 	"vi-replace":                viReplace,
+	"vi-match-bracket":          viMatchBracket,
 }
 
 var viinsWidgets = map[string]keyHandler{
 	"visual-mode":                   viVisualMode,
 	"vi-digit-or-beginning-of-line": viDigitOrBeginningOfLine,
-}
-
-// vimEditorWidgets maps Vim widget names (named almost identically to ZSH ones)
-// to their function implementation. All widgets should be mapped in here.
-var vimEditorWidgets = viWidgets{
-	"vi-move-around-surround": viJumpBracket, // %
-
-	// Non-standard
-	"vi-jump-previous-brace": viJumpPreviousBrace,
-	"vi-jump-next-brace":     viJumpNextBrace,
 }
 
 func viInsertMode(rl *Instance) {
@@ -514,23 +505,37 @@ func viYankWholeLine(rl *Instance) {
 	rl.viUndoSkipAppend = true
 }
 
-func viJumpPreviousBrace(rl *Instance) {
-	rl.viUndoSkipAppend = true
-	rl.moveCursorByAdjust(rl.viJumpPreviousBrace())
-}
-
-func viJumpNextBrace(rl *Instance) {
-	rl.viUndoSkipAppend = true
-	rl.moveCursorByAdjust(rl.viJumpNextBrace())
-}
-
 func viEndOfLine(rl *Instance) {
 	rl.pos = len(rl.line)
 	rl.viUndoSkipAppend = true
 }
 
-func viJumpBracket(rl *Instance) {
+func viMatchBracket(rl *Instance) {
 	rl.viUndoSkipAppend = true
+
+	nextPos := rl.pos
+	found := false
+
+	// If we are on a bracket/brace/parenthesis, we just find the matcher
+	if !isBracket(rl.line[rl.pos]) {
+		// First find the next bracket/brace/parenthesis
+		for i := rl.pos + 1; i < len(rl.line); i++ {
+			char := rl.line[i]
+			if char == '}' || char == ')' || char == ']' {
+				nextPos = i - rl.pos
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return
+		}
+
+		rl.moveCursorByAdjust(nextPos)
+	}
+
+	// Move to the match first, and then find the matching bracket.
 	rl.moveCursorByAdjust(rl.viJumpBracket())
 }
 
