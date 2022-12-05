@@ -5,7 +5,6 @@ var viinsKeymaps = keyMap{
 	// Standard
 	string(charEscape): "vi-cmd-mode",
 	string(charCtrlM):  "accept-line",
-	// Emacs
 	// Bunch of self-insert characters: How to use them, like Ctrl-C ?
 	string(charCtrlL):          "clear-screen",
 	string(charCtrlY):          "yank",
@@ -68,9 +67,8 @@ var vicmdKeymaps = keyMap{
 	// History
 
 	// Vim
-	string(charCtrlA): "switch-keyword", // SPECIAL HANDLER TODO
-	// string(charCtrlH):      "vi-backward-char",
-	string(charCtrlR):      "redo", // TODO
+	string(charCtrlA):      "switch-keyword", // SPECIAL HANDLER TODO
+	string(charCtrlR):      "redo",           // TODO
 	string(charBackspace):  "backward-delete-char",
 	string(charBackspace2): "backward-delete-char",
 	seqArrowRight:          "vi-forward-char",
@@ -119,10 +117,14 @@ var vicmdKeymaps = keyMap{
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode
 var vioppKeymaps = keyMap{
 	string(charEscape): "vi-cmd-mode",
-	"a":                "vi-select-surround", // SPECIAL HANDLER, probably different from 'a' in visual mode, less choices.
-	"i":                "vi-select-surround", // SAME THING.
-	"j":                "down-line",          // Not sure since no multiline
-	"k":                "up-line",            // Not sure since no multiline
+	"aW":               "select-a-blank-word",
+	"aa":               "select-a-shell-word",
+	"aw":               "select-a-word",
+	"iW":               "select-in-blank-word",
+	"ia":               "select-in-shell-word",
+	"iw":               "select-in-word",
+	"j":                "down-line", // Not sure since no multiline
+	"k":                "up-line",   // Not sure since no multiline
 }
 
 // viinsKeymaps are the default keymaps in Vim Visual mode

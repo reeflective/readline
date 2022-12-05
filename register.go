@@ -362,3 +362,19 @@ func (rl *Instance) completeAlphaRegisters() *CompletionGroup {
 
 	return alphaRegs
 }
+
+// vi - Apply a key to a Vi action. Note that as in the rest of the code, all cursor movements
+// have been moved away, and only the rl.pos is adjusted: when echoing the input line, the shell
+// will compute the new cursor pos accordingly.
+// func (rl *Instance) vi(r rune) {
+// 	// If we are on register mode and one is already selected,
+// 	// check if the key stroke to be evaluated is acting on it
+// 	// or not: if not, we cancel the active register now.
+// 	if rl.registers.onRegister {
+// 		for _, char := range registerFreeKeys {
+// 			if char == r {
+// 				rl.registers.resetRegister()
+// 			}
+// 		}
+// 	}
+// }

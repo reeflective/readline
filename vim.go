@@ -1,9 +1,5 @@
 package readline
 
-import (
-	"regexp"
-)
-
 //
 // Vim Modes ------------------------------------------------------ //
 //
@@ -111,6 +107,7 @@ func (rl *Instance) yankSelection() {
 	}
 }
 
+// yankSelection deletes the active selection.
 func (rl *Instance) deleteSelection() {
 	var newline []rune
 
@@ -134,146 +131,6 @@ func (rl *Instance) deleteSelection() {
 func (rl *Instance) resetSelection() {
 	rl.activeRegion = false
 	rl.mark = -1
-}
-
-// action is represents the action of a widget, the number of times
-// this widget needs to be run, and an optional operator argument.
-// Most of the time we don't need this operator.
-//
-// Those actions are mostly used by widgets which make the shell enter
-// the Vim operator pending mode, and thus require another key to be read.
-type action struct {
-	widget     string
-	iterations int
-	key        string
-	operator   string
-}
-
-// matchPendingAction processes a key against pending operation, first considering
-// the key as an operator to this action. It executes anything that should be done
-// here, updating any mode if needed, and notifies the caller if it must keep trying
-// to match the key against the other (main) keymaps.
-func (rl *Instance) matchPendingAction(key string) (read, ret bool, val string, err error) {
-	// If the key is a digit, we add it to the viopp-specific iterations
-	if isDigit, _ := regexp.MatchString(`^([1-9]{1})$`, key); isDigit {
-		rl.viIteration += key
-
-		read = true
-		return
-	}
-
-	// Some keys might be caught in vicmd mode, but have a special meaning in
-	// operator pending mode. We store it to be used later.
-	if isSpecialKey, _ := regexp.MatchString(`[ia]`, key); isSpecialKey {
-		rl.navKey += key
-
-		read = true
-		return
-	}
-
-	// Since we can stack pending actions (like in 'y2Ft', where both y and F need
-	// pending operators), if the current key matches any of the main keymap bindings,
-	// we don't use it now as an argument, and must match it against the main keymap.
-	if widget, found := rl.mainKeymap[key]; found && widget != "" {
-		return
-	}
-
-	// Else, the key is taken as an argument to the last pending widget.
-	rl.runPendingWidget(key)
-
-	return
-}
-
-// getPendingWidget returns the last widget pushed onto the pending stack.
-func (rl *Instance) getPendingWidget() (act action) {
-	if len(rl.pendingActions) > 0 {
-		act = rl.pendingActions[len(rl.pendingActions)-1]
-		rl.pendingActions = rl.pendingActions[:len(rl.pendingActions)-1]
-	}
-
-	// Do we need to exit pending mode if list is empty ?
-
-	return
-}
-
-func (rl *Instance) runPendingWidget(key string) {
-	action := rl.getPendingWidget()
-
-	if action.widget == "" {
-		return
-	}
-
-	// Exit the pending operator mode if no more widgets
-	// waiting for an argument operator.
-	defer func() {
-		if len(rl.pendingActions) == 0 {
-			rl.exitVioppMode()
-			rl.updateCursor()
-		}
-	}()
-
-	widget := rl.getWidget(action.widget)
-	if widget == nil {
-		// TODO RESET everything
-		return
-	}
-
-	defer func() {
-		if len(rl.pendingActions) == 0 {
-			rl.exitVioppMode()
-		}
-	}()
-
-	// Permutate viIterations and pending iterations,
-	// so that further operator iterations are used
-	// within the widgets themselves.
-	times := action.iterations
-
-	keys := []rune(rl.navKey + key)
-
-	// Run the widget with all navigation keys
-	for i := 0; i < times; i++ {
-		widget(rl, []byte{}, len(keys), keys)
-		// read, ret, val, err = widget(rl, []byte{}, len(keys), keys)
-	}
-}
-
-// vi - Apply a key to a Vi action. Note that as in the rest of the code, all cursor movements
-// have been moved away, and only the rl.pos is adjusted: when echoing the input line, the shell
-// will compute the new cursor pos accordingly.
-func (rl *Instance) vi(r rune) {
-	// Check if we are in register mode. If yes, and for some characters,
-	// we select the register and exit this func immediately.
-	if rl.registers.registerSelectWait {
-		for _, char := range validRegisterKeys {
-			if r == char {
-				rl.registers.setActiveRegister(r)
-				return
-			}
-		}
-	}
-
-	// If we are on register mode and one is already selected,
-	// check if the key stroke to be evaluated is acting on it
-	// or not: if not, we cancel the active register now.
-	if rl.registers.onRegister {
-		for _, char := range registerFreeKeys {
-			if char == r {
-				rl.registers.resetRegister()
-			}
-		}
-	}
-
-	// TODO: HERE FIND THE KEYMAP WIDGET AND RUN IT.
-
-	// Then evaluate the key.
-	switch r {
-	default:
-		if r <= '9' && '0' <= r {
-			rl.viIteration += string(r)
-		}
-		rl.viUndoSkipAppend = true
-	}
 }
 
 func (rl *Instance) viChange(b []byte, i int, r []rune) {

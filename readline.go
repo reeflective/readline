@@ -73,7 +73,14 @@ func (rl *Instance) Readline() (string, error) {
 		}
 
 		r := []rune(string(b))
-		key := string(r[:i]) // This allows to read all special sequences.
+		key := string(r[:i])
+
+		// We store the key in our key stack. which is used
+		// when the key only matches some widgets as a prefix.
+		// We use a copy for the matches below, as some actions
+		// will reset this stack.
+		rl.keys += key
+		keys := rl.keys
 
 		// If the last input is a carriage return, process
 		// according to configured multiline behavior.
@@ -102,41 +109,16 @@ func (rl *Instance) Readline() (string, error) {
 		//
 		// 5)  If the key was not inserted on the line, check against special patterns.
 
+		pending := rl.local == viopp
+
 		// 1) First test the key against the local widget keymap, if any.
 		// - In emacs mode, this local keymap is empty, except when performing
 		// completions or performing history/incremental search.
 		// - In Vim, this can be either 'visual', 'viopp', 'completion' or
 		//   'incremental' search.
-		if widget, found := rl.localKeymap[key]; found && widget != "" {
-			ret, val, err := rl.runWidget(widget, b, i, r)
-			if ret {
-				return val, err
-			}
-
-			continue
-		}
-
-		// 2) If in operator pending mode, most of the keys will be absorbed
-		//    by a widget, including iterations as operating argument.
-		//    We don't always continue and read the next key, as some of them
-		//    might have to be matched against the main keyboard.
-		pending := rl.local == viopp
-		if pending {
-			read, ret, val, err := rl.matchPendingAction(key)
-			if ret || err != nil {
-				return val, err
-			} else if read {
-				continue
-			}
-		}
-
-		// 3) If the key was not matched against any local widget,
-		// check the global widget, which can never be nil.
-		// - In Emacs mode, this widget is 'emacs'.
-		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
-		if widget, found := rl.mainKeymap[key]; found && widget != "" {
-			ret, val, err := rl.runWidget(widget, b, i, r)
-			if ret {
+		widget, prefix := rl.matchKeymap(keys, rl.localKeymap)
+		if widget != "" {
+			if ret, val, err := rl.run(widget, b, i, r); ret || err != nil {
 				return val, err
 			}
 
@@ -144,9 +126,32 @@ func (rl *Instance) Readline() (string, error) {
 			// was in operator pending mode (only Vim), then the caller widget
 			// is waiting to be executed again.
 			if pending {
-				rl.runPendingWidget(key)
+				rl.runPendingWidget(keys)
 			}
 
+			continue
+		} else if prefix {
+			continue
+		}
+
+		// 3) If the key was not matched against any local widget,
+		// check the global widget, which can never be nil.
+		// - In Emacs mode, this widget is 'emacs'.
+		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
+		widget, prefix = rl.matchKeymap(keys, rl.mainKeymap)
+		if widget != "" {
+			if ret, val, err := rl.run(widget, b, i, r); ret || err != nil {
+				return val, err
+			}
+			// If a widget of the main keymap was executed while the shell
+			// was in operator pending mode (only Vim), then the caller widget
+			// is waiting to be executed again.
+			if pending {
+				rl.runPendingWidget(keys)
+			}
+
+			continue
+		} else if prefix {
 			continue
 		}
 
@@ -155,7 +160,7 @@ func (rl *Instance) Readline() (string, error) {
 		// we run the self-insert widget to input the key in the line.
 		if rl.main == emacs || rl.main == viins {
 			rl.viUndoSkipAppend = true
-			ret, val, err := rl.runWidget("self-insert", b, i, r)
+			ret, val, err := rl.run("self-insert", b, i, r)
 			if ret {
 				return val, err
 			}
@@ -167,8 +172,8 @@ func (rl *Instance) Readline() (string, error) {
 		// We try to match the key against the special keymap, which
 		// is done using regular expressions. This allows to use digit
 		// arguments, or other special patterns and ranges.
-		if widget := rl.matchRegexKeymap(key); widget != "" {
-			ret, val, err := rl.runWidget(widget, b, i, r)
+		if widget := rl.matchRegexKeymap(keys); widget != "" {
+			ret, val, err := rl.run(widget, b, i, r)
 			if ret {
 				return val, err
 			}

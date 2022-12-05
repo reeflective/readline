@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"strings"
 
 	ansi "github.com/acarl005/stripansi"
@@ -281,14 +280,6 @@ func (rl *Instance) computePrompt() {
 //
 // 	return
 // }
-
-func (rl *Instance) colorizeVimPrompt(p []rune) (cp []rune) {
-	if rl.VimModeColorize {
-		return []rune(fmt.Sprintf("%s%s%s", BOLD, string(p), RESET))
-	}
-
-	return p
-}
 
 // getRealLength - Some strings will have ANSI escape codes, which might be wrongly
 // interpreted as legitimate parts of the strings. This will bother if some prompt

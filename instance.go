@@ -11,24 +11,10 @@ import (
 // captures without having to repeatedly unload configuration.
 type Instance struct {
 	//
-	// Input Modes  -------------------------------------------------------------------------------
+	// Keymaps ------------------------------------------------------------------------------------
 
-	// TODO: Remove
 	// InputMode - The shell can be used in Vim editing mode, or Emacs (classic).
 	InputMode InputMode
-
-	// Vim parameters/functions
-	// ShowVimMode - If set to true, a string '[i]' or '[N]' indicating the
-	// current Vim mode will be appended to the prompt variable, therefore added to
-	// the user's custom prompt is set. Applies for both single and multiline prompts
-	// TODO: Write prompt segments/indicators for Vim mode and modifiers.
-	ShowVimMode bool
-
-	// Would not need this.
-	VimModeColorize bool // If set to true, varies colors of the VimModePrompt
-
-	//
-	// Keymaps ------------------------------------------------------------------------------------
 
 	main          keymapMode // The main/global keymap, partially overridden by any local keymap.
 	mainKeymap    keyMap     // All keys mapped to the name of their corresponding widgets/actions.
@@ -51,7 +37,7 @@ type Instance struct {
 	registers        *registers // All memory text registers, can be consulted with Alt"
 
 	pendingIterations string // Iterations specific to viopp mode. (2y2w => "2"w)
-	navKey            string // A pending navigation key, stored waiting for a complement.
+	keys              string // A pending navigation key, stored waiting for a complement.
 	pendingActions    []action
 
 	//
@@ -210,7 +196,6 @@ func NewInstance() *Instance {
 
 	// Input Editing
 	rl.InputMode = Emacs
-	rl.ShowVimMode = true
 	rl.initLine()
 
 	// Keymaps

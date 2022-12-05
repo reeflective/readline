@@ -2,7 +2,6 @@ package readline
 
 import (
 	"regexp"
-	"strings"
 )
 
 // keymapMode is a root keymap mode for the shell.
@@ -126,71 +125,36 @@ func (rl *Instance) updateKeymaps() {
 	}
 }
 
-// runWidget wraps a few calls for finding a widget and executing it, returning some basic
-// instructions pertaining to what to do next: either keep reading input, or return the line.
-func (rl *Instance) runWidget(name string, b []byte, i int, r []rune) (ret bool, val string, err error) {
-	widget := rl.getWidget(name)
-	if widget == nil {
+// matchKeymap checks if the provided key matches a precise widget, or if only a prefix
+// is matched. When only a prefix is matched, the shell keeps reading for another key.
+func (rl *Instance) matchKeymap(key string, keymap keyMap) (widget string, prefix bool) {
+	filtered := findBindkeyWidget(key, keymap)
+
+	// We either have no match, so we reset the keys.
+	if len(filtered) == 0 {
+		rl.keys = ""
+		return "", false
+	}
+
+	// The escape key is a special key that bypass the entire process.
+	if len(key) == 1 && key[0] == charEscape {
+		widget = keymap[key]
+		rl.keys = ""
 		return
 	}
 
-	// Execute the widget
-	read, ret, val, err := widget(rl, b, i, r)
-	if read || ret {
-		return
+	// Or several matches, in which case we must read another key.
+	if len(filtered) > 1 {
+		return "", true
 	}
 
-	// Any keymap caught before (if amy) has to expressly ask us
-	// not to push "its effect" onto our undo stack. Thus if we're
-	// here, we store the key in our Undo history (Vim mode).
-	rl.undoAppendHistory()
+	// Or only one, but we might only have prefix,
+	// in which case the widget is still empty.
+	if widget = getWidgetMatch(key, filtered); widget == "" {
+		return "", true
+	}
 
 	return
-}
-
-// getWidget looks in the various widget lists for a target widget,
-// and if it finds it, sometimes will wrap it into a function so that
-// all widgets look the same to the shell instance.
-// This is so because some widgets, like Vim ones, don't return anything.
-//
-// The order in which those widgets maps are tested should not matter as
-// long as there are no duplicates across any two of them.
-func (rl *Instance) getWidget(name string) keyHandler {
-	// Error widgets
-
-	// Standard widgets (all editing modes/styles)
-	if widget, found := standardWidgets[name]; found && widget != nil {
-		return widget
-	}
-
-	// Standard line widgets, wrapped inside a compliant handler.
-	if widget, found := standardLineWidgets[name]; found && widget != nil {
-		return func(rl *Instance, _ []byte, _ int, _ []rune) (bool, bool, string, error) {
-			read, ret, err := widget(rl)
-			return read, ret, "", err
-		}
-	}
-
-	// Emacs
-
-	// Vim standard widgets don't return anything, wrap them in a simple call.
-	if widget, found := standardViWidgets[name]; found && widget != nil {
-		return func(rl *Instance, _ []byte, _ int, _ []rune) (bool, bool, string, error) {
-			widget(rl)
-			return false, false, "", nil
-		}
-	}
-
-	// Non-standard Vim widgets require some input.
-	if widget, found := viinsWidgets[name]; found && widget != nil {
-		return widget
-	}
-
-	// Incremental search
-
-	// Completion
-
-	return nil
 }
 
 // matchRegexKeymap sequentially tests for a matching regexp in the special keymap
@@ -207,35 +171,5 @@ func (rl *Instance) matchRegexKeymap(key string) (widget string) {
 		}
 	}
 
-	return
-}
-
-func findBindkeyWidget(key rune, keymap keyMap) keyMap {
-	widgets := make(keyMap)
-
-	for wkey, widget := range keymap {
-		if strings.HasPrefix(wkey, string(key)) {
-			widgets[wkey] = widget
-		}
-	}
-
-	return widgets
-}
-
-// getWidget returns the first widget in the keymap
-func getWidget(keymap keyMap) (key, widget string) {
-	for key, widget := range keymap {
-		return key, widget
-	}
-
-	return
-}
-
-func getWidgetMatch(key rune, keymap keyMap) (widget string) {
-	for wkey, widget := range keymap {
-		if wkey == string(key) {
-			return widget
-		}
-	}
 	return
 }

@@ -43,6 +43,12 @@ var standardViWidgets = viWidgets{
 	"vi-replace-chars":          viReplaceChars,
 	"vi-replace":                viReplace,
 	"vi-match-bracket":          viMatchBracket,
+	"select-a-blank-word":       viSelectABlankWord,
+	"select-a-shell-word":       viSelectAShellWord,
+	"select-a-word":             viSelectAWord,
+	"select-in-blank-word":      viSelectInBlankWord,
+	"select-in-shell-word":      viSelectInShellWord,
+	"select-in-word":            viSelectInWord,
 }
 
 // viinsWidgets need access to the input key.
@@ -664,4 +670,22 @@ func viDigitOrBeginningOfLine(rl *Instance, b []byte, i int, r []rune) (read, re
 	read, ret, err = beginningOfLine(rl)
 
 	return
+}
+
+func viSelectABlankWord(rl *Instance) {
+}
+
+func viSelectAShellWord(rl *Instance) {
+}
+
+func viSelectAWord(rl *Instance) {
+}
+
+func viSelectInBlankWord(rl *Instance) {
+}
+
+func viSelectInShellWord(rl *Instance) {
+}
+
+func viSelectInWord(rl *Instance) {
 }
