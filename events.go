@@ -48,7 +48,18 @@ type EventReturn struct {
 // It accepts an optional list of keymap modes for which to register the handler (eg. Vim visual/cmd/insert,
 // emacs, completion, history, etc). If no list is passed, the event callback is mapped to all main keymaps
 // of the shell, which is either emacs (in Emacs input mode), or viins/vicmd (in Vim input mode).
-func (rl *Instance) AddEvent(keyPress string, callback EventCallback, keymaps ...[]keymapMode) {
+func (rl *Instance) AddEvent(keyPress string, callback EventCallback, keymaps ...keymapMode) {
+	if len(keymaps) == 0 {
+		keymaps = append(keymaps, emacs)
+		keymaps = append(keymaps, viins)
+	}
+
+	// Add the callback to all keymaps
+	for _, mode := range keymaps {
+		if widgets, found := rl.widgets[mode]; found {
+			widgets[keyPress] = callback
+		}
+	}
 }
 
 // DelEventTest deregisters an existing bindkey handler.
@@ -56,5 +67,17 @@ func (rl *Instance) AddEvent(keyPress string, callback EventCallback, keymaps ..
 // If this list is empty (or not passed), the bindkey handler is deregistered
 // of all keymaps in which it is present. If the list is not empty, the bindkey
 // handler is only deregistered from those keymaps, if it is found in them.
-func (rl *Instance) DelEvent(keyPress string, keymaps ...[]keymapMode) {
+func (rl *Instance) DelEvent(keyPress string, keymaps ...keymapMode) {
+	if len(keymaps) == 0 {
+		for mode := range rl.keymaps {
+			keymaps = append(keymaps, mode)
+		}
+	}
+
+	// Remove the callback from all keymaps
+	for _, mode := range keymaps {
+		if widgets, found := rl.widgets[mode]; found {
+			delete(widgets, keyPress)
+		}
+	}
 }
