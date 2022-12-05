@@ -27,20 +27,21 @@ type Instance struct {
 	// Would not need this.
 	VimModeColorize bool // If set to true, varies colors of the VimModePrompt
 
-	main          keymap // The main/global keymap, partially overridden by any local keymap.
-	mainKeymap    keyMap // All keys mapped to the name of their corresponding widgets/actions.
-	local         keymap // The local keymap is used when completing menus, using Vim operators, etc.
-	localKeymap   keyMap // All keys mapped to the name of their corresponding widgets/actions.
-	specialKeymap keyMap // A keymap that is matched using regexp, (for things like digit arguments, etc.)
-	oppendMode    bool   // Operator pending mode. TODO: Remove
+	//
+	// Keymaps ------------------------------------------------------------------------------------
+
+	main          keymapMode // The main/global keymap, partially overridden by any local keymap.
+	mainKeymap    keyMap     // All keys mapped to the name of their corresponding widgets/actions.
+	local         keymapMode // The local keymap is used when completing menus, using Vim operators, etc.
+	localKeymap   keyMap     // All keys mapped to the name of their corresponding widgets/actions.
+	specialKeymap keyMap     // A keymap that is matched using regexp, (for things like digit arguments, etc.)
 
 	// The shell maintains a list of all its keymaps, so that users can modify them, or add some.
-	keymaps map[keymap]keyMap
+	keymaps map[keymapMode]keyMap
 
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
 
-	modeViMode       viMode //= vimInsert TODO: REMOVE
 	viIteration      string
 	viUndoHistory    []undoItem
 	viUndoSkipAppend bool
@@ -49,9 +50,8 @@ type Instance struct {
 	activeRegion     bool       // Is a current range region active ?
 	registers        *registers // All memory text registers, can be consulted with Alt"
 
-	pending           []string // A list of widget names that are currently waiting for an operator. TODO: REMOVE
-	pendingIterations string   // Iterations specific to viopp mode. (2y2w => "2"w)
-	navKey            string   // A pending navigation key, stored waiting for a complement.
+	pendingIterations string // Iterations specific to viopp mode. (2y2w => "2"w)
+	navKey            string // A pending navigation key, stored waiting for a complement.
 	pendingActions    []action
 
 	//

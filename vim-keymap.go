@@ -1,14 +1,5 @@
 package readline
 
-type keyMap map[string]string
-
-// vimDefaultKeymaps binds Vim widgets to their default keys.
-// var vimDefaultKeymaps = keymaps{
-// 	// Non-standard
-// 	'[': "vi-jump-previous-brace",
-// 	']': "vi-jump-next-brace",
-// }
-
 // viinsKeymaps are the default keymaps in Vim Insert mode
 var viinsKeymaps = keyMap{
 	// Standard
@@ -32,19 +23,19 @@ var viinsKeymaps = keyMap{
 	seqDelete:                  "delete-char",
 	seqHome:                    "beginning-of-line",
 	seqEnd:                     "end-of-line",
-	seqPageUp:                  "history-search",
-	seqPageDown:                "menu-select",
+	seqPageUp:                  "history-search", // TODO
+	seqPageDown:                "menu-select",    // TODO
 	seqArrowRight:              "vi-forward-char",
 	seqArrowLeft:               "vi-backward-char",
-	seqCtrlDelete:              "kill-word",
+	seqCtrlDelete:              "kill-word", // TODO
 	seqCtrlArrowRight:          "forward-word",
 	seqCtrlArrowLeft:           "backward-word",
 	seqCtrlArrowRight:          "forward-word",
 	seqCtrlArrowLeft:           "backward-word",
 
 	// History
-	seqArrowUp:   "up-line-or-search",
-	seqArrowDown: "down-line-or-select",
+	seqArrowUp:   "up-line-or-search",   // TODO
+	seqArrowDown: "down-line-or-select", // TODO
 
 	// Vim
 	// string(charCtrlH): "vi-backward-delete-char",
@@ -77,9 +68,9 @@ var vicmdKeymaps = keyMap{
 	// History
 
 	// Vim
-	string(charCtrlA): "switch-keyword", // SPECIAL HANDLER
+	string(charCtrlA): "switch-keyword", // SPECIAL HANDLER TODO
 	// string(charCtrlH):      "vi-backward-char",
-	string(charCtrlR):      "redo",
+	string(charCtrlR):      "redo", // TODO
 	string(charBackspace):  "backward-delete-char",
 	string(charBackspace2): "backward-delete-char",
 	seqArrowRight:          "vi-forward-char",
@@ -89,13 +80,13 @@ var vicmdKeymaps = keyMap{
 	"%":                    "vi-match-bracket",
 	"\"":                   "vi-set-buffer",
 	"0":                    "vi-digit-or-beginning-of-line",
-	"a":                    "vi-add-next", // SPECIAL HANDLER
+	"a":                    "vi-add-next",
 	"A":                    "vi-add-eol",
 	"b":                    "vi-backward-word",
 	"B":                    "vi-backward-blank-word",
 	"c":                    "vi-change-surround", // SPECIAL HANDLER  vi-change-surround-text-object
 	"C":                    "vi-change-eol",
-	"d":                    "vi-delete", // SPECIAL HANDLER
+	"d":                    "vi-delete",
 	"D":                    "vi-kill-eol",
 	"e":                    "vi-forward-word-end",
 	"E":                    "vi-forward-blank-word-end",
@@ -113,16 +104,16 @@ var vicmdKeymaps = keyMap{
 	"F":                    "vi-find-prev-char",
 	"T":                    "vi-find-prev-char-skip",
 	"u":                    "undo",
-	"v":                    "visual-mode", // Detects if v or V
-	"V":                    "visual-mode", // Detects if v or V
+	"v":                    "visual-mode",
+	"V":                    "visual-line-mode",
 	"w":                    "vi-forward-word",
 	"W":                    "vi-forward-blank-word",
 	"x":                    "vi-delete-char",
 	"X":                    "vi-backward-delete-char",
 	"y":                    "vi-yank",
 	"Y":                    "vi-yank-whole-line",
-	"|":                    "vi-goto-column",
-	"~":                    "vi-swap-case",
+	"|":                    "vi-goto-column", // TODO
+	"~":                    "vi-swap-case",   // TODO
 }
 
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode
@@ -148,7 +139,7 @@ var visualKeymaps = keyMap{
 	"u": "vi-down-case",
 	"v": "vi-edit-command-line",
 	"x": "vi-delete",
-	"y": "vi-yank",      // SPECIAL HANDLER
+	"y": "vi-yank",
 	"~": "vi-swap-case", // Need to be a separate widget from ~ in cmd mode ?
 }
 

@@ -170,13 +170,6 @@ func beginningOfLine(rl *Instance) (read, ret bool, err error) {
 		rl.resetVirtualComp(false)
 	}
 
-	// This is only available in Insert mode
-	if rl.modeViMode != vimInsert {
-		read = true
-
-		return
-	}
-
 	rl.viUndoSkipAppend = true
 	rl.pos = 0
 	rl.updateHelpers()
@@ -187,13 +180,6 @@ func beginningOfLine(rl *Instance) (read, ret bool, err error) {
 func endOfLine(rl *Instance) (read, ret bool, err error) {
 	if rl.modeTabCompletion {
 		rl.resetVirtualComp(false)
-	}
-
-	// This is only available in Insert mode
-	if rl.modeViMode != vimInsert {
-		read = true
-
-		return
 	}
 
 	if len(rl.line) > 0 {
@@ -246,12 +232,6 @@ func backwardKillWord(rl *Instance) (read, ret bool, err error) {
 	if rl.modeTabCompletion {
 		rl.resetVirtualComp(false)
 	}
-	// This is only available in Insert mode
-	if rl.modeViMode != vimInsert {
-		read = true
-
-		return
-	}
 
 	rl.saveToRegister(rl.viJumpB(tokeniseLine))
 	rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
@@ -261,11 +241,8 @@ func backwardKillWord(rl *Instance) (read, ret bool, err error) {
 }
 
 func killWord(rl *Instance) (read, ret bool, err error) {
-	// vii := rl.getViIterations()
 	rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpE, 1)
-	// for i := 1; i <= vii; i++ {
 	rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
-	// }
 
 	return
 }

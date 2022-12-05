@@ -5,20 +5,24 @@ import (
 	"strings"
 )
 
-type keymap string
+// keymapMode is a root keymap mode for the shell.
+// To each of these keymap modes is bound a keymap.
+type keymapMode string
+
+type keyMap map[string]string
 
 // These are the root keymaps used in the readline shell.
 // Their functioning is similar to how ZSH organizes keymaps.
 const (
 	// Editor
-	emacs  keymap = "emacs"
-	viins  keymap = "viins"
-	vicmd  keymap = "vicmd"
-	viopp  keymap = "viopp"
-	visual keymap = "visual"
+	emacs  keymapMode = "emacs"
+	viins  keymapMode = "viins"
+	vicmd  keymapMode = "vicmd"
+	viopp  keymapMode = "viopp"
+	visual keymapMode = "visual"
 	// Completion and search
-	isearch    keymap = "isearch"
-	menuselect keymap = "menuselect"
+	isearch    keymapMode = "isearch"
+	menuselect keymapMode = "menuselect"
 )
 
 // These handlers are mostly (if not only) used in the main readline loop (entrypoint)
@@ -58,7 +62,7 @@ var errorHandlers = map[byte]keyHandler{
 // will be interpreted.
 func (rl *Instance) setBaseKeymap() {
 	// Bind all default keymaps
-	rl.keymaps = map[keymap]keyMap{
+	rl.keymaps = map[keymapMode]keyMap{
 		emacs:  emacsKeymaps,
 		viins:  viinsKeymaps,
 		vicmd:  vicmdKeymaps,
@@ -100,7 +104,7 @@ func (rl *Instance) updateKeymaps() {
 	// Bind the corresponding keymaps for the main one.
 	globalKeymap, found := rl.keymaps[rl.main]
 	if !found {
-		// TODO: set default
+		rl.mainKeymap = emacsKeymaps
 	} else {
 		rl.mainKeymap = globalKeymap
 	}
@@ -117,10 +121,8 @@ func (rl *Instance) updateKeymaps() {
 	switch rl.main {
 	case emacs:
 		rl.specialKeymap = emacsSpecialKeymaps
-	case vicmd:
+	case vicmd, viins:
 		rl.specialKeymap = vicmdSpecialKeymaps
-	case viins:
-
 	}
 }
 

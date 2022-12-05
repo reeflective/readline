@@ -9,8 +9,7 @@ var emacsKeymaps = keyMap{
 	string(charCtrlE): "end-of-line",
 	string(charCtrlF): "forward-char",
 	string(charCtrlG): "send-break", // DON'T KNOW WHAT THAT IS
-	// string(charCtrlH): "backward-delete-char",
-	string(charCtrlK): "kill-line", // Similar to forward-kill-line
+	string(charCtrlK): "kill-line",  // Similar to forward-kill-line
 	string(charCtrlL): "clear-screen",
 	string(charCtrlN): "down-line-or-history",
 	string(charCtrlP): "up-line-or-history",

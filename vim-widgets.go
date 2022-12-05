@@ -7,8 +7,11 @@ import (
 // vimHandlers maps keys to Vim actions.
 type viWidgets map[string]func(rl *Instance)
 
+// standardViWidgets don't need access to the input key.
 var standardViWidgets = viWidgets{
 	"vi-cmd-mode":               viCommandMode,
+	"visual-mode":               viVisualMode,
+	"visual-line-mode":          viVisualLineMode,
 	"vi-insert-mode":            viInsertMode,
 	"vi-insert-bol":             viInsertBol,
 	"vi-backward-char":          viBackwardChar,
@@ -42,8 +45,8 @@ var standardViWidgets = viWidgets{
 	"vi-match-bracket":          viMatchBracket,
 }
 
+// viinsWidgets need access to the input key.
 var viinsWidgets = map[string]keyHandler{
-	"visual-mode":                   viVisualMode,
 	"vi-digit-or-beginning-of-line": viDigitOrBeginningOfLine,
 }
 
@@ -80,21 +83,33 @@ func viCommandMode(rl *Instance) {
 	rl.refreshVimStatus()
 }
 
-func viVisualMode(rl *Instance, _ []byte, i int, r []rune) (read, ret bool, val string, err error) {
+func viVisualMode(rl *Instance) {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
 
 	rl.viIteration = ""
 	rl.viUndoSkipAppend = true
 
-	switch string(r[:i]) {
-	case "V":
-		rl.enterVisualLineMode()
-	case "v":
-		rl.enterVisualMode()
-	default:
-		rl.local = lastMode
+	rl.enterVisualMode()
+
+	// We don't do anything else if the mode did not change.
+	if lastMode == rl.local && wasVisualLine == rl.visualLine {
+		return
 	}
+
+	rl.updateCursor()
+
+	return
+}
+
+func viVisualLineMode(rl *Instance) {
+	lastMode := rl.local
+	wasVisualLine := rl.visualLine
+
+	rl.viIteration = ""
+	rl.viUndoSkipAppend = true
+
+	rl.enterVisualLineMode()
 
 	// We don't do anything else if the mode did not change.
 	if lastMode == rl.local && wasVisualLine == rl.visualLine {
@@ -117,19 +132,6 @@ func viInsertBol(rl *Instance) {
 	rl.updateCursor()
 
 	rl.refreshVimStatus()
-}
-
-func viDigitOrBeginningOfLine(rl *Instance, b []byte, i int, r []rune) (read, ret bool, val string, err error) {
-	// If the last command was a digit argument,
-	// then our Vi iterations' length is not 0
-	if len(rl.viIteration) > 0 {
-		return digitArgument(rl, b, i, r)
-	}
-
-	// Else we go the beginning of line.
-	read, ret, err = beginningOfLine(rl)
-
-	return
 }
 
 func viAddNext(rl *Instance) {
@@ -200,20 +202,6 @@ func viForwardBlankWordEnd(rl *Instance) {
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
 	}
-}
-
-func viInsert(rl *Instance) {
-	rl.modeViMode = vimInsert
-	rl.viIteration = ""
-	rl.viUndoSkipAppend = true
-	rl.registers.resetRegister()
-}
-
-func viInsertI(rl *Instance) {
-	rl.modeViMode = vimInsert
-	rl.viIteration = ""
-	rl.viUndoSkipAppend = true
-	rl.pos = 0
 }
 
 func viForwardChar(rl *Instance) {
@@ -663,4 +651,17 @@ func viDelete(rl *Instance) {
 	// rl.enterVisualMode()
 	rl.mark = rl.pos
 	rl.activeRegion = true
+}
+
+func viDigitOrBeginningOfLine(rl *Instance, b []byte, i int, r []rune) (read, ret bool, val string, err error) {
+	// If the last command was a digit argument,
+	// then our Vi iterations' length is not 0
+	if len(rl.viIteration) > 0 {
+		return digitArgument(rl, b, i, r)
+	}
+
+	// Else we go the beginning of line.
+	read, ret, err = beginningOfLine(rl)
+
+	return
 }

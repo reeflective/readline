@@ -94,220 +94,178 @@ func (rl *Instance) errorCtrlC() (done, ret bool) {
 	return false, true
 }
 
-// Escape key generally aborts most completion/prompt helpers.
-func inputEsc(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
-	// If we were waiting for completion confirm, abort
-	if rl.compConfirmWait {
-		rl.compConfirmWait = false
-		rl.renderHelpers()
-	}
+// // Escape key generally aborts most completion/prompt helpers.
+// func inputEsc(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
+// 	// If we were waiting for completion confirm, abort
+// 	if rl.compConfirmWait {
+// 		rl.compConfirmWait = false
+// 		rl.renderHelpers()
+// 	}
+//
+// 	// We always refresh the completion candidates, except if we are currently
+// 	// cycling through them, because then it would just append the candidate.
+// 	if rl.modeTabCompletion {
+// 		if string(r[:i]) != seqShiftTab &&
+// 			string(r[:i]) != seqArrowRight && string(r[:i]) != seqArrowLeft &&
+// 			string(r[:i]) != seqArrowUp && string(r[:i]) != seqArrowDown {
+// 			rl.resetVirtualComp(false)
+// 		}
+// 	}
+//
+// 	// Once helpers of all sorts are cleared, we can process
+// 	// the change of input modes, etc.
+// 	rl.escapeSeq(r[:i])
+//
+// 	return
+// }
 
-	// We always refresh the completion candidates, except if we are currently
-	// cycling through them, because then it would just append the candidate.
-	if rl.modeTabCompletion {
-		if string(r[:i]) != seqShiftTab &&
-			string(r[:i]) != seqArrowRight && string(r[:i]) != seqArrowLeft &&
-			string(r[:i]) != seqArrowUp && string(r[:i]) != seqArrowDown {
-			rl.resetVirtualComp(false)
-		}
-	}
-
-	// Once helpers of all sorts are cleared, we can process
-	// the change of input modes, etc.
-	rl.escapeSeq(r[:i])
-
-	return
-}
-
-// inputEditor is an unexported function used to determine what mode of text
-// entry readline is currently configured for and then update the line entries
-// accordingly.
-func (rl *Instance) inputEditor(r []rune) {
-	switch rl.modeViMode {
-	case vimKeys:
-		rl.vi(r[0])
-		rl.refreshVimStatus()
-
-	case vimDelete:
-		// rl.viDelete(r[0])
-		rl.refreshVimStatus()
-
-	case vimReplaceOnce:
-		rl.modeViMode = vimKeys
-		rl.deleteX()
-		rl.insert([]rune{r[0]})
-		rl.refreshVimStatus()
-
-	case vimReplaceMany:
-		for _, char := range r {
-			rl.deleteX()
-			rl.insert([]rune{char})
-		}
-		rl.refreshVimStatus()
-
-	default:
-		// For some reason Ctrl+k messes with the input line, so ignore it.
-		if r[0] == 11 {
-			return
-		}
-		// We reset the history nav counter each time we come here:
-		// We don't need it when inserting text.
-		rl.histNavIdx = 0
-		rl.insert(r)
-	}
-
-	if len(rl.multilineSplit) == 0 {
-		rl.syntaxCompletion()
-	}
-}
-
-func (rl *Instance) escapeSeq(r []rune) {
-	// Test input movements
-	if moved := rl.inputLineMove(r); moved {
-		return
-	}
-
-	// Movement keys while not being inserting the stroke in a buffer.
-	// Test input movements
-	if moved := rl.inputMenuMove(r); moved {
-		return
-	}
-
-	switch string(r) {
-	case string(charEscape):
-		if skip := rl.inputEscAll(r); skip {
-			return
-		}
-		rl.viUndoSkipAppend = true
-
-	case seqAltQuote:
-		if rl.inputRegisters() {
-			return
-		}
-	default:
-		// rl.inputInsertKey(r)
-	}
-}
+// func (rl *Instance) escapeSeq(r []rune) {
+// 	// Test input movements
+// 	if moved := rl.inputLineMove(r); moved {
+// 		return
+// 	}
+//
+// 	// Movement keys while not being inserting the stroke in a buffer.
+// 	// Test input movements
+// 	if moved := rl.inputMenuMove(r); moved {
+// 		return
+// 	}
+//
+// 	switch string(r) {
+// 	case string(charEscape):
+// 		if skip := rl.inputEscAll(r); skip {
+// 			return
+// 		}
+// 		rl.viUndoSkipAppend = true
+//
+// 	case seqAltQuote:
+// 		if rl.inputRegisters() {
+// 			return
+// 		}
+// 	default:
+// 		// rl.inputInsertKey(r)
+// 	}
+// }
 
 // inputDispatch handles any key that is not a key press not bound to a core action.
 // This means grossly not error codes/signals, completion/menu keys, and editing mode changes.
-func (rl *Instance) inputDispatch(r []rune, i int) (done, ret bool, val string, err error) {
-	// If we were waiting for completion confirm, abort it and go on with our input.
-	if rl.compConfirmWait {
-		rl.resetVirtualComp(false)
-		rl.compConfirmWait = false
-		rl.renderHelpers()
-	}
-
-	// Completion modes hijack the text input, and cuts
-	// the editor from using/interpreting the key.
-	if rl.modeAutoFind && rl.searchMode == HistoryFind {
-		rl.resetVirtualComp(true)
-		rl.updateTabFind(r[:i])
-		rl.updateVirtualComp()
-		rl.renderHelpers()
-		rl.viUndoSkipAppend = true
-
-		done = true
-
-		return
-	}
-
-	// Not sure that CompletionFind is useful, nor one of the other two
-	if (rl.modeAutoFind || rl.modeTabFind) && rl.searchMode != RegisterFind {
-		rl.resetVirtualComp(false)
-		rl.updateTabFind(r[:i])
-		rl.viUndoSkipAppend = true
-	} else {
-		rl.resetVirtualComp(false)
-		rl.inputEditor(r[:i])
-		if len(rl.multilineBuffer) > 0 && rl.modeViMode == vimKeys {
-			rl.skipStdinRead = true
-		}
-	}
-
-	// Notice we don't return done = true, since any action independent of our
-	// while could still have to run while us not knowing it, so just shut up.
-	return
-}
+// func (rl *Instance) inputDispatch(r []rune, i int) (done, ret bool, val string, err error) {
+// 	// If we were waiting for completion confirm, abort it and go on with our input.
+// 	if rl.compConfirmWait {
+// 		rl.resetVirtualComp(false)
+// 		rl.compConfirmWait = false
+// 		rl.renderHelpers()
+// 	}
+//
+// 	// Completion modes hijack the text input, and cuts
+// 	// the editor from using/interpreting the key.
+// 	if rl.modeAutoFind && rl.searchMode == HistoryFind {
+// 		rl.resetVirtualComp(true)
+// 		rl.updateTabFind(r[:i])
+// 		rl.updateVirtualComp()
+// 		rl.renderHelpers()
+// 		rl.viUndoSkipAppend = true
+//
+// 		done = true
+//
+// 		return
+// 	}
+//
+// 	// Not sure that CompletionFind is useful, nor one of the other two
+// 	if (rl.modeAutoFind || rl.modeTabFind) && rl.searchMode != RegisterFind {
+// 		rl.resetVirtualComp(false)
+// 		rl.updateTabFind(r[:i])
+// 		rl.viUndoSkipAppend = true
+// 	} else {
+// 		rl.resetVirtualComp(false)
+// 		rl.inputEditor(r[:i])
+// 		if len(rl.multilineBuffer) > 0 && rl.modeViMode == vimKeys {
+// 			rl.skipStdinRead = true
+// 		}
+// 	}
+//
+// 	// Notice we don't return done = true, since any action independent of our
+// 	// while could still have to run while us not knowing it, so just shut up.
+// 	return
+// }
 
 // inputMenuMove updates helpers when keys have an effect on them,
 // in normal (non-insert) editing mode, so most of the time in things
 // like completion menus.
-func (rl *Instance) inputMenuMove(r []rune) (ret bool) {
-	switch string(r) {
-
-	case seqShiftTab:
-		if rl.modeTabCompletion && !rl.compConfirmWait {
-			rl.tabCompletionReverse = true
-			rl.moveTabCompletionHighlight(-1, 0)
-			rl.updateVirtualComp()
-			rl.tabCompletionReverse = false
-			rl.renderHelpers()
-			rl.viUndoSkipAppend = true
-			return true
-		}
-
-	case seqArrowUp:
-		if rl.modeTabCompletion {
-			rl.tabCompletionSelect = true
-			rl.tabCompletionReverse = true
-			rl.moveTabCompletionHighlight(-1, 0)
-			rl.updateVirtualComp()
-			rl.tabCompletionReverse = false
-			rl.renderHelpers()
-			return true
-		}
-		rl.mainHist = true
-		rl.walkHistory(1)
-
-	case seqArrowDown:
-		if rl.modeTabCompletion {
-			rl.tabCompletionSelect = true
-			rl.moveTabCompletionHighlight(1, 0)
-			rl.updateVirtualComp()
-			rl.renderHelpers()
-			return true
-		}
-		rl.mainHist = true
-		rl.walkHistory(-1)
-
-	case seqArrowRight:
-		if rl.modeTabCompletion {
-			rl.tabCompletionSelect = true
-			rl.moveTabCompletionHighlight(1, 0)
-			rl.updateVirtualComp()
-			rl.renderHelpers()
-			return true
-		}
-		if (rl.modeViMode == vimInsert && rl.pos < len(rl.line)) ||
-			(rl.modeViMode != vimInsert && rl.pos < len(rl.line)-1) {
-			moveCursorForwards(1)
-			rl.pos++
-		}
-		rl.updateHelpers()
-		rl.viUndoSkipAppend = true
-
-	case seqArrowLeft:
-		if rl.modeTabCompletion {
-			rl.tabCompletionSelect = true
-			rl.tabCompletionReverse = true
-			rl.moveTabCompletionHighlight(-1, 0)
-			rl.updateVirtualComp()
-			rl.tabCompletionReverse = false
-			rl.renderHelpers()
-			return true
-		}
-		if rl.pos > 0 {
-			moveCursorBackwards(1)
-			rl.pos--
-		}
-		rl.viUndoSkipAppend = true
-		rl.updateHelpers()
-	}
-
-	return
-}
+// func (rl *Instance) inputMenuMove(r []rune) (ret bool) {
+// 	switch string(r) {
+//
+// 	case seqShiftTab:
+// 		if rl.modeTabCompletion && !rl.compConfirmWait {
+// 			rl.tabCompletionReverse = true
+// 			rl.moveTabCompletionHighlight(-1, 0)
+// 			rl.updateVirtualComp()
+// 			rl.tabCompletionReverse = false
+// 			rl.renderHelpers()
+// 			rl.viUndoSkipAppend = true
+// 			return true
+// 		}
+//
+// 	case seqArrowUp:
+// 		if rl.modeTabCompletion {
+// 			rl.tabCompletionSelect = true
+// 			rl.tabCompletionReverse = true
+// 			rl.moveTabCompletionHighlight(-1, 0)
+// 			rl.updateVirtualComp()
+// 			rl.tabCompletionReverse = false
+// 			rl.renderHelpers()
+// 			return true
+// 		}
+// 		rl.mainHist = true
+// 		rl.walkHistory(1)
+//
+// 	case seqArrowDown:
+// 		if rl.modeTabCompletion {
+// 			rl.tabCompletionSelect = true
+// 			rl.moveTabCompletionHighlight(1, 0)
+// 			rl.updateVirtualComp()
+// 			rl.renderHelpers()
+// 			return true
+// 		}
+// 		rl.mainHist = true
+// 		rl.walkHistory(-1)
+//
+// 	case seqArrowRight:
+// 		if rl.modeTabCompletion {
+// 			rl.tabCompletionSelect = true
+// 			rl.moveTabCompletionHighlight(1, 0)
+// 			rl.updateVirtualComp()
+// 			rl.renderHelpers()
+// 			return true
+// 		}
+// 		if (rl.modeViMode == vimInsert && rl.pos < len(rl.line)) ||
+// 			(rl.modeViMode != vimInsert && rl.pos < len(rl.line)-1) {
+// 			moveCursorForwards(1)
+// 			rl.pos++
+// 		}
+// 		rl.updateHelpers()
+// 		rl.viUndoSkipAppend = true
+//
+// 	case seqArrowLeft:
+// 		if rl.modeTabCompletion {
+// 			rl.tabCompletionSelect = true
+// 			rl.tabCompletionReverse = true
+// 			rl.moveTabCompletionHighlight(-1, 0)
+// 			rl.updateVirtualComp()
+// 			rl.tabCompletionReverse = false
+// 			rl.renderHelpers()
+// 			return true
+// 		}
+// 		if rl.pos > 0 {
+// 			moveCursorBackwards(1)
+// 			rl.pos--
+// 		}
+// 		rl.viUndoSkipAppend = true
+// 		rl.updateHelpers()
+// 	}
+//
+// 	return
+// }
 
 // inputEscAll is different from inputEsc in that this
 // function is triggered when the shell is already in a
@@ -357,61 +315,61 @@ func (rl *Instance) inputEscAll(r []rune) (ret bool) {
 	return
 }
 
-func (rl *Instance) inputLineMove(r []rune) (ret bool) {
-	switch string(r) {
-	case seqCtrlLeftArrow:
-		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-		rl.updateHelpers()
-		return true
-	case seqCtrlRightArrow:
-		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
-		rl.updateHelpers()
-		return true
-
-	case seqDelete:
-		if rl.modeTabFind {
-			rl.backspaceTabFind()
-		} else {
-			rl.deleteBackspace()
-		}
-	case seqHome, seqHomeSc:
-		if rl.modeTabCompletion {
-			return true
-		}
-		moveCursorBackwards(rl.pos)
-		rl.pos = 0
-		rl.viUndoSkipAppend = true
-
-	case seqEnd, seqEndSc:
-		if rl.modeTabCompletion {
-			return true
-		}
-		moveCursorForwards(len(rl.line) - rl.pos)
-		rl.pos = len(rl.line)
-		rl.viUndoSkipAppend = true
-
-	case seqAltR:
-		// TODO: Same here, that is a completion helper, should not be here.
-		rl.resetVirtualComp(false)
-		// For some modes only, if we are in vim Keys mode,
-		// we toogle back to insert mode. For others, we return
-		// without getting the completions.
-		if rl.modeViMode != vimInsert {
-			rl.modeViMode = vimInsert
-		}
-
-		rl.mainHist = false // true before
-		rl.searchMode = HistoryFind
-		rl.modeAutoFind = true
-		rl.modeTabCompletion = true
-
-		rl.modeTabFind = true
-		rl.updateTabFind([]rune{})
-		rl.viUndoSkipAppend = true
-	}
-
-	return
-}
+// func (rl *Instance) inputLineMove(r []rune) (ret bool) {
+// 	switch string(r) {
+// 	case seqCtrlLeftArrow:
+// 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+// 		rl.updateHelpers()
+// 		return true
+// 	case seqCtrlRightArrow:
+// 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
+// 		rl.updateHelpers()
+// 		return true
+//
+// 	case seqDelete:
+// 		if rl.modeTabFind {
+// 			rl.backspaceTabFind()
+// 		} else {
+// 			rl.deleteBackspace()
+// 		}
+// 	case seqHome, seqHomeSc:
+// 		if rl.modeTabCompletion {
+// 			return true
+// 		}
+// 		moveCursorBackwards(rl.pos)
+// 		rl.pos = 0
+// 		rl.viUndoSkipAppend = true
+//
+// 	case seqEnd, seqEndSc:
+// 		if rl.modeTabCompletion {
+// 			return true
+// 		}
+// 		moveCursorForwards(len(rl.line) - rl.pos)
+// 		rl.pos = len(rl.line)
+// 		rl.viUndoSkipAppend = true
+//
+// 	case seqAltR:
+// 		// TODO: Same here, that is a completion helper, should not be here.
+// 		rl.resetVirtualComp(false)
+// 		// For some modes only, if we are in vim Keys mode,
+// 		// we toogle back to insert mode. For others, we return
+// 		// without getting the completions.
+// 		if rl.modeViMode != vimInsert {
+// 			rl.modeViMode = vimInsert
+// 		}
+//
+// 		rl.mainHist = false // true before
+// 		rl.searchMode = HistoryFind
+// 		rl.modeAutoFind = true
+// 		rl.modeTabCompletion = true
+//
+// 		rl.modeTabFind = true
+// 		rl.updateTabFind([]rune{})
+// 		rl.viUndoSkipAppend = true
+// 	}
+//
+// 	return
+// }
 
 // func (rl *Instance) inputBackspace() (done bool) {
 // 	// When currently in history completion, we refresh and automatically

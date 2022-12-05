@@ -12,7 +12,6 @@ func (rl *Instance) initLine() {
 	rl.line = []rune{}
 	rl.currentComp = []rune{} // No virtual completion yet
 	rl.lineComp = []rune{}    // So no virtual line either
-	rl.modeViMode = vimInsert
 	rl.pos = 0
 	rl.posY = 0
 

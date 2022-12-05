@@ -42,9 +42,6 @@ func (rl *Instance) initRegisters() {
 
 // inputRegisters shows the application clipboard registers.
 func (rl *Instance) inputRegisters() (ret bool) {
-	if rl.modeViMode != vimInsert {
-		return true
-	}
 	rl.modeTabCompletion = true
 	rl.modeAutoFind = true
 	rl.searchMode = RegisterFind

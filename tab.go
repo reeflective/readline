@@ -37,10 +37,10 @@ func (rl *Instance) inputCompletionHelper(b []byte, i int) (done, ret bool, val 
 	// For some modes only, if we are in vim Keys mode,
 	// we toogle back to insert mode. For others, we return
 	// without getting the completions.
-	if rl.modeViMode != vimInsert {
-		rl.modeViMode = vimInsert
-		rl.computePrompt()
-	}
+	// if rl.modeViMode != vimInsert {
+	// 	rl.modeViMode = vimInsert
+	// 	rl.computePrompt()
+	// }
 
 	rl.mainHist = true // false before
 	rl.searchMode = HistoryFind
@@ -56,11 +56,11 @@ func (rl *Instance) inputCompletionHelper(b []byte, i int) (done, ret bool, val 
 
 func menuSelect(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
 	// The user cannot show completions if currently in Vim Normal mode
-	if rl.InputMode == Vim && rl.modeViMode != vimInsert {
-		read = true
-
-		return
-	}
+	// if rl.InputMode == Vim && rl.modeViMode != vimInsert {
+	// 	read = true
+	//
+	// 	return
+	// }
 
 	// If we have asked for completions, already printed, and we want to move selection.
 	if rl.modeTabCompletion && !rl.compConfirmWait {
@@ -115,10 +115,10 @@ func historyMenuComplete(rl *Instance, b []byte, i int, r []rune) (read, ret boo
 	// For some modes only, if we are in vim Keys mode,
 	// we toogle back to insert mode. For others, we return
 	// without getting the completions.
-	if rl.modeViMode != vimInsert {
-		rl.modeViMode = vimInsert
-		rl.computePrompt()
-	}
+	// if rl.modeViMode != vimInsert {
+	// 	rl.modeViMode = vimInsert
+	// 	rl.computePrompt()
+	// }
 
 	rl.mainHist = true // false before
 	rl.searchMode = HistoryFind
@@ -225,11 +225,11 @@ func (rl *Instance) inputCompletionFind() {
 
 func (rl *Instance) inputCompletionTab(b []byte, i int) (done, ret bool, val string, err error) {
 	// The user cannot show completions if currently in Vim Normal mode
-	if rl.InputMode == Vim && rl.modeViMode != vimInsert {
-		done = true
-
-		return
-	}
+	// if rl.InputMode == Vim && rl.modeViMode != vimInsert {
+	// 	done = true
+	//
+	// 	return
+	// }
 
 	// If we have asked for completions, already printed, and we want to move selection.
 	if rl.modeTabCompletion && !rl.compConfirmWait {
