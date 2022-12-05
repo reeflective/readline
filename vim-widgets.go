@@ -673,19 +673,109 @@ func viDigitOrBeginningOfLine(rl *Instance, b []byte, i int, r []rune) (read, re
 }
 
 func viSelectABlankWord(rl *Instance) {
+	// Go the beginning of the word and start mark
+	rl.pos++
+	viBackwardBlankWord(rl)
+	if rl.local == visual || rl.local == viopp {
+		rl.mark = rl.pos
+	}
+
+	// Then go to the end of the blank word
+	viForwardBlankWord(rl)
+	if rl.local == visual || rl.local == viopp {
+		rl.pos--
+		rl.activeRegion = true
+	}
 }
 
 func viSelectAShellWord(rl *Instance) {
+	// First find the outtermost quote, either single or double
+	posBeforeSingle := rl.pos
+	rl.findAndMoveCursor("'", 1, false, false)
+	posBeforeDouble := rl.pos
+	rl.findAndMoveCursor("\"", 1, false, false)
+
+	// Return if none was found.
+	if posBeforeSingle == posBeforeDouble && rl.pos == posBeforeSingle {
+		return
+	}
+
+	// And then, if any quote was found, try to find the corresponding quote.
+	rl.mark = rl.pos
+	switch rl.line[rl.pos] {
+	case '"':
+		rl.findAndMoveCursor("\"", 1, true, false)
+	case '\'':
+		rl.findAndMoveCursor("'", 1, true, false)
+	}
+	rl.activeRegion = true
 }
 
 func viSelectAWord(rl *Instance) {
+	// Go the beginning of the word and start mark
+	rl.pos++
+	viBackwardWord(rl)
+	if rl.local == visual || rl.local == viopp {
+		rl.mark = rl.pos
+	}
+
+	// Then go to the end of the blank word
+	viForwardWord(rl)
+	if rl.local == visual || rl.local == viopp {
+		rl.pos--
+		rl.activeRegion = true
+	}
 }
 
 func viSelectInBlankWord(rl *Instance) {
+	// Go the beginning of the word and start mark
+	rl.pos++
+	viBackwardBlankWord(rl)
+	if rl.local == visual || rl.local == viopp {
+		rl.mark = rl.pos
+	}
+
+	// Then go to the end of the blank word
+	viForwardBlankWordEnd(rl)
+	if rl.local == visual || rl.local == viopp {
+		rl.activeRegion = true
+	}
 }
 
 func viSelectInShellWord(rl *Instance) {
+	// First find the outtermost quote, either single or double
+	posBeforeSingle := rl.pos
+	rl.findAndMoveCursor("'", 1, false, true)
+	posBeforeDouble := rl.pos
+	rl.findAndMoveCursor("\"", 1, false, true)
+
+	// Return if none was found.
+	if posBeforeSingle == posBeforeDouble && rl.pos == posBeforeSingle {
+		return
+	}
+
+	// And then, if any quote was found, try to find the corresponding quote.
+	rl.mark = rl.pos
+	switch rl.line[rl.pos-1] {
+	case '"':
+		rl.findAndMoveCursor("\"", 1, true, true)
+	case '\'':
+		rl.findAndMoveCursor("'", 1, true, true)
+	}
+	rl.activeRegion = true
 }
 
 func viSelectInWord(rl *Instance) {
+	// Go the beginning of the word and start mark
+	rl.pos++
+	viBackwardWord(rl)
+	if rl.local == visual || rl.local == viopp {
+		rl.mark = rl.pos
+	}
+
+	// Then go to the end of the blank word
+	viForwardWordEnd(rl)
+	if rl.local == visual || rl.local == viopp {
+		rl.activeRegion = true
+	}
 }

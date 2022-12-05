@@ -123,13 +123,20 @@ var vioppKeymaps = keyMap{
 	"iW":               "select-in-blank-word",
 	"ia":               "select-in-shell-word",
 	"iw":               "select-in-word",
-	"j":                "down-line", // Not sure since no multiline
+	"j":                "down-line", // Not sure since-test no multiline
 	"k":                "up-line",   // Not sure since no multiline
 }
 
 // viinsKeymaps are the default keymaps in Vim Visual mode
 var visualKeymaps = keyMap{
 	string(charEscape): "vi-cmd-mode",
+
+	"aW": "select-a-blank-word",
+	"aa": "select-a-shell-word",
+	"aw": "select-a-word",
+	"iW": "select-in-blank-word",
+	"ia": "select-in-shell-word",
+	"iw": "select-in-word",
 
 	"S": "vi-change-surround", // SPECIAL HANDLER vi-change-surround (no text object)
 	"a": "vi-select-surround", // SPECIAL HANDLER
