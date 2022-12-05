@@ -1,7 +1,7 @@
 package readline
 
 // emacsKeymaps are the default keymaps in Emacs mode
-var emacsKeymaps = keyMap{
+var emacsKeymaps = keymap{
 	string(charCtrlM): "accept-line",
 	string(charCtrlA): "beginning-of-line",
 	string(charCtrlB): "backward-char",
@@ -114,6 +114,6 @@ var emacsKeymaps = keyMap{
 	// "\M-^@"-"\M-^?": "self-insert",
 }
 
-var emacsSpecialKeymaps = keyMap{
+var emacsSpecialKeymaps = keymap{
 	`^\^\[([0-9]{1})$`: "digit-argument",
 }

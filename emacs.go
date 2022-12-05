@@ -1,38 +1,47 @@
 package readline
 
-var standardWidgets = map[string]keyHandler{
-	// Base
-	"accept-line":    acceptLine,
-	"clear-screen":   clearScreen,
-	"self-insert":    selfInsert,
-	"digit-argument": digitArgument,
+type lineWidgets map[string]keyHandler
+
+// standardLineWidgets either need access to the input key,
+// or need to return specific instructions and values.
+func (rl *Instance) initStandardLineWidgets() lineWidgets {
+	widgets := map[string]keyHandler{
+		"accept-line":    rl.acceptLine,
+		"self-insert":    rl.selfInsert,
+		"digit-argument": rl.digitArgument,
+	}
+
+	return widgets
 }
 
-var standardLineWidgets = map[string]func(rl *Instance) (read, ret bool, err error){
-	"beginning-of-line":    beginningOfLine,
-	"end-of-line":          endOfLine,
-	"kill-line":            killLine,
-	"kill-whole-line":      killWholeLine,
-	"backward-kill-word":   backwardKillWord,
-	"kill-word":            killWord,
-	"yank":                 yank,
-	"backward-delete-char": backwardDeleteChar,
-	"delete-char":          deleteChar,
-	"forward-char":         forwardChar,
-	"backward-char":        backwardChar,
-	"forward-word":         forwardWord,
-	"backward-word":        backwardWord,
-	"undo":                 undo,
-	"down-line-or-history": historyNext,
-	"up-line-or-history":   historyPrev,
+// standardWidgets don't need access to the input key.
+func (rl *Instance) initStandardWidgets() baseWidgets {
+	widgets := map[string]func(){
+		"clear-screen":         rl.clearScreen,
+		"beginning-of-line":    rl.beginningOfLine,
+		"end-of-line":          rl.endOfLine,
+		"kill-line":            rl.killLine,
+		"kill-whole-line":      rl.killWholeLine,
+		"backward-kill-word":   rl.backwardKillWord,
+		"kill-word":            rl.killWord,
+		"yank":                 rl.yank,
+		"backward-delete-char": rl.backwardDeleteChar,
+		"delete-char":          rl.deleteChar,
+		"forward-char":         rl.forwardChar,
+		"backward-char":        rl.backwardChar,
+		"forward-word":         rl.forwardWord,
+		"backward-word":        rl.backwardWord,
+		"undo":                 rl.undo,
+		"down-line-or-history": rl.historyNext,
+		"up-line-or-history":   rl.historyPrev,
+		"down-history":         rl.downHistory,
+		"up-history":           rl.upHistory,
+	}
+
+	return widgets
 }
 
-var standardHistoryWidgets = map[string]func(rl *Instance) (read, ret bool, err error){
-	"down-history": downHistory,
-	"up-history":   upHistory,
-}
-
-func selfInsert(rl *Instance, _ []byte, _ int, r []rune) (read, ret bool, val string, err error) {
+func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error) {
 	rl.viUndoSkipAppend = true
 
 	// Prepare the line
@@ -91,7 +100,7 @@ func selfInsert(rl *Instance, _ []byte, _ int, r []rune) (read, ret bool, val st
 }
 
 // acceptLine returns the line to the readline caller for being executed/evaluated.
-func acceptLine(rl *Instance, _ []byte, _ int, _ []rune) (read, ret bool, val string, err error) {
+func (rl *Instance) acceptLine(_ []rune) (read, ret bool, val string, err error) {
 	if rl.modeTabCompletion {
 		cur := rl.getCurrentGroup()
 
@@ -150,7 +159,7 @@ func acceptLine(rl *Instance, _ []byte, _ int, _ []rune) (read, ret bool, val st
 	return
 }
 
-func clearScreen(rl *Instance, _ []byte, _ int, _ []rune) (read bool, ret bool, val string, err error) {
+func (rl *Instance) clearScreen() {
 	print(seqClearScreen)
 	print(seqCursorTopLeft)
 
@@ -165,7 +174,7 @@ func clearScreen(rl *Instance, _ []byte, _ int, _ []rune) (read bool, ret bool, 
 	return
 }
 
-func beginningOfLine(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) beginningOfLine() {
 	if rl.modeTabCompletion {
 		rl.resetVirtualComp(false)
 	}
@@ -177,7 +186,7 @@ func beginningOfLine(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func endOfLine(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) endOfLine() {
 	if rl.modeTabCompletion {
 		rl.resetVirtualComp(false)
 	}
@@ -192,7 +201,7 @@ func endOfLine(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func killLine(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) killLine() {
 	rl.saveBufToRegister(rl.line[rl.pos-1:])
 	rl.line = rl.line[:rl.pos]
 	rl.resetHelpers()
@@ -201,7 +210,7 @@ func killLine(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func killWholeLine(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) killWholeLine() {
 	if len(rl.line) == 0 {
 		return
 	}
@@ -228,7 +237,7 @@ func killWholeLine(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func backwardKillWord(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) backwardKillWord() {
 	if rl.modeTabCompletion {
 		rl.resetVirtualComp(false)
 	}
@@ -240,14 +249,14 @@ func backwardKillWord(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func killWord(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) killWord() {
 	rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpE, 1)
 	rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
 
 	return
 }
 
-func yank(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) yank() {
 	if rl.modeTabCompletion {
 		rl.resetVirtualComp(false)
 	}
@@ -260,7 +269,7 @@ func yank(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func backwardDeleteChar(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) backwardDeleteChar() {
 	vii := rl.getViIterations()
 
 	// We might be on an active register, but not yanking...
@@ -274,7 +283,7 @@ func backwardDeleteChar(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func deleteChar(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) deleteChar() {
 	vii := rl.getViIterations()
 
 	// We might be on an active register, but not yanking...
@@ -291,7 +300,7 @@ func deleteChar(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func forwardChar(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) forwardChar() {
 	if rl.pos < len(rl.line) {
 		rl.pos++
 	}
@@ -299,7 +308,7 @@ func forwardChar(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func backwardChar(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) backwardChar() {
 	if rl.pos > 0 {
 		rl.pos--
 	}
@@ -308,7 +317,7 @@ func backwardChar(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func forwardWord(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) forwardWord() {
 	// If we were not yanking
 	rl.viUndoSkipAppend = true
 
@@ -326,7 +335,7 @@ func forwardWord(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func backwardWord(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) backwardWord() {
 	rl.viUndoSkipAppend = true
 
 	vii := rl.getViIterations()
@@ -338,21 +347,21 @@ func backwardWord(rl *Instance) (read, ret bool, err error) {
 }
 
 // TODO: Probably should be including undoLast() code without Vim stuff ?
-func undo(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) undo() {
 	rl.undoLast()
 	rl.viUndoSkipAppend = true
 
 	return
 }
 
-func downHistory(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) downHistory() {
 	rl.mainHist = true
 	rl.walkHistory(-1)
 
 	return
 }
 
-func upHistory(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) upHistory() {
 	rl.mainHist = true
 	rl.walkHistory(1)
 
@@ -361,14 +370,12 @@ func upHistory(rl *Instance) (read, ret bool, err error) {
 
 // digitArgument is used both in Emacs and Vim modes,
 // but strips the Alt modifier used in Emacs mode.
-func digitArgument(rl *Instance, _ []byte, i int, r []rune) (read, ret bool, val string, err error) {
-	arg := r[:i]
-
-	if len(arg) > 1 {
+func (rl *Instance) digitArgument(r []rune) (read, ret bool, val string, err error) {
+	if len(r) > 1 {
 		// The first rune is the alt modifier.
-		rl.viIteration += string(arg[1:i])
+		rl.viIteration += string(r[1:])
 	} else {
-		rl.viIteration += string(arg)
+		rl.viIteration += string(r)
 	}
 
 	rl.viUndoSkipAppend = true
@@ -376,7 +383,7 @@ func digitArgument(rl *Instance, _ []byte, i int, r []rune) (read, ret bool, val
 	return
 }
 
-func historyNext(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) historyNext() {
 	rl.viUndoSkipAppend = true
 	rl.mainHist = true
 	rl.walkHistory(-1)
@@ -384,7 +391,7 @@ func historyNext(rl *Instance) (read, ret bool, err error) {
 	return
 }
 
-func historyPrev(rl *Instance) (read, ret bool, err error) {
+func (rl *Instance) historyPrev() {
 	rl.viUndoSkipAppend = true
 	rl.mainHist = true
 	rl.walkHistory(1)

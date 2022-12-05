@@ -1,7 +1,7 @@
 package readline
 
 // viinsKeymaps are the default keymaps in Vim Insert mode
-var viinsKeymaps = keyMap{
+var viinsKeymaps = keymap{
 	// Standard
 	string(charEscape): "vi-cmd-mode",
 	string(charCtrlM):  "accept-line",
@@ -43,7 +43,7 @@ var viinsKeymaps = keyMap{
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode
-var vicmdKeymaps = keyMap{
+var vicmdKeymaps = keymap{
 	// Standard
 	"i":               "vi-insert-mode",
 	string(charCtrlM): "accept-line",
@@ -114,7 +114,7 @@ var vicmdKeymaps = keyMap{
 }
 
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode
-var vioppKeymaps = keyMap{
+var vioppKeymaps = keymap{
 	string(charEscape): "vi-cmd-mode",
 	"aW":               "select-a-blank-word",
 	"aa":               "select-a-shell-word",
@@ -127,7 +127,7 @@ var vioppKeymaps = keyMap{
 }
 
 // viinsKeymaps are the default keymaps in Vim Visual mode
-var visualKeymaps = keyMap{
+var visualKeymaps = keymap{
 	string(charEscape): "vi-cmd-mode",
 	"aW":               "select-a-blank-word",
 	"aa":               "select-a-shell-word",
@@ -149,6 +149,6 @@ var visualKeymaps = keyMap{
 	"~":                "vi-swap-case", // Need to be a separate widget from ~ in cmd mode ?
 }
 
-var vicmdSpecialKeymaps = keyMap{
+var vicmdSpecialKeymaps = keymap{
 	`^([1-9]{1})$`: "digit-argument",
 }

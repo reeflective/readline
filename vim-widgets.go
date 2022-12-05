@@ -4,59 +4,58 @@ import (
 	"fmt"
 )
 
-// vimHandlers maps keys to Vim actions.
-type viWidgets map[string]func(rl *Instance)
+type baseWidgets map[string]func()
 
 // standardViWidgets don't need access to the input key.
-var standardViWidgets = viWidgets{
-	"vi-cmd-mode":               viCommandMode,
-	"visual-mode":               viVisualMode,
-	"visual-line-mode":          viVisualLineMode,
-	"vi-insert-mode":            viInsertMode,
-	"vi-insert-bol":             viInsertBol,
-	"vi-backward-char":          viBackwardChar,
-	"vi-forward-char":           viForwardChar,
-	"vi-delete-char":            viDeleteChar,
-	"vi-backward-delete-char":   viBackwardDeleteChar,
-	"vi-forward-word":           viForwardWord,
-	"vi-forward-blank-word":     viForwardBlankWord,
-	"vi-forward-word-end":       viForwardWordEnd,
-	"vi-forward-blank-word-end": viForwardBlankWordEnd,
-	"vi-backward-word":          viBackwardWord,
-	"vi-backward-blank-word":    viBackwardBlankWord, // TODO vi-backward-blank-word-end/vi-backward-word-end (ge / gE)
-	"vi-kill-eol":               viKillEol,
-	"vi-change-eol":             viChangeEol,
-	"vi-edit-command-line":      viEditCommandLine,
-	"vi-add-eol":                viAddEol,
-	"vi-add-next":               viAddNext,
-	"vi-put-after":              viPutAfter,
-	"vi-put-before":             viPutBefore,
-	"vi-end-of-line":            viEndOfLine,
-	"vi-set-buffer":             viSetBuffer,
-	"vi-yank":                   viYank,
-	"vi-yank-whole-line":        viYankWholeLine,
-	"vi-find-next-char":         viFindNextChar,
-	"vi-find-next-char-skip":    viFindNextCharSkip,
-	"vi-find-prev-char":         viFindPrevChar,
-	"vi-find-prev-char-skip":    viFindPrevCharSkip,
-	"vi-delete":                 viDelete,
-	"vi-replace-chars":          viReplaceChars,
-	"vi-replace":                viReplace,
-	"vi-match-bracket":          viMatchBracket,
-	"select-a-blank-word":       viSelectABlankWord,
-	"select-a-shell-word":       viSelectAShellWord,
-	"select-a-word":             viSelectAWord,
-	"select-in-blank-word":      viSelectInBlankWord,
-	"select-in-shell-word":      viSelectInShellWord,
-	"select-in-word":            viSelectInWord,
+func (rl *Instance) initViWidgets() baseWidgets {
+	widgets := map[string]func(){
+		"vi-insert-mode":                rl.viInsertMode,
+		"vi-cmd-mode":                   rl.viCommandMode,
+		"visual-mode":                   rl.viVisualMode,
+		"visual-line-mode":              rl.viVisualLineMode,
+		"vi-insert-bol":                 rl.viInsertBol,
+		"vi-backward-char":              rl.viBackwardChar,
+		"vi-forward-char":               rl.viForwardChar,
+		"vi-delete-char":                rl.viDeleteChar,
+		"vi-backward-delete-char":       rl.viBackwardDeleteChar,
+		"vi-forward-word":               rl.viForwardWord,
+		"vi-forward-blank-word":         rl.viForwardBlankWord,
+		"vi-forward-word-end":           rl.viForwardWordEnd,
+		"vi-forward-blank-word-end":     rl.viForwardBlankWordEnd,
+		"vi-backward-word":              rl.viBackwardWord,
+		"vi-backward-blank-word":        rl.viBackwardBlankWord, // TODO vi-backward-blank-word-end/vi-backward-word-end (ge / gE)
+		"vi-kill-eol":                   rl.viKillEol,
+		"vi-change-eol":                 rl.viChangeEol,
+		"vi-edit-command-line":          rl.viEditCommandLine,
+		"vi-add-eol":                    rl.viAddEol,
+		"vi-add-next":                   rl.viAddNext,
+		"vi-put-after":                  rl.viPutAfter,
+		"vi-put-before":                 rl.viPutBefore,
+		"vi-end-of-line":                rl.viEndOfLine,
+		"vi-set-buffer":                 rl.viSetBuffer,
+		"vi-yank":                       rl.viYank,
+		"vi-yank-whole-line":            rl.viYankWholeLine,
+		"vi-find-next-char":             rl.viFindNextChar,
+		"vi-find-next-char-skip":        rl.viFindNextCharSkip,
+		"vi-find-prev-char":             rl.viFindPrevChar,
+		"vi-find-prev-char-skip":        rl.viFindPrevCharSkip,
+		"vi-delete":                     rl.viDelete,
+		"vi-replace-chars":              rl.viReplaceChars,
+		"vi-replace":                    rl.viReplace,
+		"vi-match-bracket":              rl.viMatchBracket,
+		"select-a-blank-word":           rl.viSelectABlankWord,
+		"select-a-shell-word":           rl.viSelectAShellWord,
+		"select-a-word":                 rl.viSelectAWord,
+		"select-in-blank-word":          rl.viSelectInBlankWord,
+		"select-in-shell-word":          rl.viSelectInShellWord,
+		"select-in-word":                rl.viSelectInWord,
+		"vi-digit-or-beginning-of-line": rl.viDigitOrBeginningOfLine,
+	}
+
+	return widgets
 }
 
-// viinsWidgets need access to the input key.
-var viinsWidgets = map[string]keyHandler{
-	"vi-digit-or-beginning-of-line": viDigitOrBeginningOfLine,
-}
-
-func viInsertMode(rl *Instance) {
+func (rl *Instance) viInsertMode() {
 	rl.main = viins
 
 	rl.viIteration = ""
@@ -69,7 +68,7 @@ func viInsertMode(rl *Instance) {
 	rl.refreshVimStatus()
 }
 
-func viCommandMode(rl *Instance) {
+func (rl *Instance) viCommandMode() {
 	rl.viIteration = ""
 	rl.viUndoSkipAppend = true
 	rl.mark = -1
@@ -89,7 +88,7 @@ func viCommandMode(rl *Instance) {
 	rl.refreshVimStatus()
 }
 
-func viVisualMode(rl *Instance) {
+func (rl *Instance) viVisualMode() {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
 
@@ -108,7 +107,7 @@ func viVisualMode(rl *Instance) {
 	return
 }
 
-func viVisualLineMode(rl *Instance) {
+func (rl *Instance) viVisualLineMode() {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
 
@@ -127,7 +126,7 @@ func viVisualLineMode(rl *Instance) {
 	return
 }
 
-func viInsertBol(rl *Instance) {
+func (rl *Instance) viInsertBol() {
 	rl.main = viins
 
 	rl.viIteration = ""
@@ -140,23 +139,23 @@ func viInsertBol(rl *Instance) {
 	rl.refreshVimStatus()
 }
 
-func viAddNext(rl *Instance) {
+func (rl *Instance) viAddNext() {
 	if len(rl.line) > 0 {
 		rl.pos++
 	}
 
-	viInsertMode(rl)
+	rl.viInsertMode()
 }
 
-func viAddEol(rl *Instance) {
+func (rl *Instance) viAddEol() {
 	if len(rl.line) > 0 {
 		rl.pos = len(rl.line)
 	}
 
-	viInsertMode(rl)
+	rl.viInsertMode()
 }
 
-func viBackwardWord(rl *Instance) {
+func (rl *Instance) viBackwardWord() {
 	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -164,7 +163,7 @@ func viBackwardWord(rl *Instance) {
 	}
 }
 
-func viBackwardBlankWord(rl *Instance) {
+func (rl *Instance) viBackwardBlankWord() {
 	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -172,7 +171,7 @@ func viBackwardBlankWord(rl *Instance) {
 	}
 }
 
-func viKillEol(rl *Instance) {
+func (rl *Instance) viKillEol() {
 	rl.saveBufToRegister(rl.line[rl.pos-1:])
 	rl.line = rl.line[:rl.pos]
 	// Only go back if there is an input
@@ -184,17 +183,17 @@ func viKillEol(rl *Instance) {
 	rl.updateHelpers()
 }
 
-func viChangeEol(rl *Instance) {
+func (rl *Instance) viChangeEol() {
 	rl.saveBufToRegister(rl.line[rl.pos-1:])
 	rl.line = rl.line[:rl.pos]
 	rl.viIteration = ""
 
 	rl.resetHelpers()
 
-	viInsertMode(rl)
+	rl.viInsertMode()
 }
 
-func viForwardWordEnd(rl *Instance) {
+func (rl *Instance) viForwardWordEnd() {
 	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -202,7 +201,7 @@ func viForwardWordEnd(rl *Instance) {
 	}
 }
 
-func viForwardBlankWordEnd(rl *Instance) {
+func (rl *Instance) viForwardBlankWordEnd() {
 	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -210,7 +209,7 @@ func viForwardBlankWordEnd(rl *Instance) {
 	}
 }
 
-func viForwardChar(rl *Instance) {
+func (rl *Instance) viForwardChar() {
 	rl.viUndoSkipAppend = true
 
 	// In vi-cmd-mode, we don't go further than the
@@ -229,7 +228,7 @@ func viForwardChar(rl *Instance) {
 	}
 }
 
-func viBackwardChar(rl *Instance) {
+func (rl *Instance) viBackwardChar() {
 	rl.viUndoSkipAppend = true
 
 	if rl.pos > 0 {
@@ -238,7 +237,7 @@ func viBackwardChar(rl *Instance) {
 }
 
 // TODO: If pasting multiple lines, instead of only characters, paste below the current line.
-func viPutAfter(rl *Instance) {
+func (rl *Instance) viPutAfter() {
 	// paste after the cursor position
 	rl.viUndoSkipAppend = true
 	rl.pos++
@@ -251,7 +250,7 @@ func viPutAfter(rl *Instance) {
 	rl.pos--
 }
 
-func viPutBefore(rl *Instance) {
+func (rl *Instance) viPutBefore() {
 	// paste before
 	rl.viUndoSkipAppend = true
 	buffer := rl.pasteFromRegister()
@@ -261,7 +260,7 @@ func viPutBefore(rl *Instance) {
 	}
 }
 
-func viReplaceChars(rl *Instance) {
+func (rl *Instance) viReplaceChars() {
 	rl.viUndoSkipAppend = true
 
 	// We read a character to use first.
@@ -282,7 +281,7 @@ func viReplaceChars(rl *Instance) {
 		}
 		rl.pos = bpos
 
-		viCommandMode(rl)
+		rl.viCommandMode()
 
 		return
 	}
@@ -293,7 +292,7 @@ func viReplaceChars(rl *Instance) {
 	rl.pos--
 }
 
-func viReplace(rl *Instance) {
+func (rl *Instance) viReplace() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
 	rl.undoAppendHistory()
@@ -351,7 +350,7 @@ func viReplace(rl *Instance) {
 	print(cursorBlinkingBlock)
 }
 
-func viEditCommandLine(rl *Instance) {
+func (rl *Instance) viEditCommandLine() {
 	rl.clearHelpers()
 	var multiline []rune
 	if rl.GetMultiLine == nil {
@@ -380,7 +379,7 @@ func viEditCommandLine(rl *Instance) {
 	}
 }
 
-func viForwardWord(rl *Instance) {
+func (rl *Instance) viForwardWord() {
 	rl.viUndoSkipAppend = true
 
 	// If the input line is empty, we don't do anything
@@ -400,7 +399,7 @@ func viForwardWord(rl *Instance) {
 	}
 }
 
-func viForwardBlankWord(rl *Instance) {
+func (rl *Instance) viForwardBlankWord() {
 	// If the input line is empty, we don't do anything
 	if rl.pos == 0 && len(rl.line) == 0 {
 		return
@@ -415,7 +414,7 @@ func viForwardBlankWord(rl *Instance) {
 }
 
 // TODO: Either redundant with deleteChar, or has to be modified somehow.
-func viDeleteChar(rl *Instance) {
+func (rl *Instance) viDeleteChar() {
 	vii := rl.getViIterations()
 
 	// We might be on an active register, but not yanking...
@@ -430,7 +429,7 @@ func viDeleteChar(rl *Instance) {
 	// has been run, when we detect in command mode that our
 	// cursor position if off-line.
 	// On the other hand, this is the difference between
-	// classic backwardDeleteChar and this function.
+	// classic backwardDeleteChar and this function(rl *Instance).
 	//
 	// if rl.pos == len(rl.line) && len(rl.line) > 0 {
 	// 	rl.pos--
@@ -438,7 +437,7 @@ func viDeleteChar(rl *Instance) {
 }
 
 // TODO: Same here
-func viBackwardDeleteChar(rl *Instance) {
+func (rl *Instance) viBackwardDeleteChar() {
 	vii := rl.getViIterations()
 
 	// We might be on an active register, but not yanking...
@@ -453,14 +452,14 @@ func viBackwardDeleteChar(rl *Instance) {
 	// has been run, when we detect in command mode that our
 	// cursor position if off-line.
 	// On the other hand, this is the difference between
-	// classic backwardDeleteChar and this function.
+	// classic backwardDeleteChar and this function(rl *Instance).
 	//
 	if rl.pos == len(rl.line) && len(rl.line) > 0 {
 		rl.pos--
 	}
 }
 
-func viYank(rl *Instance) {
+func (rl *Instance) viYank() {
 	// When we are called after a pending operator action, we are a pending
 	// usually not in visual mode, but have an active selection.
 	// In this case we yank the active region and return.
@@ -469,7 +468,7 @@ func viYank(rl *Instance) {
 		rl.resetSelection()
 
 		if rl.local == visual {
-			viCommandMode(rl)
+			rl.viCommandMode()
 			rl.updateCursor()
 		}
 
@@ -494,17 +493,17 @@ func viYank(rl *Instance) {
 	rl.activeRegion = true
 }
 
-func viYankWholeLine(rl *Instance) {
+func (rl *Instance) viYankWholeLine() {
 	rl.saveBufToRegister(rl.line)
 	rl.viUndoSkipAppend = true
 }
 
-func viEndOfLine(rl *Instance) {
+func (rl *Instance) viEndOfLine() {
 	rl.pos = len(rl.line)
 	rl.viUndoSkipAppend = true
 }
 
-func viMatchBracket(rl *Instance) {
+func (rl *Instance) viMatchBracket() {
 	rl.viUndoSkipAppend = true
 
 	nextPos := rl.pos
@@ -534,7 +533,7 @@ func viMatchBracket(rl *Instance) {
 }
 
 // TODO: Currently we don't handle the argument in this widget.
-func viSetBuffer(rl *Instance) {
+func (rl *Instance) viSetBuffer() {
 	// We might be on a register already, so reset it,
 	// and then wait again for a new register ID.
 	if rl.registers.onRegister {
@@ -557,7 +556,7 @@ func viSetBuffer(rl *Instance) {
 }
 
 // TODO: only use a single rune to match against in those widgets
-func viFindNextChar(rl *Instance) {
+func (rl *Instance) viFindNextChar() {
 	print(cursorUnderline)
 
 	// Read the argument key to use as a pattern to search
@@ -574,7 +573,7 @@ func viFindNextChar(rl *Instance) {
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }
 
-func viFindNextCharSkip(rl *Instance) {
+func (rl *Instance) viFindNextCharSkip() {
 	print(cursorUnderline)
 
 	// Read the argument key to use as a pattern to search
@@ -591,7 +590,7 @@ func viFindNextCharSkip(rl *Instance) {
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }
 
-func viFindPrevChar(rl *Instance) {
+func (rl *Instance) viFindPrevChar() {
 	print(cursorUnderline)
 
 	// Read the argument key to use as a pattern to search
@@ -608,7 +607,7 @@ func viFindPrevChar(rl *Instance) {
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }
 
-func viFindPrevCharSkip(rl *Instance) {
+func (rl *Instance) viFindPrevCharSkip() {
 	print(cursorUnderline)
 
 	// Read the argument key to use as a pattern to search
@@ -625,7 +624,7 @@ func viFindPrevCharSkip(rl *Instance) {
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }
 
-func viDelete(rl *Instance) {
+func (rl *Instance) viDelete() {
 	// When we are called after a pending operator action, we are a pending
 	// usually not in visual mode, but have an active selection.
 	// In this case we yank the active region and return.
@@ -634,7 +633,7 @@ func viDelete(rl *Instance) {
 		rl.resetSelection()
 
 		if rl.local == visual {
-			viCommandMode(rl)
+			rl.viCommandMode()
 			rl.updateCursor()
 		}
 
@@ -659,36 +658,35 @@ func viDelete(rl *Instance) {
 	rl.activeRegion = true
 }
 
-func viDigitOrBeginningOfLine(rl *Instance, b []byte, i int, r []rune) (read, ret bool, val string, err error) {
+func (rl *Instance) viDigitOrBeginningOfLine() {
 	// If the last command was a digit argument,
 	// then our Vi iterations' length is not 0
 	if len(rl.viIteration) > 0 {
-		return digitArgument(rl, b, i, r)
+		rl.viIteration += string("0")
+		return
 	}
 
 	// Else we go the beginning of line.
-	read, ret, err = beginningOfLine(rl)
-
-	return
+	rl.beginningOfLine()
 }
 
-func viSelectABlankWord(rl *Instance) {
+func (rl *Instance) viSelectABlankWord() {
 	// Go the beginning of the word and start mark
 	rl.pos++
-	viBackwardBlankWord(rl)
+	rl.viBackwardBlankWord()
 	if rl.local == visual || rl.local == viopp {
 		rl.mark = rl.pos
 	}
 
 	// Then go to the end of the blank word
-	viForwardBlankWord(rl)
+	rl.viForwardBlankWord()
 	if rl.local == visual || rl.local == viopp {
 		rl.pos--
 		rl.activeRegion = true
 	}
 }
 
-func viSelectAShellWord(rl *Instance) {
+func (rl *Instance) viSelectAShellWord() {
 	// First find the outtermost quote, either single or double
 	posBeforeSingle := rl.pos
 	rl.findAndMoveCursor("'", 1, false, false)
@@ -711,38 +709,38 @@ func viSelectAShellWord(rl *Instance) {
 	rl.activeRegion = true
 }
 
-func viSelectAWord(rl *Instance) {
+func (rl *Instance) viSelectAWord() {
 	// Go the beginning of the word and start mark
 	rl.pos++
-	viBackwardWord(rl)
+	rl.viBackwardWord()
 	if rl.local == visual || rl.local == viopp {
 		rl.mark = rl.pos
 	}
 
 	// Then go to the end of the blank word
-	viForwardWord(rl)
+	rl.viForwardWord()
 	if rl.local == visual || rl.local == viopp {
 		rl.pos--
 		rl.activeRegion = true
 	}
 }
 
-func viSelectInBlankWord(rl *Instance) {
+func (rl *Instance) viSelectInBlankWord() {
 	// Go the beginning of the word and start mark
 	rl.pos++
-	viBackwardBlankWord(rl)
+	rl.viBackwardBlankWord()
 	if rl.local == visual || rl.local == viopp {
 		rl.mark = rl.pos
 	}
 
 	// Then go to the end of the blank word
-	viForwardBlankWordEnd(rl)
+	rl.viForwardBlankWordEnd()
 	if rl.local == visual || rl.local == viopp {
 		rl.activeRegion = true
 	}
 }
 
-func viSelectInShellWord(rl *Instance) {
+func (rl *Instance) viSelectInShellWord() {
 	// First find the outtermost quote, either single or double
 	posBeforeSingle := rl.pos
 	rl.findAndMoveCursor("'", 1, false, true)
@@ -765,16 +763,16 @@ func viSelectInShellWord(rl *Instance) {
 	rl.activeRegion = true
 }
 
-func viSelectInWord(rl *Instance) {
+func (rl *Instance) viSelectInWord() {
 	// Go the beginning of the word and start mark
 	rl.pos++
-	viBackwardWord(rl)
+	rl.viBackwardWord()
 	if rl.local == visual || rl.local == viopp {
 		rl.mark = rl.pos
 	}
 
 	// Then go to the end of the blank word
-	viForwardWordEnd(rl)
+	rl.viForwardWordEnd()
 	if rl.local == visual || rl.local == viopp {
 		rl.activeRegion = true
 	}

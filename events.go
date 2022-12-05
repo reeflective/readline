@@ -1,63 +1,60 @@
 package readline
 
+// EventCallback is a function that is called with a given key input (as typed by the user in the shell),
+// to which is passed the current line and the current cursor position on this line.
+// It returns an EventReturn, which specifies a target state (new line/cursor position, exit state, etc).
+type EventCallback func(key string, line []rune, cursor int) *EventReturn
+
 // EventReturn is a structure returned by the callback event function.
 // This is used by readline to determine what state the API should
 // return to after the readline event.
 type EventReturn struct {
-	ForwardKey    bool
-	ClearHelpers  bool
+	// Widget is the name of a widget to execute when the handler is called.
+	// This can be used when the user wants an existing widget (eg. 'kill-line',
+	// 'backward-word', etc) to modify the input line, rather than doing it himself.
+	// An empty string is not a valid widget.
+	Widget string
+
+	// ForwardKey indicates if the key should be dispatched down to the shell widgets.
+	// Example:
+	// A handler modifying the line is bound by a user to the key "^X^Y", in Emacs mode.
+	// The handler also returns a new line as 'NewLine', and a new cursor pos 'NewPos'.
+	//
+	// - If true: The shell first replaces its line and cursor pos with the ones given
+	//   by the event return here. Then, it goes through its local/main keymaps to find
+	//   a widget mapped to '^X^Y', which is also subsequently executed. The latter
+	//   might again update the line and cursor position.
+	// - If false: The shell replaces its line and cursor pos with the ones given by
+	//   the even return, but will not try to find another widget mapped to '^X^Y'.
+	ForwardKey bool
+
+	// CloseReadline indicates if the shell should return from its read loop,
+	// eg. close itself. If true, it will return the input line given in NewLine.
 	CloseReadline bool
-	HintText      []rune
-	NewLine       []rune
-	NewPos        int
+
+	// ClearHelpers indicates if completion and hint helpers should be cleared out of display.
+	ClearHelpers bool
+
+	// ToolTip is similar to HintText, except that it is displayed as a prompt
+	// tooltip (similar to a right-side prompt) rather than below the input line.
+	ToolTip string
+
+	HintText []rune
+	NewLine  []rune
+	NewPos   int
 }
 
-// AddEvent registers a new keypress handler
-func (rl *Instance) AddEvent(keyPress string, callback func(string, []rune, int) *EventReturn) {
-	rl.evtKeyPress[keyPress] = callback
+// AddEventTest registers a bindkey handler for the given keyPress.
+// It accepts an optional list of keymap modes for which to register the handler (eg. Vim visual/cmd/insert,
+// emacs, completion, history, etc). If no list is passed, the event callback is mapped to all main keymaps
+// of the shell, which is either emacs (in Emacs input mode), or viins/vicmd (in Vim input mode).
+func (rl *Instance) AddEvent(keyPress string, callback EventCallback, keymaps ...[]keymapMode) {
 }
 
-// DelEvent deregisters an existing keypress handler
-func (rl *Instance) DelEvent(keyPress string) {
-	delete(rl.evtKeyPress, keyPress)
-}
-
-// TODO: This should be either removed or refactored into the new model.
-// handleKeyPress is in charge of executing the handler that is register for a given keypress.
-func (rl *Instance) handleKeyPress(s string) (done, mustReturn bool, val string, err error) {
-	rl.clearHelpers()
-
-	ret := rl.evtKeyPress[s](s, rl.line, rl.pos)
-
-	rl.clearLine()
-	rl.line = append(ret.NewLine, []rune{}...)
-	rl.updateHelpers() // rl.echo
-	rl.pos = ret.NewPos
-
-	if ret.ClearHelpers {
-		rl.resetHelpers()
-	} else {
-		rl.updateHelpers()
-	}
-
-	if len(ret.HintText) > 0 {
-		rl.hintText = ret.HintText
-		rl.clearHelpers()
-		rl.renderHelpers()
-	}
-	if !ret.ForwardKey {
-		done = true
-
-		return
-	}
-
-	if ret.CloseReadline {
-		rl.clearHelpers()
-		mustReturn = true
-		val = string(rl.line)
-
-		return
-	}
-
-	return
+// DelEventTest deregisters an existing bindkey handler.
+// It accepts an optional list of keymaps for which to deregister the handler.
+// If this list is empty (or not passed), the bindkey handler is deregistered
+// of all keymaps in which it is present. If the list is not empty, the bindkey
+// handler is only deregistered from those keymaps, if it is found in them.
+func (rl *Instance) DelEvent(keyPress string, keymaps ...[]keymapMode) {
 }

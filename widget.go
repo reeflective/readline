@@ -1,7 +1,6 @@
 package readline
 
 import (
-	// "regexp"
 	"strings"
 )
 
@@ -18,6 +17,85 @@ type action struct {
 	operator   string
 }
 
+// run is in charge of executing the matched EventCallback, unwrapping its values and return behavior
+// parameters (errors/lines/read), and optionally to execute pending widgets (vi operator pending mode),
+func (rl *Instance) run(cb EventCallback, keys string, r []rune) (read, ret bool, val string, err error) {
+	if cb == nil {
+		read = true
+		return
+	}
+
+	// Run the callback, and by default, use its behavior for return values
+	event := cb(keys, rl.line, rl.pos)
+	ret = event.CloseReadline
+	rl.line = append(event.NewLine, []rune{}...)
+	rl.pos = event.NewPos
+
+	// Update/reset helpers
+	if event.ClearHelpers {
+		rl.resetHelpers()
+	}
+
+	if len(event.HintText) > 0 {
+		rl.hintText = event.HintText
+		rl.updateHelpers()
+	}
+
+	// If the callback has a widget, run it. Any instruction to return, or an error
+	// being raised has precedence over other callback read/return settings.
+	if event.Widget != "" {
+		ret, val, err = rl.runWidget(event.Widget, r)
+		if ret || err != nil {
+			return
+		}
+	}
+
+	// If we are asked to close the readline, we don't care about pending operations.
+	if event.CloseReadline {
+		rl.clearHelpers()
+		ret = true
+		val = string(rl.line)
+
+		return
+	}
+
+	// If a widget of the main keymap was executed while the shell
+	// was in operator pending mode (only Vim), then the caller widget
+	// is waiting to be executed again.
+	if rl.viopp {
+		rl.runPendingWidget(keys)
+	}
+
+	// If we don't have to dispatch the key to next keymaps
+	// (in the same loop), we are done with this callback.
+	// This is the default for all builtin widgets.
+	if !event.ForwardKey {
+		read = true
+
+		return
+	}
+
+	return
+}
+
+// bindWidget wraps a widget into an EventCallback and binds it to the corresponding keymap.
+// The event callback is basically empty as far as functionality is concerned: it just returns
+// the name of a widget to be run, and specifies some additional behavior.
+func (rl *Instance) bindWidget(key, widget string, km *widgets) {
+	cb := func(_ string, line []rune, pos int) *EventReturn {
+		event := &EventReturn{
+			Widget:  widget,
+			NewLine: line,
+			NewPos:  pos,
+		}
+
+		return event
+	}
+
+	// Bind the wrapped widget.
+	(*km)[key] = cb
+}
+
 // getWidget looks in the various widget lists for a target widget,
 // and if it finds it, sometimes will wrap it into a function so that
 // all widgets look the same to the shell instance.
@@ -29,31 +107,29 @@ func (rl *Instance) getWidget(name string) keyHandler {
 	// Error widgets
 
 	// Standard widgets (all editing modes/styles)
-	if widget, found := standardWidgets[name]; found && widget != nil {
-		return widget
+	if widget, found := rl.initStandardWidgets()[name]; found && widget != nil {
+		return func(_ []rune) (bool, bool, string, error) {
+			widget()
+			return false, false, "", nil
+		}
 	}
 
 	// Standard line widgets, wrapped inside a compliant handler.
-	if widget, found := standardLineWidgets[name]; found && widget != nil {
-		return func(rl *Instance, _ []byte, _ int, _ []rune) (bool, bool, string, error) {
-			read, ret, err := widget(rl)
-			return read, ret, "", err
+	if widget, found := rl.initStandardLineWidgets()[name]; found && widget != nil {
+		return func(keys []rune) (bool, bool, string, error) {
+			read, ret, val, err := widget(keys)
+			return read, ret, val, err
 		}
 	}
 
 	// Emacs
 
 	// Vim standard widgets don't return anything, wrap them in a simple call.
-	if widget, found := standardViWidgets[name]; found && widget != nil {
-		return func(rl *Instance, _ []byte, _ int, _ []rune) (bool, bool, string, error) {
-			widget(rl)
+	if widget, found := rl.initViWidgets()[name]; found && widget != nil {
+		return func(_ []rune) (bool, bool, string, error) {
+			widget()
 			return false, false, "", nil
 		}
-	}
-
-	// Non-standard Vim widgets require some input.
-	if widget, found := viinsWidgets[name]; found && widget != nil {
-		return widget
 	}
 
 	// Incremental search
@@ -63,9 +139,9 @@ func (rl *Instance) getWidget(name string) keyHandler {
 	return nil
 }
 
-// run wraps a few calls for finding a widget and executing it, returning some basic
+// runWidget wraps a few calls for finding a widget and executing it, returning some basic
 // instructions pertaining to what to do next: either keep reading input, or return the line.
-func (rl *Instance) run(name string, b []byte, i int, r []rune) (ret bool, val string, err error) {
+func (rl *Instance) runWidget(name string, keys []rune) (ret bool, val string, err error) {
 	widget := rl.getWidget(name)
 	if widget == nil {
 		return
@@ -76,7 +152,7 @@ func (rl *Instance) run(name string, b []byte, i int, r []rune) (ret bool, val s
 	rl.keys = ""
 
 	// Execute the widget
-	read, ret, val, err := widget(rl, b, i, r)
+	read, ret, val, err := widget(keys)
 	if read || ret {
 		return
 	}
@@ -88,32 +164,6 @@ func (rl *Instance) run(name string, b []byte, i int, r []rune) (ret bool, val s
 
 	return
 }
-
-// matchPendingWidget processes a key against pending operation, first considering
-// the key as an operator to this action. It executes anything that should be done
-// here, updating any mode if needed, and notifies the caller if it must keep trying
-// to match the key against the other (main) keymaps.
-// func (rl *Instance) matchPendingWidget(key string) (read, ret bool, val string, err error) {
-// If the key is a digit, we add it to the viopp-specific iterations
-// if isDigit, _ := regexp.MatchString(`^([1-9]{1})$`, key); isDigit {
-// 	rl.viIteration += key
-//
-// 	read = true
-// 	return
-// }
-
-// // Since we can stack pending actions (like in 'y2Ft', where both y and F need
-// // pending operators), if the current key matches any of the main keymap bindings,
-// // we don't use it now as an argument, and must match it against the main keymap.
-// if widget, found := rl.mainKeymap[key]; found && widget != "" {
-// 	return
-// }
-//
-// // Else, the key is taken as an argument to the last pending widget.
-// rl.runPendingWidget(key)
-
-// return
-// }
 
 // runPendingWidget finds the last widget pushed onto the
 // pending stack and runs it against the provided input key.
@@ -151,7 +201,7 @@ func (rl *Instance) runPendingWidget(key string) {
 
 	// Run the widget with all navigation keys
 	for i := 0; i < times; i++ {
-		widget(rl, []byte{}, len(keys), keys)
+		widget(keys)
 	}
 }
 
@@ -165,10 +215,10 @@ func (rl *Instance) getPendingWidget() (act action) {
 	return
 }
 
-func findBindkeyWidget(key string, keymap keyMap) keyMap {
-	widgets := make(keyMap)
+func findBindkeyWidget(key string, km widgets) widgets {
+	widgets := make(widgets)
 
-	for wkey, widget := range keymap {
+	for wkey, widget := range km {
 		if strings.HasPrefix(wkey, key) {
 			widgets[wkey] = widget
 		}
@@ -178,16 +228,16 @@ func findBindkeyWidget(key string, keymap keyMap) keyMap {
 }
 
 // getWidget returns the first widget in the keymap
-func getWidget(keymap keyMap) (key, widget string) {
-	for key, widget := range keymap {
+func getWidget(km widgets) (key string, widget EventCallback) {
+	for key, widget := range km {
 		return key, widget
 	}
 
 	return
 }
 
-func getWidgetMatch(key string, keymap keyMap) (widget string) {
-	for wkey, widget := range keymap {
+func getWidgetMatch(key string, km widgets) (widget EventCallback) {
+	for wkey, widget := range km {
 		if wkey == key {
 			return widget
 		}

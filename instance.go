@@ -22,13 +22,13 @@ type Instance struct {
 	InputMode InputMode
 
 	main          keymapMode // The main/global keymap, partially overridden by any local keymap.
-	mainKeymap    keyMap     // All keys mapped to the name of their corresponding widgets/actions.
 	local         keymapMode // The local keymap is used when completing menus, using Vim operators, etc.
-	localKeymap   keyMap     // All keys mapped to the name of their corresponding widgets/actions.
-	specialKeymap keyMap     // A keymap that is matched using regexp, (for things like digit arguments, etc.)
+	specialKeymap keymap     // A keymap that is matched using regexp, (for things like digit arguments, etc.)
+	viopp         bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
 
 	// The shell maintains a list of all its keymaps, so that users can modify them, or add some.
-	keymaps map[keymapMode]keyMap
+	keymaps map[keymapMode]keymap  // All keys map to widget names, not their implementation.
+	widgets map[keymapMode]widgets // All implementations, wrapped into EventCallbacks.
 
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------

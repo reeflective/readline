@@ -72,19 +72,19 @@ func (rl *Instance) Readline() (string, error) {
 			return "", err
 		}
 
-		r := []rune(string(b))
-		key := string(r[:i])
+		// Only keep the portion that has been read.
+		r := []rune(string(b))[:i]
 
 		// We store the key in our key stack. which is used
 		// when the key only matches some widgets as a prefix.
 		// We use a copy for the matches below, as some actions
 		// will reset this stack.
-		rl.keys += key
+		rl.keys += string(r)
 		keys := rl.keys
 
 		// If the last input is a carriage return, process
 		// according to configured multiline behavior.
-		if isMultiline(r[:i]) || len(rl.multilineBuffer) > 0 {
+		if isMultiline(r) || len(rl.multilineBuffer) > 0 {
 			done, ret, val, err := rl.processMultiline(r, b, i)
 			if ret {
 				return val, err
@@ -97,6 +97,7 @@ func (rl *Instance) Readline() (string, error) {
 		// Main dispatchers ---------------------------------------------------
 		//
 		//
+		// TODO: REWRITE THIS AND COMMENTS BELOW
 		// The dispatching process grossly works in two steps:
 		// 1)  It tries to match against the local keymap (visual/viopp/etc),
 		// 2)  Just after, if some local keymap is active but has not matched
@@ -109,27 +110,22 @@ func (rl *Instance) Readline() (string, error) {
 		//
 		// 5)  If the key was not inserted on the line, check against special patterns.
 
-		pending := rl.local == viopp
-
 		// 1) First test the key against the local widget keymap, if any.
 		// - In emacs mode, this local keymap is empty, except when performing
 		// completions or performing history/incremental search.
 		// - In Vim, this can be either 'visual', 'viopp', 'completion' or
 		//   'incremental' search.
-		widget, prefix := rl.matchKeymap(keys, rl.localKeymap)
-		if widget != "" {
-			if ret, val, err := rl.run(widget, b, i, r); ret || err != nil {
+		handler, prefix := rl.matchKeymap(keys, rl.local)
+		if handler != nil {
+			read, ret, val, err := rl.run(handler, keys, r)
+			if ret || err != nil {
 				return val, err
 			}
 
-			// If a widget of the main keymap was executed while the shell
-			// was in operator pending mode (only Vim), then the caller widget
-			// is waiting to be executed again.
-			if pending {
-				rl.runPendingWidget(keys)
+			// Only continue to next key if not asked to forward the key.
+			if read {
+				continue
 			}
-
-			continue
 		} else if prefix {
 			continue
 		}
@@ -138,19 +134,17 @@ func (rl *Instance) Readline() (string, error) {
 		// check the global widget, which can never be nil.
 		// - In Emacs mode, this widget is 'emacs'.
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
-		widget, prefix = rl.matchKeymap(keys, rl.mainKeymap)
-		if widget != "" {
-			if ret, val, err := rl.run(widget, b, i, r); ret || err != nil {
+		handler, prefix = rl.matchKeymap(keys, rl.main)
+		if handler != nil {
+			read, ret, val, err := rl.run(handler, keys, r)
+			if ret || err != nil {
 				return val, err
 			}
-			// If a widget of the main keymap was executed while the shell
-			// was in operator pending mode (only Vim), then the caller widget
-			// is waiting to be executed again.
-			if pending {
-				rl.runPendingWidget(keys)
-			}
 
-			continue
+			// Only continue to next key if not asked to forward the key.
+			if read {
+				continue
+			}
 		} else if prefix {
 			continue
 		}
@@ -160,7 +154,7 @@ func (rl *Instance) Readline() (string, error) {
 		// we run the self-insert widget to input the key in the line.
 		if rl.main == emacs || rl.main == viins {
 			rl.viUndoSkipAppend = true
-			ret, val, err := rl.run("self-insert", b, i, r)
+			ret, val, err := rl.runWidget("self-insert", r)
 			if ret {
 				return val, err
 			}
@@ -173,7 +167,7 @@ func (rl *Instance) Readline() (string, error) {
 		// is done using regular expressions. This allows to use digit
 		// arguments, or other special patterns and ranges.
 		if widget := rl.matchRegexKeymap(keys); widget != "" {
-			ret, val, err := rl.run(widget, b, i, r)
+			ret, val, err := rl.runWidget(widget, r)
 			if ret {
 				return val, err
 			}
