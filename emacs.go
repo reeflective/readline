@@ -209,7 +209,7 @@ func killWholeLine(rl *Instance) (read, ret bool, err error) {
 	// We need to go back to prompt
 	moveCursorUp(rl.posY)
 	moveCursorBackwards(GetTermWidth())
-	moveCursorForwards(rl.inputAt)
+	moveCursorForwards(rl.Prompt.inputAt)
 
 	// Clear everything after & below the cursor
 	print(seqClearScreenBelow)

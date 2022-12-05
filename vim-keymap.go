@@ -37,7 +37,6 @@ var viinsKeymaps = keyMap{
 	seqArrowDown: "down-line-or-select", // TODO
 
 	// Vim
-	// string(charCtrlH): "vi-backward-delete-char",
 	seqArrowRight: "vi-forward-char",
 	seqArrowLeft:  "vi-backward-char",
 	// TODO: Important; magic-space
@@ -130,26 +129,24 @@ var vioppKeymaps = keyMap{
 // viinsKeymaps are the default keymaps in Vim Visual mode
 var visualKeymaps = keyMap{
 	string(charEscape): "vi-cmd-mode",
-
-	"aW": "select-a-blank-word",
-	"aa": "select-a-shell-word",
-	"aw": "select-a-word",
-	"iW": "select-in-blank-word",
-	"ia": "select-in-shell-word",
-	"iw": "select-in-word",
-
-	"S": "vi-change-surround", // SPECIAL HANDLER vi-change-surround (no text object)
-	"a": "vi-select-surround", // SPECIAL HANDLER
-	"c": "vi-change",          // SPECIAL HANDLER ?
-	"d": "vi-delete",
-	"i": "vi-select-surround", // SPECIAL HANDLER
-	"j": "down-line",          // Not sure since no multiline
-	"k": "up-line",            // Not sure since no multiline
-	"u": "vi-down-case",
-	"v": "vi-edit-command-line",
-	"x": "vi-delete",
-	"y": "vi-yank",
-	"~": "vi-swap-case", // Need to be a separate widget from ~ in cmd mode ?
+	"aW":               "select-a-blank-word",
+	"aa":               "select-a-shell-word",
+	"aw":               "select-a-word",
+	"iW":               "select-in-blank-word",
+	"ia":               "select-in-shell-word",
+	"iw":               "select-in-word",
+	"S":                "vi-change-surround", // SPECIAL HANDLER vi-change-surround (no text object)
+	"a":                "vi-select-surround", // SPECIAL HANDLER
+	"c":                "vi-change",          // SPECIAL HANDLER ?
+	"d":                "vi-delete",
+	"i":                "vi-select-surround", // SPECIAL HANDLER
+	"j":                "down-line",          // Not sure since no multiline
+	"k":                "up-line",            // Not sure since no multiline
+	"u":                "vi-down-case",
+	"v":                "vi-edit-command-line",
+	"x":                "vi-delete",
+	"y":                "vi-yank",
+	"~":                "vi-swap-case", // Need to be a separate widget from ~ in cmd mode ?
 }
 
 var vicmdSpecialKeymaps = keyMap{

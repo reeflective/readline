@@ -25,6 +25,11 @@ type prompt struct {
 	// True if some logs have printed asynchronously
 	// since last loop. Check refresh prompt funcs.
 	stillOnRefresh bool
+
+	// The offset used on the first line, where either
+	// the full prompt (or the last line) is. Used for
+	// correctly replacing the cursor.
+	inputAt int
 }
 
 // Primary uses a function returning the string to use as the primary prompt
@@ -62,13 +67,13 @@ func (p *prompt) init(rl *Instance) {
 	p.stillOnRefresh = false
 
 	// Compute some offsets needed by the last line.
-	rl.computePrompt()
+	rl.Prompt.compute(rl)
 }
 
 func (p *prompt) printLast(rl *Instance) {
 	if p.right != "" {
 		// Only print the right prompt if the input line is shorter than the adjusted term width
-		lineFits := (rl.inputAt + len(rl.line) + getRealLength(p.right) + 1) < GetTermWidth()
+		lineFits := (rl.Prompt.inputAt + len(rl.line) + getRealLength(p.right) + 1) < GetTermWidth()
 
 		if lineFits {
 			// First go back to beginning of line, and clear everything
@@ -118,14 +123,14 @@ func (p *prompt) getPrimaryLastLine() string {
 
 // computePromptAlt computes the correct lengths and offsets
 // for all prompt components, but does not print any of them.
-func (rl *Instance) computePrompt() {
+func (p *prompt) compute(rl *Instance) {
 	prompt := rl.Prompt.primary
 
 	lastLineIndex := strings.LastIndex(prompt, "\n")
 	if lastLineIndex != -1 {
-		rl.inputAt = len([]rune(ansi.Strip(prompt[lastLineIndex+1:])))
+		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt[lastLineIndex+1:])))
 	} else {
-		rl.inputAt = len([]rune(ansi.Strip(prompt)))
+		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt)))
 	}
 }
 

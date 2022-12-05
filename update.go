@@ -49,14 +49,14 @@ func (rl *Instance) updateReferences() {
 	}
 
 	// We need the X offset of the whole line
-	toEndLine := rl.inputAt + fullLine
+	toEndLine := rl.Prompt.inputAt + fullLine
 	fullOffset := toEndLine / GetTermWidth()
 	rl.fullY = fullOffset
 	fullRest := toEndLine % GetTermWidth()
 	rl.fullX = fullRest
 
 	// Use rl.pos value to get the offset to go TO/FROM the CURRENT POSITION
-	lineToCursorPos := rl.inputAt + cPosLine
+	lineToCursorPos := rl.Prompt.inputAt + cPosLine
 	offsetToCursor := lineToCursorPos / GetTermWidth()
 	cPosRest := lineToCursorPos % GetTermWidth()
 

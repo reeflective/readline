@@ -9,7 +9,7 @@ const (
 )
 
 func (rl *Instance) refreshVimStatus() {
-	rl.computePrompt()
+	rl.Prompt.compute(rl)
 	rl.updateHelpers()
 }
 

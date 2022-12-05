@@ -10,6 +10,11 @@ import (
 // readline instance so that you can reuse the readline API for multiple entry
 // captures without having to repeatedly unload configuration.
 type Instance struct {
+	// The prompt supports all oh-my-posh prompt types (primary/rprompt/secondary/transient/tooltip)
+	// In addition, the shell offers some functions to refresh the prompt on demand, with varying
+	// behavior options (refresh below a message, or in place, etc)
+	Prompt *prompt
+
 	//
 	// Keymaps ------------------------------------------------------------------------------------
 
@@ -37,31 +42,18 @@ type Instance struct {
 	registers        *registers // All memory text registers, can be consulted with Alt"
 
 	pendingIterations string // Iterations specific to viopp mode. (2y2w => "2"w)
-	keys              string // A pending navigation key, stored waiting for a complement.
 	pendingActions    []action
-
-	//
-	// Prompt -------------------------------------------------------------------------------------
-	Prompt *prompt
-
-	// The index at which the input line starts,
-	// after the last line of the prompt has been printed.
-	// TODO: Move in prompt struct ?
-	inputAt int
 
 	// Input Line ---------------------------------------------------------------------------------
 
-	// PasswordMask is what character to hide password entry behind.
-	// Once enabled, set to 0 (zero) to disable the mask again.
-	PasswordMask rune
-
 	// readline operating parameters
+	keys  string // Contains all keys (input by user) currently being processed by the shell.
 	line  []rune // This is the input line, with entered text: full line = mlnPrompt + line
-	pos   int
-	posX  int // Cursor position X
-	fullX int // X coordinate of the full input line, including the prompt if needed.
-	posY  int // Cursor position Y (if multiple lines span)
-	fullY int // Y offset to the end of input line.
+	pos   int    // Cursor position in the entire line.
+	posX  int    // Cursor position X
+	fullX int    // X coordinate of the full input line, including the prompt if needed.
+	posY  int    // Cursor position Y (if multiple lines span)
+	fullY int    // Y offset to the end of input line.
 
 	// Buffer received from host programms
 	multilineBuffer []byte
@@ -71,6 +63,10 @@ type Instance struct {
 	// SyntaxHighlight is a helper function to provide syntax highlighting.
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func([]rune) string
+
+	// PasswordMask is what character to hide password entry behind.
+	// Once enabled, set to 0 (zero) to disable the mask again.
+	PasswordMask rune
 
 	//
 	// Completion ---------------------------------------------------------------------------------
@@ -192,7 +188,7 @@ func NewInstance() *Instance {
 	rl.Prompt = &prompt{
 		primary: "$ ",
 	}
-	rl.computePrompt()
+	rl.Prompt.compute(rl)
 
 	// Input Editing
 	rl.InputMode = Emacs

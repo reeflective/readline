@@ -60,7 +60,7 @@ func (rl *Instance) computeLine() {
 
 		// Adjust for the first line that is printed after the prompt.
 		if i == 0 {
-			lineLen += rl.inputAt
+			lineLen += rl.Prompt.inputAt
 		}
 
 		usedLines += lineLen / GetTermWidth()
@@ -187,7 +187,7 @@ func (rl *Instance) clearLine() {
 	// We need to go back to prompt
 	moveCursorUp(rl.posY)
 	moveCursorBackwards(GetTermWidth())
-	moveCursorForwards(rl.inputAt)
+	moveCursorForwards(rl.Prompt.inputAt)
 
 	// Clear everything after & below the cursor
 	print(seqClearScreenBelow)
