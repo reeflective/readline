@@ -128,6 +128,12 @@ func (rl *Instance) printLine() {
 
 		// And print
 		print(highlighted)
+
+		rl.autosuggestHistory(line)
+		if len(rl.histSuggested) > 0 {
+			moveCursorBackwards(1)
+			print(Dim(string(rl.histSuggested)))
+		}
 	}
 
 	// Update references with new coordinates only now, because
@@ -143,6 +149,7 @@ func (rl *Instance) printLine() {
 
 // highlightVisualLine adds highlighting of the region if we are in a visual mode.
 func (rl *Instance) highlightVisualLine(line []rune) string {
+	// TODO: Is rl.mark useful here ?
 	if rl.local != visual || rl.mark == -1 {
 		return string(line)
 	}

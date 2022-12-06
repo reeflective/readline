@@ -47,13 +47,14 @@ type Instance struct {
 	// Input Line ---------------------------------------------------------------------------------
 
 	// readline operating parameters
-	keys  string // Contains all keys (input by user) currently being processed by the shell.
-	line  []rune // This is the input line, with entered text: full line = mlnPrompt + line
-	pos   int    // Cursor position in the entire line.
-	posX  int    // Cursor position X
-	fullX int    // X coordinate of the full input line, including the prompt if needed.
-	posY  int    // Cursor position Y (if multiple lines span)
-	fullY int    // Y offset to the end of input line.
+	keys          string // Contains all keys (input by user) currently being processed by the shell.
+	line          []rune // This is the input line, with entered text: full line = mlnPrompt + line
+	histSuggested []rune // The last matching history line matching the current input.
+	pos           int    // Cursor position in the entire line.
+	posX          int    // Cursor position X
+	fullX         int    // X coordinate of the full input line, including the prompt if needed.
+	posY          int    // Cursor position Y (if multiple lines span)
+	fullY         int    // Y offset to the end of input line.
 
 	// Buffer received from host programms
 	multilineBuffer []byte

@@ -172,7 +172,11 @@ func (rl *Instance) viBackwardBlankWord() {
 }
 
 func (rl *Instance) viKillEol() {
-	rl.saveBufToRegister(rl.line[rl.pos-1:])
+	pos := rl.pos
+	if pos < 0 {
+		pos--
+	}
+	rl.saveBufToRegister(rl.line[pos:])
 	rl.line = rl.line[:rl.pos]
 	// Only go back if there is an input
 	if len(rl.line) > 0 {

@@ -3,6 +3,7 @@ package readline
 // initHelpers is called once at the very beginning of a readline start.
 func (rl *Instance) initHelpers() {
 	// Line parameters
+	// TODO: REMOVE THIS ?
 	rl.mark = -1
 
 	// Descriptive helpers
@@ -46,6 +47,11 @@ func (rl *Instance) updateReferences() {
 	} else {
 		fullLine = len(rl.line)
 		cPosLine = len(rl.line[:rl.pos])
+	}
+
+	// Adjust if we have an autosuggested history
+	if len(rl.histSuggested) > 0 {
+		fullLine = fullLine + len(rl.histSuggested)
 	}
 
 	// We need the X offset of the whole line
