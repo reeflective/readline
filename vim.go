@@ -21,6 +21,11 @@ func (rl *Instance) enterVisualLineMode() {
 func (rl *Instance) enterVioppMode(widget string) {
 	rl.local = viopp
 
+	// When the widget is empty, we just want to update the cursor.
+	if widget == "" {
+		return
+	}
+
 	act := action{
 		widget:     widget,
 		iterations: rl.getViIterations(),

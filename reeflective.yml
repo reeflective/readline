@@ -1,0 +1,282 @@
+# ================================================================================ #
+#                     Reeflective Readline Configuration file                      #
+# ================================================================================ #
+
+# Notes ===========
+# - The '\r' (Enter key) is printed specially below (the widget is printed on
+#   a newline). It is important to leave this as is, otherwise the shell will
+#   fail to correctly unmarshal the configuration, returning an error instead.
+
+## Input Mode: the main edition mode to use
+# - emacs
+# - vim
+inputMode: vim
+
+#
+## Vim global settings ##
+#
+vim:
+    # Specified escape keys here are used IN ADDITION to the Escape ^[ key
+    insertEscapeKey: "\e"
+    visualEscapeKey: "\e"
+    operatorPendingEscapeKey: "\e"
+
+    # Cursors valid values:
+    # - Block
+    # - Beam
+    # - Underline
+    # - BlinkingBlock
+    # - BlinkingBeam
+    # - BlinkingUnderline
+    # - Default (the system cursor)
+    insertCursor: BlinkingBeam 
+    normalCursor: BlinkingBlock 
+    operatorPendingCursor: BlinkingUnderline 
+    visualCursor: BlinkingBlock
+    replaceCursor: BlinkingUnderline 
+#
+## Emacs global settings ##
+#
+emacs:
+    cursor: BlinkingBeam
+
+#
+# Keymaps ##
+#
+# All key mappings for the shell are listed below.
+# You can remove any subsection if wanted: for every missing
+# subsection, the shell has already loaded the corresponding
+# default key mappings.
+keymaps:
+    # Emacs key mappings
+    emacs:
+        '\x01': beginning-of-line
+        '\x02': backward-char
+        '\x05': end-of-line
+        '\x06': forward-char
+        '\a': send-break
+        '\v': kill-line
+        '\f': clear-screen  # ^L => Ctrl+L 
+        '\r' : accept-line 
+        '\x0E': down-line-or-history
+        '\x0F': accept-line-and-down-history
+        '\x10': up-line-or-history
+        '\x14': transpose-chars
+        '\x15': kill-whole-line
+        '\x16': quoted-insert
+        '\x19': yank
+        ^?: backward-delete-char
+        ^[[1;3A: history-search
+        ^[[1;3B: menu-select
+        ^[[1;5C: forward-word
+        ^[[1;5D: backward-word
+        ^[[3;5~: kill-word
+        ^[[3~: delete-char
+        ^[[5~: history-search
+        ^[[6~: menu-select
+        ^[[200~: bracketed-paste
+        ^[[A: up-line-or-search
+        ^[[B: down-line-or-select
+        ^[[C: forward-char
+        ^[[D: backward-char
+        ^[[Z: menu-select
+        ^[^?: backward-kill-word
+        ^[^[[A: history-search
+        ^[^[[B: menu-select
+        ^[^[OA: history-search
+        ^[^[OB: menu-select
+        ^[^_: copy-prev-word
+        ^[^D: list-choices
+        ^[^G: send-break
+        ^[^H: backward-kill-word
+        ^[^I: self-insert-unmeta
+        ^[^J: self-insert-unmeta
+        ^[^L: clear-screen
+        ^[^M: self-insert-unmeta
+        ^[_: insert-last-word
+        ^[|: vi-goto-column
+        ^[A: accept-and-hold
+        ^[B: backward-word
+        ^[C: capitalize-word
+        ^[D: kill-word
+        ^[F: forward-word
+        ^[G: get-line
+        ^[H: run-help
+        ^[L: down-case-word
+        ^[N: history-search-forward
+        ^[P: history-search-backward
+        ^[Q: push-line
+        ^[S: spell-word
+        ^[T: transpose-words
+        ^[U: up-case-word
+        ^[W: copy-region-as-kill
+        ^[a: accept-and-hold
+        ^[b: backward-word
+        ^[c: capitalize-word
+        ^[d: kill-word
+        ^[f: forward-word
+        ^[g: get-line
+        ^[h: run-help
+        ^[l: ls^J
+        ^[m: copy-prev-shell-word
+        ^[n: history-search-forward
+        ^[p: history-search-backward
+        ^[q: push-line
+        ^[s: spell-word
+        ^[t: transpose-words
+        ^[u: up-case-word
+        ^[w: kill-region
+        ^[x: execute-named-cmd
+        ^[y: yank-pop
+        ^[z: execute-last-named-cmd
+        ^_: undo
+        ^X^B: vi-match-bracket
+        ^X^E: vi-edit-command-line
+        ^X^K: kill-buffer
+        ^X^N: infer-next-history
+        ^X^O: overwrite-mode
+        ^X^U: undo
+        ^X^V: vi-cmd-mode
+        ^Xu: undo
+
+    # Vim Normal mode key mappings
+    vicmd:
+        '\x01': switch-keyword
+        '\b': backward-delete-char
+        '\f': clear-screen   # ^L => Ctrl+L 
+        '\r' : accept-line        
+        "\x0E": down-history
+        "\x10": up-history
+        "\x12": redo
+        "\e[1;5C": forward-word
+        "\e[1;5D": backward-word
+        "\e[3;5~": kill-word
+        "\e[3~": delete-char
+        "\e[5~": up-line-or-history
+        "\e[6~": down-line-or-history
+        "\e[A": history-search
+        "\e[B": menu-select
+        "\e[C": vi-forward-char
+        "\e[D": vi-backward-char
+        "\e[F": end-of-line
+        "\e[H": beginning-of-line
+        ' ': vi-forward-char
+        '"': vi-set-buffer
+        $: vi-end-of-line
+        '%': vi-match-bracket
+        '|': vi-goto-column
+        "~": vi-swap-case
+        "\x7F": backward-delete-char
+        "0": vi-digit-or-beginning-of-line
+        A: vi-add-eol
+        B: vi-backward-blank-word
+        C: vi-change-eol
+        D: vi-kill-eol
+        E: vi-forward-blank-word-end
+        F: vi-find-prev-char
+        I: vi-insert-bol
+        P: vi-put-before
+        R: vi-replace
+        T: vi-find-prev-char-skip
+        V: visual-line-mode
+        W: vi-forward-blank-word
+        X: vi-backward-delete-char
+        Y: vi-yank-whole-line
+        a: vi-add-next
+        b: vi-backward-word
+        c: vi-change-surround
+        d: vi-delete
+        e: vi-forward-word-end
+        f: vi-find-next-char
+        h: vi-backward-char
+        i: vi-insert-mode
+        j: down-line-or-history
+        k: up-line-or-history
+        l: vi-forward-char
+        p: vi-put-after
+        r: vi-replace-chars
+        t: vi-find-next-char-skip
+        u: undo
+        v: visual-mode
+        w: vi-forward-word
+        x: vi-delete-char
+        y: vi-yank
+
+    # Vim Insert mode key mappings
+    viins:
+        '\x01': beginning-of-line
+        '\x02': backward-char
+        '\x05': end-of-line
+        '\x06': forward-char
+        '\b': backward-delete-char
+        '\v': kill-line
+        '\f': clear-screen    # ^L => Ctrl+L 
+        '\r' : accept-line         
+        "\x0E": down-line-or-history
+        "\x10": up-line-or-history
+        "\x17": backward-kill-word
+        "\x19": yank
+        "\e": vi-cmd-mode
+        "\e[1;5C": forward-word
+        "\e[1;5D": backward-word
+        "\e[3;5~": kill-word
+        "\e[3~": delete-char
+        "\e[5~": history-search
+        "\e[6~": menu-select
+        "\e[A": up-line-or-search
+        "\e[B": down-line-or-select
+        "\e[C": vi-forward-char
+        "\e[D": vi-backward-char
+        "\e[F": end-of-line
+        "\e[H": beginning-of-line
+        "\x1F": undo
+        "\x7F": backward-delete-char
+    # Vim Insert mode key mappings
+    viopp:
+        "\e": vi-cmd-mode
+        aW: select-a-blank-word
+        aa: select-a-shell-word
+        aw: select-a-word
+        iW: select-in-blank-word
+        ia: select-in-shell-word
+        iw: select-in-word
+        j: down-line
+        k: up-line
+    # Vim Visual mode key mappings
+    visual:
+        "\e": vi-cmd-mode
+        "~": vi-swap-case
+        S: vi-change-surround
+        a: vi-select-surround
+        aW: select-a-blank-word
+        aa: select-a-shell-word
+        aw: select-a-word
+        c: vi-change
+        d: vi-delete
+        i: vi-select-surround
+        iW: select-in-blank-word
+        ia: select-in-shell-word
+        iw: select-in-word
+        j: down-line
+        k: up-line
+        u: vi-down-case
+        v: vi-edit-command-line
+        x: vi-delete
+        y: vi-yank
+
+#
+# Other helpers settings ##
+#
+# historyAutosuggest: If true, the shell will display fish-like
+# autosuggestions (the first matching history line is displayed dimmed).
+historyAutosuggest: false
+# historyAutoWrite: defines whether items automatically get written to history.
+# Enabled by default. Set to false to disable.
+historyAutoWrite: true
+
+# The maximum number of completion rows to print at any time.
+maxTabCompleterRows: 50
+
+# The color formatting (or any other string sequence) to use 
+# when printing shell hint messages (command/flag/arg usages, etc).
+hintFormatting: "\e[2m"

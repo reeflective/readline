@@ -47,7 +47,7 @@ func (rl *Instance) writeHintText() {
 	hintText := string(wrapped)
 
 	if len(hintText) > 0 {
-		print("\r" + rl.HintFormatting + string(hintText) + seqReset)
+		print("\r" + rl.config.HintFormatting + string(hintText) + seqReset)
 	}
 }
 

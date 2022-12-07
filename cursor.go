@@ -6,36 +6,58 @@ import (
 	"strconv"
 )
 
+// CursorStyle is the style of the cursor
+// in a given input mode/submode.
+type CursorStyle string
+
+// String - Implements fmt.Stringer
+func (c CursorStyle) String() string {
+	cursor, found := cursors[c]
+	if !found {
+		return string(CursorUserDefault)
+	}
+	return cursor
+}
+
+var cursors = map[CursorStyle]string{
+	CursorBlock:             "\x1b[2 q",
+	CursorUnderline:         "\x1b[4 q",
+	CursorBeam:              "\x1b[6 q",
+	CursorBlinkingBlock:     "\x1b[1 q",
+	CursorBlinkingUnderline: "\x1b[3 q",
+	CursorBlinkingBeam:      "\x1b[5 q",
+	CursorUserDefault:       "\x1b[0 q",
+}
+
 const (
-	cursorBlock             = "\x1b[2 q"
-	cursorUnderline         = "\x1b[4 q"
-	cursorBeam              = "\x1b[6 q"
-	cursorBlinkingBlock     = "\x1b[1 q"
-	cursorBlinkingUnderline = "\x1b[3 q"
-	cursorBlinkingBeam      = "\x1b[5 q"
-	cursorUserDefault       = "\x1b[0 q"
+	CursorBlock             CursorStyle = "Block"
+	CursorUnderline         CursorStyle = "Underline"
+	CursorBeam              CursorStyle = "Beam"
+	CursorBlinkingBlock     CursorStyle = "BlinkingBlock"
+	CursorBlinkingUnderline CursorStyle = "BlinkingUnderline"
+	CursorBlinkingBeam      CursorStyle = "BlinkingBeam"
+	CursorUserDefault       CursorStyle = "Default"
 )
 
 func (rl *Instance) updateCursor() {
-	// The local keymap most of the time has priority
+	// The local keymap, most of the time, has priority
 	switch rl.local {
 	case viopp:
-		print(cursorUnderline)
+		print(rl.config.Vim.OperatorPendingCursor.String())
 		return
 	case visual:
-		print(cursorBlock)
+		print(rl.config.Vim.VisualCursor.String())
 		return
-	default:
 	}
 
 	// But if not, we check for the global keymap
 	switch rl.main {
 	case emacs:
-		print(cursorBlinkingBlock)
+		print(rl.config.Emacs.Cursor.String())
 	case viins:
-		print(cursorBlinkingBeam)
+		print(rl.config.Vim.InsertCursor.String())
 	case vicmd:
-		print(cursorBlinkingBlock)
+		print(rl.config.Vim.NormalCursor.String())
 	}
 }
 
@@ -89,8 +111,31 @@ func (rl *Instance) findAndMoveCursor(key string, count int, forward, skip bool)
 	rl.pos = cursor
 }
 
-// Lmorg code
-// -------------------------------------------------------------------------------
+func (rl *Instance) moveCursorByAdjust(adjust int) {
+	switch {
+	case adjust > 0:
+		rl.pos += adjust
+	case adjust < 0:
+		rl.pos += adjust
+	}
+
+	// The position can never be negative
+	if rl.pos < 0 {
+		rl.pos = 0
+	}
+
+	// The cursor can never be longer than the line
+	if rl.pos > len(rl.line) {
+		rl.pos = len(rl.line)
+	}
+
+	// If we are at the end of line, and not in Insert mode, move back one.
+	if rl.main == vicmd && (rl.pos == len(rl.line)) && len(rl.line) > 0 {
+		rl.pos--
+	} else if rl.main == viins && rl.searchMode == HistoryFind && rl.modeAutoFind {
+		rl.pos--
+	}
+}
 
 func leftMost() []byte {
 	fd := int(os.Stdout.Fd())
@@ -189,36 +234,4 @@ func (rl *Instance) backspace() {
 	}
 
 	rl.deleteBackspace()
-}
-
-func (rl *Instance) getCursorStyle(mode string) (style string) {
-	switch mode {
-	}
-	return
-}
-
-func (rl *Instance) moveCursorByAdjust(adjust int) {
-	switch {
-	case adjust > 0:
-		rl.pos += adjust
-	case adjust < 0:
-		rl.pos += adjust
-	}
-
-	// The position can never be negative
-	if rl.pos < 0 {
-		rl.pos = 0
-	}
-
-	// The cursor can never be longer than the line
-	if rl.pos > len(rl.line) {
-		rl.pos = len(rl.line)
-	}
-
-	// If we are at the end of line, and not in Insert mode, move back one.
-	if rl.main == vicmd && (rl.pos == len(rl.line)) && len(rl.line) > 0 {
-		rl.pos--
-	} else if rl.main == viins && rl.searchMode == HistoryFind && rl.modeAutoFind {
-		rl.pos--
-	}
 }

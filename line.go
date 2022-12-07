@@ -129,10 +129,12 @@ func (rl *Instance) printLine() {
 		// And print
 		print(highlighted)
 
-		rl.autosuggestHistory(line)
-		if len(rl.histSuggested) > 0 {
-			moveCursorBackwards(1)
-			print(Dim(string(rl.histSuggested)))
+		if rl.config.HistoryAutosuggest {
+			rl.autosuggestHistory(line)
+			if len(rl.histSuggested) > 0 {
+				moveCursorBackwards(1)
+				print(Dim(string(rl.histSuggested)))
+			}
 		}
 	}
 
@@ -248,7 +250,7 @@ func (rl *Instance) insert(r []rune) {
 func (rl *Instance) carriageReturn() {
 	rl.clearHelpers()
 	print("\r\n")
-	if rl.HistoryAutoWrite {
+	if rl.config.HistoryAutoWrite {
 		var err error
 
 		// Main history

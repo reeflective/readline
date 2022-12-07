@@ -6,13 +6,13 @@ import (
 )
 
 // InputMode - The shell input mode
-type InputMode int
+type InputMode string
 
 const (
 	// Vim - Vim editing mode
-	Vim = iota
+	Vim InputMode = "vim"
 	// Emacs - Emacs (classic) editing mode
-	Emacs
+	Emacs InputMode = "emacs"
 )
 
 // readInput reads input from stdin and returns the result, length or an error.

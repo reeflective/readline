@@ -59,13 +59,6 @@ func (rl *Instance) run(cb EventCallback, keys string, r []rune) (read, ret bool
 		return
 	}
 
-	// If a widget of the main keymap was executed while the shell
-	// was in operator pending mode (only Vim), then the caller widget
-	// is waiting to be executed again.
-	if rl.viopp {
-		rl.runPendingWidget(keys)
-	}
-
 	// If we don't have to dispatch the key to next keymaps
 	// (in the same loop), we are done with this callback.
 	// This is the default for all builtin widgets.

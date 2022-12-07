@@ -1,7 +1,7 @@
 package readline
 
-// viinsKeymaps are the default keymaps in Vim Insert mode
-var viinsKeymaps = keymap{
+// viinsKeys are the default keymaps in Vim Insert mode
+var viinsKeys = keymap{
 	// Standard
 	string(charEscape): "vi-cmd-mode",
 	string(charCtrlM):  "accept-line",
@@ -43,7 +43,7 @@ var viinsKeymaps = keymap{
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode
-var vicmdKeymaps = keymap{
+var vicmdKeys = keymap{
 	// Standard
 	"i":               "vi-insert-mode",
 	string(charCtrlM): "accept-line",
@@ -114,7 +114,7 @@ var vicmdKeymaps = keymap{
 }
 
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode
-var vioppKeymaps = keymap{
+var vioppKeys = keymap{
 	string(charEscape): "vi-cmd-mode",
 	"aW":               "select-a-blank-word",
 	"aa":               "select-a-shell-word",
@@ -127,7 +127,7 @@ var vioppKeymaps = keymap{
 }
 
 // viinsKeymaps are the default keymaps in Vim Visual mode
-var visualKeymaps = keymap{
+var visualKeys = keymap{
 	string(charEscape): "vi-cmd-mode",
 	"aW":               "select-a-blank-word",
 	"aa":               "select-a-shell-word",

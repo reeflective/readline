@@ -1,7 +1,7 @@
 package readline
 
-// emacsKeymaps are the default keymaps in Emacs mode
-var emacsKeymaps = keymap{
+// emacsKeys are the default keymaps in Emacs mode
+var emacsKeys = keymap{
 	string(charCtrlM): "accept-line",
 	string(charCtrlA): "beginning-of-line",
 	string(charCtrlB): "backward-char",

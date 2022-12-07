@@ -69,7 +69,7 @@ func (rl *Instance) AddEvent(keyPress string, callback EventCallback, keymaps ..
 // handler is only deregistered from those keymaps, if it is found in them.
 func (rl *Instance) DelEvent(keyPress string, keymaps ...keymapMode) {
 	if len(keymaps) == 0 {
-		for mode := range rl.keymaps {
+		for mode := range rl.config.Keymaps {
 			keymaps = append(keymaps, mode)
 		}
 	}

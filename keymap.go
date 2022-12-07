@@ -38,69 +38,39 @@ const (
 // @error =>    Any error caught, generally those returned on signals like CtrlC
 type keyHandler func(r []rune) (bool, bool, string, error)
 
-// errorHandlers maps some special keys directly to their handlers, since
-// those handlers do not have a corresponding name, eg. they are anonymous.
-var errorHandlers = map[byte]keyHandler{
-	// charCtrlC: errorCtrlC,
-	// charEOF:   errorEOF,
-}
-
-// var baseHandlers = readlineHandlers{
-// // HERE DO CTRLC AND EOF
-// case '\r':
-// 	fallthrough
-//
-// // Completion
-// "menu-complete":         menuSelect,          // Tab
-// "search-complete":       searchComplete,      // CtrlF
-// "exit-complete":         exitComplete,        // CtrlG
-// "history-menu-complete": historyMenuComplete, // CtrlR
-// }
-
-// setBaseKeymap is ran once at the beginning of an instance start.
+// loadKeymapWidgets is ran once at the beginning of an instance start.
 // It is in charge of setting the configured/default input mode,
 // which will have an effect on which and how subsequent keymaps
 // will be interpreted.
-func (rl *Instance) setBaseKeymap() {
-	// Bind all default keymaps first
-	rl.keymaps = map[keymapMode]keymap{
-		emacs:  emacsKeymaps,
-		viins:  viinsKeymaps,
-		vicmd:  vicmdKeymaps,
-		visual: visualKeymaps,
-		viopp:  vioppKeymaps,
-	}
-
+func (rl *Instance) loadKeymapWidgets() {
 	rl.widgets = make(map[keymapMode]widgets)
 
-	// And for each keymap, initialize the widget map and load the widgets into it.
-	for mode, km := range rl.keymaps {
-		widgets := make(widgets)
+	// And for each keymap, initialize the widget
+	// map and load the widgets into it.
+	for mode, km := range rl.config.Keymaps {
+		keymapWidgets := make(widgets)
 		for key, widget := range km {
-			rl.bindWidget(key, widget, &widgets)
+			rl.bindWidget(key, widget, &keymapWidgets)
 		}
-		rl.widgets[mode] = widgets
+		rl.widgets[mode] = keymapWidgets
 	}
 
-	// TODO: Change this hardcoding
-	// Link the configured/current keymap to keymap 'main'
-	rl.main = viins
-
-	// TODO here if emacs main, bind special regexp keymap.
+	switch rl.config.InputMode {
+	case Emacs:
+		rl.main = emacs
+	case Vim:
+		rl.main = viins
+	}
 }
 
 func (rl *Instance) initKeymap() {
-	// TODO: Maybe we should keep the same current Vi mode instead of defaulting to one.
-	// In Vim mode, we always start in Input mode. The prompt needs this.
 	if rl.main == vicmd {
 		rl.viInsertMode()
 	}
 
 	rl.local = ""
 
-	if rl.main == viins {
-		print(cursorBlinkingBeam)
-	}
+	rl.updateCursor()
 }
 
 // updateKeymaps is in charge of ensuring the correct referencing of the main/global

@@ -141,6 +141,13 @@ func (rl *Instance) Readline() (string, error) {
 				return val, err
 			}
 
+			// If a widget of the main keymap was executed while the shell
+			// was in operator pending mode (only Vim), then the caller widget
+			// is waiting to be executed again.
+			if rl.viopp {
+				rl.runPendingWidget(keys)
+			}
+
 			// Only continue to next key if not asked to forward the key.
 			if read {
 				continue

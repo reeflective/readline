@@ -189,13 +189,13 @@ func (dtc DelayedTabContext) AppendGroupDescriptions(groupName string, descripti
 }
 
 // AppendGroup - Asynchronously add an entire group of completions to the current list
-func (dtc DelayedTabContext) AppendGroup(group *CompletionGroupOld) {
-	dtc.rl.mutex.Lock()
-	defer dtc.rl.mutex.Unlock()
-
-	// Simply append group to the list
-	// dtc.rl.tcGroups = append(dtc.rl.tcGroups, group)
-
-	dtc.rl.clearHelpers()
-	dtc.rl.renderHelpers()
-}
+// func (dtc DelayedTabContext) AppendGroup(group *CompletionGroupOld) {
+// 	dtc.rl.mutex.Lock()
+// 	defer dtc.rl.mutex.Unlock()
+//
+// 	// Simply append group to the list
+// 	// dtc.rl.tcGroups = append(dtc.rl.tcGroups, group)
+//
+// 	dtc.rl.clearHelpers()
+// 	dtc.rl.renderHelpers()
+// }

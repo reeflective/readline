@@ -15,19 +15,18 @@ type Instance struct {
 	// behavior options (refresh below a message, or in place, etc)
 	Prompt *prompt
 
+	// Configuration stores all keymaps, prompt styles and other completion/helper settings.
+	config *config
+
 	//
 	// Keymaps ------------------------------------------------------------------------------------
-
-	// InputMode - The shell can be used in Vim editing mode, or Emacs (classic).
-	InputMode InputMode
 
 	main          keymapMode // The main/global keymap, partially overridden by any local keymap.
 	local         keymapMode // The local keymap is used when completing menus, using Vim operators, etc.
 	specialKeymap keymap     // A keymap that is matched using regexp, (for things like digit arguments, etc.)
-	viopp         bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
 
 	// The shell maintains a list of all its keymaps, so that users can modify them, or add some.
-	keymaps map[keymapMode]keymap  // All keys map to widget names, not their implementation.
+	// keymaps map[keymapMode]keymap  // All keys map to widget names, not their implementation.
 	widgets map[keymapMode]widgets // All implementations, wrapped into EventCallbacks.
 
 	//
@@ -41,10 +40,27 @@ type Instance struct {
 	activeRegion     bool       // Is a current range region active ?
 	registers        *registers // All memory text registers, can be consulted with Alt"
 
+	viopp             bool   // Keeps track of vi operator pending mode BEFORE trying to match the current key.
 	pendingIterations string // Iterations specific to viopp mode. (2y2w => "2"w)
 	pendingActions    []action
 
 	// Input Line ---------------------------------------------------------------------------------
+
+	// GetMultiLine is a callback to your host program. Since multiline support
+	// is handled by the application rather than readline itself, this callback
+	// is required when calling $EDITOR. However if this function is not set
+	// then readline will just use the current line.
+	GetMultiLine func([]rune) []rune
+
+	EnableGetCursorPos bool
+
+	// SyntaxHighlight is a helper function to provide syntax highlighting.
+	// Once enabled, set to nil to disable again.
+	SyntaxHighlighter func([]rune) string
+
+	// PasswordMask is what character to hide password entry behind.
+	// Once enabled, set to 0 (zero) to disable the mask again.
+	PasswordMask rune
 
 	// readline operating parameters
 	keys          string // Contains all keys (input by user) currently being processed by the shell.
@@ -60,14 +76,6 @@ type Instance struct {
 	multilineBuffer []byte
 	multilineSplit  []string
 	skipStdinRead   bool
-
-	// SyntaxHighlight is a helper function to provide syntax highlighting.
-	// Once enabled, set to nil to disable again.
-	SyntaxHighlighter func([]rune) string
-
-	// PasswordMask is what character to hide password entry behind.
-	// Once enabled, set to 0 (zero) to disable the mask again.
-	PasswordMask rune
 
 	//
 	// Completion ---------------------------------------------------------------------------------
@@ -90,9 +98,8 @@ type Instance struct {
 	DelayedSyntaxWorker func([]rune) []rune
 	delayedSyntaxCount  int64
 
-	// MaxTabCompletionRows is the maximum number of rows to display in the tab
-	// completion grid.
-	MaxTabCompleterRows int // = 4
+	// MaxTabCompletionRows is the maximum number of rows to display in the tab completion grid.
+	// MaxTabCompleterRows int
 
 	// tab completion operating parameters
 	tcGroups []*CompletionGroup // All of our suggestions tree is in here
@@ -133,11 +140,6 @@ type Instance struct {
 	altHistory  History
 	altHistName string
 
-	// HistoryAutoWrite defines whether items automatically get written to
-	// history.
-	// Enabled by default. Set to false to disable.
-	HistoryAutoWrite bool // = true
-
 	// history operating params
 	lineBuf    string
 	histPos    int
@@ -151,11 +153,6 @@ type Instance struct {
 	// It returns the hint text to display.
 	HintText func([]rune, int) []rune
 
-	// HintColor any ANSI escape codes you wish to use for hint formatting. By
-	// default this will just be blue.
-	// NOTE: Probably not needed either
-	HintFormatting string
-
 	hintText []rune // The actual hint text
 	hintY    int    // Offset to hints, if it spans multiple lines
 
@@ -165,17 +162,6 @@ type Instance struct {
 	// TempDirectory is the path to write temporary files when editing a line in
 	// $EDITOR. This will default to os.TempDir()
 	TempDirectory string
-
-	// GetMultiLine is a callback to your host program. Since multiline support
-	// is handled by the application rather than readline itself, this callback
-	// is required when calling $EDITOR. However if this function is not set
-	// then readline will just use the current line.
-	GetMultiLine func([]rune) []rune
-
-	EnableGetCursorPos bool
-
-	// User-defined keypress events
-	evtKeyPress map[string]func(string, []rune, int) *EventReturn
 
 	// concurency
 	mutex sync.Mutex
@@ -191,27 +177,16 @@ func NewInstance() *Instance {
 	}
 	rl.Prompt.compute(rl)
 
-	// Input Editing
-	rl.InputMode = Emacs
+	rl.loadDefaultConfig()
 	rl.initLine()
-
-	// Keymaps
-	rl.setBaseKeymap()
-
-	// Completion
-	rl.MaxTabCompleterRows = 50
+	rl.loadKeymapWidgets()
+	rl.initRegisters()
 
 	// History
 	rl.mainHistory = new(ExampleHistory) // In-memory history by default.
-	rl.HistoryAutoWrite = true
 
 	// Others
-	rl.HintFormatting = seqFgBlue
-	rl.evtKeyPress = make(map[string]func(string, []rune, int) *EventReturn)
 	rl.TempDirectory = os.TempDir()
-
-	// Registers
-	rl.initRegisters()
 
 	return rl
 }

@@ -1,6 +1,15 @@
 # github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 ## explicit
 github.com/acarl005/stripansi
+# github.com/jessevdk/go-flags v1.5.0
+## explicit
+github.com/jessevdk/go-flags
+# github.com/rsteube/carapace v0.28.1
+## explicit
+github.com/rsteube/carapace/internal/config
+github.com/rsteube/carapace/pkg/style
+github.com/rsteube/carapace/third_party/github.com/elves/elvish/pkg/cli/lscolors
+github.com/rsteube/carapace/third_party/github.com/elves/elvish/pkg/ui
 # golang.org/x/crypto v0.3.0
 ## explicit
 golang.org/x/crypto/ssh/terminal
@@ -12,3 +21,6 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/term v0.2.0
 golang.org/x/term
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3

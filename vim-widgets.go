@@ -268,13 +268,16 @@ func (rl *Instance) viReplaceChars() {
 	rl.viUndoSkipAppend = true
 
 	// We read a character to use first.
-	print(cursorBlinkingUnderline)
+	rl.enterVioppMode("")
+	rl.updateCursor()
 
 	key, esc := rl.readArgumentKey()
 	if esc {
-		print(cursorBlinkingBlock)
+		rl.exitVioppMode()
+		rl.updateCursor()
 		return
 	}
+	rl.exitVioppMode()
 	rl.updateCursor()
 
 	// In visual mode, we replace all chars of the selection
@@ -309,12 +312,14 @@ func (rl *Instance) viReplace() {
 	// to the main readline loop: it keeps reading characters and inserts
 	// them as long as the escape key is not pressed.
 	for {
-		print(cursorBlinkingUnderline)
+		rl.enterVioppMode("")
+		rl.updateCursor()
 
 		// Read a new key
 		keys, esc := rl.readArgumentKey()
 		if esc {
-			print(cursorBlinkingBlock)
+			rl.exitVioppMode()
+			rl.updateCursor()
 			break
 		}
 		key := rune(keys[0])
@@ -351,7 +356,9 @@ func (rl *Instance) viReplace() {
 
 	// When exiting the replace mode, move the cursor back
 	rl.pos--
-	print(cursorBlinkingBlock)
+
+	rl.exitVioppMode()
+	rl.updateCursor()
 }
 
 func (rl *Instance) viEditCommandLine() {
@@ -561,13 +568,17 @@ func (rl *Instance) viSetBuffer() {
 
 // TODO: only use a single rune to match against in those widgets
 func (rl *Instance) viFindNextChar() {
-	print(cursorUnderline)
+	rl.enterVioppMode("")
+	rl.updateCursor()
 
 	// Read the argument key to use as a pattern to search
 	key, esc := rl.readArgumentKey()
 	if esc {
+		rl.exitVioppMode()
+		rl.updateCursor()
 		return
 	}
+	rl.exitVioppMode()
 	rl.updateCursor()
 
 	forward := true
@@ -578,13 +589,17 @@ func (rl *Instance) viFindNextChar() {
 }
 
 func (rl *Instance) viFindNextCharSkip() {
-	print(cursorUnderline)
+	rl.enterVioppMode("")
+	rl.updateCursor()
 
 	// Read the argument key to use as a pattern to search
 	key, esc := rl.readArgumentKey()
 	if esc {
+		rl.exitVioppMode()
+		rl.updateCursor()
 		return
 	}
+	rl.exitVioppMode()
 	rl.updateCursor()
 
 	forward := true
@@ -595,13 +610,17 @@ func (rl *Instance) viFindNextCharSkip() {
 }
 
 func (rl *Instance) viFindPrevChar() {
-	print(cursorUnderline)
+	rl.enterVioppMode("")
+	rl.updateCursor()
 
 	// Read the argument key to use as a pattern to search
 	key, esc := rl.readArgumentKey()
 	if esc {
+		rl.exitVioppMode()
+		rl.updateCursor()
 		return
 	}
+	rl.exitVioppMode()
 	rl.updateCursor()
 
 	forward := false
@@ -612,13 +631,17 @@ func (rl *Instance) viFindPrevChar() {
 }
 
 func (rl *Instance) viFindPrevCharSkip() {
-	print(cursorUnderline)
+	rl.enterVioppMode("")
+	rl.updateCursor()
 
 	// Read the argument key to use as a pattern to search
 	key, esc := rl.readArgumentKey()
 	if esc {
+		rl.exitVioppMode()
+		rl.updateCursor()
 		return
 	}
+	rl.exitVioppMode()
 	rl.updateCursor()
 
 	forward := false
