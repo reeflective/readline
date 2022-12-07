@@ -26,7 +26,6 @@ type Instance struct {
 	specialKeymap keymap     // A keymap that is matched using regexp, (for things like digit arguments, etc.)
 
 	// The shell maintains a list of all its keymaps, so that users can modify them, or add some.
-	// keymaps map[keymapMode]keymap  // All keys map to widget names, not their implementation.
 	widgets map[keymapMode]widgets // All implementations, wrapped into EventCallbacks.
 
 	//
@@ -159,6 +158,11 @@ type Instance struct {
 	//
 	// Other -------------------------------------------------------------------------------------
 
+	// interruptHandlers are all special handlers being called when the shell
+	// receives an interrupt signal key, like CtrlC/CtrlD. These are not directly
+	// assigned in the various keymaps.
+	interruptHandlers map[string]keyHandler
+
 	// TempDirectory is the path to write temporary files when editing a line in
 	// $EDITOR. This will default to os.TempDir()
 	TempDirectory string
@@ -178,8 +182,10 @@ func NewInstance() *Instance {
 	rl.Prompt.compute(rl)
 
 	rl.loadDefaultConfig()
-	rl.initLine()
 	rl.loadKeymapWidgets()
+	rl.loadInterruptHandlers()
+
+	rl.initLine()
 	rl.initRegisters()
 
 	// History

@@ -63,7 +63,7 @@ func (rl *Instance) Readline() (string, error) {
 		// state before processing an input key.
 		rl.ensureCompState()
 
-		// Read user key stroke(s) --------------------------------------------
+		// Read user key stroke(s) ---------------------------------------------
 		//
 		// Read the input from stdin if any, and upon successfull
 		// read, convert the input into runes for better scanning.
@@ -93,8 +93,20 @@ func (rl *Instance) Readline() (string, error) {
 			}
 		}
 
+		// Interrupt keys (CtrlC/CtrlD, etc) are caught before any keymap:
+		// These handlers adapt their behavior on their own, depending on
+		// the current state of the shell, keymap, etc.
+		if handler, yes := rl.isInterrupt(keys); yes && handler != nil {
+			done, ret, val, err := handler(r)
+			if ret {
+				return val, err
+			} else if done {
+				continue
+			}
+		}
+
 		//
-		// Main dispatchers ---------------------------------------------------
+		// Main dispatchers ----------------------------------------------------
 		//
 		//
 		// TODO: REWRITE THIS AND COMMENTS BELOW
