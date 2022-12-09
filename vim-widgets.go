@@ -50,6 +50,7 @@ func (rl *Instance) initViWidgets() baseWidgets {
 		"select-in-shell-word":          rl.viSelectInShellWord,
 		"select-in-word":                rl.viSelectInWord,
 		"vi-digit-or-beginning-of-line": rl.viDigitOrBeginningOfLine,
+		"vi-goto-column":                rl.viGotoColumn,
 	}
 
 	return widgets
@@ -799,4 +800,17 @@ func (rl *Instance) viSelectInWord() {
 	if rl.local == visual || rl.local == viopp {
 		rl.activeRegion = true
 	}
+}
+
+func (rl *Instance) viGotoColumn() {
+	iterations := rl.viIteration
+	column := rl.getViIterations()
+
+	if iterations == "" {
+		column = 0
+	} else if column < 0 {
+		column = len(rl.line) + column
+	}
+
+	rl.pos = column
 }

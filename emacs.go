@@ -1,5 +1,9 @@
 package readline
 
+import (
+	"strings"
+)
+
 type lineWidgets map[string]keyHandler
 
 // standardLineWidgets either need access to the input key,
@@ -44,6 +48,13 @@ func (rl *Instance) initStandardWidgets() baseWidgets {
 		"neg-argument":                   rl.negArgument,
 		"beginning-of-buffer-or-history": rl.beginningOfBufferOrHistory,
 		"end-of-buffer-or-history":       rl.endOfBufferOrHistory,
+		"capitalize-word":                rl.capitalizeWord,
+		"down-case-word":                 rl.downCaseWord,
+		"up-case-word":                   rl.upCaseWord,
+		"transpose-words":                rl.transposeWords,
+		"copy-region-as-kill":            rl.copyRegionAsKill,
+		"copy-prev-word":                 rl.copyPrevWord,
+		"kill-region":                    rl.killRegion,
 	}
 
 	return widgets
@@ -178,8 +189,6 @@ func (rl *Instance) clearScreen() {
 	rl.resetHintText()
 	rl.getHintText()
 	rl.renderHelpers()
-
-	return
 }
 
 func (rl *Instance) beginningOfLine() {
@@ -228,8 +237,6 @@ func (rl *Instance) backwardKillWord() {
 	rl.saveToRegister(rl.viJumpB(tokeniseLine))
 	rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
 	rl.updateHelpers()
-
-	return
 }
 
 func (rl *Instance) killWord() {
@@ -247,8 +254,6 @@ func (rl *Instance) yank() {
 	buffer := rl.pasteFromRegister()
 	rl.insert(buffer)
 	rl.updateHelpers()
-
-	return
 }
 
 func (rl *Instance) backwardDeleteChar() {
@@ -261,8 +266,6 @@ func (rl *Instance) backwardDeleteChar() {
 	for i := 1; i <= vii; i++ {
 		rl.deleteX()
 	}
-
-	return
 }
 
 func (rl *Instance) deleteChar() {
@@ -278,16 +281,13 @@ func (rl *Instance) deleteChar() {
 	if rl.pos == len(rl.line) && len(rl.line) > 0 {
 		rl.pos--
 	}
-
-	return
 }
 
 func (rl *Instance) forwardChar() {
 	if rl.pos < len(rl.line) {
 		rl.pos++
 	}
-
-	return
+	rl.viUndoSkipAppend = true
 }
 
 func (rl *Instance) backwardChar() {
@@ -295,8 +295,6 @@ func (rl *Instance) backwardChar() {
 		rl.pos--
 	}
 	rl.viUndoSkipAppend = true
-
-	return
 }
 
 func (rl *Instance) forwardWord() {
@@ -313,8 +311,6 @@ func (rl *Instance) forwardWord() {
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
 	}
-
-	return
 }
 
 func (rl *Instance) backwardWord() {
@@ -324,30 +320,22 @@ func (rl *Instance) backwardWord() {
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	}
-
-	return
 }
 
 // TODO: Probably should be including undoLast() code without Vim stuff ?
 func (rl *Instance) undo() {
 	rl.undoLast()
 	rl.viUndoSkipAppend = true
-
-	return
 }
 
 func (rl *Instance) downHistory() {
 	rl.mainHist = true
 	rl.walkHistory(-1)
-
-	return
 }
 
 func (rl *Instance) upHistory() {
 	rl.mainHist = true
 	rl.walkHistory(1)
-
-	return
 }
 
 // digitArgument is used both in Emacs and Vim modes,
@@ -369,8 +357,6 @@ func (rl *Instance) historyNext() {
 	rl.viUndoSkipAppend = true
 	rl.mainHist = true
 	rl.walkHistory(-1)
-
-	return
 }
 
 func (rl *Instance) historyPrev() {
@@ -614,20 +600,62 @@ func (rl *Instance) endOfBufferOrHistory() {
 	rl.endOfLine()
 }
 
-// 	"^[C": "capitalize-word",
 func (rl *Instance) capitalizeWord() {
+	posInit := rl.pos
+	rl.pos++
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+	letter := rl.line[rl.pos]
+	upper := strings.ToUpper(string(letter))
+	rl.line[rl.pos] = rune(upper[0])
+	rl.pos = posInit
 }
 
-// 	"^[G": "get-line",
-func (rl *Instance) getLine() {
-}
-
-// 	"^[H": "run-help",
-func (rl *Instance) runHelp() {
-}
-
-// 	"^[L": "down-case-word",
 func (rl *Instance) downCaseWord() {
+	posInit := rl.pos
+	rl.pos++
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+
+	rl.mark = rl.pos
+	rl.activeRegion = true
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	bpos, epos, _ := rl.getSelection()
+	word := string(rl.line[bpos:epos])
+	word = strings.ToLower(word)
+
+	begin := string(rl.line[:bpos])
+	end := string(rl.line[epos:])
+
+	newLine := append([]rune(begin), []rune(word)...)
+	newLine = append(newLine, []rune(end)...)
+
+	rl.line = newLine
+	rl.pos = posInit
+	rl.mark = -1
+	rl.activeRegion = false
+}
+
+func (rl *Instance) upCaseWord() {
+	posInit := rl.pos
+	rl.pos++
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+
+	rl.mark = rl.pos
+	rl.activeRegion = true
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	bpos, epos, _ := rl.getSelection()
+	word := string(rl.line[bpos:epos])
+	word = strings.ToUpper(word)
+
+	begin := string(rl.line[:bpos])
+	end := string(rl.line[epos:])
+
+	newLine := append([]rune(begin), []rune(word)...)
+	newLine = append(newLine, []rune(end)...)
+
+	rl.line = newLine
+	rl.pos = posInit
+	rl.mark = -1
+	rl.activeRegion = false
 }
 
 // 	"^[N": "history-search-forward",
@@ -638,50 +666,105 @@ func (rl *Instance) historySearchForward() {
 func (rl *Instance) historySearchSackward() {
 }
 
-// 	"^[Q": "push-line",
-func (rl *Instance) pushLine() {
+func (rl *Instance) transposeChars() {
 }
 
-// 	"^[T": "transpose-words",
 func (rl *Instance) transposeWords() {
+	posInit := rl.pos
+
+	// Save the current word
+	rl.pos++
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+
+	rl.mark = rl.pos
+	rl.activeRegion = true
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	tbpos, tepos, _ := rl.getSelection()
+	toTranspose := string(rl.line[tbpos:tepos])
+	rl.mark = -1
+	rl.activeRegion = false
+
+	// First move the number of words
+	vii := rl.getViIterations()
+	for i := 0; i <= vii; i++ {
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+	}
+
+	// Save the word to transpose with
+	rl.mark = rl.pos
+	rl.activeRegion = true
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	wbpos, wepos, _ := rl.getSelection()
+	transposeWith := string(rl.line[wbpos:wepos])
+	rl.mark = -1
+	rl.activeRegion = false
+
+	// Assemble the newline
+	begin := string(rl.line[:wbpos])
+	newLine := append([]rune(begin), []rune(toTranspose)...)
+	newLine = append(newLine, rl.line[wepos:tbpos]...)
+	newLine = append(newLine, []rune(transposeWith)...)
+	newLine = append(newLine, rl.line[tepos:]...)
+	rl.line = newLine
+
+	// And replace cursor
+	if vii < 0 {
+		rl.pos = posInit
+	} else {
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		for i := 0; i <= vii; i++ {
+			rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+		}
+	}
 }
 
-// 	"^[U": "up-case-word",
-func (rl *Instance) upcaseWord() {
-}
-
-// 	"^[W": "copy-region-as-kill",
 func (rl *Instance) copyRegionAsKill() {
+	rl.yankSelection()
+	rl.resetSelection()
+}
+
+func (rl *Instance) copyPrevWord() {
+	posInit := rl.pos
+	rl.mark = rl.pos
+	rl.activeRegion = true
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+
+	bpos, epos, _ := rl.getSelection()
+	word := string(rl.line[bpos:epos])
+	rl.mark = -1
+	rl.activeRegion = false
+
+	begin := string(rl.line[:epos])
+	end := string(rl.line[epos:])
+	newLine := append([]rune(begin), []rune(word)...)
+	newLine = append(newLine, []rune(end)...)
+	rl.line = newLine
+
+	rl.pos = posInit + len(word)
 }
 
 // 	"^[m":     "copy-prev-shell-word",
 func (rl *Instance) copyPrevShellWord() {
+	// First find the previous quote, and automatically
+	// detect where is the corresponding one.
+	rl.findAndMoveCursor("'", 1, false, false)
+	rl.mark = rl.pos
+	rl.activeRegion = true
 }
 
-// 	"^[w":     "kill-region",
 func (rl *Instance) killRegion() {
-}
-
-// 	"^[x":     "execute-named-cmd",
-func (rl *Instance) executeNamedCmd() {
-}
-
-// 	"^[y":     "yank-pop",
-func (rl *Instance) yankPop() {
-}
-
-// 	"^[z":     "execute-last-named-cmd",
-func (rl *Instance) executeLastNamedCmd() {
-}
-
-// 	"^[|":     "vi-goto-column",
-func (rl *Instance) viGotoColumn() {
+	rl.deleteSelection()
+	rl.resetSelection()
 }
 
 // "^[ ":  "expand-history",
 // "^[!":  "expand-history",
 func (rl *Instance) expandHistory() {
 }
+
+// 	"^[y":     "yank-pop",
+// func (rl *Instance) yankPop() {
+// }
 
 // "^[$":  "spell-word",
 // func (rl *Instance) spellWord() {
@@ -694,4 +777,22 @@ func (rl *Instance) expandHistory() {
 
 // 	"^[A": "accept-and-hold",
 // func (rl *Instance) acceptAndHold() {
+// }
+
+// func (rl *Instance) getLine() {
+// }
+
+// 	"^[Q": "push-line",
+// func (rl *Instance) pushLine() {
+// }
+
+// func (rl *Instance) runHelp() {
+// }
+
+// 	"^[x":     "execute-named-cmd",
+// func (rl *Instance) executeNamedCmd() {
+// }
+
+// 	"^[z":     "execute-last-named-cmd",
+// func (rl *Instance) executeLastNamedCmd() {
 // }
