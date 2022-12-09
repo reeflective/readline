@@ -31,9 +31,9 @@ func (rl *Instance) updateLine(line []rune) {
 	rl.renderHelpers()
 }
 
-// getLine - In many places we need the current line input. We either return the real line,
+// getLineVirtual - In many places we need the current line input. We either return the real line,
 // or the one that includes the current completion candidate, if there is any.
-func (rl *Instance) getLine() []rune {
+func (rl *Instance) getLineVirtual() []rune {
 	if len(rl.currentComp) > 0 {
 		return rl.lineComp
 	}
@@ -151,8 +151,7 @@ func (rl *Instance) printLine() {
 
 // highlightVisualLine adds highlighting of the region if we are in a visual mode.
 func (rl *Instance) highlightVisualLine(line []rune) string {
-	// TODO: Is rl.mark useful here ?
-	if rl.local != visual || rl.mark == -1 {
+	if rl.local != visual && rl.mark == -1 && !rl.activeRegion {
 		return string(line)
 	}
 

@@ -208,16 +208,17 @@ func (rl *Instance) getPendingWidget() (act action) {
 	return
 }
 
-func findBindkeyWidget(key string, km widgets) widgets {
-	widgets := make(widgets)
+func findBindkeyWidget(key string, wid widgets) widgets {
+	kmWidgets := make(widgets)
 
-	for wkey, widget := range km {
+	for wkey := range wid {
+		// for wkey := range bindings {
 		if strings.HasPrefix(wkey, key) {
-			widgets[wkey] = widget
+			kmWidgets[wkey] = wid[wkey]
 		}
 	}
 
-	return widgets
+	return kmWidgets
 }
 
 // getWidget returns the first widget in the keymap
@@ -230,10 +231,6 @@ func getWidget(km widgets) (key string, widget EventCallback) {
 }
 
 func getWidgetMatch(key string, km widgets) (widget EventCallback) {
-	for wkey, widget := range km {
-		if wkey == key {
-			return widget
-		}
-	}
+	widget = km[key]
 	return
 }

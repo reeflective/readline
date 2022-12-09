@@ -4,6 +4,23 @@ import (
 	"strconv"
 )
 
+func (rl *Instance) addIteration(i string) {
+	// Either reset
+	if i == "" {
+		rl.viIteration = ""
+	}
+
+	// Add a negative argument
+	if rl.negativeArg {
+		rl.viIteration = ""
+		i = "-" + i
+	}
+
+	// Or add the negative or the positive.
+	rl.viIteration += i
+	rl.negativeArg = false
+}
+
 func (rl *Instance) getViIterations() int {
 	i, _ := strconv.Atoi(rl.viIteration)
 	if i < 1 {

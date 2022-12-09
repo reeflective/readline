@@ -1,7 +1,11 @@
 package readline
 
 import (
+	"bytes"
 	"regexp"
+	// "strconv"
+
+	"github.com/reiver/go-caret"
 )
 
 // keymapMode is a root keymap mode for the shell.
@@ -39,17 +43,30 @@ const (
 type keyHandler func(r []rune) (bool, bool, string, error)
 
 // loadKeymapWidgets is ran once at the beginning of an instance start.
-// It is in charge of setting the configured/default input mode,
-// which will have an effect on which and how subsequent keymaps
-// will be interpreted.
+// It is in charge of setting the configured/default input mode, which will
+// have an effect on which and how subsequent keymaps will be interpreted.
 func (rl *Instance) loadKeymapWidgets() {
 	rl.widgets = make(map[keymapMode]widgets)
+
+	// Since the key might be in caret notation, we decode the key
+	// first, so that when we can match the key as detected by the
+	// shell (in ASCII notation).
+	b := new(bytes.Buffer)
+	decoder := caret.Decoder{Writer: b}
 
 	// And for each keymap, initialize the widget
 	// map and load the widgets into it.
 	for mode, km := range rl.config.Keymaps {
 		keymapWidgets := make(widgets)
 		for key, widget := range km {
+
+			// First decode the key, if in caret notation.
+			if _, err := decoder.Write([]byte(key)); err == nil {
+				key = b.String()
+				b.Reset()
+			}
+
+			// And use the potentially decoded key to map the widget.
 			rl.bindWidget(key, widget, &keymapWidgets)
 		}
 		rl.widgets[mode] = keymapWidgets
@@ -64,6 +81,13 @@ func (rl *Instance) loadKeymapWidgets() {
 }
 
 func (rl *Instance) initKeymap() {
+	switch rl.config.InputMode {
+	case Emacs:
+		rl.main = emacs
+	case Vim:
+		rl.main = viins
+	}
+
 	if rl.main == vicmd {
 		rl.viInsertMode()
 	}
@@ -97,8 +121,12 @@ func (rl *Instance) updateKeymaps() {
 // matchKeymap checks if the provided key matches a precise widget, or if only a prefix
 // is matched. When only a prefix is matched, the shell keeps reading for another key.
 func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback, prefix bool) {
-	km := rl.widgets[kmode]
-	filtered := findBindkeyWidget(key, km)
+	if kmode == "" {
+		return nil, false
+	}
+
+	matchWidgets := rl.widgets[kmode]
+	filtered := findBindkeyWidget(key, matchWidgets)
 
 	// We either have no match, so we reset the keys.
 	if len(filtered) == 0 {
@@ -107,8 +135,9 @@ func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback,
 	}
 
 	// The escape key is a special key that bypass the entire process.
-	if len(key) == 1 && key[0] == charEscape {
-		cb = km[key]
+	// TODO: HERE IS WHERE WE SHOULD CHECK FOR SPECIAL ESCAPES.
+	if len(key) == 1 && key[0] == charEscape && rl.main != emacs {
+		cb = matchWidgets[key]
 		rl.keys = ""
 		return
 	}

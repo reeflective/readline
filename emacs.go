@@ -17,25 +17,33 @@ func (rl *Instance) initStandardLineWidgets() lineWidgets {
 // standardWidgets don't need access to the input key.
 func (rl *Instance) initStandardWidgets() baseWidgets {
 	widgets := map[string]func(){
-		"clear-screen":         rl.clearScreen,
-		"beginning-of-line":    rl.beginningOfLine,
-		"end-of-line":          rl.endOfLine,
-		"kill-line":            rl.killLine,
-		"kill-whole-line":      rl.killWholeLine,
-		"backward-kill-word":   rl.backwardKillWord,
-		"kill-word":            rl.killWord,
-		"yank":                 rl.yank,
-		"backward-delete-char": rl.backwardDeleteChar,
-		"delete-char":          rl.deleteChar,
-		"forward-char":         rl.forwardChar,
-		"backward-char":        rl.backwardChar,
-		"forward-word":         rl.forwardWord,
-		"backward-word":        rl.backwardWord,
-		"undo":                 rl.undo,
-		"down-line-or-history": rl.historyNext,
-		"up-line-or-history":   rl.historyPrev,
-		"down-history":         rl.downHistory,
-		"up-history":           rl.upHistory,
+		"clear-screen":                   rl.clearScreen,
+		"beginning-of-line":              rl.beginningOfLine,
+		"end-of-line":                    rl.endOfLine,
+		"kill-line":                      rl.killLine,
+		"kill-whole-line":                rl.killWholeLine,
+		"backward-kill-word":             rl.backwardKillWord,
+		"kill-word":                      rl.killWord,
+		"yank":                           rl.yank,
+		"backward-delete-char":           rl.backwardDeleteChar,
+		"delete-char":                    rl.deleteChar,
+		"forward-char":                   rl.forwardChar,
+		"backward-char":                  rl.backwardChar,
+		"forward-word":                   rl.forwardWord,
+		"backward-word":                  rl.backwardWord,
+		"undo":                           rl.undo,
+		"down-line-or-history":           rl.historyNext,
+		"up-line-or-history":             rl.historyPrev,
+		"down-history":                   rl.downHistory,
+		"up-history":                     rl.upHistory,
+		"infer-next-history":             rl.inferNextHistory,
+		"overwrite-mode":                 rl.overwriteMode,
+		"set-mark-command":               rl.setMarkCommand,
+		"quote-region":                   rl.quoteRegion,
+		"quote-line":                     rl.quoteLine,
+		"neg-argument":                   rl.negArgument,
+		"beginning-of-buffer-or-history": rl.beginningOfBufferOrHistory,
+		"end-of-buffer-or-history":       rl.endOfBufferOrHistory,
 	}
 
 	return widgets
@@ -181,9 +189,6 @@ func (rl *Instance) beginningOfLine() {
 
 	rl.viUndoSkipAppend = true
 	rl.pos = 0
-	rl.updateHelpers()
-
-	return
 }
 
 func (rl *Instance) endOfLine() {
@@ -196,9 +201,6 @@ func (rl *Instance) endOfLine() {
 	}
 
 	rl.viUndoSkipAppend = true
-	rl.updateHelpers()
-
-	return
 }
 
 func (rl *Instance) killLine() {
@@ -206,8 +208,7 @@ func (rl *Instance) killLine() {
 	rl.line = rl.line[:rl.pos]
 	rl.resetHelpers()
 	rl.updateHelpers()
-	rl.viIteration = ""
-	return
+	rl.addIteration("")
 }
 
 func (rl *Instance) killWholeLine() {
@@ -215,26 +216,8 @@ func (rl *Instance) killWholeLine() {
 		return
 	}
 
-	// We need to go back to prompt
-	moveCursorUp(rl.posY)
-	moveCursorBackwards(GetTermWidth())
-	moveCursorForwards(rl.Prompt.inputAt)
-
-	// Clear everything after & below the cursor
-	print(seqClearScreenBelow)
-
-	// Real input line
-	rl.line = []rune{}
-	rl.lineComp = []rune{}
-	rl.pos = 0
-	rl.posX = 0
-	rl.fullX = 0
-	rl.posY = 0
-	rl.fullY = 0
-
-	// Completions are also reset
-	rl.clearVirtualComp()
-	return
+	rl.saveBufToRegister(rl.line)
+	rl.clearLine()
 }
 
 func (rl *Instance) backwardKillWord() {
@@ -252,8 +235,7 @@ func (rl *Instance) backwardKillWord() {
 func (rl *Instance) killWord() {
 	rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpE, 1)
 	rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
-
-	return
+	// WARN: HERE THE +1 SHOULD BE CHECKED, because panic when at the end of line.
 }
 
 func (rl *Instance) yank() {
@@ -373,9 +355,9 @@ func (rl *Instance) upHistory() {
 func (rl *Instance) digitArgument(r []rune) (read, ret bool, val string, err error) {
 	if len(r) > 1 {
 		// The first rune is the alt modifier.
-		rl.viIteration += string(r[1:])
+		rl.addIteration(string(r[1:]))
 	} else {
-		rl.viIteration += string(r)
+		rl.addIteration(string(r))
 	}
 
 	rl.viUndoSkipAppend = true
@@ -395,6 +377,321 @@ func (rl *Instance) historyPrev() {
 	rl.viUndoSkipAppend = true
 	rl.mainHist = true
 	rl.walkHistory(1)
-
-	return
 }
+
+func (rl *Instance) killBuffer() {
+	if len(rl.line) == 0 {
+		return
+	}
+	rl.saveBufToRegister(rl.line)
+	rl.clearLine()
+}
+
+func (rl *Instance) inferNextHistory() {
+	matchIndex := 0
+	histSuggested := make([]rune, 0)
+	rl.mainHist = true
+
+	// Work with correct history source (depends on CtrlR/CtrlE)
+	var history History
+	if !rl.mainHist {
+		history = rl.altHistory
+	} else {
+		history = rl.mainHistory
+	}
+
+	// Nothing happens if the history is nil or empty.
+	if history == nil || history.Len() == 0 {
+		return
+	}
+
+	for i := 1; i <= history.Len(); i++ {
+		histline, err := history.GetLine(history.Len() - i)
+		if err != nil {
+			return
+		}
+
+		// If too short
+		if len(histline) <= len(rl.line) {
+			continue
+		}
+
+		// Or if not fully matching
+		match := false
+		for i, char := range rl.line {
+			if byte(char) == histline[i] {
+				match = true
+			} else {
+				match = false
+				break
+			}
+		}
+
+		// If the line fully matches, we have our suggestion
+		if match {
+			matchIndex = history.Len() - i
+			histSuggested = append(histSuggested, []rune(histline)...)
+			break
+		}
+	}
+
+	// If we have no match we return, or check for the next line.
+	if (len(histSuggested) == 0 && matchIndex <= 0) || history.Len() <= matchIndex+1 {
+		return
+	}
+
+	// Get the next history line
+	nextLine, err := history.GetLine(matchIndex + 1)
+	if err != nil {
+		return
+	}
+
+	rl.line = []rune(nextLine)
+	rl.pos = len(nextLine)
+	// TODO: How to adjust conditionally on keymap ? Many widgets need this.
+	// if rl.pos > 0 {
+	// 	rl.pos--
+	// }
+}
+
+// TODO: Find a way to catch on other keymaps ? How and when to exit the mode if not with escape ?
+func (rl *Instance) overwriteMode() {
+	// We store the current line as an undo item first, but will not
+	// store any intermediate changes (in the loop below) as undo items.
+	rl.undoAppendHistory()
+	rl.viUndoSkipAppend = true
+
+	// The replace mode is quite special in that it does escape back
+	// to the main readline loop: it keeps reading characters and inserts
+	// them as long as the escape key is not pressed.
+	for {
+		// Read a new key
+		keys, esc := rl.readArgumentKey()
+		if esc {
+			break
+		}
+		key := rune(keys[0])
+
+		// If the key is a backspace, we go back one character
+		if key == charBackspace || key == charBackspace2 {
+			rl.backwardDeleteChar()
+		} else {
+			// If the cursor is at the end of the line,
+			// we insert the character instead of replacing.
+			if len(rl.line)-1 < rl.pos {
+				rl.line = append(rl.line, key)
+			} else {
+				rl.line[rl.pos] = key
+			}
+
+			rl.pos++
+		}
+
+		// Update the line
+		rl.updateHelpers()
+	}
+}
+
+func (rl *Instance) setMarkCommand() {
+	vii := rl.getViIterations()
+	switch {
+	case vii < 0:
+		rl.mark = -1
+		rl.activeRegion = false
+		rl.visualLine = false
+	default:
+		rl.mark = rl.pos
+		rl.activeRegion = true
+	}
+}
+
+func (rl *Instance) quoteRegion() {
+	bpos, epos, cpos := rl.getSelection()
+	selection := string(rl.line[bpos:epos])
+	begin := string(rl.line[:bpos])
+	end := string(rl.line[epos:])
+	quoted := "'" + selection + "'"
+
+	newLine := append([]rune(begin), []rune(quoted)...)
+	newLine = append(newLine, []rune(end)...)
+	rl.line = newLine
+	rl.pos = cpos + 1
+
+	if rl.activeRegion {
+		rl.activeRegion = false
+		rl.mark = -1
+	}
+}
+
+func (rl *Instance) quoteLine() {
+	newLine := make([]rune, 0)
+	newLine = append(newLine, '\'')
+
+	for _, r := range rl.line {
+		if r == '\n' {
+			break
+		}
+		if r == '\'' {
+			newLine = append(newLine, []rune("\\'")...)
+		} else {
+			newLine = append(newLine, r)
+		}
+	}
+
+	newLine = append(newLine, '\'')
+
+	rl.line = newLine
+}
+
+func (rl *Instance) negArgument() {
+	rl.negativeArg = true
+}
+
+func (rl *Instance) beginningOfBufferOrHistory() {
+	if rl.pos == 0 {
+		var history History
+		rl.mainHist = true
+		if !rl.mainHist {
+			history = rl.altHistory
+		} else {
+			history = rl.mainHistory
+		}
+
+		if history == nil {
+			return
+		}
+
+		new, err := history.GetLine(0)
+		if err != nil {
+			rl.resetHelpers()
+			print(rl.Prompt.primary)
+			return
+		}
+
+		rl.clearLine()
+		rl.line = []rune(new)
+		rl.pos = len(rl.line)
+		if rl.pos > 0 {
+			rl.pos--
+		}
+
+		return
+	}
+
+	rl.beginningOfLine()
+}
+
+func (rl *Instance) endOfBufferOrHistory() {
+	if rl.pos == len(rl.line) {
+		var history History
+		rl.mainHist = true
+		if !rl.mainHist {
+			history = rl.altHistory
+		} else {
+			history = rl.mainHistory
+		}
+
+		if history == nil {
+			return
+		}
+
+		new, err := history.GetLine(history.Len() - 1)
+		if err != nil {
+			rl.resetHelpers()
+			print(rl.Prompt.primary)
+			return
+		}
+
+		rl.clearLine()
+		rl.line = []rune(new)
+		rl.pos = len(rl.line)
+		if rl.pos > 0 {
+			rl.pos--
+		}
+		return
+	}
+
+	rl.endOfLine()
+}
+
+// 	"^[C": "capitalize-word",
+func (rl *Instance) capitalizeWord() {
+}
+
+// 	"^[G": "get-line",
+func (rl *Instance) getLine() {
+}
+
+// 	"^[H": "run-help",
+func (rl *Instance) runHelp() {
+}
+
+// 	"^[L": "down-case-word",
+func (rl *Instance) downCaseWord() {
+}
+
+// 	"^[N": "history-search-forward",
+func (rl *Instance) historySearchForward() {
+}
+
+// 	"^[P": "history-search-backward",
+func (rl *Instance) historySearchSackward() {
+}
+
+// 	"^[Q": "push-line",
+func (rl *Instance) pushLine() {
+}
+
+// 	"^[T": "transpose-words",
+func (rl *Instance) transposeWords() {
+}
+
+// 	"^[U": "up-case-word",
+func (rl *Instance) upcaseWord() {
+}
+
+// 	"^[W": "copy-region-as-kill",
+func (rl *Instance) copyRegionAsKill() {
+}
+
+// 	"^[m":     "copy-prev-shell-word",
+func (rl *Instance) copyPrevShellWord() {
+}
+
+// 	"^[w":     "kill-region",
+func (rl *Instance) killRegion() {
+}
+
+// 	"^[x":     "execute-named-cmd",
+func (rl *Instance) executeNamedCmd() {
+}
+
+// 	"^[y":     "yank-pop",
+func (rl *Instance) yankPop() {
+}
+
+// 	"^[z":     "execute-last-named-cmd",
+func (rl *Instance) executeLastNamedCmd() {
+}
+
+// 	"^[|":     "vi-goto-column",
+func (rl *Instance) viGotoColumn() {
+}
+
+// "^[ ":  "expand-history",
+// "^[!":  "expand-history",
+func (rl *Instance) expandHistory() {
+}
+
+// "^[$":  "spell-word",
+// func (rl *Instance) spellWord() {
+// }
+
+// "^[.":  "insert-last-word",
+// func (rl *Instance) insertLastWord() {
+// }
+//
+
+// 	"^[A": "accept-and-hold",
+// func (rl *Instance) acceptAndHold() {
+// }

@@ -140,10 +140,10 @@ func (rl *Instance) walkHistory(i int) {
 	case rl.histPos > history.Len():
 		// The history is greater than the length of history: maintain
 		// it at the last index, to keep the same line in the buffer.
-		rl.histPos--
+		rl.histPos = history.Len()
 	case rl.histPos < 0:
 		// We can never go lower than the last history line, which is our current line.
-		rl.histPos++
+		rl.histPos = 0
 	case rl.histPos == 0:
 		// The 0 index is our current line
 		rl.line = []rune(rl.lineBuf)

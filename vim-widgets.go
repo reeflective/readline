@@ -58,7 +58,7 @@ func (rl *Instance) initViWidgets() baseWidgets {
 func (rl *Instance) viInsertMode() {
 	rl.main = viins
 
-	rl.viIteration = ""
+	rl.addIteration("")
 	rl.mark = -1
 	rl.activeRegion = false
 	rl.visualLine = false
@@ -69,7 +69,7 @@ func (rl *Instance) viInsertMode() {
 }
 
 func (rl *Instance) viCommandMode() {
-	rl.viIteration = ""
+	rl.addIteration("")
 	rl.viUndoSkipAppend = true
 	rl.mark = -1
 	rl.activeRegion = false
@@ -92,7 +92,7 @@ func (rl *Instance) viVisualMode() {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
 
-	rl.viIteration = ""
+	rl.addIteration("")
 	rl.viUndoSkipAppend = true
 
 	rl.enterVisualMode()
@@ -103,15 +103,13 @@ func (rl *Instance) viVisualMode() {
 	}
 
 	rl.updateCursor()
-
-	return
 }
 
 func (rl *Instance) viVisualLineMode() {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
 
-	rl.viIteration = ""
+	rl.addIteration("")
 	rl.viUndoSkipAppend = true
 
 	rl.enterVisualLineMode()
@@ -122,14 +120,12 @@ func (rl *Instance) viVisualLineMode() {
 	}
 
 	rl.updateCursor()
-
-	return
 }
 
 func (rl *Instance) viInsertBol() {
 	rl.main = viins
 
-	rl.viIteration = ""
+	rl.addIteration("")
 	rl.viUndoSkipAppend = true
 
 	rl.pos = 0
@@ -182,7 +178,7 @@ func (rl *Instance) viKillEol() {
 	if len(rl.line) > 0 {
 		rl.pos--
 	}
-	rl.viIteration = ""
+	rl.addIteration("")
 	rl.resetHelpers()
 	rl.updateHelpers()
 }
@@ -190,7 +186,7 @@ func (rl *Instance) viKillEol() {
 func (rl *Instance) viChangeEol() {
 	rl.saveBufToRegister(rl.line[rl.pos-1:])
 	rl.line = rl.line[:rl.pos]
-	rl.viIteration = ""
+	rl.addIteration("")
 
 	rl.resetHelpers()
 
@@ -689,7 +685,7 @@ func (rl *Instance) viDigitOrBeginningOfLine() {
 	// If the last command was a digit argument,
 	// then our Vi iterations' length is not 0
 	if len(rl.viIteration) > 0 {
-		rl.viIteration += string("0")
+		rl.addIteration("0")
 		return
 	}
 

@@ -4,6 +4,10 @@ github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/inconshreveable/mousetrap v1.0.1/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jessevdk/go-flags v1.5.0 h1:1jKYvbxEjfUl0fmqTCOfonvskHHXMjBySTLW4y9LFvc=
 github.com/jessevdk/go-flags v1.5.0/go.mod h1:Fw0T6WPc1dYxT4mKEZRfG5kJhaTDP9pj1c2EWnYs/m4=
+github.com/reiver/go-caret v0.0.0-20190726191135-0ad7aa63f55f h1:2+kGf8AEkUeBZ260zKGT8wAU9z7ga5Um0+iOk52E6+s=
+github.com/reiver/go-caret v0.0.0-20190726191135-0ad7aa63f55f/go.mod h1:lWTqB0nLZJiT5rkle/Pl/N2Cq5D6M29o4dTnulNmobI=
+github.com/reiver/go-utf8s v2.0.1+incompatible h1:SvgIaGDUg7cVhQfjJZ1UkKlvz0N4POWn0mub8FxlbYI=
+github.com/reiver/go-utf8s v2.0.1+incompatible/go.mod h1:icyCK1U+2V7fJJPWTQfWfoE3hVo65EA1dut5f+9Zwjc=
 github.com/rsteube/carapace v0.28.1 h1:fkuNMnyYBAcXBpkeOQH3cNIyFNUVzOpyLZBTpOLdSwk=
 github.com/rsteube/carapace v0.28.1/go.mod h1:/ALYHicIpak6TjQnKl7HupclqJydy2LQb6CkawYBxDo=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=

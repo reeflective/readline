@@ -2,35 +2,33 @@ package readline
 
 // emacsKeys are the default keymaps in Emacs mode
 var emacsKeys = keymap{
-	string(charCtrlM): "accept-line",
-	string(charCtrlA): "beginning-of-line",
-	string(charCtrlB): "backward-char",
-	// TODO: Here EOF (CtrlD) deletes a char.
-	string(charCtrlE): "end-of-line",
-	string(charCtrlF): "forward-char",
-	string(charCtrlG): "send-break", // DON'T KNOW WHAT THAT IS
-	string(charCtrlK): "kill-line",  // Similar to forward-kill-line
-	string(charCtrlL): "clear-screen",
-	string(charCtrlN): "down-line-or-history",
-	string(charCtrlP): "up-line-or-history",
-	string(charCtrlO): "accept-line-and-down-history",
-	// TODO: CtrlR CtrlS incremental-search-history.
-	string(charCtrlT): "transpose-chars",
-	string(charCtrlU): "kill-whole-line",
-	string(charCtrlV): "quoted-insert", // WHAT IS THIS ?
-	string(charCtrlY): "yank",
-
-	// Special combinations, how to match them ?
+	"^M":   "accept-line",
+	"^A":   "beginning-of-line",
+	"^B":   "backward-char",
+	"^E":   "end-of-line",
+	"^F":   "forward-char",
+	"^G":   "send-break",
+	"^K":   "kill-line",
+	"^L":   "clear-screen",
+	"^N":   "down-line-or-history",
+	"^P":   "up-line-or-history",
+	"^O":   "accept-line-and-down-history",
+	"^T":   "transpose-chars",
+	"^U":   "kill-whole-line",
+	"^V":   "quoted-insert", // TODO WHAT IS THIS ?
+	"^W":   "backward-kill-word",
+	"^Y":   "yank",
 	"^X^B": "vi-match-bracket",
 	"^X^E": "vi-edit-command-line",
-	"^X^K": "kill-buffer", // IS THAT KILL REGISTER ?
+	"^X^K": "kill-buffer",
 	"^X^N": "infer-next-history",
-	"^X^O": "overwrite-mode", // Probably can reuse Vim replace mode here.
+	"^X^O": "overwrite-mode",
 	"^X^U": "undo",
 	"^X^V": "vi-cmd-mode",
 	"^Xu":  "undo",
 
 	// TODO: ^Xr ^Xs incremental-search-history. same as CtrlR above.
+	// TODO: CtrlR CtrlS incremental-search-history.
 
 	"^[^D":   "list-choices",
 	"^[^G":   "send-break",
@@ -45,15 +43,16 @@ var emacsKeys = keymap{
 	"^[^[[B": "menu-select",
 	"^[^_":   "copy-prev-word",
 
+	"^@": "set-mark-command",
 	// "^[ ":  "expand-history",
 	// "^[!":  "expand-history",
-	// "^[\"": "quote-region",
+	`^["`: "quote-region",
+	"^['": "quote-line",
+	"^[-": "neg-argument",
 	// "^[$":  "spell-word",
-	// "^['":  "quote-line",
-	// "^[-":  "neg-argument",
 	// "^[.":  "insert-last-word",
-	// "^[<":  "beginning-of-buffer-or-history",
-	// "^[>":  "end-of-buffer-or-history",
+	"^[<": "beginning-of-buffer-or-history",
+	"^[>": "end-of-buffer-or-history",
 
 	"^[A": "accept-and-hold",
 	"^[B": "backward-word",

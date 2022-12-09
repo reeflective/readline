@@ -56,19 +56,6 @@ func (rl *Instance) readArgumentKey() (key string, ret bool) {
 	return
 }
 
-// func (rl *Instance) errorCtrlC() (done, ret bool) {
-// 	if rl.modeTabCompletion {
-// 		rl.resetVirtualComp(true)
-// 		rl.resetHelpers()
-// 		rl.renderHelpers()
-//
-// 		return true, false
-// 	}
-// 	rl.clearHelpers()
-//
-// 	return false, true
-// }
-//
 // // Escape key generally aborts most completion/prompt helpers.
 // func inputEsc(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
 // 	// If we were waiting for completion confirm, abort

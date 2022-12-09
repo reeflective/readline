@@ -32,6 +32,7 @@ type Instance struct {
 	// Vim Operating Parameters -------------------------------------------------------------------
 
 	viIteration      string
+	negativeArg      bool
 	viUndoHistory    []undoItem
 	viUndoSkipAppend bool
 	visualLine       bool       // Is the visual mode VISUAL_LINE
