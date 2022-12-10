@@ -25,7 +25,7 @@ var viinsKeys = keymap{
 	"^[[6~":   "menu-select",    // TODO
 	"^[[C":    "vi-forward-char",
 	"^[[D":    "vi-backward-char",
-	"^[[3;5~": "kill-word", // TODO
+	"^[[3;5~": "kill-word",
 	"^[[1;5C": "forward-word",
 	"^[[1;5D": "backward-word",
 	"^[[A":    "up-line-or-search",   // TODO
@@ -56,7 +56,7 @@ var vicmdKeys = keymap{
 
 	// Vim
 	"^A":   "switch-keyword", // SPECIAL HANDLER TODO
-	"^R":   "redo",           // TODO
+	"^R":   "redo",
 	"^?":   "backward-delete-char",
 	"^[[C": "vi-forward-char",
 	"^[[D": "vi-backward-char",
@@ -69,7 +69,7 @@ var vicmdKeys = keymap{
 	"A":    "vi-add-eol",
 	"b":    "vi-backward-word",
 	"B":    "vi-backward-blank-word",
-	"c":    "vi-change-surround", // SPECIAL HANDLER  vi-change-surround-text-object
+	"c":    "vi-change", // SPECIAL HANDLER  vi-change-surround-text-object
 	"C":    "vi-change-eol",
 	"d":    "vi-delete",
 	"D":    "vi-kill-eol",
@@ -97,8 +97,9 @@ var vicmdKeys = keymap{
 	"X":    "vi-backward-delete-char",
 	"y":    "vi-yank",
 	"Y":    "vi-yank-whole-line",
-	"|":    "vi-goto-column", // TODO
-	"~":    "vi-swap-case",   // TODO
+	"|":    "vi-goto-column",
+	"~":    "vi-swap-case",
+	"g~":   "vi-oper-swap-case",
 }
 
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode

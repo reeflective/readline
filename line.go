@@ -151,6 +151,7 @@ func (rl *Instance) printLine() {
 
 // highlightVisualLine adds highlighting of the region if we are in a visual mode.
 func (rl *Instance) highlightVisualLine(line []rune) string {
+	// TODO: Rewrite this
 	if rl.local != visual && rl.mark == -1 && !rl.activeRegion {
 		return string(line)
 	}

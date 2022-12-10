@@ -137,25 +137,3 @@ func (rl *Instance) resetSelection() {
 	rl.activeRegion = false
 	rl.mark = -1
 }
-
-func (rl *Instance) viChange(b []byte, i int, r []rune) {
-	// key := r[0]
-	// We always try to read further keys for a matching widget:
-	// In some modes we will get a different one, while in others (like visual)
-	// we will just fallback on this current widget (vi-delete), which will be executed
-	// as is, since we won't get any remaining key.
-
-	// If we got a remaining key with the widget, we
-	// first check for special keys such as Escape.
-
-	// If the widget we found is also returned with some remaining keys,
-	// (such as Vi iterations, range keys, etc) we must keep reading them
-	// with a range handler before coming back here.
-
-	// All handlers have caught and ran, and we are now ready
-	// to perform yanking itself, either on a visual range or not.
-
-	// Reset the repeat commands, instead of doing it in the range handler function
-
-	// And reset the cursor position if not nil (moved)
-}

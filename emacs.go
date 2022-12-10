@@ -55,6 +55,8 @@ func (rl *Instance) initStandardWidgets() baseWidgets {
 		"copy-region-as-kill":            rl.copyRegionAsKill,
 		"copy-prev-word":                 rl.copyPrevWord,
 		"kill-region":                    rl.killRegion,
+		"redo":                           rl.redo,
+		"switch-keyword":                 rl.switchKeyword,
 	}
 
 	return widgets
@@ -179,6 +181,8 @@ func (rl *Instance) acceptLine(_ []rune) (read, ret bool, val string, err error)
 }
 
 func (rl *Instance) clearScreen() {
+	rl.viUndoSkipAppend = true
+
 	print(seqClearScreen)
 	print(seqCursorTopLeft)
 
@@ -266,6 +270,10 @@ func (rl *Instance) backwardDeleteChar() {
 	for i := 1; i <= vii; i++ {
 		rl.deleteX()
 	}
+
+	if rl.main == viins || rl.main == emacs {
+		rl.viUndoSkipAppend = true
+	}
 }
 
 func (rl *Instance) deleteChar() {
@@ -320,12 +328,6 @@ func (rl *Instance) backwardWord() {
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	}
-}
-
-// TODO: Probably should be including undoLast() code without Vim stuff ?
-func (rl *Instance) undo() {
-	rl.undoLast()
-	rl.viUndoSkipAppend = true
 }
 
 func (rl *Instance) downHistory() {
@@ -755,6 +757,9 @@ func (rl *Instance) copyPrevShellWord() {
 func (rl *Instance) killRegion() {
 	rl.deleteSelection()
 	rl.resetSelection()
+}
+
+func (rl *Instance) switchKeyword() {
 }
 
 // "^[ ":  "expand-history",

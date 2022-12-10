@@ -34,6 +34,8 @@ type Instance struct {
 	viIteration      string
 	negativeArg      bool
 	viUndoHistory    []undoItem
+	viUndoPos        int
+	viIsUndoing      bool
 	viUndoSkipAppend bool
 	visualLine       bool       // Is the visual mode VISUAL_LINE
 	mark             int        // Visual selection mark. -1 when unactive
