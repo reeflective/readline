@@ -49,8 +49,6 @@ func (rl *Instance) viDeleteByAdjust(adjust int) {
 	if backOne {
 		rl.pos--
 	}
-
-	rl.updateHelpers()
 }
 
 func (rl *Instance) vimDeleteToken(r rune) bool {

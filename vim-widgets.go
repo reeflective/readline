@@ -52,9 +52,12 @@ func (rl *Instance) initViWidgets() baseWidgets {
 		"select-in-word":                rl.viSelectInWord,
 		"vi-digit-or-beginning-of-line": rl.viDigitOrBeginningOfLine,
 		"vi-goto-column":                rl.viGotoColumn,
-		"vi-change":                     rl.viChange,
 		"vi-swap-case":                  rl.viSwapCase,
 		"vi-oper-swap-case":             rl.viOperSwapCase,
+		"vi-first-non-blank":            rl.viFirstNonBlank,
+		"vi-substitute":                 rl.viSubstitute,
+		"vi-change":                     rl.viChange,
+		"vi-add-surround":               rl.viAddSurround,
 		"vi-change-surround":            rl.viChangeSurround,
 		"vi-select-surround":            rl.viSelectSurround,
 	}
@@ -63,6 +66,7 @@ func (rl *Instance) initViWidgets() baseWidgets {
 }
 
 func (rl *Instance) viInsertMode() {
+	rl.local = ""
 	rl.main = viins
 
 	rl.addIteration("")
@@ -71,8 +75,6 @@ func (rl *Instance) viInsertMode() {
 	rl.visualLine = false
 
 	rl.updateCursor()
-
-	rl.refreshVimStatus()
 }
 
 func (rl *Instance) viCommandMode() {
@@ -821,28 +823,6 @@ func (rl *Instance) viGotoColumn() {
 	rl.pos = column
 }
 
-func (rl *Instance) viChange() {
-	// key := r[0]
-	// We always try to read further keys for a matching widget:
-	// In some modes we will get a different one, while in others (like visual)
-	// we will just fallback on this current widget (vi-delete), which will be executed
-	// as is, since we won't get any remaining key.
-
-	// If we got a remaining key with the widget, we
-	// first check for special keys such as Escape.
-
-	// If the widget we found is also returned with some remaining keys,
-	// (such as Vi iterations, range keys, etc) we must keep reading them
-	// with a range handler before coming back here.
-
-	// All handlers have caught and ran, and we are now ready
-	// to perform yanking itself, either on a visual range or not.
-
-	// Reset the repeat commands, instead of doing it in the range handler function
-
-	// And reset the cursor position if not nil (moved)
-}
-
 func (rl *Instance) viSwapCase() {
 	if rl.local == visual {
 		posInit := rl.pos
@@ -915,6 +895,84 @@ func (rl *Instance) viOperSwapCase() {
 	// rl.enterVisualMode()
 	rl.mark = rl.pos
 	rl.activeRegion = true
+}
+
+func (rl *Instance) viFirstNonBlank() {
+	for i := range rl.line {
+		if rl.line[i] == ' ' {
+			rl.pos = i
+			break
+		}
+	}
+}
+
+func (rl *Instance) viAddSurround() {
+	rl.enterVioppMode("")
+	rl.updateCursor()
+
+	key, esc := rl.readArgumentKey()
+	if esc {
+		rl.exitVioppMode()
+		rl.updateCursor()
+		return
+	}
+
+	rl.exitVioppMode()
+	rl.updateCursor()
+
+	// Surround the selection
+	bpos, epos, _ := rl.getSelection()
+	selection := string(rl.line[bpos:epos])
+	selection = key + selection + key
+	rl.resetSelection()
+
+	// Assemble
+	begin := string(rl.line[:bpos])
+	end := string(rl.line[epos:])
+	newLine := append([]rune(begin), []rune(selection)...)
+	newLine = append(newLine, []rune(end)...)
+	rl.line = newLine
+}
+
+func (rl *Instance) viSubstitute() {
+	if rl.local == visual {
+		rl.deleteSelection()
+		rl.resetSelection()
+		rl.viInsertMode()
+
+		return
+	}
+
+	vii := rl.getViIterations()
+	rl.saveToRegister(vii)
+
+	for i := 1; i <= vii; i++ {
+		rl.deletex()
+	}
+
+	rl.viInsertMode()
+}
+
+func (rl *Instance) viChange() {
+	// key := r[0]
+	// We always try to read further keys for a matching widget:
+	// In some modes we will get a different one, while in others (like visual)
+	// we will just fallback on this current widget (vi-delete), which will be executed
+	// as is, since we won't get any remaining key.
+
+	// If we got a remaining key with the widget, we
+	// first check for special keys such as Escape.
+
+	// If the widget we found is also returned with some remaining keys,
+	// (such as Vi iterations, range keys, etc) we must keep reading them
+	// with a range handler before coming back here.
+
+	// All handlers have caught and ran, and we are now ready
+	// to perform yanking itself, either on a visual range or not.
+
+	// Reset the repeat commands, instead of doing it in the range handler function
+
+	// And reset the cursor position if not nil (moved)
 }
 
 func (rl *Instance) viChangeSurround() {

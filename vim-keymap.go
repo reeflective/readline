@@ -88,6 +88,7 @@ var vicmdKeys = keymap{
 	"R":    "vi-replace",
 	"F":    "vi-find-prev-char",
 	"T":    "vi-find-prev-char-skip",
+	"s":    "vi-substitute",
 	"u":    "undo",
 	"v":    "visual-mode",
 	"V":    "visual-line-mode",
@@ -124,7 +125,8 @@ var visualKeys = keymap{
 	"iW": "select-in-blank-word",
 	"ia": "select-in-shell-word",
 	"iw": "select-in-word",
-	"S":  "vi-change-surround", // SPECIAL HANDLER vi-change-surround (no text object)
+	"s":  "vi-substitute",
+	"S":  "vi-add-surround",
 	"a":  "vi-select-surround", // SPECIAL HANDLER
 	"c":  "vi-change",          // SPECIAL HANDLER ?
 	"d":  "vi-delete",
