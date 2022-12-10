@@ -142,7 +142,7 @@ func (rl *Instance) runWidget(name string, keys []rune) (ret bool, val string, e
 
 	// We matched a single widget, so reset
 	// the current key as stored by the shell.
-	rl.keys = ""
+	defer func() { rl.keys = "" }()
 
 	// Execute the widget
 	read, ret, val, err := widget(keys)

@@ -56,6 +56,7 @@ var vicmdKeys = keymap{
 
 	// Vim
 	"^A":   "switch-keyword", // SPECIAL HANDLER TODO
+	"^X":   "switch-keyword",
 	"^R":   "redo",
 	"^?":   "backward-delete-char",
 	"^[[C": "vi-forward-char",
@@ -137,7 +138,7 @@ var visualKeys = keymap{
 	"v":  "vi-edit-command-line",
 	"x":  "vi-delete",
 	"y":  "vi-yank",
-	"~":  "vi-swap-case", // Need to be a separate widget from ~ in cmd mode ?
+	"~":  "vi-swap-case",
 }
 
 var vicmdSpecialKeymaps = keymap{

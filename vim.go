@@ -1,5 +1,9 @@
 package readline
 
+import (
+	"regexp"
+)
+
 //
 // Vim Modes ------------------------------------------------------ //
 //
@@ -92,6 +96,38 @@ func (rl *Instance) getSelection() (bpos, epos, cpos int) {
 	return
 }
 
+func (rl *Instance) selectInWord(cpos int) (bpos, epos int) {
+	pattern := "[0-9a-zA-Z_]"
+	bpos, epos = cpos, cpos
+
+	if match, _ := regexp.MatchString(pattern, string(rl.line[cpos])); !match {
+		pattern = "[^0-9a-zA-Z_ ]"
+	}
+
+	// To first space found backward
+	for ; bpos >= 0; bpos-- {
+		if match, _ := regexp.MatchString(pattern, string(rl.line[bpos])); !match {
+			break
+		}
+	}
+
+	// And to first space found forward
+	for ; epos < len(rl.line); epos++ {
+		if match, _ := regexp.MatchString(pattern, string(rl.line[epos])); !match {
+			break
+		}
+	}
+
+	bpos++
+
+	// Ending position must be greater than 0
+	if epos > 0 {
+		epos--
+	}
+
+	return
+}
+
 // yankSelection copies the active selection in the active/default register.
 func (rl *Instance) yankSelection() {
 	// Get the selection.
@@ -136,4 +172,21 @@ func (rl *Instance) deleteSelection() {
 func (rl *Instance) resetSelection() {
 	rl.activeRegion = false
 	rl.mark = -1
+}
+
+func (rl *Instance) lineSlice(adjust int) (slice string) {
+	switch {
+	case rl.pos+adjust > len(rl.line):
+		slice = string(rl.line[rl.pos:])
+	case adjust < 0:
+		if rl.pos+adjust < 0 {
+			slice = string(rl.line[:rl.pos])
+		} else {
+			slice = string(rl.line[rl.pos+adjust : rl.pos])
+		}
+	default:
+		slice = string(rl.line[rl.pos : rl.pos+adjust])
+	}
+
+	return
 }

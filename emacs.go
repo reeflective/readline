@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"regexp"
 	"strings"
 )
 
@@ -759,7 +760,78 @@ func (rl *Instance) killRegion() {
 	rl.resetSelection()
 }
 
+// Cursor position cases:
+//
+// 1. Cursor on symbol:
+// 2+2   => +
+// 2-2   => -
+// 2 + 2 => +
+// 2 +2  => +2
+// 2 -2  => -2
+// 2 -a  => -a
+//
+// 2. Cursor on number or alpha:
+// 2+2   => +2
+// 2-2   => -2
+// 2 + 2 => 2
+// 2 +2  => +2
+// 2 -2  => -2
+// 2 -a  => -a
 func (rl *Instance) switchKeyword() {
+	cpos := rl.pos
+	increase := rl.keys == string(charCtrlA)
+
+	if match, _ := regexp.MatchString(`[+-][0-9]`, rl.lineSlice(2)); match {
+		// If cursor is on the `+` or `-`, we need to check if it is a
+		// number with a sign or an operator, only the number needs to
+		// forward the cursor.
+		cpos++
+	} else if match, _ := regexp.MatchString(`[+-][a-zA-Z]`, rl.lineSlice(2)); match {
+		// If cursor is on the `+` or `-`, we need to check if it is a
+		// short option, only the short option needs to forward the cursor.
+		if cpos == 0 || rl.line[rl.pos-1] == ' ' {
+			cpos++
+		}
+	}
+
+	// Select in word and get the selection positions
+	bpos, epos := rl.selectInWord(cpos)
+	epos++
+
+	// Move the cursor backward if needed/possible
+	if bpos != 0 && (rl.line[bpos-1] == '+' || rl.line[bpos-1] == '-') {
+		bpos--
+	}
+
+	// Get the selection string
+	selection := string(rl.line[bpos:epos])
+
+	// For each of the keyword handlers, run it, which returns
+	// false/none if didn't operate, then continue to next handler.
+	for _, switcher := range rl.keywordSwitchers() {
+
+		changed, word, obpos, oepos := switcher(selection, increase)
+		if !changed {
+			continue
+		}
+
+		// We are only interested in the end position after all runs
+		epos = bpos + oepos
+		bpos = bpos + obpos
+		if cpos < bpos || cpos >= epos {
+			continue
+		}
+
+		// Update the line and the cursor, and return since we have a handler that has been ran.
+		begin := string(rl.line[:bpos])
+		end := string(rl.line[epos:])
+		newLine := append([]rune(begin), []rune(word)...)
+		newLine = append(newLine, []rune(end)...)
+		rl.line = newLine
+		rl.pos = bpos + len(word) - 1
+
+		return
+	}
 }
 
 // "^[ ":  "expand-history",
