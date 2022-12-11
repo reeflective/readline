@@ -785,7 +785,10 @@ func (rl *Instance) switchKeyword() {
 		// If cursor is on the `+` or `-`, we need to check if it is a
 		// number with a sign or an operator, only the number needs to
 		// forward the cursor.
-		cpos++
+		digit, _ := regexp.Compile(`[^0-9]`)
+		if cpos == 0 || digit.MatchString(string(rl.line[cpos-1])) {
+			cpos++
+		}
 	} else if match, _ := regexp.MatchString(`[+-][a-zA-Z]`, rl.lineSlice(2)); match {
 		// If cursor is on the `+` or `-`, we need to check if it is a
 		// short option, only the short option needs to forward the cursor.

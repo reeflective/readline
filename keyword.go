@@ -228,13 +228,13 @@ func (rl *Instance) switchDecimal(word string, inc int) (done bool, new string, 
 	bpos, epos = mbegin, mend
 
 	num, _ := strconv.Atoi(match)
-	numBefore := num
+	// numBefore := num
 	num += inc
-	if num < 0 {
-		num = math.MaxInt64
-	} else if num == math.MaxInt64 {
-		num = inc - (num - numBefore)
-	}
+	// if num < 0 {
+	// 	num = math.MaxInt64
+	// } else if num == math.MaxInt64 {
+	// 	num = inc - (num - numBefore)
+	// }
 
 	new = strconv.Itoa(num)
 
