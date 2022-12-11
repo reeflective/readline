@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -251,6 +252,44 @@ func (rl *Instance) switchDecimal(word string, inc int) (done bool, new string, 
 }
 
 func (rl *Instance) switchBoolean(word string, increase bool) (done bool, new string, bpos, epos int) {
+	epos = len(word)
+
+	option, _ := regexp.Compile(`(^[+-]{0,2})`)
+	if match := option.FindString(word); match != "" {
+		indexes := option.FindStringIndex(word)
+		bpos = indexes[1]
+		word = word[bpos:]
+	}
+
+	booleans := map[string]string{
+		"true":  "false",
+		"false": "true",
+		"t":     "f",
+		"f":     "t",
+		"yes":   "no",
+		"no":    "yes",
+		"y":     "n",
+		"n":     "y",
+		"on":    "off",
+		"off":   "on",
+	}
+
+	new, done = booleans[strings.ToLower(word)]
+	if !done {
+		return
+	}
+
+	done = true
+
+	// Transform case
+	if match, _ := regexp.MatchString(`^[A-Z]+$`, word); match {
+		new = strings.ToLower(new)
+	} else if match, _ := regexp.MatchString(`^[A-Z]`, word); match {
+		letter := new[0]
+		upper := unicode.ToUpper(rune(letter))
+		new = string(upper) + new[1:]
+	}
+
 	return
 }
 
@@ -259,5 +298,40 @@ func (rl *Instance) switchWeekday(word string, increase bool) (done bool, new st
 }
 
 func (rl *Instance) switchOperator(word string, increase bool) (done bool, new string, bpos, epos int) {
+	epos = len(word)
+
+	operators := map[string]string{
+		"&&":  "||",
+		"||":  "&&",
+		"++":  "--",
+		"--":  "++",
+		"==":  "!=",
+		"!=":  "==",
+		"===": "!==",
+		"!==": "===",
+		"+":   "-",
+		"-":   "*",
+		"*":   "/",
+		"/":   "+",
+		"and": "or",
+		"or":  "and",
+	}
+
+	new, done = operators[strings.ToLower(word)]
+	if !done {
+		return
+	}
+
+	done = true
+
+	// Transform case
+	if match, _ := regexp.MatchString(`^[A-Z]+$`, word); match {
+		new = strings.ToLower(new)
+	} else if match, _ := regexp.MatchString(`^[A-Z]`, word); match {
+		letter := new[0]
+		upper := unicode.ToUpper(rune(letter))
+		new = string(upper) + new[1:]
+	}
+
 	return
 }
