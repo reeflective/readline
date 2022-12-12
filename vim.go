@@ -20,6 +20,22 @@ func (rl *Instance) enterVisualLineMode() {
 	rl.mark = 0 // start at the beginning of the line.
 }
 
+func (rl *Instance) exitVisualMode() {
+	if rl.local == visual {
+		rl.local = ""
+	}
+	rl.visualLine = false
+	rl.mark = -1
+
+	for i, reg := range rl.regions {
+		if reg.regionType == "visual" {
+			if len(rl.regions) > i {
+				rl.regions = append(rl.regions[:i], rl.regions[i+1:]...)
+			}
+		}
+	}
+}
+
 // enterVioppMode adds a widget to the list of widgets waiting for an operator/action,
 // enters the vi operator pending mode and updates the cursor.
 func (rl *Instance) enterVioppMode(widget string) {
@@ -83,6 +99,7 @@ func (rl *Instance) selection() (start, end int) {
 	return
 }
 
+// TODO: Not needed
 func (rl *Instance) getSelection() (bpos, epos, cpos int) {
 	// Get current region and save the current cursor position
 	bpos, epos = rl.selection()
@@ -163,17 +180,20 @@ func (rl *Instance) deleteSelection() {
 	rl.line = newline
 
 	// Adapt cursor position when at the end of the
+	// TODO: Same refactor pos thing
 	rl.pos = cpos
 	if rl.pos == len(newline) && len(newline) > 0 {
 		rl.pos--
 	}
 }
 
+// TODO: Not sure this is complete.
 func (rl *Instance) resetSelection() {
 	rl.activeRegion = false
 	rl.mark = -1
 }
 
+// lineSlice returns a subset of the current input line.
 func (rl *Instance) lineSlice(adjust int) (slice string) {
 	switch {
 	case rl.pos+adjust > len(rl.line):
@@ -186,6 +206,51 @@ func (rl *Instance) lineSlice(adjust int) (slice string) {
 		}
 	default:
 		slice = string(rl.line[rl.pos : rl.pos+adjust])
+	}
+
+	return
+}
+
+// searchSurround returns the index of the enclosing rune (either matching signs
+// or the rune itself) of the input line, as well as each enclosing char.
+func (rl *Instance) searchSurround(r rune) (bpos, epos int, bchar, echar rune) {
+	posInit := rl.pos
+
+	bchar, echar = rl.matchSurround(r)
+
+	bpos = rl.substrPos(bchar, false)
+	epos = rl.substrPos(echar, true)
+
+	if bpos == epos {
+		rl.pos++
+		epos = rl.substrPos(echar, true)
+		if epos == -1 {
+			rl.pos--
+			epos = rl.substrPos(echar, false)
+			if epos != -1 {
+				tmp := epos
+				epos = bpos
+				bpos = tmp
+			}
+		}
+	}
+
+	rl.pos = posInit
+
+	return
+}
+
+// substrPos gets the index pos of a char in the input line, starting
+// from cursor, either backward or forward. Returns -1 if not found.
+func (rl *Instance) substrPos(r rune, forward bool) (pos int) {
+	pos = -1
+	initPos := rl.pos
+
+	rl.findAndMoveCursor(string(r), 1, forward, false)
+
+	if rl.pos != initPos {
+		pos = rl.pos
+		rl.pos = initPos
 	}
 
 	return

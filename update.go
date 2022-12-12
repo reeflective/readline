@@ -40,6 +40,10 @@ func (rl *Instance) updateReferences() {
 	rl.posY = 0
 	rl.fullY = 0
 
+	if rl.pos < 0 {
+		rl.pos = 0
+	}
+
 	var fullLine, cPosLine int
 	if len(rl.currentComp) > 0 {
 		fullLine = len(rl.lineComp)

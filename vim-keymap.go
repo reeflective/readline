@@ -30,7 +30,7 @@ var viinsKeys = keymap{
 	"^[[1;5D": "backward-word",
 	"^[[A":    "up-line-or-search",   // TODO
 	"^[[B":    "down-line-or-select", // TODO
-	// TODO: Important; magic-space
+	// " ":       "magic-space",
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode
@@ -55,7 +55,7 @@ var vicmdKeys = keymap{
 	// History
 
 	// Vim
-	"^A":   "switch-keyword", // SPECIAL HANDLER TODO
+	"^A":   "switch-keyword",
 	"^X":   "switch-keyword",
 	"^R":   "redo",
 	"^?":   "backward-delete-char",
@@ -128,12 +128,12 @@ var visualKeys = keymap{
 	"iw": "select-in-word",
 	"s":  "vi-substitute",
 	"S":  "vi-add-surround",
-	"a":  "vi-select-surround", // SPECIAL HANDLER
-	"c":  "vi-change",          // SPECIAL HANDLER ?
+	"a":  "vi-select-surround",
+	"c":  "vi-change", // SPECIAL HANDLER ?
 	"d":  "vi-delete",
-	"i":  "vi-select-surround", // SPECIAL HANDLER
-	"j":  "down-line",          // Not sure since no multiline
-	"k":  "up-line",            // Not sure since no multiline
+	"i":  "vi-select-surround",
+	"j":  "down-line", // Not sure since no multiline
+	"k":  "up-line",   // Not sure since no multiline
 	"u":  "vi-down-case",
 	"v":  "vi-edit-command-line",
 	"x":  "vi-delete",
@@ -143,4 +143,33 @@ var visualKeys = keymap{
 
 var vicmdSpecialKeymaps = keymap{
 	`^([1-9]{1})$`: "digit-argument",
+}
+
+// changeMovements is used for some widgets that only
+// accept movement widgets as arguments (like vi-change)
+var changeMovements = map[string]string{
+	"$": "vi-end-of-line",
+	"%": "vi-match-bracket",
+	"^": "vi-first-non-blank",
+	"0": "beginning-of-line", // not caught by readkeys function.
+	"b": "vi-backward-word",
+	"B": "vi-backward-blank-word",
+	"w": "vi-forward-word",
+	"W": "vi-forward-blank-word",
+	"e": "vi-forward-word-end",
+	"E": "vi-forward-blank-word-end",
+	"f": "vi-find-next-char",
+	"F": "vi-find-prev-char",
+	"t": "vi-find-next-char-skip",
+	"T": "vi-find-prev-char-skip",
+	"g": "",
+	"h": "vi-backward-char",
+	"l": "vi-forward-char",
+	"s": "vi-change-surround",
+	"a": "vi-select-surround",
+	"i": "vi-select-surround",
+}
+
+func lolg() {
+	println("test with sentencs and quotes")
 }

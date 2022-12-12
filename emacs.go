@@ -44,6 +44,7 @@ func (rl *Instance) initStandardWidgets() baseWidgets {
 		"infer-next-history":             rl.inferNextHistory,
 		"overwrite-mode":                 rl.overwriteMode,
 		"set-mark-command":               rl.setMarkCommand,
+		"exhange-point-and-mark":         rl.exchangePointAndMark,
 		"quote-region":                   rl.quoteRegion,
 		"quote-line":                     rl.quoteLine,
 		"neg-argument":                   rl.negArgument,
@@ -837,9 +838,21 @@ func (rl *Instance) switchKeyword() {
 	}
 }
 
+func (rl *Instance) exchangePointAndMark() {
+}
+
 // "^[ ":  "expand-history",
 // "^[!":  "expand-history",
 func (rl *Instance) expandHistory() {
+}
+
+func (rl *Instance) acceptAndHold() {
+}
+
+func (rl *Instance) acceptAndInferNextHistory() {
+}
+
+func (rl *Instance) acceptAndDownHistory() {
 }
 
 // 	"^[y":     "yank-pop",

@@ -9,7 +9,7 @@ type baseWidgets map[string]func()
 
 // standardViWidgets don't need access to the input key.
 func (rl *Instance) initViWidgets() baseWidgets {
-	widgets := map[string]func(){
+	return map[string]func(){
 		"vi-insert-mode":                rl.viInsertMode,
 		"vi-cmd-mode":                   rl.viCommandMode,
 		"visual-mode":                   rl.viVisualMode,
@@ -60,29 +60,28 @@ func (rl *Instance) initViWidgets() baseWidgets {
 		"vi-add-surround":               rl.viAddSurround,
 		"vi-change-surround":            rl.viChangeSurround,
 		"vi-select-surround":            rl.viSelectSurround,
+		"vi-set-mark":                   rl.viSetMark,
 	}
-
-	return widgets
 }
 
 func (rl *Instance) viInsertMode() {
+	rl.exitVisualMode()
+
 	rl.local = ""
 	rl.main = viins
 
 	rl.addIteration("")
-	rl.mark = -1
 	rl.activeRegion = false
-	rl.visualLine = false
 
 	rl.updateCursor()
 }
 
 func (rl *Instance) viCommandMode() {
+	rl.exitVisualMode()
+
 	rl.addIteration("")
 	rl.viUndoSkipAppend = true
-	rl.mark = -1
 	rl.activeRegion = false
-	rl.visualLine = false
 
 	// Only go back if not in insert mode
 	if rl.main == viins && len(rl.line) > 0 && rl.pos > 0 {
@@ -93,8 +92,6 @@ func (rl *Instance) viCommandMode() {
 	rl.main = vicmd
 
 	rl.updateCursor()
-
-	rl.refreshVimStatus()
 }
 
 func (rl *Instance) viVisualMode() {
@@ -245,7 +242,6 @@ func (rl *Instance) viBackwardChar() {
 	}
 }
 
-// TODO: If pasting multiple lines, instead of only characters, paste below the current line.
 func (rl *Instance) viPutAfter() {
 	// paste after the cursor position
 	rl.viUndoSkipAppend = true
@@ -379,7 +375,7 @@ func (rl *Instance) viEditCommandLine() {
 	prev := rl.pos
 
 	new, err := rl.StartEditorWithBuffer(multiline, "")
-	if err != nil || len(new) == 0 || string(new) == string(multiline) {
+	if err != nil || len(new) == 0 {
 		fmt.Println(err)
 		rl.viUndoSkipAppend = true
 		return
@@ -429,7 +425,6 @@ func (rl *Instance) viForwardBlankWord() {
 	}
 }
 
-// TODO: Either redundant with deleteChar, or has to be modified somehow.
 func (rl *Instance) viDeleteChar() {
 	vii := rl.getViIterations()
 
@@ -571,7 +566,6 @@ func (rl *Instance) viSetBuffer() {
 	}
 }
 
-// TODO: only use a single rune to match against in those widgets
 func (rl *Instance) viFindNextChar() {
 	rl.enterVioppMode("")
 	rl.updateCursor()
@@ -954,30 +948,151 @@ func (rl *Instance) viSubstitute() {
 }
 
 func (rl *Instance) viChange() {
-	// key := r[0]
-	// We always try to read further keys for a matching widget:
-	// In some modes we will get a different one, while in others (like visual)
-	// we will just fallback on this current widget (vi-delete), which will be executed
-	// as is, since we won't get any remaining key.
+	// In visual mode, we have just have a selection to delete.
+	if rl.local == visual {
+		rl.deleteSelection()
+		rl.resetSelection()
+		rl.viInsertMode()
 
-	// If we got a remaining key with the widget, we
-	// first check for special keys such as Escape.
+		return
+	}
 
-	// If the widget we found is also returned with some remaining keys,
-	// (such as Vi iterations, range keys, etc) we must keep reading them
-	// with a range handler before coming back here.
+	// Otherwise, we have to read first key, which
+	// is either a navigation or selection widget.
+	rl.enterVioppMode("")
+	rl.updateCursor()
 
-	// All handlers have caught and ran, and we are now ready
-	// to perform yanking itself, either on a visual range or not.
+	// Read the argument key to use as a pattern to search
+	key, esc := rl.readArgumentKey()
+	if esc {
+		rl.exitVioppMode()
+		rl.updateCursor()
+		return
+	}
+	rl.exitVioppMode()
+	rl.updateCursor()
 
-	// Reset the repeat commands, instead of doing it in the range handler function
+	// Find the widget
+	action, found := changeMovements[key]
+	if !found {
+		return
+	}
 
-	// And reset the cursor position if not nil (moved)
+	widget := rl.getWidget(action)
+	if widget == nil {
+		return
+	}
+
+	// Update the pending keys, with an except for surround widgets.
+	rl.keys = ""
+	if action == "vi-select-surround" {
+		rl.keys = key
+	}
+
+	// Before running the widget, set the mark
+	rl.mark = rl.pos
+	rl.activeRegion = true
+
+	// Run the widget. We don't care about return values
+	widget([]rune(key))
+
+	rl.deleteSelection()
+	rl.resetSelection()
+
+	if action != "vi-change-surround" {
+		rl.viInsertMode()
+	}
 }
 
 func (rl *Instance) viChangeSurround() {
+	rl.enterVioppMode("")
+	rl.updateCursor()
+
+	defer func() {
+		rl.exitVioppMode()
+		rl.updateCursor()
+	}()
+
+	// Read a key as a rune to search for
+	key, esc := rl.readArgumentKey()
+	if esc {
+		return
+	}
+
+	char := rune(key[0])
+
+	// Find the corresponding enclosing chars
+	bpos, epos, _, _ := rl.searchSurround(char)
+	if bpos == -1 && epos == -1 {
+		return
+	}
+
+	// Add those two positions to highlighting and update.
+	rl.addRegion("surround", bpos, bpos+1, "", seqBgRed)
+	rl.addRegion("surround", epos, epos+1, "", seqBgRed)
+	rl.updateHelpers()
+	defer func() { rl.resetRegions() }()
+
+	// Now read another key.
+	key, esc = rl.readArgumentKey()
+	if esc {
+		return
+	}
+
+	rchar := rune(key[0])
+
+	// There might be a matching equivalent.
+	bchar, echar := rl.matchSurround(rchar)
+
+	rl.line[bpos] = bchar
+	rl.line[epos] = echar
 }
 
 func (rl *Instance) viSelectSurround() {
-	// When rl.insideSurround = true, we exclude the first and last char where needed.
+	var inside bool
+
+	switch rl.keys[0] {
+	case 'i':
+		inside = true
+		rl.keys = rl.keys[1:]
+	case 'a':
+		rl.keys = rl.keys[1:]
+	}
+
+	if len(rl.keys) == 0 {
+		rl.enterVioppMode("")
+		rl.updateCursor()
+
+		// Read a key as a rune to search for
+		key, esc := rl.readArgumentKey()
+		if esc {
+			rl.exitVioppMode()
+			rl.updateCursor()
+			return
+		}
+		rl.exitVioppMode()
+		rl.updateCursor()
+		rl.keys += key
+	}
+
+	char := rune(rl.keys[0])
+
+	bpos, epos, _, _ := rl.searchSurround(char)
+	if bpos == -1 && epos == -1 {
+		return
+	}
+
+	if inside {
+		bpos++
+	} else {
+		epos++
+	}
+
+	rl.mark = bpos
+	rl.pos = epos - 1
+	rl.activeRegion = true
+}
+
+func (rl *Instance) viSetMark() {
+	rl.mark = rl.pos
 }

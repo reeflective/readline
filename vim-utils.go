@@ -122,6 +122,36 @@ func (rl *Instance) viJumpBracket() (adjust int) {
 	return
 }
 
+func (rl *Instance) matchSurround(r rune) (bchar, echar rune) {
+	bchar = r
+	echar = r
+
+	switch bchar {
+	case '{':
+		echar = '}'
+	case '(':
+		echar = ')'
+	case '[':
+		echar = ']'
+	case '<':
+		echar = '>'
+	case '}':
+		bchar = '{'
+		echar = '}'
+	case ')':
+		bchar = '('
+		echar = ')'
+	case ']':
+		bchar = '['
+		echar = ']'
+	case '>':
+		bchar = '<'
+		echar = '>'
+	}
+
+	return
+}
+
 func isBracket(r rune) bool {
 	if r == '(' ||
 		r == ')' ||
@@ -134,18 +164,3 @@ func isBracket(r rune) bool {
 
 	return false
 }
-
-// // Non-standard
-// "vi-jump-previous-brace": viJumpPreviousBrace,
-// "vi-jump-next-brace":     viJumpNextBrace,
-
-// func viJumpPreviousBrace(rl *Instance) {
-// 	rl.viUndoSkipAppend = true
-// 	rl.moveCursorByAdjust(rl.viJumpPreviousBrace())
-// }
-//
-// func viJumpNextBrace(rl *Instance) {
-// 	rl.viUndoSkipAppend = true
-// 	rl.moveCursorByAdjust(rl.viJumpNextBrace())
-// }
-//

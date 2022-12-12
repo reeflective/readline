@@ -69,6 +69,7 @@ func (rl *Instance) findAndMoveCursor(key string, count int, forward, skip bool)
 	}
 
 	cursor := rl.pos
+	found := false
 
 	for {
 		// Move the cursor in the specified direction and within bounds.
@@ -86,6 +87,7 @@ func (rl *Instance) findAndMoveCursor(key string, count int, forward, skip bool)
 
 		// Check if character matches
 		if string(rl.line[cursor]) == key {
+			found = true
 			count--
 		}
 
@@ -107,8 +109,9 @@ func (rl *Instance) findAndMoveCursor(key string, count int, forward, skip bool)
 		}
 	}
 
-	// TODO: Should we return it instead of assigning it ?
-	rl.pos = cursor
+	if found {
+		rl.pos = cursor
+	}
 }
 
 func (rl *Instance) moveCursorByAdjust(adjust int) {

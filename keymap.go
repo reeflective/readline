@@ -128,10 +128,17 @@ func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback,
 	matchWidgets := rl.widgets[kmode]
 	filtered := findBindkeyWidget(key, matchWidgets)
 
-	// We either have no match, so we reset the keys.
+	// When we have absolutely no matching widget for the keys,
+	// we either return, or if we have a perfectly matching one
+	// waiting for an input, we execute it.
 	if len(filtered) == 0 {
-		rl.keys = ""
-		return nil, false
+		if rl.prefixMatchedWidget != nil {
+			cb = rl.prefixMatchedWidget
+			rl.keys = key
+		} else {
+			rl.keys = ""
+		}
+		return
 	}
 
 	// The escape key is a special key that bypass the entire process.
@@ -144,6 +151,7 @@ func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback,
 
 	// Or several matches, in which case we must read another key.
 	if len(filtered) > 1 {
+		rl.prefixMatchedWidget = matchWidgets[key]
 		return nil, true
 	}
 

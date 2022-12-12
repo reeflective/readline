@@ -25,8 +25,15 @@ type Instance struct {
 	local         keymapMode // The local keymap is used when completing menus, using Vim operators, etc.
 	specialKeymap keymap     // A keymap that is matched using regexp, (for things like digit arguments, etc.)
 
-	// The shell maintains a list of all its keymaps, so that users can modify them, or add some.
-	widgets map[keymapMode]widgets // All implementations, wrapped into EventCallbacks.
+	// Widgets implementations are wrapped into EventCallbacks at bind time, and for each
+	// of the keys in our keymap (mapping to a widget name), the corresponding wrapped widget
+	// is bound into this widget map.
+	widgets map[keymapMode]widgets
+
+	// prefixMatchedWidget is a widget that perfectly matched a given input key, but was also
+	// found along other widgets matching the key only as prefix. This is used so that when reading
+	// the next key, if no match is found, the key is used by this widget.
+	prefixMatchedWidget EventCallback
 
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
@@ -59,6 +66,9 @@ type Instance struct {
 	// SyntaxHighlight is a helper function to provide syntax highlighting.
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func([]rune) string
+
+	// Regions are some parts of the input line with special highlighting.
+	regions []region
 
 	// PasswordMask is what character to hide password entry behind.
 	// Once enabled, set to 0 (zero) to disable the mask again.

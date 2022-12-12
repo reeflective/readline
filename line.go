@@ -2,11 +2,9 @@ package readline
 
 import (
 	"strings"
-
-	"github.com/acarl005/stripansi"
 )
 
-// initLine is ran once at the beginning of an instance start.
+// initLine is ran once at the beginning of an instance readline run.
 func (rl *Instance) initLine() {
 	// Line
 	rl.line = []rune{}
@@ -18,6 +16,9 @@ func (rl *Instance) initLine() {
 	// Selection
 	rl.mark = -1
 	rl.activeRegion = false
+
+	// Highlighting
+	rl.resetRegions()
 }
 
 // When the DelayedSyntaxWorker gives us a new line, we need to check if there
@@ -124,7 +125,7 @@ func (rl *Instance) printLine() {
 		}
 
 		// Adapt if there is a visual selection active
-		highlighted = string(rl.highlightVisualLine([]rune(highlighted)))
+		highlighted = rl.highlightLine([]rune(highlighted))
 
 		// And print
 		print(highlighted)
@@ -147,45 +148,6 @@ func (rl *Instance) printLine() {
 	moveCursorUp(rl.fullY)
 	moveCursorDown(rl.posY)
 	moveCursorForwards(rl.posX)
-}
-
-// highlightVisualLine adds highlighting of the region if we are in a visual mode.
-func (rl *Instance) highlightVisualLine(line []rune) string {
-	// TODO: Rewrite this
-	if rl.local != visual && rl.mark == -1 && !rl.activeRegion {
-		return string(line)
-	}
-
-	// Compute begin and end of region
-	var start, end int
-	if rl.mark < rl.pos {
-		start = rl.mark
-		end = rl.pos
-	} else {
-		start = rl.pos
-		end = rl.mark
-	}
-
-	// Adjust if we are in visual line mode
-	if rl.local == visual && rl.visualLine {
-		end = len(line) - 1
-	}
-
-	// First strip the current line (potentially highlighted by user)
-	// from its colors sequences, to get the correct indexes.
-	stripped := []rune(stripansi.Strip(string(line)))
-
-	// Make the highlighted region
-	highlightedRegion := []rune(seqBgRed)
-	highlightedRegion = append(highlightedRegion, stripped[start:end+1]...)
-	highlightedRegion = append(highlightedRegion, []rune(seqReset)...)
-
-	// And assemble it into the entire line
-	visualLine := string(stripped[:start])
-	visualLine += string(highlightedRegion)
-	visualLine += string(stripped[end+1:])
-
-	return visualLine
 }
 
 func (rl *Instance) clearLine() {
@@ -288,7 +250,6 @@ func (rl *Instance) deletex() {
 	rl.updateHelpers()
 }
 
-// TODO: Identical to deleteBackspace/
 func (rl *Instance) deleteX() {
 	switch {
 	case len(rl.line) == 0:
@@ -314,9 +275,6 @@ func (rl *Instance) deleteBackspace() {
 		return
 	case rl.pos == 0:
 		return
-		// if len(rl.line) > 0 {
-		// 	rl.line = rl.line[1:]
-		// }
 	case rl.pos > len(rl.line):
 		rl.backspace() // There is an infite loop going on here...
 	case rl.pos == len(rl.line):
