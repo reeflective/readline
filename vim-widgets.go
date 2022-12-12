@@ -713,25 +713,25 @@ func (rl *Instance) viSelectABlankWord() {
 }
 
 func (rl *Instance) viSelectAShellWord() {
-	// First find the outtermost quote, either single or double
-	posBeforeSingle := rl.pos
-	rl.findAndMoveCursor("'", 1, false, false)
-	posBeforeDouble := rl.pos
-	rl.findAndMoveCursor("\"", 1, false, false)
+	sBpos, sEpos, _, _ := rl.searchSurround('\'')
+	dBpos, dEpos, _, _ := rl.searchSurround('"')
 
-	// Return if none was found.
-	if posBeforeSingle == posBeforeDouble && rl.pos == posBeforeSingle {
+	// If none matched, use blankword
+	if (sBpos == -1 || sEpos == -1) && (dBpos == -1 || dEpos == -1) {
+		rl.viSelectABlankWord()
+
 		return
 	}
 
-	// And then, if any quote was found, try to find the corresponding quote.
-	rl.mark = rl.pos
-	switch rl.line[rl.pos] {
-	case '"':
-		rl.findAndMoveCursor("\"", 1, true, false)
-	case '\'':
-		rl.findAndMoveCursor("'", 1, true, false)
+	// Or, we have one of both.
+	if (sBpos == -1 || sEpos == -1) || dBpos < sBpos {
+		rl.mark = dBpos
+		rl.pos = dEpos
+	} else if (dBpos == -1 || dEpos == -1) || sBpos < dBpos {
+		rl.mark = sBpos
+		rl.pos = sEpos
 	}
+
 	rl.activeRegion = true
 }
 
@@ -767,25 +767,25 @@ func (rl *Instance) viSelectInBlankWord() {
 }
 
 func (rl *Instance) viSelectInShellWord() {
-	// First find the outtermost quote, either single or double
-	posBeforeSingle := rl.pos
-	rl.findAndMoveCursor("'", 1, false, true)
-	posBeforeDouble := rl.pos
-	rl.findAndMoveCursor("\"", 1, false, true)
+	sBpos, sEpos, _, _ := rl.searchSurround('\'')
+	dBpos, dEpos, _, _ := rl.searchSurround('"')
 
-	// Return if none was found.
-	if posBeforeSingle == posBeforeDouble && rl.pos == posBeforeSingle {
+	// If none matched, use blankword
+	if (sBpos == -1 || sEpos == -1) && (dBpos == -1 || dEpos == -1) {
+		rl.viSelectInBlankWord()
+
 		return
 	}
 
-	// And then, if any quote was found, try to find the corresponding quote.
-	rl.mark = rl.pos
-	switch rl.line[rl.pos-1] {
-	case '"':
-		rl.findAndMoveCursor("\"", 1, true, true)
-	case '\'':
-		rl.findAndMoveCursor("'", 1, true, true)
+	// Or, we have one of both.
+	if (sBpos == -1 || sEpos == -1) || dBpos < sBpos {
+		rl.mark = dBpos + 1
+		rl.pos = dEpos - 1
+	} else if (dBpos == -1 || dEpos == -1) || sBpos < dBpos {
+		rl.mark = sBpos + 1
+		rl.pos = sEpos - 1
 	}
+
 	rl.activeRegion = true
 }
 

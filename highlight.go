@@ -6,7 +6,7 @@ import (
 
 // region is a part of the input line for which to apply some highlighting.
 type region struct {
-	regionType  string // Most of the time empty, except for the builtin.
+	regionType  string
 	bpos        int
 	epos        int
 	highlightFg string
