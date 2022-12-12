@@ -121,10 +121,6 @@ func (rl *Instance) highlightLine(line []rune) string {
 }
 
 func (rl *Instance) addVisualHighlight(line []rune) {
-	if rl.local != visual {
-		return
-	}
-
 	// Remove old visual region
 	for i, reg := range rl.regions {
 		if reg.regionType == "visual" {
@@ -132,6 +128,10 @@ func (rl *Instance) addVisualHighlight(line []rune) {
 				rl.regions = append(rl.regions[:i], rl.regions[i+1:]...)
 			}
 		}
+	}
+
+	if rl.local != visual {
+		return
 	}
 
 	// And create the new one.
@@ -150,5 +150,5 @@ func (rl *Instance) addVisualHighlight(line []rune) {
 		end = len(line) - 1
 	}
 
-	rl.addRegion("visual", start, end, "", seqBgRed)
+	rl.addRegion("visual", start, end, "", seqBgBlueDark)
 }

@@ -29,24 +29,27 @@ func (rl *Instance) exitVisualMode() {
 		}
 	}
 
+	rl.visualLine = false
+	rl.mark = -1
+
 	if rl.local != visual {
 		return
 	}
 
 	rl.local = ""
-	rl.visualLine = false
-	rl.mark = -1
 }
 
 // enterVioppMode adds a widget to the list of widgets waiting for an operator/action,
 // enters the vi operator pending mode and updates the cursor.
 func (rl *Instance) enterVioppMode(widget string) {
-	rl.local = viopp
+	rl.viopp = true
 
 	// When the widget is empty, we just want to update the cursor.
 	if widget == "" {
 		return
 	}
+
+	rl.local = viopp
 
 	act := action{
 		widget:     widget,
@@ -60,7 +63,10 @@ func (rl *Instance) enterVioppMode(widget string) {
 }
 
 func (rl *Instance) exitVioppMode() {
-	rl.local = ""
+	if rl.local == viopp {
+		rl.local = ""
+	}
+	rl.viopp = false
 }
 
 //

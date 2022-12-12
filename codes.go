@@ -127,6 +127,8 @@ const (
 	seqFgCyan    = "\x1b[36m"
 	seqFgWhite   = "\x1b[37m"
 
+	seqFgBlueDark = "\x1b[25m"
+
 	seqFgBlackBright   = "\x1b[1;30m"
 	seqFgRedBright     = "\x1b[1;31m"
 	seqFgGreenBright   = "\x1b[1;32m"
@@ -135,6 +137,8 @@ const (
 	seqFgMagentaBright = "\x1b[1;35m"
 	seqFgCyanBright    = "\x1b[1;36m"
 	seqFgWhiteBright   = "\x1b[1;37m"
+
+	seqFgBlueDarkBright = "\x1b[1;25m"
 )
 
 // Background colours
@@ -147,6 +151,8 @@ const (
 	seqBgMagenta = "\x1b[45m"
 	seqBgCyan    = "\x1b[46m"
 	seqBgWhite   = "\x1b[47m"
+
+	seqBgBlueDark = "\x1b[48;5;25m"
 
 	seqBgBlackBright   = "\x1b[1;40m"
 	seqBgRedBright     = "\x1b[1;41m"

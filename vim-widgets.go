@@ -283,7 +283,8 @@ func (rl *Instance) viReplaceChars() {
 		}
 		rl.pos = bpos
 
-		rl.viCommandMode()
+		rl.exitVisualMode()
+		rl.updateCursor()
 
 		return
 	}
