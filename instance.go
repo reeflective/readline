@@ -174,7 +174,7 @@ type Instance struct {
 	// interruptHandlers are all special handlers being called when the shell
 	// receives an interrupt signal key, like CtrlC/CtrlD. These are not directly
 	// assigned in the various keymaps.
-	interruptHandlers map[string]keyHandler
+	interruptHandlers map[string]lineWidget
 
 	// TempDirectory is the path to write temporary files when editing a line in
 	// $EDITOR. This will default to os.TempDir()

@@ -3,7 +3,6 @@ package readline
 import (
 	"bytes"
 	"regexp"
-	// "strconv"
 
 	"github.com/reiver/go-caret"
 )
@@ -12,8 +11,13 @@ import (
 // To each of these keymap modes is bound a keymap.
 type keymapMode string
 
+// keymap maps a key (either in caret or hex notation)
+// to the name of the widget to run when key is pressed.
 type keymap map[string]string
 
+// widgets maps keys (either in caret or hex notation) to an EventCallback,
+// which wraps the corresponding widget for this key. Those widgets maps are
+// built at start/config reload time.
 type widgets map[string]EventCallback
 
 // These are the root keymaps used in the readline shell.
@@ -40,7 +44,7 @@ const (
 // @return =>   Return the line read before starting a new readline loop
 // @val    =>   The string returned to the readline caller, generally the line input, or nothing.
 // @error =>    Any error caught, generally those returned on signals like CtrlC
-type keyHandler func(r []rune) (bool, bool, string, error)
+type lineWidget func(r []rune) (bool, bool, string, error)
 
 // loadKeymapWidgets is ran once at the beginning of an instance start.
 // It is in charge of setting the configured/default input mode, which will

@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-type lineWidgets map[string]keyHandler
+type lineWidgets map[string]lineWidget
 
 // standardLineWidgets either need access to the input key,
 // or need to return specific instructions and values.
-func (rl *Instance) initStandardLineWidgets() lineWidgets {
-	widgets := map[string]keyHandler{
+func (rl *Instance) commonLineWidgets() lineWidgets {
+	widgets := map[string]lineWidget{
 		"accept-line":    rl.acceptLine,
 		"self-insert":    rl.selfInsert,
 		"digit-argument": rl.digitArgument,
@@ -20,7 +20,7 @@ func (rl *Instance) initStandardLineWidgets() lineWidgets {
 }
 
 // standardWidgets don't need access to the input key.
-func (rl *Instance) initStandardWidgets() baseWidgets {
+func (rl *Instance) commonWidgets() baseWidgets {
 	widgets := map[string]func(){
 		"clear-screen":                   rl.clearScreen,
 		"beginning-of-line":              rl.beginningOfLine,

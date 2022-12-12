@@ -6,14 +6,14 @@ import (
 
 // loadInterruptHandlers maps all interrupt handlers to the shell.
 func (rl *Instance) loadInterruptHandlers() {
-	rl.interruptHandlers = map[string]keyHandler{
+	rl.interruptHandlers = map[string]lineWidget{
 		string(charCtrlC): rl.errorCtrlC,
 		string(charEOF):   rl.errorEOF,
 	}
 }
 
 // isInterrupt returns true if the input key is an interrupt key.
-func (rl *Instance) isInterrupt(keys string) (keyHandler, bool) {
+func (rl *Instance) isInterrupt(keys string) (lineWidget, bool) {
 	handler, found := rl.interruptHandlers[keys]
 
 	return handler, found

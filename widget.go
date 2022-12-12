@@ -96,11 +96,11 @@ func (rl *Instance) bindWidget(key, widget string, km *widgets) {
 //
 // The order in which those widgets maps are tested should not matter as
 // long as there are no duplicates across any two of them.
-func (rl *Instance) getWidget(name string) keyHandler {
+func (rl *Instance) getWidget(name string) lineWidget {
 	// Error widgets
 
 	// Standard widgets (all editing modes/styles)
-	if widget, found := rl.initStandardWidgets()[name]; found && widget != nil {
+	if widget, found := rl.commonWidgets()[name]; found && widget != nil {
 		return func(_ []rune) (bool, bool, string, error) {
 			widget()
 			return false, false, "", nil
@@ -108,7 +108,7 @@ func (rl *Instance) getWidget(name string) keyHandler {
 	}
 
 	// Standard line widgets, wrapped inside a compliant handler.
-	if widget, found := rl.initStandardLineWidgets()[name]; found && widget != nil {
+	if widget, found := rl.commonLineWidgets()[name]; found && widget != nil {
 		return func(keys []rune) (bool, bool, string, error) {
 			read, ret, val, err := widget(keys)
 			return read, ret, val, err
@@ -118,7 +118,7 @@ func (rl *Instance) getWidget(name string) keyHandler {
 	// Emacs
 
 	// Vim standard widgets don't return anything, wrap them in a simple call.
-	if widget, found := rl.initViWidgets()[name]; found && widget != nil {
+	if widget, found := rl.viWidgets()[name]; found && widget != nil {
 		return func(_ []rune) (bool, bool, string, error) {
 			widget()
 			return false, false, "", nil

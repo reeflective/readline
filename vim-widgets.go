@@ -5,10 +5,11 @@ import (
 	"unicode"
 )
 
+// baseWidgets maps widget names to their implementation.
 type baseWidgets map[string]func()
 
 // standardViWidgets don't need access to the input key.
-func (rl *Instance) initViWidgets() baseWidgets {
+func (rl *Instance) viWidgets() baseWidgets {
 	return map[string]func(){
 		"vi-insert-mode":                rl.viInsertMode,
 		"vi-cmd-mode":                   rl.viCommandMode,
@@ -489,6 +490,9 @@ func (rl *Instance) viYank() {
 	// If we are in operator pending mode, that means the command
 	// is 'yy' (optionally with iterations), so we copy the required
 	if rl.local == viopp {
+		rl.saveBufToRegister(rl.line)
+		rl.viUndoSkipAppend = true
+		return
 	}
 
 	// Else if we are actually starting a yank action. We need an argument:
@@ -543,7 +547,6 @@ func (rl *Instance) viMatchBracket() {
 	rl.moveCursorByAdjust(rl.viJumpBracket())
 }
 
-// TODO: Currently we don't handle the argument in this widget.
 func (rl *Instance) viSetBuffer() {
 	// We might be on a register already, so reset it,
 	// and then wait again for a new register ID.
@@ -669,6 +672,8 @@ func (rl *Instance) viDelete() {
 	// If we are in operator pending mode, that means the command
 	// is 'yy' (optionally with iterations), so we copy the required
 	if rl.local == viopp {
+		rl.killWholeLine()
+		return
 	}
 
 	// Else if we are actually starting a yank action. We need an argument:
