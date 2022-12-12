@@ -16,11 +16,6 @@ inputMode: emacs
 ## Vim global settings ##
 #
 vim:
-    # Specified escape keys here are used IN ADDITION to the Escape ^[ key
-    insertEscapeKey: "\e"
-    visualEscapeKey: "\e"
-    operatorPendingEscapeKey: "\e"
-
     # Cursors valid values:
     # - Block
     # - Beam

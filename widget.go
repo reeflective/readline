@@ -19,7 +19,7 @@ type action struct {
 
 // run is in charge of executing the matched EventCallback, unwrapping its values and return behavior
 // parameters (errors/lines/read), and optionally to execute pending widgets (vi operator pending mode),
-func (rl *Instance) run(cb EventCallback, keys string, r []rune) (read, ret bool, val string, err error) {
+func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val string, err error) {
 	if cb == nil {
 		read = true
 		return
@@ -44,7 +44,7 @@ func (rl *Instance) run(cb EventCallback, keys string, r []rune) (read, ret bool
 	// If the callback has a widget, run it. Any instruction to return, or an error
 	// being raised has precedence over other callback read/return settings.
 	if event.Widget != "" {
-		ret, val, err = rl.runWidget(event.Widget, r)
+		ret, val, err = rl.runWidget(event.Widget, []rune(keys))
 		if ret || err != nil {
 			return
 		}

@@ -1,11 +1,13 @@
 package readline
 
 import (
+	// "bytes"
 	_ "embed"
 	"errors"
 	"os"
 	"path/filepath"
 
+	// "github.com/reiver/go-caret"
 	"gopkg.in/yaml.v3"
 )
 
@@ -39,10 +41,6 @@ type config struct {
 	InputMode InputMode `yaml:"inputMode"`
 
 	Vim struct {
-		// Special keys
-		InsertEscapeKey          string `yaml:"insertEscapeKey"`
-		VisualEscapeKey          string `yaml:"visualEscapeKey"`
-		OperatorPendingEscapeKey string `yaml:"operatorPendingEscapeKey"`
 		// Cursors
 		InsertCursor          CursorStyle `yaml:"insertCursor"`
 		NormalCursor          CursorStyle `yaml:"normalCursor"`
@@ -241,10 +239,6 @@ func (rl *Instance) loadDefaultConfig() {
 		// Input settings
 		InputMode: Vim, // TODO: Change back to Emacs
 		Vim: struct {
-			// Special keys
-			InsertEscapeKey          string `yaml:"insertEscapeKey"`
-			VisualEscapeKey          string `yaml:"visualEscapeKey"`
-			OperatorPendingEscapeKey string `yaml:"operatorPendingEscapeKey"`
 			// Cursors
 			InsertCursor          CursorStyle `yaml:"insertCursor"`
 			NormalCursor          CursorStyle `yaml:"normalCursor"`
@@ -252,10 +246,6 @@ func (rl *Instance) loadDefaultConfig() {
 			VisualCursor          CursorStyle `yaml:"visualCursor"`
 			ReplaceCursor         CursorStyle `yaml:"replaceCursor"`
 		}{
-			InsertEscapeKey:          string(charEscape),
-			VisualEscapeKey:          string(charEscape),
-			OperatorPendingEscapeKey: string(charEscape),
-
 			InsertCursor:          CursorBlinkingBeam,
 			NormalCursor:          CursorBlinkingBlock,
 			OperatorPendingCursor: CursorBlinkingUnderline,

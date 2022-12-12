@@ -129,7 +129,7 @@ func (rl *Instance) Readline() (string, error) {
 		//   'incremental' search.
 		handler, prefix := rl.matchKeymap(keys, rl.local)
 		if handler != nil {
-			read, ret, val, err := rl.run(handler, keys, r)
+			read, ret, val, err := rl.run(handler, keys)
 			if ret || err != nil {
 				return val, err
 			}
@@ -148,7 +148,7 @@ func (rl *Instance) Readline() (string, error) {
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
 		handler, prefix = rl.matchKeymap(keys, rl.main)
 		if handler != nil {
-			read, ret, val, err := rl.run(handler, keys, r)
+			read, ret, val, err := rl.run(handler, keys)
 			if ret || err != nil {
 				return val, err
 			}
@@ -193,5 +193,12 @@ func (rl *Instance) Readline() (string, error) {
 
 			continue
 		}
+
+		// When the input key has neither:
+		// - matched at least one widget in either keymap, be it only by prefix.
+		// - not been inserted into the line.
+		// - not matched the special regexp-based keymap.
+		// We reset the current key stack.
+		rl.keys = ""
 	}
 }

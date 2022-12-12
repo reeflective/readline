@@ -434,7 +434,6 @@ func (rl *Instance) viDeleteChar() {
 	// }
 }
 
-// TODO: Same here
 func (rl *Instance) viBackwardDeleteChar() {
 	vii := rl.getViIterations()
 
@@ -561,7 +560,7 @@ func (rl *Instance) viFindNextChar() {
 	rl.viUndoSkipAppend = true
 
 	// Read the argument key to use as a pattern to search
-	key, esc := rl.readOperator(true)
+	key, esc := rl.readOperator(false)
 	if esc {
 		return
 	}

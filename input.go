@@ -62,7 +62,7 @@ func (rl *Instance) readOperator(all bool) (key string, ret bool) {
 
 	// If the key is an escape key for the current mode.
 	if len(key) == 1 &&
-		(key[0] == charEscape || string(key[0]) == rl.config.Vim.OperatorPendingEscapeKey) {
+		(key[0] == charEscape) {
 		ret = true
 	}
 

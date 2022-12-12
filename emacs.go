@@ -354,8 +354,6 @@ func (rl *Instance) digitArgument() {
 	}
 
 	rl.viUndoSkipAppend = true
-
-	return
 }
 
 func (rl *Instance) historyNext() {

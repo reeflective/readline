@@ -84,6 +84,8 @@ func (rl *Instance) loadKeymapWidgets() {
 	}
 }
 
+// initKeymap ensures that all keymaps are set
+// at the beginning of a readline run loop.
 func (rl *Instance) initKeymap() {
 	switch rl.config.InputMode {
 	case Emacs:
@@ -129,6 +131,15 @@ func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback,
 		return nil, false
 	}
 
+	// The escape key is a special key that bypasses the entire process.
+	// This never returns true (and a callback) when shell is in Emacs mode.
+	if escape, yes := rl.isVimEscape(key); yes {
+		cb = escape
+		rl.keys = ""
+		return
+	}
+
+	// Get all widgets matched by the key, either exactly or by prefix.
 	matchWidgets := rl.widgets[kmode]
 	filtered := findBindkeyWidget(key, matchWidgets)
 
@@ -140,17 +151,7 @@ func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback,
 			cb = rl.prefixMatchedWidget
 			rl.keys = key
 			rl.prefixMatchedWidget = nil
-		} else {
-			rl.keys = ""
 		}
-		return
-	}
-
-	// The escape key is a special key that bypass the entire process.
-	// TODO: HERE IS WHERE WE SHOULD CHECK FOR SPECIAL ESCAPES.
-	if len(key) == 1 && key[0] == charEscape && rl.main != emacs {
-		cb = matchWidgets[key]
-		rl.keys = ""
 		return
 	}
 

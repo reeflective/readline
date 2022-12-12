@@ -42,10 +42,9 @@ func (rl *Instance) exitVisualMode() {
 // enterVioppMode adds a widget to the list of widgets waiting for an operator/action,
 // enters the vi operator pending mode and updates the cursor.
 func (rl *Instance) enterVioppMode(widget string) {
-	rl.viopp = true
-
 	// When the widget is empty, we just want to update the cursor.
 	if widget == "" {
+		rl.viopp = true
 		return
 	}
 
@@ -57,9 +56,7 @@ func (rl *Instance) enterVioppMode(widget string) {
 	}
 
 	// Push the widget on the stack of widgets
-	if widget != "" {
-		rl.pendingActions = append(rl.pendingActions, act)
-	}
+	rl.pendingActions = append(rl.pendingActions, act)
 }
 
 func (rl *Instance) exitVioppMode() {
@@ -67,6 +64,32 @@ func (rl *Instance) exitVioppMode() {
 		rl.local = ""
 	}
 	rl.viopp = false
+}
+
+// isVimEscape checks if the key matches the custom Vim mode escapes,
+// and returns the corresponding callback if it matches.
+func (rl *Instance) isVimEscape(key string) (cb EventCallback, yes bool) {
+	if rl.main == emacs {
+		return
+	}
+
+	// Make the callback even if not used
+	cb = func(_ string, line []rune, pos int) *EventReturn {
+		event := &EventReturn{
+			Widget:  "vi-cmd-mode",
+			NewLine: line,
+			NewPos:  pos,
+		}
+
+		return event
+	}
+
+	// Escape is builtin
+	if len(key) == 1 && key[0] == charEscape {
+		return cb, true
+	}
+
+	return
 }
 
 //
