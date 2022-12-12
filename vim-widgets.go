@@ -175,6 +175,7 @@ func (rl *Instance) viBackwardBlankWord() {
 }
 
 func (rl *Instance) viKillEol() {
+	rl.viUndoSkipAppend = true
 	pos := rl.pos
 	if pos < 0 {
 		pos--
@@ -191,6 +192,7 @@ func (rl *Instance) viKillEol() {
 }
 
 func (rl *Instance) viChangeEol() {
+	rl.viUndoSkipAppend = true
 	rl.saveBufToRegister(rl.line[rl.pos-1:])
 	rl.line = rl.line[:rl.pos]
 	rl.addIteration("")
@@ -258,7 +260,6 @@ func (rl *Instance) viPutAfter() {
 
 func (rl *Instance) viPutBefore() {
 	// paste before
-	rl.viUndoSkipAppend = true
 	buffer := rl.pasteFromRegister()
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -267,8 +268,6 @@ func (rl *Instance) viPutBefore() {
 }
 
 func (rl *Instance) viReplaceChars() {
-	rl.viUndoSkipAppend = true
-
 	// We read a character to use first.
 	rl.enterVioppMode("")
 	rl.updateCursor()
@@ -277,6 +276,7 @@ func (rl *Instance) viReplaceChars() {
 	if esc {
 		rl.exitVioppMode()
 		rl.updateCursor()
+		rl.viUndoSkipAppend = true
 		return
 	}
 	rl.exitVioppMode()
@@ -305,7 +305,6 @@ func (rl *Instance) viReplace() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
 	rl.undoAppendHistory()
-	rl.viUndoSkipAppend = true
 
 	// All replaced characters are stored, to be used with backspace
 	cache := make([]rune, 0)
@@ -548,6 +547,8 @@ func (rl *Instance) viMatchBracket() {
 }
 
 func (rl *Instance) viSetBuffer() {
+	rl.viUndoSkipAppend = true
+
 	// We might be on a register already, so reset it,
 	// and then wait again for a new register ID.
 	if rl.registers.onRegister {
@@ -570,6 +571,8 @@ func (rl *Instance) viSetBuffer() {
 }
 
 func (rl *Instance) viFindNextChar() {
+	rl.viUndoSkipAppend = true
+
 	rl.enterVioppMode("")
 	rl.updateCursor()
 
@@ -591,6 +594,8 @@ func (rl *Instance) viFindNextChar() {
 }
 
 func (rl *Instance) viFindNextCharSkip() {
+	rl.viUndoSkipAppend = true
+
 	rl.enterVioppMode("")
 	rl.updateCursor()
 
@@ -612,6 +617,8 @@ func (rl *Instance) viFindNextCharSkip() {
 }
 
 func (rl *Instance) viFindPrevChar() {
+	rl.viUndoSkipAppend = true
+
 	rl.enterVioppMode("")
 	rl.updateCursor()
 
@@ -633,6 +640,8 @@ func (rl *Instance) viFindPrevChar() {
 }
 
 func (rl *Instance) viFindPrevCharSkip() {
+	rl.viUndoSkipAppend = true
+
 	rl.enterVioppMode("")
 	rl.updateCursor()
 
@@ -684,9 +693,9 @@ func (rl *Instance) viDelete() {
 
 	// We set the initial mark, so that when executing this
 	// widget back after the argument, we have a selection.
-	// rl.enterVisualMode()
 	rl.mark = rl.pos
 	rl.activeRegion = true
+	rl.viUndoSkipAppend = true
 }
 
 func (rl *Instance) viDigitOrBeginningOfLine() {
@@ -694,6 +703,7 @@ func (rl *Instance) viDigitOrBeginningOfLine() {
 	// then our Vi iterations' length is not 0
 	if len(rl.viIteration) > 0 {
 		rl.addIteration("0")
+		rl.viUndoSkipAppend = true
 		return
 	}
 
@@ -702,6 +712,8 @@ func (rl *Instance) viDigitOrBeginningOfLine() {
 }
 
 func (rl *Instance) viSelectABlankWord() {
+	rl.viUndoSkipAppend = true
+
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.viBackwardBlankWord()
@@ -718,6 +730,8 @@ func (rl *Instance) viSelectABlankWord() {
 }
 
 func (rl *Instance) viSelectAShellWord() {
+	rl.viUndoSkipAppend = true
+
 	sBpos, sEpos, _, _ := rl.searchSurround('\'')
 	dBpos, dEpos, _, _ := rl.searchSurround('"')
 
@@ -741,6 +755,8 @@ func (rl *Instance) viSelectAShellWord() {
 }
 
 func (rl *Instance) viSelectAWord() {
+	rl.viUndoSkipAppend = true
+
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.viBackwardWord()
@@ -757,6 +773,8 @@ func (rl *Instance) viSelectAWord() {
 }
 
 func (rl *Instance) viSelectInBlankWord() {
+	rl.viUndoSkipAppend = true
+
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.viBackwardBlankWord()
@@ -772,6 +790,7 @@ func (rl *Instance) viSelectInBlankWord() {
 }
 
 func (rl *Instance) viSelectInShellWord() {
+	rl.viUndoSkipAppend = true
 	sBpos, sEpos, _, _ := rl.searchSurround('\'')
 	dBpos, dEpos, _, _ := rl.searchSurround('"')
 
@@ -795,6 +814,7 @@ func (rl *Instance) viSelectInShellWord() {
 }
 
 func (rl *Instance) viSelectInWord() {
+	rl.viUndoSkipAppend = true
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.viBackwardWord()
@@ -810,6 +830,7 @@ func (rl *Instance) viSelectInWord() {
 }
 
 func (rl *Instance) viGotoColumn() {
+	rl.viUndoSkipAppend = true
 	iterations := rl.viIteration
 	column := rl.getViIterations()
 
@@ -897,6 +918,7 @@ func (rl *Instance) viOperSwapCase() {
 }
 
 func (rl *Instance) viFirstNonBlank() {
+	rl.viUndoSkipAppend = true
 	for i := range rl.line {
 		if rl.line[i] == ' ' {
 			rl.pos = i
@@ -913,6 +935,7 @@ func (rl *Instance) viAddSurround() {
 	if esc {
 		rl.exitVioppMode()
 		rl.updateCursor()
+		rl.viUndoSkipAppend = true
 		return
 	}
 
@@ -931,6 +954,9 @@ func (rl *Instance) viAddSurround() {
 	newLine := append([]rune(begin), []rune(selection)...)
 	newLine = append(newLine, []rune(end)...)
 	rl.line = newLine
+
+	// This only has an effect when we are in visual mode.
+	rl.exitVisualMode()
 }
 
 func (rl *Instance) viSubstitute() {
@@ -962,6 +988,8 @@ func (rl *Instance) viChange() {
 		return
 	}
 
+	rl.viUndoSkipAppend = true
+
 	// Otherwise, we have to read first key, which
 	// is either a navigation or selection widget.
 	rl.enterVioppMode("")
@@ -988,6 +1016,8 @@ func (rl *Instance) viChange() {
 		return
 	}
 
+	rl.viUndoSkipAppend = false
+
 	// Update the pending keys, with an except for surround widgets.
 	rl.keys = ""
 	if action == "vi-select-surround" {
@@ -1010,6 +1040,7 @@ func (rl *Instance) viChange() {
 }
 
 func (rl *Instance) viChangeSurround() {
+	rl.viUndoSkipAppend = true
 	rl.enterVioppMode("")
 	rl.updateCursor()
 
@@ -1044,6 +1075,8 @@ func (rl *Instance) viChangeSurround() {
 		return
 	}
 
+	rl.viUndoSkipAppend = false
+
 	rchar := rune(key[0])
 
 	// There might be a matching equivalent.
@@ -1054,6 +1087,7 @@ func (rl *Instance) viChangeSurround() {
 }
 
 func (rl *Instance) viSelectSurround() {
+	rl.viUndoSkipAppend = true
 	var inside bool
 
 	switch rl.keys[0] {
@@ -1099,5 +1133,6 @@ func (rl *Instance) viSelectSurround() {
 }
 
 func (rl *Instance) viSetMark() {
+	rl.viUndoSkipAppend = true
 	rl.mark = rl.pos
 }

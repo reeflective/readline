@@ -379,6 +379,7 @@ func (rl *Instance) killBuffer() {
 }
 
 func (rl *Instance) inferNextHistory() {
+	rl.viUndoSkipAppend = true
 	matchIndex := 0
 	histSuggested := make([]rune, 0)
 	rl.mainHist = true
@@ -484,6 +485,7 @@ func (rl *Instance) overwriteMode() {
 }
 
 func (rl *Instance) setMarkCommand() {
+	rl.viUndoSkipAppend = true
 	vii := rl.getViIterations()
 	switch {
 	case vii < 0:
@@ -539,6 +541,8 @@ func (rl *Instance) negArgument() {
 }
 
 func (rl *Instance) beginningOfBufferOrHistory() {
+	rl.viUndoSkipAppend = true
+
 	if rl.pos == 0 {
 		var history History
 		rl.mainHist = true
@@ -573,6 +577,7 @@ func (rl *Instance) beginningOfBufferOrHistory() {
 }
 
 func (rl *Instance) endOfBufferOrHistory() {
+	rl.viUndoSkipAppend = true
 	if rl.pos == len(rl.line) {
 		var history History
 		rl.mainHist = true
@@ -663,17 +668,6 @@ func (rl *Instance) upCaseWord() {
 	rl.activeRegion = false
 }
 
-// 	"^[N": "history-search-forward",
-func (rl *Instance) historySearchForward() {
-}
-
-// 	"^[P": "history-search-backward",
-func (rl *Instance) historySearchSackward() {
-}
-
-func (rl *Instance) transposeChars() {
-}
-
 func (rl *Instance) transposeWords() {
 	posInit := rl.pos
 
@@ -724,6 +718,7 @@ func (rl *Instance) transposeWords() {
 }
 
 func (rl *Instance) copyRegionAsKill() {
+	rl.viUndoSkipAppend = true
 	rl.yankSelection()
 	rl.resetSelection()
 }
@@ -840,6 +835,17 @@ func (rl *Instance) switchKeyword() {
 }
 
 func (rl *Instance) exchangePointAndMark() {
+}
+
+func (rl *Instance) transposeChars() {
+}
+
+// 	"^[N": "history-search-forward",
+func (rl *Instance) historySearchForward() {
+}
+
+// 	"^[P": "history-search-backward",
+func (rl *Instance) historySearchSackward() {
 }
 
 // "^[ ":  "expand-history",

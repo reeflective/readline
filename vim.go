@@ -21,12 +21,6 @@ func (rl *Instance) enterVisualLineMode() {
 }
 
 func (rl *Instance) exitVisualMode() {
-	if rl.local == visual {
-		rl.local = ""
-	}
-	rl.visualLine = false
-	rl.mark = -1
-
 	for i, reg := range rl.regions {
 		if reg.regionType == "visual" {
 			if len(rl.regions) > i {
@@ -34,6 +28,14 @@ func (rl *Instance) exitVisualMode() {
 			}
 		}
 	}
+
+	if rl.local != visual {
+		return
+	}
+
+	rl.local = ""
+	rl.visualLine = false
+	rl.mark = -1
 }
 
 // enterVioppMode adds a widget to the list of widgets waiting for an operator/action,
