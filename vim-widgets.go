@@ -693,21 +693,18 @@ func (rl *Instance) viSelectAShellWord() {
 	sBpos, sEpos, _, _ := rl.searchSurround('\'')
 	dBpos, dEpos, _, _ := rl.searchSurround('"')
 
+	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
+
 	// If none matched, use blankword
-	if (sBpos == -1 || sEpos == -1) && (dBpos == -1 || dEpos == -1) {
-		rl.viSelectABlankWord()
+	if mark == -1 && cpos == -1 {
+		rl.viSelectInBlankWord()
 
 		return
 	}
 
-	// Or, we have one of both.
-	if (sBpos == -1 || sEpos == -1) || (dBpos < sBpos && dBpos >= 0 && sBpos >= 0 && dEpos > sEpos) {
-		rl.mark = dBpos
-		rl.pos = dEpos
-	} else if (dBpos == -1 || dEpos == -1) || (sBpos < dBpos && sBpos <= 0 && dBpos >= 0 && sEpos > dEpos) {
-		rl.mark = sBpos
-		rl.pos = sEpos
-	}
+	// Else set the region inside those quotes
+	rl.mark = mark
+	rl.pos = cpos
 
 	rl.activeRegion = true
 }
@@ -752,21 +749,18 @@ func (rl *Instance) viSelectInShellWord() {
 	sBpos, sEpos, _, _ := rl.searchSurround('\'')
 	dBpos, dEpos, _, _ := rl.searchSurround('"')
 
+	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
+
 	// If none matched, use blankword
-	if (sBpos == -1 || sEpos == -1) && (dBpos == -1 || dEpos == -1) {
+	if mark == -1 && cpos == -1 {
 		rl.viSelectInBlankWord()
 
 		return
 	}
 
-	// Or, we have one of both.
-	if (sBpos == -1 || sEpos == -1) || (dBpos < sBpos && dBpos >= 0 && sBpos >= 0 && dEpos > sEpos) {
-		rl.mark = dBpos + 1
-		rl.pos = dEpos - 1
-	} else if (dBpos == -1 || dEpos == -1) || (sBpos < dBpos && sBpos <= 0 && dBpos >= 0 && sEpos > dEpos) {
-		rl.mark = sBpos + 1
-		rl.pos = sEpos - 1
-	}
+	// Else set the region inside those quotes
+	rl.mark = mark + 1
+	rl.pos = cpos - 1
 
 	rl.activeRegion = true
 }

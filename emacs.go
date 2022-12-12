@@ -57,6 +57,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 		"transpose-words":                rl.transposeWords,
 		"copy-region-as-kill":            rl.copyRegionAsKill,
 		"copy-prev-word":                 rl.copyPrevWord,
+		"copy-prev-shell-word":           rl.copyPrevShellWord,
 		"kill-region":                    rl.killRegion,
 		"redo":                           rl.redo,
 		"switch-keyword":                 rl.switchKeyword,
@@ -741,13 +742,43 @@ func (rl *Instance) copyPrevWord() {
 	rl.pos = posInit + len(word)
 }
 
-// 	"^[m":     "copy-prev-shell-word",
 func (rl *Instance) copyPrevShellWord() {
-	// First find the previous quote, and automatically
-	// detect where is the corresponding one.
-	rl.findAndMoveCursor("'", 1, false, false)
-	rl.mark = rl.pos
+	posInit := rl.pos
+
+	// First go back a single blank word
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+
+	// Now try to find enclosing quotes from here.
+	sBpos, sEpos, _, _ := rl.searchSurround('\'')
+	dBpos, dEpos, _, _ := rl.searchSurround('"')
+
+	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
+	if mark == -1 && cpos == -1 {
+		rl.mark = rl.pos
+		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
+	} else {
+		rl.mark = mark
+		rl.pos = cpos
+	}
+
 	rl.activeRegion = true
+
+	// Now that we have a selection, copy the word
+	bpos, epos, _ := rl.getSelection()
+	word := string(rl.line[bpos:epos])
+	rl.mark = -1
+	rl.activeRegion = false
+
+	// Replace the cursor before reassembling the line.
+	rl.pos = posInit
+
+	begin := string(rl.line[:rl.pos])
+	end := string(rl.line[rl.pos:])
+	newLine := append([]rune(begin), []rune(word)...)
+	newLine = append(newLine, []rune(end)...)
+	rl.line = newLine
+
+	rl.pos += len(word)
 }
 
 func (rl *Instance) killRegion() {

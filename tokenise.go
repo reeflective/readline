@@ -89,6 +89,18 @@ func tokeniseSplitSpaces(line []rune, linePos int) ([]string, int, int) {
 		}
 	}
 
+	// Hackish: if we are at the end of the line,
+	// currently appending to it, we return the pos
+	// as we would do when matching linePos
+	if linePos == len(line) {
+		if index == 0 {
+			index = len(split) - 1
+		}
+		if pos == 0 {
+			pos = len(split[index])
+		}
+	}
+
 	return split, index, pos
 }
 
