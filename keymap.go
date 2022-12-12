@@ -155,6 +155,9 @@ func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback,
 	}
 
 	// Or several matches, in which case we must read another key.
+	// If any widget perfectly matches the key, save it, so that
+	// the next key, if not matching any widget, is passed as
+	// argument to this one.
 	if len(filtered) > 1 {
 		rl.prefixMatchedWidget = matchWidgets[key]
 		return nil, true

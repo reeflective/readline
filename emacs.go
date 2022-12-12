@@ -12,9 +12,8 @@ type lineWidgets map[string]lineWidget
 // or need to return specific instructions and values.
 func (rl *Instance) commonLineWidgets() lineWidgets {
 	widgets := map[string]lineWidget{
-		"accept-line":    rl.acceptLine,
-		"self-insert":    rl.selfInsert,
-		"digit-argument": rl.digitArgument,
+		"accept-line": rl.acceptLine,
+		"self-insert": rl.selfInsert,
 	}
 
 	return widgets
@@ -37,6 +36,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 		"backward-char":                  rl.backwardChar,
 		"forward-word":                   rl.forwardWord,
 		"backward-word":                  rl.backwardWord,
+		"digit-argument":                 rl.digitArgument,
 		"undo":                           rl.undo,
 		"down-line-or-history":           rl.historyNext,
 		"up-line-or-history":             rl.historyPrev,
@@ -345,12 +345,12 @@ func (rl *Instance) upHistory() {
 
 // digitArgument is used both in Emacs and Vim modes,
 // but strips the Alt modifier used in Emacs mode.
-func (rl *Instance) digitArgument(r []rune) (read, ret bool, val string, err error) {
-	if len(r) > 1 {
+func (rl *Instance) digitArgument() {
+	if len(rl.keys) > 1 {
 		// The first rune is the alt modifier.
-		rl.addIteration(string(r[1:]))
+		rl.addIteration(string(rl.keys[1:]))
 	} else {
-		rl.addIteration(string(r))
+		rl.addIteration(string(rl.keys[0]))
 	}
 
 	rl.viUndoSkipAppend = true
