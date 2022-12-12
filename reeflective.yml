@@ -3,14 +3,14 @@
 # ================================================================================ #
 
 # Notes ===========
-# - The '\r' (Enter key) is printed specially below (the widget is printed on
-#   a newline). It is important to leave this as is, otherwise the shell will
-#   fail to correctly unmarshal the configuration, returning an error instead.
+# - This configuration file supports different notations for the keys:
+#     * Caret notation (such as the default below)
+#     * Hex notation (as the shell reads the keys, eg. "\e", or '\x01')
 
 ## Input Mode: the main edition mode to use
 # - emacs
 # - vim
-inputMode: vim
+inputMode: emacs 
 
 #
 ## Vim global settings ##
@@ -50,22 +50,13 @@ emacs:
 keymaps:
     # Emacs key mappings
     emacs:
-        '\x01': beginning-of-line
-        '\x02': backward-char
-        '\x05': end-of-line
-        '\x06': forward-char
-        '\a': send-break
-        '\v': kill-line
-        '\f': clear-screen  # ^L => Ctrl+L 
-        '\r' : accept-line 
-        '\x0E': down-line-or-history
-        '\x0F': accept-line-and-down-history
-        '\x10': up-line-or-history
-        '\x14': transpose-chars
-        '\x15': kill-whole-line
-        '\x16': quoted-insert
-        '\x19': yank
         ^?: backward-delete-char
+        ^@: set-mark-command
+        ^[": quote-region
+        ^[': quote-line
+        ^[-: neg-argument
+        ^[<: beginning-of-buffer-or-history
+        ^[>: end-of-buffer-or-history
         ^[[1;3A: history-search
         ^[[1;3B: menu-select
         ^[[1;5C: forward-word
@@ -93,15 +84,12 @@ keymaps:
         ^[^J: self-insert-unmeta
         ^[^L: clear-screen
         ^[^M: self-insert-unmeta
-        ^[_: insert-last-word
         ^[|: vi-goto-column
         ^[A: accept-and-hold
         ^[B: backward-word
         ^[C: capitalize-word
         ^[D: kill-word
         ^[F: forward-word
-        ^[G: get-line
-        ^[H: run-help
         ^[L: down-case-word
         ^[N: history-search-forward
         ^[P: history-search-backward
@@ -115,21 +103,29 @@ keymaps:
         ^[c: capitalize-word
         ^[d: kill-word
         ^[f: forward-word
-        ^[g: get-line
-        ^[h: run-help
         ^[l: ls^J
         ^[m: copy-prev-shell-word
         ^[n: history-search-forward
         ^[p: history-search-backward
-        ^[q: push-line
-        ^[s: spell-word
         ^[t: transpose-words
         ^[u: up-case-word
         ^[w: kill-region
-        ^[x: execute-named-cmd
-        ^[y: yank-pop
-        ^[z: execute-last-named-cmd
         ^_: undo
+        ^A: beginning-of-line
+        ^B: backward-char
+        ^E: end-of-line
+        ^F: forward-char
+        ^G: send-break
+        ^K: kill-line
+        ^L: clear-screen
+        ^M: accept-line
+        ^N: down-line-or-history
+        ^O: accept-line-and-down-history
+        ^P: up-line-or-history
+        ^T: transpose-chars
+        ^U: kill-whole-line
+        ^V: quoted-insert
+        ^W: backward-kill-word
         ^X^B: vi-match-bracket
         ^X^E: vi-edit-command-line
         ^X^K: kill-buffer
@@ -138,35 +134,36 @@ keymaps:
         ^X^U: undo
         ^X^V: vi-cmd-mode
         ^Xu: undo
+        ^Y: yank
 
     # Vim Normal mode key mappings
     vicmd:
-        '\x01': switch-keyword
-        '\b': backward-delete-char
-        '\f': clear-screen   # ^L => Ctrl+L 
-        '\r' : accept-line        
-        "\x0E": down-history
-        "\x10": up-history
-        "\x12": redo
-        "\e[1;5C": forward-word
-        "\e[1;5D": backward-word
-        "\e[3;5~": kill-word
-        "\e[3~": delete-char
-        "\e[5~": up-line-or-history
-        "\e[6~": down-line-or-history
-        "\e[A": history-search
-        "\e[B": menu-select
-        "\e[C": vi-forward-char
-        "\e[D": vi-backward-char
-        "\e[F": end-of-line
-        "\e[H": beginning-of-line
         ' ': vi-forward-char
         '"': vi-set-buffer
         $: vi-end-of-line
         '%': vi-match-bracket
+        ^?: backward-delete-char
+        ^[[1;5C: forward-word
+        ^[[1;5D: backward-word
+        ^[[3;5~: kill-word
+        ^[[3~: delete-char
+        ^[[5~: up-line-or-history
+        ^[[6~: down-line-or-history
+        ^[[A: history-search
+        ^[[B: menu-select
+        ^[[C: vi-forward-char
+        ^[[D: vi-backward-char
+        ^[[F: end-of-line
+        ^[[H: beginning-of-line
+        ^A: switch-keyword
+        ^L: clear-screen
+        ^M: accept-line
+        ^N: down-history
+        ^P: up-history
+        ^R: redo
+        ^X: switch-keyword
         '|': vi-goto-column
-        "~": vi-swap-case
-        "\x7F": backward-delete-char
+        ~": vi-swap-case
         "0": vi-digit-or-beginning-of-line
         A: vi-add-eol
         B: vi-backward-blank-word
@@ -184,10 +181,11 @@ keymaps:
         Y: vi-yank-whole-line
         a: vi-add-next
         b: vi-backward-word
-        c: vi-change-surround
+        c: vi-change
         d: vi-delete
         e: vi-forward-word-end
         f: vi-find-next-char
+        g~: vi-oper-swap-case
         h: vi-backward-char
         i: vi-insert-mode
         j: down-line-or-history
@@ -195,45 +193,44 @@ keymaps:
         l: vi-forward-char
         p: vi-put-after
         r: vi-replace-chars
+        s: vi-substitute
         t: vi-find-next-char-skip
         u: undo
         v: visual-mode
         w: vi-forward-word
         x: vi-delete-char
-        y: vi-yank
-
+        "y": vi-yank
     # Vim Insert mode key mappings
     viins:
-        '\x01': beginning-of-line
-        '\x02': backward-char
-        '\x05': end-of-line
-        '\x06': forward-char
-        '\b': backward-delete-char
-        '\v': kill-line
-        '\f': clear-screen    # ^L => Ctrl+L 
-        '\r' : accept-line         
-        "\x0E": down-line-or-history
-        "\x10": up-line-or-history
-        "\x17": backward-kill-word
-        "\x19": yank
-        "\e": vi-cmd-mode
-        "\e[1;5C": forward-word
-        "\e[1;5D": backward-word
-        "\e[3;5~": kill-word
-        "\e[3~": delete-char
-        "\e[5~": history-search
-        "\e[6~": menu-select
-        "\e[A": up-line-or-search
-        "\e[B": down-line-or-select
-        "\e[C": vi-forward-char
-        "\e[D": vi-backward-char
-        "\e[F": end-of-line
-        "\e[H": beginning-of-line
-        "\x1F": undo
-        "\x7F": backward-delete-char
+        ^?: backward-delete-char
+        ^[: vi-cmd-mode
+        ^[[1;5C: forward-word
+        ^[[1;5D: backward-word
+        ^[[3;5~: kill-word
+        ^[[3~: delete-char
+        ^[[5~: history-search
+        ^[[6~: menu-select
+        ^[[A: up-line-or-search
+        ^[[B: down-line-or-select
+        ^[[C: vi-forward-char
+        ^[[D: vi-backward-char
+        ^[[F: end-of-line
+        ^[[H: beginning-of-line
+        ^_: undo
+        ^A: beginning-of-line
+        ^B: backward-char
+        ^E: end-of-line
+        ^F: forward-char
+        ^K: kill-line
+        ^L: clear-screen
+        ^M: accept-line
+        ^N: down-line-or-history
+        ^P: up-line-or-history
+        ^W: backward-kill-word
+        ^Y: yank
     # Vim Insert mode key mappings
     viopp:
-        "\e": vi-cmd-mode
+        ^[: vi-cmd-mode
         aW: select-a-blank-word
         aa: select-a-shell-word
         aw: select-a-word
@@ -244,9 +241,9 @@ keymaps:
         k: up-line
     # Vim Visual mode key mappings
     visual:
-        "\e": vi-cmd-mode
+        ^[: vi-cmd-mode
         "~": vi-swap-case
-        S: vi-change-surround
+        S: vi-add-surround
         a: vi-select-surround
         aW: select-a-blank-word
         aa: select-a-shell-word
@@ -259,11 +256,11 @@ keymaps:
         iw: select-in-word
         j: down-line
         k: up-line
+        s: vi-substitute
         u: vi-down-case
         v: vi-edit-command-line
         x: vi-delete
-        y: vi-yank
-
+        "y": vi-yank
 #
 # Other helpers settings ##
 #

@@ -11,7 +11,7 @@ import (
 func (rl *Instance) enterVisualMode() {
 	rl.local = visual
 	rl.visualLine = false
-	rl.mark = rl.pos // Or rl.posX ? combined with rl.posY ?
+	rl.mark = rl.pos
 }
 
 func (rl *Instance) enterVisualLineMode() {

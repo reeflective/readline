@@ -280,11 +280,6 @@ func (rl *Instance) loadDefaultConfig() {
 		HintFormatting: DIM,
 	}
 
-	// First load the default configuration to preserve
-	// the comment, and then apply our default values onto it.
-	yaml.Unmarshal([]byte(defaultConfig), config.node)
-	config.node.Decode(config)
-
 	// Load keymaps, which are defaults themselves:
 	// This overwrites the default bindkeys in the reeflectiverc file,
 	// but since they should be the same, we just overwrite with this.
@@ -293,6 +288,11 @@ func (rl *Instance) loadDefaultConfig() {
 	config.Keymaps[vicmd] = vicmdKeys
 	config.Keymaps[viopp] = vioppKeys
 	config.Keymaps[visual] = visualKeys
+
+	// First load the default configuration to preserve
+	// the comment, and then apply our default values onto it.
+	// yaml.Unmarshal([]byte(defaultConfig), config.node)
+	// config.node.Decode(config)
 
 	rl.config = config
 }
