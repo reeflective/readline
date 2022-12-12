@@ -170,15 +170,4 @@ func tokeniseBrackets(line []rune, linePos int) ([]string, int, int) {
 
 func rTrimWhiteSpace(oldString string) (newString string) {
 	return strings.TrimRight(oldString, " ")
-	// TODO: support tab chars
-	/*defer fmt.Println(">" + oldString + "<" + newString + ">")
-	newString = oldString
-	for len(oldString) > 0 {
-		if newString[len(newString)-1] == ' ' || newString[len(newString)-1] == '\t' {
-			newString = newString[:len(newString)-1]
-		} else {
-			break
-		}
-	}
-	return*/
 }

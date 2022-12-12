@@ -139,6 +139,7 @@ func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback,
 		if rl.prefixMatchedWidget != nil {
 			cb = rl.prefixMatchedWidget
 			rl.keys = key
+			rl.prefixMatchedWidget = nil
 		} else {
 			rl.keys = ""
 		}

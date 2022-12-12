@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// lineWidgets maps widget names to their corresponding line widgets.
 type lineWidgets map[string]lineWidget
 
 // standardLineWidgets either need access to the input key,

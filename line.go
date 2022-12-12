@@ -119,9 +119,6 @@ func (rl *Instance) printLine() {
 		// Print the input line with optional syntax highlighting
 		if rl.SyntaxHighlighter != nil {
 			highlighted = rl.SyntaxHighlighter(line) + " "
-			// print(rl.SyntaxHighlighter(line) + " ")
-			// } else {
-			// 	print(string(line) + " ")
 		}
 
 		// Adapt if there is a visual selection active

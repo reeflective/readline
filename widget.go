@@ -184,8 +184,8 @@ func (rl *Instance) runPendingWidget(key string) {
 		return
 	}
 
-	// We matched a single widget, so reset
-	// the current key as stored by the shell.
+	// Any remaining pending widget
+	// will wait for the following key.
 	rl.keys = ""
 
 	// Permutate viIterations and pending iterations,

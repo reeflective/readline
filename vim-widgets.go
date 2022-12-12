@@ -729,10 +729,10 @@ func (rl *Instance) viSelectAShellWord() {
 	}
 
 	// Or, we have one of both.
-	if (sBpos == -1 || sEpos == -1) || dBpos < sBpos {
+	if (sBpos == -1 || sEpos == -1) || (dBpos < sBpos && dBpos >= 0 && sBpos >= 0 && dEpos > sEpos) {
 		rl.mark = dBpos
 		rl.pos = dEpos
-	} else if (dBpos == -1 || dEpos == -1) || sBpos < dBpos {
+	} else if (dBpos == -1 || dEpos == -1) || (sBpos < dBpos && sBpos <= 0 && dBpos >= 0 && sEpos > dEpos) {
 		rl.mark = sBpos
 		rl.pos = sEpos
 	}
@@ -783,10 +783,10 @@ func (rl *Instance) viSelectInShellWord() {
 	}
 
 	// Or, we have one of both.
-	if (sBpos == -1 || sEpos == -1) || dBpos < sBpos {
+	if (sBpos == -1 || sEpos == -1) || (dBpos < sBpos && dBpos >= 0 && sBpos >= 0 && dEpos > sEpos) {
 		rl.mark = dBpos + 1
 		rl.pos = dEpos - 1
-	} else if (dBpos == -1 || dEpos == -1) || sBpos < dBpos {
+	} else if (dBpos == -1 || dEpos == -1) || (sBpos < dBpos && sBpos <= 0 && dBpos >= 0 && sEpos > dEpos) {
 		rl.mark = sBpos + 1
 		rl.pos = sEpos - 1
 	}
