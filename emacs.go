@@ -458,9 +458,9 @@ func (rl *Instance) overwriteMode() {
 	// them as long as the escape key is not pressed.
 	for {
 		// Read a new key
-		keys, esc := rl.readArgumentKey()
+		keys, esc := rl.readOperator(true)
 		if esc {
-			break
+			return
 		}
 		key := rune(keys[0])
 

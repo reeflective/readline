@@ -269,18 +269,11 @@ func (rl *Instance) viPutBefore() {
 
 func (rl *Instance) viReplaceChars() {
 	// We read a character to use first.
-	rl.enterVioppMode("")
-	rl.updateCursor()
-
-	key, esc := rl.readArgumentKey()
+	key, esc := rl.readOperator(true)
 	if esc {
-		rl.exitVioppMode()
-		rl.updateCursor()
 		rl.viUndoSkipAppend = true
 		return
 	}
-	rl.exitVioppMode()
-	rl.updateCursor()
 
 	// In visual mode, we replace all chars of the selection
 	if rl.activeRegion || rl.local == visual {
@@ -313,16 +306,12 @@ func (rl *Instance) viReplace() {
 	// to the main readline loop: it keeps reading characters and inserts
 	// them as long as the escape key is not pressed.
 	for {
-		rl.enterVioppMode("")
-		rl.updateCursor()
-
-		// Read a new key
-		keys, esc := rl.readArgumentKey()
+		// We read a character to use first.
+		keys, esc := rl.readOperator(true)
 		if esc {
-			rl.exitVioppMode()
-			rl.updateCursor()
 			break
 		}
+
 		key := rune(keys[0])
 
 		// If the key is a backspace, we go back one character
@@ -357,9 +346,6 @@ func (rl *Instance) viReplace() {
 
 	// When exiting the replace mode, move the cursor back
 	rl.pos--
-
-	rl.exitVioppMode()
-	rl.updateCursor()
 }
 
 func (rl *Instance) viEditCommandLine() {
@@ -573,18 +559,11 @@ func (rl *Instance) viSetBuffer() {
 func (rl *Instance) viFindNextChar() {
 	rl.viUndoSkipAppend = true
 
-	rl.enterVioppMode("")
-	rl.updateCursor()
-
 	// Read the argument key to use as a pattern to search
-	key, esc := rl.readArgumentKey()
+	key, esc := rl.readOperator(true)
 	if esc {
-		rl.exitVioppMode()
-		rl.updateCursor()
 		return
 	}
-	rl.exitVioppMode()
-	rl.updateCursor()
 
 	forward := true
 	skip := false
@@ -596,18 +575,11 @@ func (rl *Instance) viFindNextChar() {
 func (rl *Instance) viFindNextCharSkip() {
 	rl.viUndoSkipAppend = true
 
-	rl.enterVioppMode("")
-	rl.updateCursor()
-
 	// Read the argument key to use as a pattern to search
-	key, esc := rl.readArgumentKey()
+	key, esc := rl.readOperator(true)
 	if esc {
-		rl.exitVioppMode()
-		rl.updateCursor()
 		return
 	}
-	rl.exitVioppMode()
-	rl.updateCursor()
 
 	forward := true
 	skip := true
@@ -619,18 +591,11 @@ func (rl *Instance) viFindNextCharSkip() {
 func (rl *Instance) viFindPrevChar() {
 	rl.viUndoSkipAppend = true
 
-	rl.enterVioppMode("")
-	rl.updateCursor()
-
 	// Read the argument key to use as a pattern to search
-	key, esc := rl.readArgumentKey()
+	key, esc := rl.readOperator(true)
 	if esc {
-		rl.exitVioppMode()
-		rl.updateCursor()
 		return
 	}
-	rl.exitVioppMode()
-	rl.updateCursor()
 
 	forward := false
 	skip := false
@@ -642,18 +607,11 @@ func (rl *Instance) viFindPrevChar() {
 func (rl *Instance) viFindPrevCharSkip() {
 	rl.viUndoSkipAppend = true
 
-	rl.enterVioppMode("")
-	rl.updateCursor()
-
 	// Read the argument key to use as a pattern to search
-	key, esc := rl.readArgumentKey()
+	key, esc := rl.readOperator(true)
 	if esc {
-		rl.exitVioppMode()
-		rl.updateCursor()
 		return
 	}
-	rl.exitVioppMode()
-	rl.updateCursor()
 
 	forward := false
 	skip := true
@@ -928,19 +886,11 @@ func (rl *Instance) viFirstNonBlank() {
 }
 
 func (rl *Instance) viAddSurround() {
-	rl.enterVioppMode("")
-	rl.updateCursor()
-
-	key, esc := rl.readArgumentKey()
+	key, esc := rl.readOperator(true)
 	if esc {
-		rl.exitVioppMode()
-		rl.updateCursor()
 		rl.viUndoSkipAppend = true
 		return
 	}
-
-	rl.exitVioppMode()
-	rl.updateCursor()
 
 	// Surround the selection
 	bpos, epos, _ := rl.getSelection()
@@ -992,18 +942,10 @@ func (rl *Instance) viChange() {
 
 	// Otherwise, we have to read first key, which
 	// is either a navigation or selection widget.
-	rl.enterVioppMode("")
-	rl.updateCursor()
-
-	// Read the argument key to use as a pattern to search
-	key, esc := rl.readArgumentKey()
+	key, esc := rl.readOperator(true)
 	if esc {
-		rl.exitVioppMode()
-		rl.updateCursor()
 		return
 	}
-	rl.exitVioppMode()
-	rl.updateCursor()
 
 	// Find the widget
 	action, found := changeMovements[key]
@@ -1041,16 +983,9 @@ func (rl *Instance) viChange() {
 
 func (rl *Instance) viChangeSurround() {
 	rl.viUndoSkipAppend = true
-	rl.enterVioppMode("")
-	rl.updateCursor()
-
-	defer func() {
-		rl.exitVioppMode()
-		rl.updateCursor()
-	}()
 
 	// Read a key as a rune to search for
-	key, esc := rl.readArgumentKey()
+	key, esc := rl.readOperator(true)
 	if esc {
 		return
 	}
@@ -1070,7 +1005,7 @@ func (rl *Instance) viChangeSurround() {
 	defer func() { rl.resetRegions() }()
 
 	// Now read another key.
-	key, esc = rl.readArgumentKey()
+	key, esc = rl.readOperator(true)
 	if esc {
 		return
 	}
@@ -1099,18 +1034,11 @@ func (rl *Instance) viSelectSurround() {
 	}
 
 	if len(rl.keys) == 0 {
-		rl.enterVioppMode("")
-		rl.updateCursor()
-
 		// Read a key as a rune to search for
-		key, esc := rl.readArgumentKey()
+		key, esc := rl.readOperator(true)
 		if esc {
-			rl.exitVioppMode()
-			rl.updateCursor()
 			return
 		}
-		rl.exitVioppMode()
-		rl.updateCursor()
 		rl.keys += key
 	}
 
