@@ -188,7 +188,6 @@ func (rl *Instance) viKillEol() {
 	}
 	rl.addIteration("")
 	rl.resetHelpers()
-	rl.updateHelpers()
 }
 
 func (rl *Instance) viChangeEol() {

@@ -66,6 +66,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 	return widgets
 }
 
+// selfInsert inserts the given rune into the input line at the current cursor position.
 func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error) {
 	rl.viUndoSkipAppend = true
 
@@ -117,9 +118,6 @@ func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error)
 	}
 
 	rl.pos += len(r)
-
-	// This should also update the rl.pos
-	rl.updateHelpers()
 
 	return
 }
@@ -224,7 +222,6 @@ func (rl *Instance) killLine() {
 	rl.saveBufToRegister(rl.line[rl.pos-1:])
 	rl.line = rl.line[:rl.pos]
 	rl.resetHelpers()
-	rl.updateHelpers()
 	rl.addIteration("")
 }
 
@@ -244,7 +241,6 @@ func (rl *Instance) backwardKillWord() {
 
 	rl.saveToRegister(rl.viJumpB(tokeniseLine))
 	rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
-	rl.updateHelpers()
 }
 
 func (rl *Instance) killWord() {
@@ -261,7 +257,6 @@ func (rl *Instance) yank() {
 	rl.viUndoSkipAppend = true
 	buffer := rl.pasteFromRegister()
 	rl.insert(buffer)
-	rl.updateHelpers()
 }
 
 func (rl *Instance) backwardDeleteChar() {
