@@ -129,7 +129,7 @@ var visualKeys = keymap{
 	"s":  "vi-substitute",
 	"S":  "vi-add-surround",
 	"a":  "vi-select-surround",
-	"c":  "vi-change", // SPECIAL HANDLER ?
+	"c":  "vi-change",
 	"d":  "vi-delete",
 	"i":  "vi-select-surround",
 	"j":  "down-line", // Not sure since no multiline
@@ -151,7 +151,7 @@ var changeMovements = map[string]string{
 	"$": "vi-end-of-line",
 	"%": "vi-match-bracket",
 	"^": "vi-first-non-blank",
-	"0": "beginning-of-line", // not caught by readkeys function.
+	"0": "beginning-of-line",
 	"b": "vi-backward-word",
 	"B": "vi-backward-blank-word",
 	"w": "vi-forward-word",
@@ -168,8 +168,4 @@ var changeMovements = map[string]string{
 	"s": "vi-change-surround",
 	"a": "vi-select-surround",
 	"i": "vi-select-surround",
-}
-
-func lolg() {
-	println("test with sentencs and quotes")
 }

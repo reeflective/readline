@@ -488,31 +488,16 @@ func (rl *Instance) setMarkCommand() {
 	vii := rl.getViIterations()
 	switch {
 	case vii < 0:
-		rl.mark = -1
-		rl.activeRegion = false
+		rl.resetSelection()
 		rl.visualLine = false
 	default:
-		rl.mark = rl.pos
-		rl.activeRegion = true
+		rl.markSelection(rl.pos)
 	}
 }
 
 func (rl *Instance) quoteRegion() {
-	bpos, epos, cpos := rl.getSelection()
-	selection := string(rl.line[bpos:epos])
-	begin := string(rl.line[:bpos])
-	end := string(rl.line[epos:])
-	quoted := "'" + selection + "'"
-
-	newLine := append([]rune(begin), []rune(quoted)...)
-	newLine = append(newLine, []rune(end)...)
-	rl.line = newLine
+	_, cpos := rl.insertSelection("'")
 	rl.pos = cpos + 1
-
-	if rl.activeRegion {
-		rl.activeRegion = false
-		rl.mark = -1
-	}
 }
 
 func (rl *Instance) quoteLine() {
@@ -624,23 +609,14 @@ func (rl *Instance) downCaseWord() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.mark = rl.pos
-	rl.activeRegion = true
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	bpos, epos, _ := rl.getSelection()
-	word := string(rl.line[bpos:epos])
+
+	word, bpos, epos, _ := rl.popSelection()
 	word = strings.ToLower(word)
+	rl.insertBlock(bpos, epos, word, "")
 
-	begin := string(rl.line[:bpos])
-	end := string(rl.line[epos:])
-
-	newLine := append([]rune(begin), []rune(word)...)
-	newLine = append(newLine, []rune(end)...)
-
-	rl.line = newLine
 	rl.pos = posInit
-	rl.mark = -1
-	rl.activeRegion = false
 }
 
 func (rl *Instance) upCaseWord() {
@@ -648,23 +624,14 @@ func (rl *Instance) upCaseWord() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.mark = rl.pos
-	rl.activeRegion = true
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	bpos, epos, _ := rl.getSelection()
-	word := string(rl.line[bpos:epos])
+
+	word, bpos, epos, _ := rl.popSelection()
 	word = strings.ToUpper(word)
+	rl.insertBlock(bpos, epos, word, "")
 
-	begin := string(rl.line[:bpos])
-	end := string(rl.line[epos:])
-
-	newLine := append([]rune(begin), []rune(word)...)
-	newLine = append(newLine, []rune(end)...)
-
-	rl.line = newLine
 	rl.pos = posInit
-	rl.mark = -1
-	rl.activeRegion = false
 }
 
 func (rl *Instance) transposeWords() {
@@ -674,13 +641,10 @@ func (rl *Instance) transposeWords() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.mark = rl.pos
-	rl.activeRegion = true
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	tbpos, tepos, _ := rl.getSelection()
-	toTranspose := string(rl.line[tbpos:tepos])
-	rl.mark = -1
-	rl.activeRegion = false
+
+	toTranspose, tbpos, tepos, _ := rl.popSelection()
 
 	// First move the number of words
 	vii := rl.getViIterations()
@@ -689,13 +653,10 @@ func (rl *Instance) transposeWords() {
 	}
 
 	// Save the word to transpose with
-	rl.mark = rl.pos
-	rl.activeRegion = true
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	wbpos, wepos, _ := rl.getSelection()
-	transposeWith := string(rl.line[wbpos:wepos])
-	rl.mark = -1
-	rl.activeRegion = false
+
+	transposeWith, wbpos, wepos, _ := rl.popSelection()
 
 	// Assemble the newline
 	begin := string(rl.line[:wbpos])
@@ -724,22 +685,12 @@ func (rl *Instance) copyRegionAsKill() {
 
 func (rl *Instance) copyPrevWord() {
 	posInit := rl.pos
-	rl.mark = rl.pos
-	rl.activeRegion = true
+
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	bpos, epos, _ := rl.getSelection()
-	word := string(rl.line[bpos:epos])
-	rl.mark = -1
-	rl.activeRegion = false
-
-	begin := string(rl.line[:epos])
-	end := string(rl.line[epos:])
-	newLine := append([]rune(begin), []rune(word)...)
-	newLine = append(newLine, []rune(end)...)
-	rl.line = newLine
-
-	rl.pos = posInit + len(word)
+	wlen, _ := rl.insertSelection("")
+	rl.pos = posInit + wlen
 }
 
 func (rl *Instance) copyPrevShellWord() {
@@ -754,30 +705,19 @@ func (rl *Instance) copyPrevShellWord() {
 
 	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
 	if mark == -1 && cpos == -1 {
-		rl.mark = rl.pos
+		rl.markSelection(rl.pos)
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
 	} else {
-		rl.mark = mark
+		rl.markSelection(mark)
 		rl.pos = cpos
 	}
 
-	rl.activeRegion = true
-
-	// Now that we have a selection, copy the word
-	bpos, epos, _ := rl.getSelection()
-	word := string(rl.line[bpos:epos])
-	rl.mark = -1
-	rl.activeRegion = false
+	word, _, _, _ := rl.popSelection()
 
 	// Replace the cursor before reassembling the line.
 	rl.pos = posInit
 
-	begin := string(rl.line[:rl.pos])
-	end := string(rl.line[rl.pos:])
-	newLine := append([]rune(begin), []rune(word)...)
-	newLine = append(newLine, []rune(end)...)
-	rl.line = newLine
-
+	rl.insertBlock(rl.pos, rl.pos, word, "")
 	rl.pos += len(word)
 }
 

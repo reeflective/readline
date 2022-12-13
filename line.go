@@ -13,9 +13,7 @@ func (rl *Instance) initLine() {
 	rl.pos = 0
 	rl.posY = 0
 
-	// Selection
-	rl.mark = -1
-	rl.activeRegion = false
+	rl.resetSelection()
 
 	// Highlighting
 	rl.resetRegions()
@@ -290,4 +288,38 @@ func (rl *Instance) deleteToBeginning() {
 	// Keep the line length up until the cursor
 	rl.line = rl.line[rl.pos:]
 	rl.pos = 0
+}
+
+// substrPos gets the index pos of a char in the input line, starting
+// from cursor, either backward or forward. Returns -1 if not found.
+func (rl *Instance) substrPos(r rune, forward bool) (pos int) {
+	pos = -1
+	initPos := rl.pos
+
+	rl.findAndMoveCursor(string(r), 1, forward, false)
+
+	if rl.pos != initPos {
+		pos = rl.pos
+		rl.pos = initPos
+	}
+
+	return
+}
+
+// lineSlice returns a subset of the current input line.
+func (rl *Instance) lineSlice(adjust int) (slice string) {
+	switch {
+	case rl.pos+adjust > len(rl.line):
+		slice = string(rl.line[rl.pos:])
+	case adjust < 0:
+		if rl.pos+adjust < 0 {
+			slice = string(rl.line[:rl.pos])
+		} else {
+			slice = string(rl.line[rl.pos+adjust : rl.pos])
+		}
+	default:
+		slice = string(rl.line[rl.pos : rl.pos+adjust])
+	}
+
+	return
 }

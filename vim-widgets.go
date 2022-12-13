@@ -277,7 +277,7 @@ func (rl *Instance) viReplaceChars() {
 
 	// In visual mode, we replace all chars of the selection
 	if rl.activeRegion || rl.local == visual {
-		bpos, epos, _ := rl.getSelection()
+		bpos, epos, _ := rl.getSelectionPos()
 		for i := bpos; i < epos; i++ {
 			rl.line[i] = []rune(key)[0]
 		}
@@ -488,9 +488,7 @@ func (rl *Instance) viYank() {
 
 	// We set the initial mark, so that when executing this
 	// widget back after the argument, we have a selection.
-	// rl.enterVisualMode()
-	rl.mark = rl.pos
-	rl.activeRegion = true
+	rl.markSelection(rl.pos)
 }
 
 func (rl *Instance) viYankWholeLine() {
@@ -643,6 +641,8 @@ func (rl *Instance) viDelete() {
 		return
 	}
 
+	rl.viUndoSkipAppend = true
+
 	// Else if we are actually starting a yank action. We need an argument:
 	// Enter operator pending mode for the next key to be considered this
 	// argument (more precisely, the widget to be executed before this argument).
@@ -651,9 +651,7 @@ func (rl *Instance) viDelete() {
 
 	// We set the initial mark, so that when executing this
 	// widget back after the argument, we have a selection.
-	rl.mark = rl.pos
-	rl.activeRegion = true
-	rl.viUndoSkipAppend = true
+	rl.markSelection(rl.pos)
 }
 
 func (rl *Instance) viDigitOrBeginningOfLine() {
@@ -676,6 +674,7 @@ func (rl *Instance) viSelectABlankWord() {
 	rl.pos++
 	rl.viBackwardBlankWord()
 	if rl.local == visual || rl.local == viopp {
+		rl.markSelection(rl.pos)
 		rl.mark = rl.pos
 	}
 
@@ -683,7 +682,6 @@ func (rl *Instance) viSelectABlankWord() {
 	rl.viForwardBlankWord()
 	if rl.local == visual || rl.local == viopp {
 		rl.pos--
-		rl.activeRegion = true
 	}
 }
 
@@ -703,10 +701,8 @@ func (rl *Instance) viSelectAShellWord() {
 	}
 
 	// Else set the region inside those quotes
-	rl.mark = mark
+	rl.markSelection(mark)
 	rl.pos = cpos
-
-	rl.activeRegion = true
 }
 
 func (rl *Instance) viSelectAWord() {
@@ -716,14 +712,13 @@ func (rl *Instance) viSelectAWord() {
 	rl.pos++
 	rl.viBackwardWord()
 	if rl.local == visual || rl.local == viopp {
-		rl.mark = rl.pos
+		rl.markSelection(rl.pos)
 	}
 
 	// Then go to the end of the blank word
 	rl.viForwardWord()
 	if rl.local == visual || rl.local == viopp {
 		rl.pos--
-		rl.activeRegion = true
 	}
 }
 
@@ -734,14 +729,11 @@ func (rl *Instance) viSelectInBlankWord() {
 	rl.pos++
 	rl.viBackwardBlankWord()
 	if rl.local == visual || rl.local == viopp {
-		rl.mark = rl.pos
+		rl.markSelection(rl.pos)
 	}
 
 	// Then go to the end of the blank word
 	rl.viForwardBlankWordEnd()
-	if rl.local == visual || rl.local == viopp {
-		rl.activeRegion = true
-	}
 }
 
 func (rl *Instance) viSelectInShellWord() {
@@ -759,10 +751,8 @@ func (rl *Instance) viSelectInShellWord() {
 	}
 
 	// Else set the region inside those quotes
-	rl.mark = mark + 1
+	rl.markSelection(mark + 1)
 	rl.pos = cpos - 1
-
-	rl.activeRegion = true
 }
 
 func (rl *Instance) viSelectInWord() {
@@ -771,14 +761,11 @@ func (rl *Instance) viSelectInWord() {
 	rl.pos++
 	rl.viBackwardWord()
 	if rl.local == visual || rl.local == viopp {
-		rl.mark = rl.pos
+		rl.markSelection(rl.pos)
 	}
 
 	// Then go to the end of the blank word
 	rl.viForwardWordEnd()
-	if rl.local == visual || rl.local == viopp {
-		rl.activeRegion = true
-	}
 }
 
 func (rl *Instance) viGotoColumn() {
@@ -799,7 +786,7 @@ func (rl *Instance) viSwapCase() {
 	if rl.local == visual {
 		posInit := rl.pos
 
-		bpos, epos, _ := rl.getSelection()
+		bpos, epos, _ := rl.getSelectionPos()
 		rl.resetSelection()
 		rl.pos = bpos
 
@@ -837,7 +824,7 @@ func (rl *Instance) viOperSwapCase() {
 	if rl.activeRegion || rl.local == visual {
 		posInit := rl.pos
 
-		bpos, epos, cpos := rl.getSelection()
+		bpos, epos, cpos := rl.getSelectionPos()
 		rl.resetSelection()
 		rl.pos = bpos
 
@@ -865,8 +852,7 @@ func (rl *Instance) viOperSwapCase() {
 	// We set the initial mark, so that when executing this
 	// widget back after the argument, we have a selection.
 	// rl.enterVisualMode()
-	rl.mark = rl.pos
-	rl.activeRegion = true
+	rl.markSelection(rl.pos)
 }
 
 func (rl *Instance) viFirstNonBlank() {
@@ -887,17 +873,7 @@ func (rl *Instance) viAddSurround() {
 	}
 
 	// Surround the selection
-	bpos, epos, _ := rl.getSelection()
-	selection := string(rl.line[bpos:epos])
-	selection = key + selection + key
-	rl.resetSelection()
-
-	// Assemble
-	begin := string(rl.line[:bpos])
-	end := string(rl.line[epos:])
-	newLine := append([]rune(begin), []rune(selection)...)
-	newLine = append(newLine, []rune(end)...)
-	rl.line = newLine
+	rl.insertSelection(key)
 
 	// This only has an effect when we are in visual mode.
 	rl.exitVisualMode()
@@ -961,8 +937,7 @@ func (rl *Instance) viChange() {
 	}
 
 	// Before running the widget, set the mark
-	rl.mark = rl.pos
-	rl.activeRegion = true
+	rl.markSelection(rl.pos)
 
 	// Run the widget. We don't care about return values
 	widget([]rune(key))
@@ -1049,9 +1024,8 @@ func (rl *Instance) viSelectSurround() {
 		epos++
 	}
 
-	rl.mark = bpos
+	rl.markSelection(bpos)
 	rl.pos = epos - 1
-	rl.activeRegion = true
 }
 
 func (rl *Instance) viSetMark() {
