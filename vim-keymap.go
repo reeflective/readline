@@ -30,7 +30,9 @@ var viinsKeys = keymap{
 	"^[[1;5D": "backward-word",
 	"^[[A":    "up-line-or-search",   // TODO
 	"^[[B":    "down-line-or-select", // TODO
-	// " ":       "magic-space",
+	" ":       "space",
+	"[!-~]":   "self-insert", // Any non-empty, non-modified key (no control sequences)
+	// `[^\-^^]`: "self-insert",
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode
@@ -102,6 +104,9 @@ var vicmdKeys = keymap{
 	"|":    "vi-goto-column",
 	"~":    "vi-swap-case",
 	"g~":   "vi-oper-swap-case",
+
+	`[1-9]`: "digit-argument",
+	// 	`^([1-9]{1})$`: "digit-argument",
 }
 
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode
@@ -139,10 +144,6 @@ var visualKeys = keymap{
 	"x":  "vi-delete",
 	"y":  "vi-yank",
 	"~":  "vi-swap-case",
-}
-
-var vicmdSpecialKeymaps = keymap{
-	`^([1-9]{1})$`: "digit-argument",
 }
 
 // changeMovements is used for some widgets that only

@@ -671,14 +671,14 @@ func (rl *Instance) viSelectABlankWord() {
 
 	// Go the beginning of the word and start mark
 	rl.pos++
-	rl.viBackwardBlankWord()
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
 	if rl.local == visual || rl.local == viopp {
 		rl.markSelection(rl.pos)
 		rl.mark = rl.pos
 	}
 
 	// Then go to the end of the blank word
-	rl.viForwardBlankWord()
+	rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces))
 	if rl.local == visual || rl.local == viopp {
 		rl.pos--
 	}
@@ -709,13 +709,13 @@ func (rl *Instance) viSelectAWord() {
 
 	// Go the beginning of the word and start mark
 	rl.pos++
-	rl.viBackwardWord()
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	if rl.local == visual || rl.local == viopp {
 		rl.markSelection(rl.pos)
 	}
 
 	// Then go to the end of the blank word
-	rl.viForwardWord()
+	rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
 	if rl.local == visual || rl.local == viopp {
 		rl.pos--
 	}
@@ -726,13 +726,13 @@ func (rl *Instance) viSelectInBlankWord() {
 
 	// Go the beginning of the word and start mark
 	rl.pos++
-	rl.viBackwardBlankWord()
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
 	if rl.local == visual || rl.local == viopp {
 		rl.markSelection(rl.pos)
 	}
 
 	// Then go to the end of the blank word
-	rl.viForwardBlankWordEnd()
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
 }
 
 func (rl *Instance) viSelectInShellWord() {
@@ -758,13 +758,13 @@ func (rl *Instance) viSelectInWord() {
 	rl.viUndoSkipAppend = true
 	// Go the beginning of the word and start mark
 	rl.pos++
-	rl.viBackwardWord()
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	if rl.local == visual || rl.local == viopp {
 		rl.markSelection(rl.pos)
 	}
 
 	// Then go to the end of the blank word
-	rl.viForwardWordEnd()
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 }
 
 func (rl *Instance) viGotoColumn() {

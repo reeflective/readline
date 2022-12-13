@@ -1,12 +1,5 @@
 package readline
 
-import (
-	"bytes"
-	"regexp"
-
-	"github.com/reiver/go-caret"
-)
-
 // keymapMode is a root keymap mode for the shell.
 // To each of these keymap modes is bound a keymap.
 type keymapMode string
@@ -14,11 +7,6 @@ type keymapMode string
 // keymap maps a key (either in caret or hex notation)
 // to the name of the widget to run when key is pressed.
 type keymap map[string]string
-
-// widgets maps keys (either in caret or hex notation) to an EventCallback,
-// which wraps the corresponding widget for this key. Those widgets maps are
-// built at start/config reload time.
-type widgets map[string]EventCallback
 
 // These are the root keymaps used in the readline shell.
 // Their functioning is similar to how ZSH organizes keymaps.
@@ -29,60 +17,11 @@ const (
 	vicmd  keymapMode = "vicmd"
 	viopp  keymapMode = "viopp"
 	visual keymapMode = "visual"
+
 	// Completion and search
 	isearch    keymapMode = "isearch"
 	menuselect keymapMode = "menuselect"
 )
-
-// These handlers are mostly (if not only) used in the main readline loop (entrypoint)
-// and are thus the first dispatcher used when receiving a key sequence.
-// Thus, they are the only handlers that can tell the shell either to keep
-// reading input, or to return the entire line to the readline caller.
-//
-// These handlers return the following values:
-// @read =>     read the next character at the input line
-// @return =>   Return the line read before starting a new readline loop
-// @val    =>   The string returned to the readline caller, generally the line input, or nothing.
-// @error =>    Any error caught, generally those returned on signals like CtrlC
-type lineWidget func(r []rune) (bool, bool, string, error)
-
-// loadKeymapWidgets is ran once at the beginning of an instance start.
-// It is in charge of setting the configured/default input mode, which will
-// have an effect on which and how subsequent keymaps will be interpreted.
-func (rl *Instance) loadKeymapWidgets() {
-	rl.widgets = make(map[keymapMode]widgets)
-
-	// Since the key might be in caret notation, we decode the key
-	// first, so that when we can match the key as detected by the
-	// shell (in ASCII notation).
-	b := new(bytes.Buffer)
-	decoder := caret.Decoder{Writer: b}
-
-	// And for each keymap, initialize the widget
-	// map and load the widgets into it.
-	for mode, km := range rl.config.Keymaps {
-		keymapWidgets := make(widgets)
-		for key, widget := range km {
-
-			// First decode the key, if in caret notation.
-			if _, err := decoder.Write([]byte(key)); err == nil {
-				key = b.String()
-				b.Reset()
-			}
-
-			// And use the potentially decoded key to map the widget.
-			rl.bindWidget(key, widget, &keymapWidgets)
-		}
-		rl.widgets[mode] = keymapWidgets
-	}
-
-	switch rl.config.InputMode {
-	case Emacs:
-		rl.main = emacs
-	case Vim:
-		rl.main = viins
-	}
-}
 
 // initKeymap ensures that all keymaps are set
 // at the beginning of a readline run loop.
@@ -111,14 +50,6 @@ func (rl *Instance) updateKeymaps() {
 		rl.main = emacs
 	}
 
-	// And set the special regexp keymap according to the main one.
-	switch rl.main {
-	case emacs:
-		rl.specialKeymap = emacsSpecialKeymaps
-	case vicmd, viins:
-		rl.specialKeymap = vicmdSpecialKeymaps
-	}
-
 	// When matching a widget, we need to know if the shell was in operator
 	// pending mode before trying to match the key against our keymaps.
 	rl.viopp = rl.local == viopp
@@ -126,8 +57,8 @@ func (rl *Instance) updateKeymaps() {
 
 // matchKeymap checks if the provided key matches a precise widget, or if only a prefix
 // is matched. When only a prefix is matched, the shell keeps reading for another key.
-func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback, prefix bool) {
-	if kmode == "" {
+func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, prefix bool) {
+	if mode == "" {
 		return nil, false
 	}
 
@@ -140,52 +71,28 @@ func (rl *Instance) matchKeymap(key string, kmode keymapMode) (cb EventCallback,
 	}
 
 	// Get all widgets matched by the key, either exactly or by prefix.
-	matchWidgets := rl.widgets[kmode]
-	filtered := findBindkeyWidget(key, matchWidgets)
+	matchWidgets := rl.widgetsA[mode]
+	cb, prefixed := rl.matchWidgets(key, matchWidgets)
 
 	// When we have absolutely no matching widget for the keys,
 	// we either return, or if we have a perfectly matching one
 	// waiting for an input, we execute it.
-	if len(filtered) == 0 {
-		if rl.prefixMatchedWidget != nil {
-			cb = rl.prefixMatchedWidget
-			rl.keys = key
-			rl.prefixMatchedWidget = nil
-		}
+	if cb == nil && len(prefixed) == 0 {
+		cb = rl.prefixMatchedWidget
+		rl.prefixMatchedWidget = nil
+
 		return
 	}
 
 	// Or several matches, in which case we must read another key.
 	// If any widget perfectly matches the key, save it, so that
-	// the next key, if not matching any widget, is passed as
-	// argument to this one.
-	if len(filtered) > 1 {
-		rl.prefixMatchedWidget = matchWidgets[key]
+	// the next key, if not matching any of those prefix-matched
+	// widgets, is passed as argument to this one.
+	if cb != nil && len(prefixed) > 0 {
+		rl.prefixMatchedWidget = cb
 		return nil, true
 	}
 
-	// Or only one, but we might only have prefix,
-	// in which case the widget is still empty.
-	if cb = getWidgetMatch(key, filtered); cb == nil {
-		return nil, true
-	}
-
-	return
-}
-
-// matchRegexKeymap sequentially tests for a matching regexp in the special keymap
-func (rl *Instance) matchRegexKeymap(key string) (widget string) {
-	for regex, widget := range rl.specialKeymap {
-
-		matcher, err := regexp.Compile(regex)
-		if err != nil {
-			continue
-		}
-
-		if match := matcher.MatchString(key); match {
-			return widget
-		}
-	}
-
+	// We either have a single widget callback, or nothing.
 	return
 }

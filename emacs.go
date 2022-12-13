@@ -61,6 +61,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 		"kill-region":                    rl.killRegion,
 		"redo":                           rl.redo,
 		"switch-keyword":                 rl.switchKeyword,
+		"space":                          rl.space,
 	}
 
 	return widgets
@@ -860,3 +861,8 @@ func (rl *Instance) acceptAndDownHistory() {
 // 	"^[z":     "execute-last-named-cmd",
 // func (rl *Instance) executeLastNamedCmd() {
 // }
+
+// space has different behavior depending on the modes we're currently in.
+func (rl *Instance) space() {
+	rl.selfInsert([]rune(rl.keys))
+}

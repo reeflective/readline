@@ -101,15 +101,12 @@ var emacsKeys = keymap{
 	// "^[x": "execute-named-cmd",
 	// "^[y":     "yank-pop",
 	// "^[z":  "execute-last-named-cmd",
-	"^[|":  "vi-goto-column",
-	"^[^?": "backward-kill-word",
-	"^_":   "undo",
-	// " ": "magic-space",
-	// "!"-"~": "self-insert",
-	"^?": "backward-delete-char",
-	// "\M-^@"-"\M-^?": "self-insert",
-}
-
-var emacsSpecialKeymaps = keymap{
+	"^[|":              "vi-goto-column",
+	"^?":               "backward-delete-char",
+	"^[^?":             "backward-kill-word",
+	"^_":               "undo",
+	" ":                "space",
+	"[!-~]":            "self-insert", // Any non-empty, non-modified key (no control sequences)
 	`^\^\[([0-9]{1})$`: "digit-argument",
+	// "\M-^@"-"\M-^?": "self-insert",
 }

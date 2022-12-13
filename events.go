@@ -1,5 +1,13 @@
 package readline
 
+import (
+	"bytes"
+	"regexp"
+	"strings"
+
+	"github.com/reiver/go-caret"
+)
+
 // EventCallback is a function that is called with a given key input (as typed by the user in the shell),
 // to which is passed the current line and the current cursor position on this line.
 // It returns an EventReturn, which specifies a target state (new line/cursor position, exit state, etc).
@@ -48,16 +56,20 @@ type EventReturn struct {
 // It accepts an optional list of keymap modes for which to register the handler (eg. Vim visual/cmd/insert,
 // emacs, completion, history, etc). If no list is passed, the event callback is mapped to all main keymaps
 // of the shell, which is either emacs (in Emacs input mode), or viins/vicmd (in Vim input mode).
-func (rl *Instance) AddEvent(keyPress string, callback EventCallback, keymaps ...keymapMode) {
+func (rl *Instance) AddEvent(key string, callback EventCallback, keymaps ...keymapMode) {
 	if len(keymaps) == 0 {
 		keymaps = append(keymaps, emacs)
 		keymaps = append(keymaps, viins)
 	}
 
+	// Prepare the caret decoder to be used.
+	b := new(bytes.Buffer)
+	decoder := caret.Decoder{Writer: b}
+
 	// Add the callback to all keymaps
 	for _, mode := range keymaps {
-		if widgets, found := rl.widgets[mode]; found {
-			widgets[keyPress] = callback
+		if widgets, found := rl.widgetsA[mode]; found {
+			rl.bindWidget(key, "", &widgets, decoder, b)
 		}
 	}
 }
@@ -67,17 +79,34 @@ func (rl *Instance) AddEvent(keyPress string, callback EventCallback, keymaps ..
 // If this list is empty (or not passed), the bindkey handler is deregistered
 // of all keymaps in which it is present. If the list is not empty, the bindkey
 // handler is only deregistered from those keymaps, if it is found in them.
-func (rl *Instance) DelEvent(keyPress string, keymaps ...keymapMode) {
+func (rl *Instance) DelEvent(key string, keymaps ...keymapMode) {
 	if len(keymaps) == 0 {
 		for mode := range rl.config.Keymaps {
 			keymaps = append(keymaps, mode)
 		}
 	}
 
+	// Decode the key
+	b := new(bytes.Buffer)
+	decoder := caret.Decoder{Writer: b}
+
+	// Only decode the keys if the keybind is not a regexp expression
+	if !strings.HasPrefix(key, "[") || !strings.HasSuffix(key, "]") {
+		if _, err := decoder.Write([]byte(key)); err == nil {
+			key = b.String()
+			b.Reset()
+		}
+	}
+
+	reg, err := regexp.Compile(key)
+	if err != nil || reg == nil {
+		return
+	}
+
 	// Remove the callback from all keymaps
 	for _, mode := range keymaps {
-		if widgets, found := rl.widgets[mode]; found {
-			delete(widgets, keyPress)
+		if widgets, found := rl.widgetsA[mode]; found {
+			delete(widgets, reg)
 		}
 	}
 }

@@ -28,7 +28,7 @@ type Instance struct {
 	// Widgets implementations are wrapped into EventCallbacks at bind time, and for each
 	// of the keys in our keymap (mapping to a widget name), the corresponding wrapped widget
 	// is bound into this widget map.
-	widgets map[keymapMode]widgets
+	widgetsA map[keymapMode]widgets
 
 	// prefixMatchedWidget is a widget that perfectly matched a given input key, but was also
 	// found along other widgets matching the key only as prefix. This is used so that when reading
@@ -195,7 +195,7 @@ func NewInstance() *Instance {
 	rl.Prompt.compute(rl)
 
 	rl.loadDefaultConfig()
-	rl.loadKeymapWidgets()
+	rl.bindWidgets()
 	rl.loadInterruptHandlers()
 
 	rl.initLine()
