@@ -93,6 +93,12 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 		return nil, true
 	}
 
+	// If we have a non-empty list of prefix-matched widgets,
+	// we must keep reading a key as well.
+	if len(prefixed) > 0 {
+		return nil, true
+	}
+
 	// We either have a single widget callback, or nothing.
 	return
 }

@@ -127,8 +127,12 @@ func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val stri
 
 // bindWidget wraps a widget into an EventCallback and binds it to the corresponding keymap.
 func (rl *Instance) bindWidget(key, widget string, km *widgets, decoder caret.Decoder, b *bytes.Buffer) {
-	// Only decode the keys if the keybind is not a regexp expression
-	if !strings.HasPrefix(key, "[") || !strings.HasSuffix(key, "]") {
+	// When the key is a regular expression range, we add some metacharacters
+	// to force the regex to match the entire string that we will give later.
+	if strings.HasPrefix(key, "[") && strings.HasSuffix(key, "]") {
+		key = "^" + key + "$"
+	} else {
+		// Or decode the key in case its in caret notation.
 		if _, err := decoder.Write([]byte(key)); err == nil {
 			key = b.String()
 			b.Reset()
@@ -208,7 +212,7 @@ func (rl *Instance) matchWidgets(key string, wids widgets) (cb EventCallback, al
 			continue
 		}
 
-		// If the match is perfect, then we have a default callback to use.
+		// If the match is perfect, then we have a default callback to use/store.
 		if match == reg.String() && len(key) == len(reg.String()) {
 			cb = widget
 			continue
