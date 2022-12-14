@@ -79,6 +79,17 @@ func (rl *Instance) computeLine() {
 
 // computeCursorPos determines the X and Y coordinates of the cursor.
 func (rl *Instance) computeCursorPos() {
+	// First, ensure the cursor position on the line itself is good.
+	if rl.pos < 0 {
+		rl.pos = 0
+	} else if rl.pos > len(rl.line) {
+		rl.pos = len(rl.line)
+	}
+
+	// In Vim command mode, the cursor must be on the last character
+	if rl.main == vicmd && rl.pos == len(rl.line) && rl.pos > 0 {
+		rl.pos--
+	}
 }
 
 // printLine - refresh the current input line, either virtually completed or not.
@@ -133,6 +144,8 @@ func (rl *Instance) printLine() {
 			}
 		}
 	}
+
+	rl.computeCursorPos()
 
 	// Update references with new coordinates only now, because
 	// the new line may be longer/shorter than the previous one.
@@ -241,8 +254,6 @@ func (rl *Instance) deletex() {
 	default:
 		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
 	}
-
-	rl.updateHelpers()
 }
 
 func (rl *Instance) deleteX() {
@@ -260,27 +271,6 @@ func (rl *Instance) deleteX() {
 		rl.pos--
 		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
 	}
-
-	rl.updateHelpers()
-}
-
-func (rl *Instance) deleteBackspace() {
-	switch {
-	case len(rl.line) == 0:
-		return
-	case rl.pos == 0:
-		return
-	case rl.pos > len(rl.line):
-		rl.backspace() // There is an infite loop going on here...
-	case rl.pos == len(rl.line):
-		rl.pos--
-		rl.line = rl.line[:rl.pos]
-	default:
-		rl.pos--
-		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
-	}
-
-	rl.updateHelpers()
 }
 
 func (rl *Instance) deleteToBeginning() {

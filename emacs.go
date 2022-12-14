@@ -291,23 +291,20 @@ func (rl *Instance) deleteChar() {
 	for i := 1; i <= vii; i++ {
 		rl.deletex()
 	}
-	if rl.pos == len(rl.line) && len(rl.line) > 0 {
-		rl.pos--
-	}
 }
 
 func (rl *Instance) forwardChar() {
+	rl.skipUndoAppend()
 	if rl.pos < len(rl.line) {
 		rl.pos++
 	}
-	rl.skipUndoAppend()
 }
 
 func (rl *Instance) backwardChar() {
+	rl.skipUndoAppend()
 	if rl.pos > 0 {
 		rl.pos--
 	}
-	rl.skipUndoAppend()
 }
 
 func (rl *Instance) forwardWord() {
@@ -445,13 +442,9 @@ func (rl *Instance) inferNextHistory() {
 
 	rl.line = []rune(nextLine)
 	rl.pos = len(nextLine)
-	// TODO: How to adjust conditionally on keymap ? Many widgets need this.
-	// if rl.pos > 0 {
-	// 	rl.pos--
-	// }
 }
 
-// TODO: Find a way to catch on other keymaps ? How and when to exit the mode if not with escape ?
+// TODO: Find a way to catch-on-test other keymaps ? How and when to exit the mode if not with escape ?
 func (rl *Instance) overwriteMode() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
@@ -556,9 +549,6 @@ func (rl *Instance) beginningOfBufferOrHistory() {
 		rl.clearLine()
 		rl.line = []rune(new)
 		rl.pos = len(rl.line)
-		if rl.pos > 0 {
-			rl.pos--
-		}
 
 		return
 	}
@@ -592,9 +582,6 @@ func (rl *Instance) endOfBufferOrHistory() {
 		rl.clearLine()
 		rl.line = []rune(new)
 		rl.pos = len(rl.line)
-		if rl.pos > 0 {
-			rl.pos--
-		}
 		return
 	}
 

@@ -77,6 +77,8 @@ var vicmdKeys = keymap{
 	"D":     "vi-kill-eol",
 	"e":     "vi-forward-word-end",
 	"E":     "vi-forward-blank-word-end",
+	"ge":    "vi-backward-word-end",
+	"gE":    "vi-backward-blank-word-end",
 	"f":     "vi-find-next-char",
 	"t":     "vi-find-next-char-skip",
 	"I":     "vi-insert-bol",

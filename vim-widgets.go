@@ -26,6 +26,8 @@ func (rl *Instance) viWidgets() baseWidgets {
 		"vi-forward-blank-word-end":     rl.viForwardBlankWordEnd,
 		"vi-backward-word":              rl.viBackwardWord,
 		"vi-backward-blank-word":        rl.viBackwardBlankWord, // TODO vi-backward-blank-word-end/vi-backward-word-end (ge / gE)
+		"vi-backward-word-end":          rl.viBackwardWordEnd,
+		"vi-backward-blank-word-end":    rl.viBackwardBlankWordEnd,
 		"vi-kill-eol":                   rl.viKillEol,
 		"vi-change-eol":                 rl.viChangeEol,
 		"vi-edit-command-line":          rl.viEditCommandLine,
@@ -170,6 +172,47 @@ func (rl *Instance) viBackwardBlankWord() {
 	}
 }
 
+func (rl *Instance) viBackwardWordEnd() {
+	rl.skipUndoAppend()
+
+	vii := rl.getIterations()
+
+	for i := 1; i <= vii; i++ {
+		if len(rl.line) == 0 || rl.pos == 0 {
+			return
+		}
+
+		rl.pos++
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+
+		// Then move forward, adjusting if we are on a punctuation.
+		if isPunctuation(rl.line[rl.pos]) {
+			rl.pos--
+		}
+
+		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	}
+}
+
+func (rl *Instance) viBackwardBlankWordEnd() {
+	rl.skipUndoAppend()
+
+	vii := rl.getIterations()
+
+	for i := 1; i <= vii; i++ {
+		if len(rl.line) == 0 || rl.pos == 0 {
+			return
+		}
+
+		rl.pos++
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+
+		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
+	}
+}
+
 func (rl *Instance) viKillEol() {
 	pos := rl.pos
 	if pos < 0 {
@@ -177,10 +220,7 @@ func (rl *Instance) viKillEol() {
 	}
 	rl.saveBufToRegister(rl.line[pos:])
 	rl.line = rl.line[:rl.pos]
-	// Only go back if there is an input
-	if len(rl.line) > 0 {
-		rl.pos--
-	}
+
 	rl.addIteration("")
 	rl.resetHelpers()
 }
@@ -239,7 +279,9 @@ func (rl *Instance) viBackwardChar() {
 }
 
 func (rl *Instance) viPutAfter() {
-	rl.pos++
+	if rl.pos < len(rl.line)-1 {
+		rl.pos++
+	}
 
 	buffer := rl.pasteFromRegister()
 	vii := rl.getIterations()
@@ -383,9 +425,9 @@ func (rl *Instance) viForwardWord() {
 
 	// We make an adjustment to the mark if we are currently
 	// yanking, and this widget is the argument action.
-	if rl.local == viopp && rl.activeRegion {
-		rl.pos--
-	}
+	// if rl.local == viopp && rl.activeRegion {
+	// 	rl.pos--
+	// }
 }
 
 func (rl *Instance) viForwardBlankWord() {
@@ -412,16 +454,6 @@ func (rl *Instance) viDeleteChar() {
 	for i := 1; i <= vii; i++ {
 		rl.deletex()
 	}
-
-	// TODO: This should probably be used after any keymap
-	// has been run, when we detect in command mode that our
-	// cursor position if off-line.
-	// On the other hand, this is the difference between
-	// classic backwardDeleteChar and this function(rl *Instance).
-	//
-	// if rl.pos == len(rl.line) && len(rl.line) > 0 {
-	// 	rl.pos--
-	// }
 }
 
 func (rl *Instance) viBackwardDeleteChar() {
@@ -433,16 +465,6 @@ func (rl *Instance) viBackwardDeleteChar() {
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
 		rl.deleteX()
-	}
-
-	// TODO: This should probably be used after any keymap
-	// has been run, when we detect in command mode that our
-	// cursor position if off-line.
-	// On the other hand, this is the difference between
-	// classic backwardDeleteChar and this function(rl *Instance).
-	//
-	if rl.pos == len(rl.line) && len(rl.line) > 0 {
-		rl.pos--
 	}
 }
 
@@ -665,10 +687,7 @@ func (rl *Instance) viSelectABlankWord() {
 	}
 
 	// Then go to the end of the blank word
-	rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces))
-	if rl.local == visual || rl.local == viopp {
-		rl.pos--
-	}
+	rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces) - 1)
 }
 
 func (rl *Instance) viSelectAShellWord() {
@@ -702,10 +721,10 @@ func (rl *Instance) viSelectAWord() {
 	}
 
 	// Then go to the end of the blank word
-	rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
-	if rl.local == visual || rl.local == viopp {
-		rl.pos--
-	}
+	rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine) - 1)
+	// if rl.local == visual || rl.local == viopp {
+	// 	rl.pos--
+	// }
 }
 
 func (rl *Instance) viSelectInBlankWord() {
@@ -771,7 +790,9 @@ func (rl *Instance) viGotoColumn() {
 }
 
 func (rl *Instance) viSwapCase() {
-	if rl.local == visual {
+	switch rl.local {
+
+	case visual:
 		posInit := rl.pos
 
 		bpos, epos, _ := rl.getSelectionPos()
@@ -795,21 +816,21 @@ func (rl *Instance) viSwapCase() {
 		rl.viCommandMode()
 		rl.updateCursor()
 
-		return
-	}
+	default:
+		char := rl.line[rl.pos]
+		if unicode.IsLower(char) {
+			char = unicode.ToUpper(char)
+		} else {
+			char = unicode.ToLower(char)
+		}
 
-	char := rl.line[rl.pos]
-	if unicode.IsLower(char) {
-		char = unicode.ToUpper(char)
-	} else {
-		char = unicode.ToLower(char)
+		rl.line[rl.pos] = char
 	}
-
-	rl.line[rl.pos] = char
 }
 
 func (rl *Instance) viOperSwapCase() {
-	if rl.activeRegion || rl.local == visual {
+	switch {
+	case rl.local == visual, rl.activeRegion:
 		posInit := rl.pos
 
 		bpos, epos, cpos := rl.getSelectionPos()
@@ -827,22 +848,13 @@ func (rl *Instance) viOperSwapCase() {
 			rl.viCommandMode()
 			rl.updateCursor()
 		}
+	default:
+		rl.skipUndoAppend()
 
-		return
+		rl.enterVioppMode("vi-oper-swap-case")
+		rl.updateCursor()
+		rl.markSelection(rl.pos)
 	}
-
-	rl.skipUndoAppend()
-
-	// Else if we are actually starting a yank action. We need an argument:
-	// Enter operator pending mode for the next key to be considered this
-	// argument (more precisely, the widget to be executed before this argument).
-	rl.enterVioppMode("vi-oper-swap-case")
-	rl.updateCursor()
-
-	// We set the initial mark, so that when executing this
-	// widget back after the argument, we have a selection.
-	// rl.enterVisualMode()
-	rl.markSelection(rl.pos)
 }
 
 func (rl *Instance) viFirstNonBlank() {
@@ -872,22 +884,21 @@ func (rl *Instance) viAddSurround() {
 }
 
 func (rl *Instance) viSubstitute() {
-	if rl.local == visual {
+	switch rl.local {
+	case visual:
 		rl.deleteSelection()
 		rl.resetSelection()
 		rl.viInsertMode()
+	default:
+		vii := rl.getIterations()
+		rl.saveToRegister(vii)
 
-		return
+		for i := 1; i <= vii; i++ {
+			rl.deletex()
+		}
+
+		rl.viInsertMode()
 	}
-
-	vii := rl.getIterations()
-	rl.saveToRegister(vii)
-
-	for i := 1; i <= vii; i++ {
-		rl.deletex()
-	}
-
-	rl.viInsertMode()
 }
 
 func (rl *Instance) viChange() {

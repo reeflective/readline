@@ -148,9 +148,6 @@ func (rl *Instance) walkHistory(i int) {
 		// The 0 index is our current line
 		rl.line = []rune(rl.lineBuf)
 		rl.pos = len(rl.lineBuf)
-		if rl.pos > 0 {
-			rl.pos--
-		}
 	}
 
 	// We now have the correct history index. Use it to find the history line.
@@ -168,9 +165,6 @@ func (rl *Instance) walkHistory(i int) {
 		rl.clearLine()
 		rl.line = []rune(new)
 		rl.pos = len(rl.line)
-		if rl.pos > 0 {
-			rl.pos--
-		}
 	}
 }
 

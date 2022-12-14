@@ -17,12 +17,7 @@ func tokeniseLine(line []rune, linePos int) ([]string, int, int) {
 
 	for i, r := range line {
 		switch {
-		case (r >= 33 && 47 >= r) ||
-			(r >= 58 && 64 >= r) ||
-			(r >= 91 && 94 >= r) ||
-			r == 96 ||
-			(r >= 123 && 126 >= r):
-
+		case isPunctuation(r):
 			if i > 0 && line[i-1] != r {
 				split = append(split, "")
 			}
@@ -182,4 +177,17 @@ func tokeniseBrackets(line []rune, linePos int) ([]string, int, int) {
 
 func rTrimWhiteSpace(oldString string) (newString string) {
 	return strings.TrimRight(oldString, " ")
+}
+
+// isPunctuation returns true if the rune is non-blank word delimiter.
+func isPunctuation(r rune) bool {
+	if (r >= 33 && 47 >= r) ||
+		(r >= 58 && 64 >= r) ||
+		(r >= 91 && 94 >= r) ||
+		r == 96 ||
+		(r >= 123 && 126 >= r) {
+		return true
+	}
+
+	return false
 }
