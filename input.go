@@ -17,7 +17,7 @@ const (
 
 // readInput reads input from stdin and returns the result, length or an error.
 func (rl *Instance) readInput() (b []byte, i int, err error) {
-	rl.viUndoSkipAppend = false
+	rl.undoSkipAppend = false
 	b = make([]byte, 1024)
 
 	if !rl.skipStdinRead {
@@ -53,7 +53,7 @@ func (rl *Instance) readOperator(all bool) (key string, ret bool) {
 		numMatcher, _ := regexp.Compile(`^[1-9][0-9]*$`)
 
 		for numMatcher.MatchString(string(key[len(key)-1])) {
-			rl.viIteration += string(key[len(key)-1])
+			rl.iterations += string(key[len(key)-1])
 
 			b, i, _ = rl.readInput()
 			key = string(b[:i])

@@ -36,11 +36,6 @@ const (
 	charBackspace2      = 127      // ASCII 1963
 )
 
-// This block maps all NON-nil-character special keys,
-// including their combinations with key modifiers.
-// Equivalents of []\^_ with Alt modifier
-var ()
-
 // This block maps all nil-character special keys, including
 // their combinations with key modifiers.
 var (

@@ -94,7 +94,7 @@ func (rl *Instance) updateVirtualComp() {
 			// Quit the tab completion mode to avoid asking to the user to press
 			// Enter twice to actually run the command
 			// Refresh first, and then quit the completion mode
-			rl.viUndoSkipAppend = true
+			rl.undoSkipAppend = true
 			rl.resetTabCompletion()
 		} else {
 
@@ -207,7 +207,7 @@ func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
 
 	switch {
 	case adjust == 0:
-		rl.viUndoSkipAppend = true
+		rl.undoSkipAppend = true
 		return
 	case rl.pos+adjust == len(rl.lineComp)-1:
 		newLine = rl.lineComp[:rl.pos]

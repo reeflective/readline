@@ -104,7 +104,7 @@ func (h *NullHistory) Dump() interface{} {
 func (rl *Instance) initHistory() {
 	// We need this set to the last command, so that we can access it quickly
 	rl.histPos = 0
-	rl.viUndoHistory = []undoItem{{line: "", pos: 0}}
+	rl.undoHistory = []undoItem{{line: "", pos: 0}}
 }
 
 // walkHistory - Browse historic lines

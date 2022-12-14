@@ -47,7 +47,7 @@ func (rl *Instance) inputRegisters() (ret bool) {
 	rl.searchMode = RegisterFind
 	// Else we might be asked to confirm printing (if too many suggestions), or not.
 	rl.getTabCompletion()
-	rl.viUndoSkipAppend = true
+	rl.undoSkipAppend = true
 	rl.renderHelpers()
 
 	return

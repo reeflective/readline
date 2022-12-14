@@ -12,26 +12,26 @@ import (
 func (rl *Instance) addIteration(i string) {
 	// Either reset
 	if i == "" {
-		rl.viIteration = ""
+		rl.iterations = ""
 	}
 
 	// Add a negative argument
 	if rl.negativeArg {
-		rl.viIteration = ""
+		rl.iterations = ""
 		i = "-" + i
 	}
 
 	// Or add the negative or the positive.
-	rl.viIteration += i
+	rl.iterations += i
 	rl.negativeArg = false
 }
 
 func (rl *Instance) getViIterations() int {
-	i, _ := strconv.Atoi(rl.viIteration)
+	i, _ := strconv.Atoi(rl.iterations)
 	if i < 1 {
 		i = 1
 	}
-	rl.viIteration = ""
+	rl.iterations = ""
 	return i
 }
 
@@ -195,7 +195,7 @@ func (rl *Instance) viDeleteByAdjust(adjust int) {
 
 	switch {
 	case adjust == 0:
-		rl.viUndoSkipAppend = true
+		rl.undoSkipAppend = true
 		return
 	case rl.pos+adjust == len(rl.line)-1:
 		// This case should normally happen only when we met ALL THOSE CONDITIONS:

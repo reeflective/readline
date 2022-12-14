@@ -49,7 +49,7 @@ func (rl *Instance) inputCompletionHelper(b []byte, i int) (done, ret bool, val 
 
 	rl.modeTabFind = true
 	rl.updateTabFind([]rune{})
-	rl.viUndoSkipAppend = true
+	rl.undoSkipAppend = true
 
 	return
 }
@@ -68,14 +68,14 @@ func menuSelect(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err er
 		rl.moveTabCompletionHighlight(1, 0)
 		rl.updateVirtualComp()
 		rl.renderHelpers()
-		rl.viUndoSkipAppend = true
+		rl.undoSkipAppend = true
 
 		return
 	}
 
 	defer func() {
 		rl.updateHelpers() // WARN: Redundant with update helpers below
-		rl.viUndoSkipAppend = true
+		rl.undoSkipAppend = true
 
 		read = true
 	}()
@@ -127,7 +127,7 @@ func historyMenuComplete(rl *Instance, b []byte, i int, r []rune) (read, ret boo
 
 	rl.modeTabFind = true
 	rl.updateTabFind([]rune{})
-	rl.viUndoSkipAppend = true
+	rl.undoSkipAppend = true
 
 	return
 }
@@ -193,7 +193,7 @@ func searchComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, er
 	}
 
 	rl.updateTabFind([]rune{})
-	rl.viUndoSkipAppend = true
+	rl.undoSkipAppend = true
 
 	return
 }
@@ -220,7 +220,7 @@ func (rl *Instance) inputCompletionFind() {
 	}
 
 	rl.updateTabFind([]rune{})
-	rl.viUndoSkipAppend = true
+	rl.undoSkipAppend = true
 }
 
 func (rl *Instance) inputCompletionTab(b []byte, i int) (done, ret bool, val string, err error) {
@@ -237,14 +237,14 @@ func (rl *Instance) inputCompletionTab(b []byte, i int) (done, ret bool, val str
 		rl.moveTabCompletionHighlight(1, 0)
 		rl.updateVirtualComp()
 		rl.renderHelpers()
-		rl.viUndoSkipAppend = true
+		rl.undoSkipAppend = true
 
 		return
 	}
 
 	defer func() {
 		rl.updateHelpers() // WARN: Redundant with update helpers below
-		rl.viUndoSkipAppend = true
+		rl.undoSkipAppend = true
 
 		done = true
 	}()
@@ -777,7 +777,7 @@ func (rl *Instance) promptCompletionConfirm(sentence string) {
 	rl.hintText = []rune(sentence)
 
 	rl.compConfirmWait = true
-	rl.viUndoSkipAppend = true
+	rl.undoSkipAppend = true
 
 	rl.renderHelpers()
 }

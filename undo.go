@@ -5,49 +5,62 @@ type undoItem struct {
 	pos  int
 }
 
-func (rl *Instance) undoAppendHistory() {
-	defer func() {
-		rl.viUndoSkipAppend = false
-		if !rl.viIsUndoing {
-			rl.viUndoPos = 0
-		}
+// will only skip appending to undo history if not forced
+// to append by another pending/running widget.
+func (rl *Instance) skipUndoAppend() {
+	if !rl.forcedUndoAppend {
+		rl.undoSkipAppend = true
+	}
+}
 
-		rl.viIsUndoing = false
-	}()
+// undoAppend will force the end action to be added to undo history.
+func (rl *Instance) undoAppend() {
+	rl.forcedUndoAppend = true
+}
 
-	if rl.viUndoSkipAppend {
+func (rl *Instance) undoHistoryAppend() {
+	defer rl.resetUndoDirectives()
+
+	if rl.undoSkipAppend {
 		return
+	}
+
+	// When the line is identical to the previous undo, we skip it.
+	if len(rl.undoHistory) > 0 {
+		if rl.undoHistory[len(rl.undoHistory)-1].line == string(rl.line) {
+			return
+		}
 	}
 
 	// When we add an item to the undo history, the history
 	// is cut from the current undo hist position onwards.
-	rl.viUndoHistory = rl.viUndoHistory[:len(rl.viUndoHistory)-rl.viUndoPos]
+	rl.undoHistory = rl.undoHistory[:len(rl.undoHistory)-rl.undoPos]
 
-	rl.viUndoHistory = append(rl.viUndoHistory, undoItem{
+	rl.undoHistory = append(rl.undoHistory, undoItem{
 		line: string(rl.line),
 		pos:  rl.pos,
 	})
 }
 
 func (rl *Instance) undo() {
-	rl.viUndoSkipAppend = true
-	rl.viIsUndoing = true
-	if len(rl.viUndoHistory) == 0 {
+	rl.undoSkipAppend = true
+	rl.isUndoing = true
+	if len(rl.undoHistory) == 0 {
 		return
 	}
 
-	if rl.viUndoPos == 0 {
+	if rl.undoPos == 0 {
 		rl.lineBuf = string(rl.line)
 	}
 
-	rl.viUndoPos++
+	rl.undoPos++
 
-	if rl.viUndoPos > len(rl.viUndoHistory) {
-		rl.viUndoPos = len(rl.viUndoHistory)
+	if rl.undoPos > len(rl.undoHistory) {
+		rl.undoPos = len(rl.undoHistory)
 		return
 	}
 
-	undo := rl.viUndoHistory[len(rl.viUndoHistory)-rl.viUndoPos]
+	undo := rl.undoHistory[len(rl.undoHistory)-rl.undoPos]
 	rl.line = []rune(undo.line)
 	rl.pos = undo.pos
 
@@ -58,23 +71,23 @@ func (rl *Instance) undo() {
 }
 
 func (rl *Instance) redo() {
-	rl.viUndoSkipAppend = true
-	rl.viIsUndoing = true
-	if len(rl.viUndoHistory) == 0 {
+	rl.undoSkipAppend = true
+	rl.isUndoing = true
+	if len(rl.undoHistory) == 0 {
 		return
 	}
 
-	rl.viUndoPos--
+	rl.undoPos--
 
-	if rl.viUndoPos < 1 {
-		rl.viUndoPos = 0
+	if rl.undoPos < 1 {
+		rl.undoPos = 0
 
 		rl.line = []rune(rl.lineBuf)
 		rl.pos = len(rl.lineBuf)
 		return
 	}
 
-	undo := rl.viUndoHistory[len(rl.viUndoHistory)-rl.viUndoPos]
+	undo := rl.undoHistory[len(rl.undoHistory)-rl.undoPos]
 	rl.line = []rune(undo.line)
 	rl.pos = undo.pos
 
@@ -82,4 +95,15 @@ func (rl *Instance) redo() {
 	// if rl.main != viins && len(rl.line) > 0 && rl.pos == len(rl.line) {
 	// 	rl.pos--
 	// }
+}
+
+func (rl *Instance) resetUndoDirectives() {
+	rl.undoSkipAppend = false
+	rl.forcedUndoAppend = false
+
+	if !rl.isUndoing {
+		rl.undoPos = 0
+	}
+
+	rl.isUndoing = false
 }

@@ -129,7 +129,7 @@ func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val stri
 func (rl *Instance) bindWidget(key, widget string, km *widgets, decoder caret.Decoder, b *bytes.Buffer) {
 	// When the key is a regular expression range, we add some metacharacters
 	// to force the regex to match the entire string that we will give later.
-	if strings.HasPrefix(key, "[") && strings.HasSuffix(key, "]") {
+	if isRegexCapturingGroup(key) {
 		key = "^" + key + "$"
 	} else {
 		// Or decode the key in case its in caret notation.
@@ -268,7 +268,7 @@ func (rl *Instance) runWidget(name string, keys []rune) (ret bool, val string, e
 	// Any keymap caught before (if any) has to expressly ask us
 	// not to push "its effect" onto our undo stack. Thus if we're
 	// here, we store the key in our Undo history (Vim mode).
-	rl.undoAppendHistory()
+	rl.undoHistoryAppend()
 
 	return
 }
@@ -309,6 +309,9 @@ func (rl *Instance) runPendingWidget(key string) {
 	for i := 0; i < times; i++ {
 		widget(keys)
 	}
+
+	// The pending widget might have its own effect on the line.
+	rl.undoHistoryAppend()
 }
 
 // getPendingWidget returns the last widget pushed onto the pending stack.
@@ -319,4 +322,14 @@ func (rl *Instance) getPendingWidget() (act action) {
 	}
 
 	return
+}
+
+// regular expressions as keybinds are only allowed when expressed within a (global) capturing group.
+func isRegexCapturingGroup(key string) bool {
+	if (strings.HasPrefix(key, "[") && strings.HasSuffix(key, "]")) ||
+		(strings.HasPrefix(key, "(") && strings.HasSuffix(key, ")")) {
+		return true
+	}
+
+	return false
 }

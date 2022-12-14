@@ -38,12 +38,13 @@ type Instance struct {
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
 
-	viIteration      string
+	iterations       string
 	negativeArg      bool
-	viUndoHistory    []undoItem
-	viUndoPos        int
-	viIsUndoing      bool
-	viUndoSkipAppend bool
+	undoHistory      []undoItem
+	undoPos          int
+	isUndoing        bool
+	undoSkipAppend   bool
+	forcedUndoAppend bool       // A widget may force its operation to append to undo history (eg. dw).
 	visualLine       bool       // Is the visual mode VISUAL_LINE
 	mark             int        // Visual selection mark. -1 when unactive
 	activeRegion     bool       // Is a current range region active ?

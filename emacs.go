@@ -69,7 +69,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 
 // selfInsert inserts the given rune into the input line at the current cursor position.
 func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error) {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 
 	// Prepare the line
 	// line, err := rl.mainHistory.GetLine(rl.mainHistory.Len() - 1)
@@ -190,7 +190,7 @@ func (rl *Instance) acceptLine(_ []rune) (read, ret bool, val string, err error)
 }
 
 func (rl *Instance) clearScreen() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 
 	print(seqClearScreen)
 	print(seqCursorTopLeft)
@@ -209,7 +209,7 @@ func (rl *Instance) beginningOfLine() {
 		rl.resetVirtualComp(false)
 	}
 
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 	rl.pos = 0
 }
 
@@ -222,7 +222,7 @@ func (rl *Instance) endOfLine() {
 		rl.pos = len(rl.line)
 	}
 
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 }
 
 func (rl *Instance) killLine() {
@@ -261,7 +261,6 @@ func (rl *Instance) yank() {
 		rl.resetVirtualComp(false)
 	}
 	// paste after the cursor position
-	rl.viUndoSkipAppend = true
 	buffer := rl.pasteFromRegister()
 	rl.insert(buffer)
 }
@@ -278,7 +277,7 @@ func (rl *Instance) backwardDeleteChar() {
 	}
 
 	if rl.main == viins || rl.main == emacs {
-		rl.viUndoSkipAppend = true
+		rl.skipUndoAppend()
 	}
 }
 
@@ -301,19 +300,18 @@ func (rl *Instance) forwardChar() {
 	if rl.pos < len(rl.line) {
 		rl.pos++
 	}
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 }
 
 func (rl *Instance) backwardChar() {
 	if rl.pos > 0 {
 		rl.pos--
 	}
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 }
 
 func (rl *Instance) forwardWord() {
-	// If we were not yanking
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 
 	// If the input line is empty, we don't do anything
 	if rl.pos == 0 && len(rl.line) == 0 {
@@ -328,7 +326,7 @@ func (rl *Instance) forwardWord() {
 }
 
 func (rl *Instance) backwardWord() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 
 	vii := rl.getViIterations()
 	for i := 1; i <= vii; i++ {
@@ -349,24 +347,24 @@ func (rl *Instance) upHistory() {
 // digitArgument is used both in Emacs and Vim modes,
 // but strips the Alt modifier used in Emacs mode.
 func (rl *Instance) digitArgument() {
+	rl.skipUndoAppend()
+
 	if len(rl.keys) > 1 {
 		// The first rune is the alt modifier.
 		rl.addIteration(string(rl.keys[1:]))
 	} else {
 		rl.addIteration(string(rl.keys[0]))
 	}
-
-	rl.viUndoSkipAppend = true
 }
 
 func (rl *Instance) historyNext() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 	rl.mainHist = true
 	rl.walkHistory(-1)
 }
 
 func (rl *Instance) historyPrev() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 	rl.mainHist = true
 	rl.walkHistory(1)
 }
@@ -380,7 +378,7 @@ func (rl *Instance) killBuffer() {
 }
 
 func (rl *Instance) inferNextHistory() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 	matchIndex := 0
 	histSuggested := make([]rune, 0)
 	rl.mainHist = true
@@ -451,8 +449,7 @@ func (rl *Instance) inferNextHistory() {
 func (rl *Instance) overwriteMode() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
-	rl.undoAppendHistory()
-	rl.viUndoSkipAppend = true
+	rl.undoHistoryAppend()
 
 	// The replace mode is quite special in that it does escape back
 	// to the main readline loop: it keeps reading characters and inserts
@@ -486,7 +483,8 @@ func (rl *Instance) overwriteMode() {
 }
 
 func (rl *Instance) setMarkCommand() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
+
 	vii := rl.getViIterations()
 	switch {
 	case vii < 0:
@@ -527,7 +525,7 @@ func (rl *Instance) negArgument() {
 }
 
 func (rl *Instance) beginningOfBufferOrHistory() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 
 	if rl.pos == 0 {
 		var history History
@@ -563,7 +561,8 @@ func (rl *Instance) beginningOfBufferOrHistory() {
 }
 
 func (rl *Instance) endOfBufferOrHistory() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
+
 	if rl.pos == len(rl.line) {
 		var history History
 		rl.mainHist = true
@@ -680,7 +679,7 @@ func (rl *Instance) transposeWords() {
 }
 
 func (rl *Instance) copyRegionAsKill() {
-	rl.viUndoSkipAppend = true
+	rl.skipUndoAppend()
 	rl.yankSelection()
 	rl.resetSelection()
 }
@@ -855,9 +854,6 @@ func (rl *Instance) acceptAndDownHistory() {
 
 // 	"^[Q": "push-line",
 // func (rl *Instance) pushLine() {
-// }
-
-// func (rl *Instance) runHelp() {
 // }
 
 // 	"^[x":     "execute-named-cmd",
