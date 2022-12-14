@@ -444,7 +444,7 @@ func (rl *Instance) inferNextHistory() {
 	rl.pos = len(nextLine)
 }
 
-// TODO: Find a way to catch-on-test other keymaps ? How and when to exit the mode if not with escape ?
+// TODO: Find a way to catch-on other keymaps ? How and when to exit the mode if not with escape ?
 func (rl *Instance) overwriteMode() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.

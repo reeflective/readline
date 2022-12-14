@@ -279,7 +279,7 @@ func (rl *Instance) viBackwardChar() {
 }
 
 func (rl *Instance) viPutAfter() {
-	if rl.pos < len(rl.line)-1 {
+	if rl.pos < len(rl.line) {
 		rl.pos++
 	}
 
@@ -681,13 +681,19 @@ func (rl *Instance) viSelectABlankWord() {
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
-	if rl.local == visual || rl.local == viopp {
-		rl.markSelection(rl.pos)
-		rl.mark = rl.pos
-	}
+	rl.markSelection(rl.pos)
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces) - 1)
+
+	final := rl.pos
+	if rl.pos == len(rl.line)-1 {
+		rl.pos = rl.mark
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+		rl.markSelection(rl.pos + 1)
+		rl.pos = final
+	}
 }
 
 func (rl *Instance) viSelectAShellWord() {
@@ -705,6 +711,14 @@ func (rl *Instance) viSelectAShellWord() {
 		return
 	}
 
+	// Adjust for spaces preceding
+	if rl.pos == len(rl.line)-1 || mark > 0 && rl.line[mark-1] == ' ' {
+		rl.pos = mark
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+		mark = rl.pos + 1
+	}
+
 	// Else set the region inside those quotes
 	rl.markSelection(mark)
 	rl.pos = cpos
@@ -716,15 +730,20 @@ func (rl *Instance) viSelectAWord() {
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	if rl.local == visual || rl.local == viopp {
-		rl.markSelection(rl.pos)
-	}
+	rl.markSelection(rl.pos)
 
-	// Then go to the end of the blank word
+	// Then go to the end of the word
 	rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine) - 1)
-	// if rl.local == visual || rl.local == viopp {
-	// 	rl.pos--
-	// }
+
+	// When nothing after, or non-empty, use spaces before word.
+	final := rl.pos
+	if rl.pos == len(rl.line)-1 {
+		rl.pos = rl.mark
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+		rl.markSelection(rl.pos + 1)
+		rl.pos = final
+	}
 }
 
 func (rl *Instance) viSelectInBlankWord() {

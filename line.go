@@ -212,9 +212,6 @@ func (rl *Instance) insert(r []rune) {
 	}
 
 	rl.pos += len(r)
-
-	// This should also update the rl.pos
-	rl.updateHelpers()
 }
 
 func (rl *Instance) carriageReturn() {
