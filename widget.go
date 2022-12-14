@@ -276,12 +276,7 @@ func (rl *Instance) runWidget(name string, keys []rune) (ret bool, val string, e
 // runPendingWidget finds the last widget pushed onto the
 // pending stack and runs it against the provided input key.
 func (rl *Instance) runPendingWidget(key string) {
-	defer func() {
-		if len(rl.pendingActions) == 0 {
-			rl.exitVioppMode()
-			rl.updateCursor()
-		}
-	}()
+	defer rl.donePending()
 
 	pending := rl.getPendingWidget()
 
@@ -298,16 +293,8 @@ func (rl *Instance) runPendingWidget(key string) {
 	// will wait for the following key.
 	rl.keys = ""
 
-	// Permutate viIterations and pending iterations,
-	// so that further operator iterations are used
-	// within the widgets themselves.
-	times := pending.iterations
-
-	keys := []rune(key)
-
-	// Run the widget with all navigation keys
-	for i := 0; i < times; i++ {
-		widget(keys)
+	for i := 0; i < pending.iterations; i++ {
+		widget([]rune(key))
 	}
 
 	// The pending widget might have its own effect on the line.
@@ -322,6 +309,13 @@ func (rl *Instance) getPendingWidget() (act action) {
 	}
 
 	return
+}
+
+func (rl *Instance) donePending() {
+	if len(rl.pendingActions) == 0 {
+		rl.exitVioppMode()
+		rl.updateCursor()
+	}
 }
 
 // regular expressions as keybinds are only allowed when expressed within a (global) capturing group.

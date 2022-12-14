@@ -52,7 +52,7 @@ func (rl *Instance) enterVioppMode(widget string) {
 
 	act := action{
 		widget:     widget,
-		iterations: rl.getViIterations(),
+		iterations: rl.getIterations(),
 	}
 
 	// Push the widget on the stack of widgets

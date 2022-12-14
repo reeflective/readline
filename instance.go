@@ -51,6 +51,7 @@ type Instance struct {
 	registers        *registers // All memory text registers, can be consulted with Alt"
 
 	viopp             bool   // Keeps track of vi operator pending mode BEFORE trying to match the current key.
+	vioppSkip         bool   // Some widgets, like digit-arguments, should not trigger running pending actions.
 	pendingIterations string // Iterations specific to viopp mode. (2y2w => "2"w)
 	pendingActions    []action
 

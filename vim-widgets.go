@@ -156,7 +156,7 @@ func (rl *Instance) viAddEol() {
 
 func (rl *Instance) viBackwardWord() {
 	rl.skipUndoAppend()
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	}
@@ -164,7 +164,7 @@ func (rl *Instance) viBackwardWord() {
 
 func (rl *Instance) viBackwardBlankWord() {
 	rl.skipUndoAppend()
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
 	}
@@ -197,7 +197,7 @@ func (rl *Instance) viChangeEol() {
 
 func (rl *Instance) viForwardWordEnd() {
 	rl.skipUndoAppend()
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 	}
@@ -205,7 +205,7 @@ func (rl *Instance) viForwardWordEnd() {
 
 func (rl *Instance) viForwardBlankWordEnd() {
 	rl.skipUndoAppend()
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
 	}
@@ -242,7 +242,7 @@ func (rl *Instance) viPutAfter() {
 	rl.pos++
 
 	buffer := rl.pasteFromRegister()
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.insert(buffer)
 	}
@@ -251,7 +251,7 @@ func (rl *Instance) viPutAfter() {
 
 func (rl *Instance) viPutBefore() {
 	buffer := rl.pasteFromRegister()
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.insert(buffer)
 	}
@@ -376,7 +376,7 @@ func (rl *Instance) viForwardWord() {
 		return
 	}
 
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
 	}
@@ -396,14 +396,14 @@ func (rl *Instance) viForwardBlankWord() {
 		return
 	}
 
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces))
 	}
 }
 
 func (rl *Instance) viDeleteChar() {
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 
 	// We might be on an active register, but not yanking...
 	rl.saveToRegister(vii)
@@ -425,7 +425,7 @@ func (rl *Instance) viDeleteChar() {
 }
 
 func (rl *Instance) viBackwardDeleteChar() {
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 
 	// We might be on an active register, but not yanking...
 	rl.saveToRegister(vii)
@@ -449,10 +449,10 @@ func (rl *Instance) viBackwardDeleteChar() {
 func (rl *Instance) viYank() {
 	rl.skipUndoAppend()
 
-	// When we are called after a pending operator action, we are a pending
-	// usually not in visual mode, but have an active selection.
-	// In this case we yank the active region and return.
-	if rl.activeRegion || rl.local == visual {
+	switch {
+	case rl.local == visual, rl.activeRegion:
+		// Most of the time we are in pending mode here,
+		// since we marked the region active in the default case,
 		rl.yankSelection()
 		rl.resetSelection()
 
@@ -461,25 +461,20 @@ func (rl *Instance) viYank() {
 			rl.updateCursor()
 		}
 
-		return
-	}
-
-	// If we are in operator pending mode, that means the command
-	// is 'yy' (optionally with iterations), so we copy the required
-	if rl.local == viopp {
+	case rl.local == viopp:
+		// When we still are in viopp mode, that means we have been
+		// called twice in a row: the second time, we matched the first
+		// case statement, but did not delete anything. But we then
+		// got called a third time, and this one we don't have an active
+		// region anymore: copy the whole line.
 		rl.saveBufToRegister(rl.line)
-		return
+
+	default:
+		// Else if we are actually starting a yank action.
+		rl.enterVioppMode("vi-yank")
+		rl.updateCursor()
+		rl.markSelection(rl.pos)
 	}
-
-	// Else if we are actually starting a yank action. We need an argument:
-	// Enter operator pending mode for the next key to be considered this
-	// argument (more precisely, the widget to be executed before this argument).
-	rl.enterVioppMode("vi-yank")
-	rl.updateCursor()
-
-	// We set the initial mark, so that when executing this
-	// widget back after the argument, we have a selection.
-	rl.markSelection(rl.pos)
 }
 
 func (rl *Instance) viYankWholeLine() {
@@ -556,7 +551,7 @@ func (rl *Instance) viFindNextChar() {
 
 	forward := true
 	skip := false
-	times := rl.getViIterations()
+	times := rl.getIterations()
 
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }
@@ -572,7 +567,7 @@ func (rl *Instance) viFindNextCharSkip() {
 
 	forward := true
 	skip := true
-	times := rl.getViIterations()
+	times := rl.getIterations()
 
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }
@@ -588,7 +583,7 @@ func (rl *Instance) viFindPrevChar() {
 
 	forward := false
 	skip := false
-	times := rl.getViIterations()
+	times := rl.getIterations()
 
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }
@@ -604,23 +599,18 @@ func (rl *Instance) viFindPrevCharSkip() {
 
 	forward := false
 	skip := true
-	times := rl.getViIterations()
+	times := rl.getIterations()
 
 	rl.findAndMoveCursor(string(key[len(key)-1]), times, forward, skip)
 }
 
 func (rl *Instance) viDelete() {
-	switch rl.local {
-	case visual:
-	case viopp:
-	default:
-	}
-
-	// When we are called after a pending operator action, we are a pending
-	// usually not in visual mode, but have an active selection.
-	// In this case we yank the active region and return.
-	if rl.activeRegion || rl.local == visual {
+	switch {
+	case rl.local == visual, rl.activeRegion:
+		// Most of the time we are in pending mode here,
+		// since we marked the region active in the default case,
 		rl.undoHistoryAppend()
+		rl.skipUndoAppend()
 
 		rl.deleteSelection()
 		rl.resetSelection()
@@ -630,29 +620,23 @@ func (rl *Instance) viDelete() {
 			rl.updateCursor()
 		}
 
-		return
-	}
-
-	// If we are in operator pending mode, that means the command
-	// is 'yy' (optionally with iterations), so we copy the required
-	if rl.local == viopp {
+	case rl.local == viopp:
+		// When we still are in viopp mode, that means we have been
+		// called twice in a row: the second time, we matched the first
+		// case statement, but did not delete anything. But we then
+		// got called a third time, and this one we don't have an active
+		// region anymore: delete the whole line.
 		rl.undoHistoryAppend()
+		rl.skipUndoAppend()
 		rl.killWholeLine()
 
-		return
+	default:
+		// Else if we are actually starting a delete action.
+		rl.skipUndoAppend()
+		rl.enterVioppMode("vi-delete")
+		rl.updateCursor()
+		rl.markSelection(rl.pos)
 	}
-
-	rl.skipUndoAppend()
-
-	// Else if we are actually starting a yank action. We need an argument:
-	// Enter operator pending mode for the next key to be considered this
-	// argument (more precisely, the widget to be executed before this argument).
-	rl.enterVioppMode("vi-delete")
-	rl.updateCursor()
-
-	// We set the initial mark, so that when executing this
-	// widget back after the argument, we have a selection.
-	rl.markSelection(rl.pos)
 }
 
 func (rl *Instance) viDigitOrBeginningOfLine() {
@@ -775,7 +759,7 @@ func (rl *Instance) viSelectInWord() {
 func (rl *Instance) viGotoColumn() {
 	rl.skipUndoAppend()
 	iterations := rl.iterations
-	column := rl.getViIterations()
+	column := rl.getIterations()
 
 	if iterations == "" {
 		column = 0
@@ -896,7 +880,7 @@ func (rl *Instance) viSubstitute() {
 		return
 	}
 
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	rl.saveToRegister(vii)
 
 	for i := 1; i <= vii; i++ {
@@ -910,6 +894,7 @@ func (rl *Instance) viChange() {
 	// In visual mode, we have just have a selection to delete.
 	if rl.local == visual {
 		rl.undoHistoryAppend()
+		rl.skipUndoAppend()
 
 		rl.deleteSelection()
 		rl.resetSelection()

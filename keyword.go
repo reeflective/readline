@@ -33,7 +33,7 @@ func (rl *Instance) keywordSwitchers() []keywordSwitcher {
 }
 
 func (rl *Instance) switchNumber(word string, increase bool) (done bool, new string, bpos, epos int) {
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	if !increase {
 		vii = -vii
 	}

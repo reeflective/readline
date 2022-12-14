@@ -26,7 +26,7 @@ func (rl *Instance) addIteration(i string) {
 	rl.negativeArg = false
 }
 
-func (rl *Instance) getViIterations() int {
+func (rl *Instance) getIterations() int {
 	i, _ := strconv.Atoi(rl.iterations)
 	if i < 1 {
 		i = 1

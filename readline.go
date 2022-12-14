@@ -142,7 +142,7 @@ func (rl *Instance) Readline() (string, error) {
 
 			// If the widget from the main keymap was executed while the shell
 			// was in operator pending mode (only Vim), then the caller widget
-			// is waiting to be executed again.
+			// is waiting to be executed again, unless explicitly told to wait.
 			if rl.viopp {
 				rl.runPendingWidget(keys)
 			}

@@ -266,7 +266,7 @@ func (rl *Instance) yank() {
 }
 
 func (rl *Instance) backwardDeleteChar() {
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 
 	// We might be on an active register, but not yanking...
 	rl.saveToRegister(vii)
@@ -282,7 +282,7 @@ func (rl *Instance) backwardDeleteChar() {
 }
 
 func (rl *Instance) deleteChar() {
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 
 	// We might be on an active register, but not yanking...
 	rl.saveToRegister(vii)
@@ -319,7 +319,7 @@ func (rl *Instance) forwardWord() {
 	}
 
 	// Get iterations and move
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
 	}
@@ -328,7 +328,7 @@ func (rl *Instance) forwardWord() {
 func (rl *Instance) backwardWord() {
 	rl.skipUndoAppend()
 
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	}
@@ -348,6 +348,12 @@ func (rl *Instance) upHistory() {
 // but strips the Alt modifier used in Emacs mode.
 func (rl *Instance) digitArgument() {
 	rl.skipUndoAppend()
+
+	// If we were called in the middle of a pending
+	// operation, we should not yet trigger the caller.
+	// This boolean is recomputed at the next key read:
+	// This just postpones running the caller a little.
+	rl.viopp = false
 
 	if len(rl.keys) > 1 {
 		// The first rune is the alt modifier.
@@ -485,7 +491,7 @@ func (rl *Instance) overwriteMode() {
 func (rl *Instance) setMarkCommand() {
 	rl.skipUndoAppend()
 
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	switch {
 	case vii < 0:
 		rl.resetSelection()
@@ -648,7 +654,7 @@ func (rl *Instance) transposeWords() {
 	toTranspose, tbpos, tepos, _ := rl.popSelection()
 
 	// First move the number of words
-	vii := rl.getViIterations()
+	vii := rl.getIterations()
 	for i := 0; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	}
