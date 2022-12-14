@@ -2,39 +2,38 @@ package readline
 
 // Character codes
 const (
-	charCtrlA     = iota + 1 // "^A"
-	charCtrlB                // "^B"
-	charCtrlC                // "^C"
-	charEOF                  // "^D"
-	charCtrlE                // "^E"
-	charCtrlF                // "^F"
-	charCtrlG                // "^G"
-	charBackspace            // "^?" // ISO 646
-	charTab                  // "^C"
-	// charCtrlH                      // "^H" // Added by me
-	charCtrlJ                 // "^J"
-	charCtrlK                 // "^K"
-	charCtrlL                 // "^L"
-	charCtrlM                 // "^M"
-	charCtrlN                 // "^N"
-	charCtrlO                 // "^O"
-	charCtrlP                 // "^P"
-	charCtrlQ                 // "^Q"
-	charCtrlR                 // "^R"
-	charCtrlS                 // "^S"
-	charCtrlT                 // "^T"
-	charCtrlU                 // "^U"
-	charCtrlV                 // "^V"
-	charCtrlW                 // "^W"
-	charCtrlX                 // "^X"
-	charCtrlY                 // "^Y"
-	charCtrlZ                 // "^Z"
-	charEscape                // ^[
-	charCtrlSlash             // ^\
-	charCtrlCloseSquare       // ^]
-	charCtrlHat               // ^^
-	charCtrlUnderscore        // ^_
-	charBackspace2      = 127 // ASCII 1963
+	charCtrlA           = iota + 1 // "^A"
+	charCtrlB                      // "^B"
+	charCtrlC                      // "^C"
+	charEOF                        // "^D"
+	charCtrlE                      // "^E"
+	charCtrlF                      // "^F"
+	charCtrlG                      // "^G"
+	charBackspace                  // "^?" // ISO 646
+	charTab                        // "^C"
+	charCtrlJ                      // "^J"
+	charCtrlK                      // "^K"
+	charCtrlL                      // "^L"
+	charCtrlM                      // "^M"
+	charCtrlN                      // "^N"
+	charCtrlO                      // "^O"
+	charCtrlP                      // "^P"
+	charCtrlQ                      // "^Q"
+	charCtrlR                      // "^R"
+	charCtrlS                      // "^S"
+	charCtrlT                      // "^T"
+	charCtrlU                      // "^U"
+	charCtrlV                      // "^V"
+	charCtrlW                      // "^W"
+	charCtrlX                      // "^X"
+	charCtrlY                      // "^Y"
+	charCtrlZ                      // "^Z"
+	charEscape                     // ^[
+	charCtrlSlash                  // ^\
+	charCtrlCloseSquare            // ^]
+	charCtrlHat                    // ^^
+	charCtrlUnderscore             // ^_
+	charBackspace2      = 127      // ASCII 1963
 )
 
 // This block maps all NON-nil-character special keys,

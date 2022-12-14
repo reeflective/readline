@@ -1,13 +1,11 @@
 package readline
 
 import (
-	// "bytes"
 	_ "embed"
 	"errors"
 	"os"
 	"path/filepath"
 
-	// "github.com/reiver/go-caret"
 	"gopkg.in/yaml.v3"
 )
 
@@ -237,7 +235,7 @@ func (rl *Instance) loadDefaultConfig() {
 		node: &yaml.Node{},
 
 		// Input settings
-		InputMode: Vim, // TODO: Change back to Emacs
+		InputMode: Emacs,
 		Vim: struct {
 			// Cursors
 			InsertCursor          CursorStyle `yaml:"insertCursor"`

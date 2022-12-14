@@ -3,7 +3,6 @@ package readline
 import (
 	"bytes"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/reiver/go-caret"
@@ -227,6 +226,7 @@ func (rl *Instance) matchWidgets(key string, wids widgets) (cb EventCallback, al
 		if len(key) < len(reg.String()) {
 			all[&reg] = widget
 		}
+
 	}
 
 	// When we have no exact match, and only one widget in our list of matchers,

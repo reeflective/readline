@@ -102,6 +102,12 @@ func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error)
 		break
 	}
 
+	// When the key is a control character, translate it to caret notation.
+	if len(r) == 1 && charCtrlA < byte(r[0]) && byte(r[0]) < charCtrlUnderscore {
+		caret := byte(r[0]) ^ 0x40
+		r = append([]rune{'^'}, rune(caret))
+	}
+
 	// We can ONLY have three fondamentally different cases:
 	switch {
 	// The line is empty
