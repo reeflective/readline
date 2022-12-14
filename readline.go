@@ -130,8 +130,8 @@ func (rl *Instance) Readline() (string, error) {
 		}
 
 		// 2) If the key was not matched against any local widget, match it
-		// against the global widget, which can never be nil.
-		// - In Emacs mode, this widget is 'emacs'.
+		// against the global keymap, which can never be nil.
+		// - In Emacs mode, this keymap is 'emacs'.
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
 		widget, prefix = rl.matchKeymap(keys, rl.main)
 		if widget != nil {
@@ -155,7 +155,7 @@ func (rl *Instance) Readline() (string, error) {
 			continue
 		}
 
-		// When the key was has not matched any keybind pattern in any of the
+		// When the key has not matched any keybind pattern in any of the
 		// active keymaps (perfectly or by prefix), we discard the key stack.
 		rl.keys = ""
 	}

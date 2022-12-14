@@ -3,6 +3,7 @@ package readline
 import (
 	"bytes"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/reiver/go-caret"
@@ -137,6 +138,9 @@ func (rl *Instance) bindWidget(key, widget string, km *widgets, decoder caret.De
 			key = b.String()
 			b.Reset()
 		}
+
+		// Quote all metacharacters before compiling to regex
+		key = regexp.QuoteMeta(key)
 	}
 
 	reg, err := regexp.Compile(key)
