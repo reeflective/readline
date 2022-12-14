@@ -119,10 +119,7 @@ func (rl *Instance) Readline() (string, error) {
 			read, ret, val, err := rl.run(widget, keys)
 			if ret || err != nil {
 				return val, err
-			}
-
-			// Read next key if not asked to forward this one.
-			if read {
+			} else if read {
 				continue
 			}
 		} else if prefix {
@@ -138,17 +135,7 @@ func (rl *Instance) Readline() (string, error) {
 			read, ret, val, err := rl.run(widget, keys)
 			if ret || err != nil {
 				return val, err
-			}
-
-			// If the widget from the main keymap was executed while the shell
-			// was in operator pending mode (only Vim), then the caller widget
-			// is waiting to be executed again, unless explicitly told to wait.
-			if rl.viopp {
-				rl.runPendingWidget(keys)
-			}
-
-			// Read next key if not asked to forward the key.
-			if read {
+			} else if read {
 				continue
 			}
 		} else if prefix {

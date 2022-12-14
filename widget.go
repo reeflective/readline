@@ -118,8 +118,11 @@ func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val stri
 	// This is the default for all builtin widgets.
 	if !event.ForwardKey {
 		read = true
+	}
 
-		return
+	// Finally, we might have any pending widget to run.
+	if rl.viopp {
+		rl.runPendingWidget(keys)
 	}
 
 	return
