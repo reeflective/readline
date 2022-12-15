@@ -138,14 +138,6 @@ func (rl *Instance) moveCursorByAdjust(adjust int) {
 	if rl.pos > len(rl.line) {
 		rl.pos = len(rl.line)
 	}
-
-	// If we are at the end of line, and not in Insert mode, move back one.
-	// TODO: Same changes with end pos offset
-	if rl.main == vicmd && (rl.pos == len(rl.line)) && len(rl.line) > 0 {
-		rl.pos--
-	} else if rl.main == viins && rl.searchMode == HistoryFind && rl.modeAutoFind {
-		rl.pos--
-	}
 }
 
 func leftMost() []byte {

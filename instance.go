@@ -38,17 +38,9 @@ type Instance struct {
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
 
-	iterations       string
-	negativeArg      bool
-	undoHistory      []undoItem
-	undoPos          int
-	isUndoing        bool
-	undoSkipAppend   bool
-	forcedUndoAppend bool       // A widget may force its operation to append to undo history (eg. dw).
-	visualLine       bool       // Is the visual mode VISUAL_LINE
-	mark             int        // Visual selection mark. -1 when unactive
-	activeRegion     bool       // Is a current range region active ?
-	registers        *registers // All memory text registers, can be consulted with Alt"
+	iterations  string
+	negativeArg bool
+	registers   *registers // All memory text registers, can be consulted with Alt"
 
 	viopp             bool   // Keeps track of vi operator pending mode BEFORE trying to match the current key.
 	pendingIterations string // Iterations specific to viopp mode. (2y2w => "2"w)
@@ -68,9 +60,6 @@ type Instance struct {
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func([]rune) string
 
-	// Regions are some parts of the input line with special highlighting.
-	regions []region
-
 	// PasswordMask is what character to hide password entry behind.
 	// Once enabled, set to 0 (zero) to disable the mask again.
 	PasswordMask rune
@@ -89,6 +78,12 @@ type Instance struct {
 	multilineBuffer []byte
 	multilineSplit  []string
 	skipStdinRead   bool
+
+	// selection management
+	visualLine   bool     // Is the visual mode VISUAL_LINE
+	mark         int      // Visual selection mark. -1 when unactive
+	activeRegion bool     // Is a current range region active ?
+	regions      []region // Regions are some parts of the input line with special highlighting.
 
 	//
 	// Completion ---------------------------------------------------------------------------------
@@ -144,12 +139,19 @@ type Instance struct {
 	//
 	// History -----------------------------------------------------------------------------------
 
-	// TODO: Should we store histories in a list or map, with name/bindkey as keys of the map ?
+	// Current line undo/redo history.
+	undoHistory      []undoItem
+	undoPos          int
+	isUndoing        bool
+	undoSkipAppend   bool
+	forcedUndoAppend bool // A widget may force its operation to append to undo history (eg. dw).
+
+	// Past history
 	// mainHistory - current mapped to CtrlR by default, with rl.SetHistoryCtrlR()
 	mainHistory  History
 	mainHistName string
-	// altHistory is an alternative history input, in case a console user would
-	// like to have two different history flows. Mapped to CtrlE by default, with rl.SetHistoryCtrlE()
+	// altHistory is an alternative history input, if a user wants to have different history flows.
+	// Mapped to CtrlE by default, with rl.SetHistoryCtrlE()
 	altHistory  History
 	altHistName string
 

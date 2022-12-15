@@ -912,7 +912,6 @@ func (rl *Instance) viSubstitute() {
 	switch rl.local {
 	case visual:
 		rl.deleteSelection()
-		rl.resetSelection()
 		rl.viInsertMode()
 	default:
 		vii := rl.getIterations()
@@ -933,7 +932,6 @@ func (rl *Instance) viChange() {
 		rl.skipUndoAppend()
 
 		rl.deleteSelection()
-		rl.resetSelection()
 		rl.viInsertMode()
 
 		return
@@ -974,7 +972,6 @@ func (rl *Instance) viChange() {
 	widget([]rune(key))
 
 	rl.deleteSelection()
-	rl.resetSelection()
 
 	if action != "vi-change-surround" {
 		rl.viInsertMode()

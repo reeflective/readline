@@ -1,8 +1,12 @@
 package readline
 
 import (
+	"errors"
 	"io"
 )
+
+// CtrlC is returned when ctrl+c is pressed
+var ErrCtrlC = errors.New("Ctrl+C")
 
 // loadInterruptHandlers maps all interrupt handlers to the shell.
 func (rl *Instance) loadInterruptHandlers() {
@@ -23,7 +27,7 @@ func (rl *Instance) isInterrupt(keys string) (lineWidget, bool) {
 // on our current shell mode: this is because this handler is not directly registered
 // on one of our keymaps, and every input key is checked against this before keymaps.
 func (rl *Instance) errorCtrlC(_ []rune) (read, ret bool, val string, err error) {
-	err = CtrlC
+	err = ErrCtrlC
 	val = string(rl.line)
 	rl.keys = ""
 

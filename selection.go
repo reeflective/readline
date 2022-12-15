@@ -134,13 +134,10 @@ func (rl *Instance) deleteSelection() {
 	rl.line = newline
 
 	// Adapt cursor position when at the end of the
-	// TODO: Same refactor pos thing
 	rl.pos = cpos
-	if rl.pos == len(newline) && len(newline) > 0 {
-		rl.pos--
-	}
 
-	// TODO: probably needed to reset active region.
+	// Reset the selection since it does not exist anymore.
+	rl.resetSelection()
 }
 
 // resetSelection unmarks the mark position and deactivates the region.

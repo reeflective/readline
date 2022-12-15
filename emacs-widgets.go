@@ -226,6 +226,8 @@ func (rl *Instance) endOfLine() {
 }
 
 func (rl *Instance) killLine() {
+	rl.undoHistoryAppend()
+
 	rl.saveBufToRegister(rl.line[rl.pos-1:])
 	rl.line = rl.line[:rl.pos]
 	rl.resetHelpers()
@@ -233,6 +235,8 @@ func (rl *Instance) killLine() {
 }
 
 func (rl *Instance) killWholeLine() {
+	rl.undoHistoryAppend()
+
 	if len(rl.line) == 0 {
 		return
 	}
@@ -242,6 +246,8 @@ func (rl *Instance) killWholeLine() {
 }
 
 func (rl *Instance) backwardKillWord() {
+	rl.undoHistoryAppend()
+
 	if rl.modeTabCompletion {
 		rl.resetVirtualComp(false)
 	}
@@ -251,9 +257,10 @@ func (rl *Instance) backwardKillWord() {
 }
 
 func (rl *Instance) killWord() {
+	rl.undoHistoryAppend()
+
 	rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpE, 1)
 	rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
-	// WARN: HERE THE +1 SHOULD BE CHECKED, because panic when at the end of line.
 }
 
 func (rl *Instance) yank() {
@@ -266,6 +273,8 @@ func (rl *Instance) yank() {
 }
 
 func (rl *Instance) backwardDeleteChar() {
+	rl.undoHistoryAppend()
+
 	vii := rl.getIterations()
 
 	// We might be on an active register, but not yanking...
@@ -282,6 +291,8 @@ func (rl *Instance) backwardDeleteChar() {
 }
 
 func (rl *Instance) deleteChar() {
+	rl.undoHistoryAppend()
+
 	vii := rl.getIterations()
 
 	// We might be on an active register, but not yanking...
@@ -373,6 +384,8 @@ func (rl *Instance) historyPrev() {
 }
 
 func (rl *Instance) killBuffer() {
+	rl.undoHistoryAppend()
+
 	if len(rl.line) == 0 {
 		return
 	}
@@ -444,7 +457,6 @@ func (rl *Instance) inferNextHistory() {
 	rl.pos = len(nextLine)
 }
 
-// TODO: Find a way to catch-on other keymaps ? How and when to exit the mode if not with escape ?
 func (rl *Instance) overwriteMode() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
@@ -495,6 +507,8 @@ func (rl *Instance) setMarkCommand() {
 }
 
 func (rl *Instance) quoteRegion() {
+	rl.undoHistoryAppend()
+
 	_, cpos := rl.insertSelection("'")
 	rl.pos = cpos + 1
 }
@@ -589,6 +603,8 @@ func (rl *Instance) endOfBufferOrHistory() {
 }
 
 func (rl *Instance) capitalizeWord() {
+	rl.undoHistoryAppend()
+
 	posInit := rl.pos
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
@@ -599,6 +615,8 @@ func (rl *Instance) capitalizeWord() {
 }
 
 func (rl *Instance) downCaseWord() {
+	rl.undoHistoryAppend()
+
 	posInit := rl.pos
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
@@ -614,6 +632,8 @@ func (rl *Instance) downCaseWord() {
 }
 
 func (rl *Instance) upCaseWord() {
+	rl.undoHistoryAppend()
+
 	posInit := rl.pos
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
@@ -629,6 +649,8 @@ func (rl *Instance) upCaseWord() {
 }
 
 func (rl *Instance) transposeWords() {
+	rl.undoHistoryAppend()
+
 	posInit := rl.pos
 
 	// Save the current word
@@ -678,6 +700,8 @@ func (rl *Instance) copyRegionAsKill() {
 }
 
 func (rl *Instance) copyPrevWord() {
+	rl.undoHistoryAppend()
+
 	posInit := rl.pos
 
 	rl.markSelection(rl.pos)
@@ -688,6 +712,8 @@ func (rl *Instance) copyPrevWord() {
 }
 
 func (rl *Instance) copyPrevShellWord() {
+	rl.undoHistoryAppend()
+
 	posInit := rl.pos
 
 	// First go back a single blank word
@@ -716,8 +742,9 @@ func (rl *Instance) copyPrevShellWord() {
 }
 
 func (rl *Instance) killRegion() {
+	rl.undoHistoryAppend()
+
 	rl.deleteSelection()
-	rl.resetSelection()
 }
 
 // Cursor position cases:
@@ -738,6 +765,8 @@ func (rl *Instance) killRegion() {
 // 2 -2  => -2
 // 2 -a  => -a
 func (rl *Instance) switchKeyword() {
+	rl.undoHistoryAppend()
+
 	cpos := rl.pos
 	increase := rl.keys == string(charCtrlA)
 

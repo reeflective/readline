@@ -63,11 +63,6 @@ func (rl *Instance) undo() {
 	undo := rl.undoHistory[len(rl.undoHistory)-rl.undoPos]
 	rl.line = []rune(undo.line)
 	rl.pos = undo.pos
-
-	// TODO: Also related to vim position adjustment after many handlers.
-	// if rl.main != viins && len(rl.line) > 0 && rl.pos == len(rl.line) {
-	// 	rl.pos--
-	// }
 }
 
 func (rl *Instance) redo() {
@@ -90,11 +85,6 @@ func (rl *Instance) redo() {
 	undo := rl.undoHistory[len(rl.undoHistory)-rl.undoPos]
 	rl.line = []rune(undo.line)
 	rl.pos = undo.pos
-
-	// TODO: Also related to vim position adjustment after many handlers.
-	// if rl.main != viins && len(rl.line) > 0 && rl.pos == len(rl.line) {
-	// 	rl.pos--
-	// }
 }
 
 func (rl *Instance) resetUndoDirectives() {

@@ -122,7 +122,6 @@ func (rl *Instance) walkHistory(i int) {
 		history = rl.mainHistory
 	}
 
-	// Nothing happens if the history is nil or empty.
 	if history == nil || history.Len() == 0 {
 		return
 	}
@@ -133,7 +132,6 @@ func (rl *Instance) walkHistory(i int) {
 		rl.lineBuf = string(rl.line)
 	}
 
-	// Move the history position first. It is caught below if out of bounds.
 	rl.histPos += i
 
 	switch {
