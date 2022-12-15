@@ -113,17 +113,15 @@ type Instance struct {
 	tcGroups []*CompletionGroup // All of our suggestions tree is in here
 	tcPrefix string             // The current tab completion prefix  against which to build candidates
 
-	modeTabCompletion    bool
-	compConfirmWait      bool // When too many completions, we ask the user to confirm with another Tab keypress.
-	tabCompletionSelect  bool // We may have completions printed, but no selected candidate yet
-	tabCompletionReverse bool // Groups sometimes use this indicator to know how they should handle their index
-	tcUsedY              int  // Comprehensive offset of the currently built completions
+	modeTabCompletion   bool
+	compConfirmWait     bool // When too many completions, we ask the user to confirm with another Tab keypress.
+	tabCompletionSelect bool // We may have completions printed, but no selected candidate yet
+	tcUsedY             int  // Comprehensive offset of the currently built completions
 
 	// Candidate /  virtual completion string / etc
-	currentComp  []rune // The currently selected item, not yet a real part of the input line.
-	lineComp     []rune // Same as rl.line, but with the currentComp inserted.
-	lineRemain   []rune // When we complete in the middle of a line, we cut and keep the remain.
-	compAddSpace bool   // If true, any candidate inserted into the real line is done with an added space.
+	currentComp []rune // The currently selected item, not yet a real part of the input line.
+	lineComp    []rune // Same as rl.line, but with the currentComp inserted.
+	lineRemain  []rune // When we complete in the middle of a line, we cut and keep the remain.
 
 	//
 	// Completion Search  (Normal & History) -----------------------------------------------------

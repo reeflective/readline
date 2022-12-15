@@ -54,62 +54,6 @@ func (rl *Instance) inputCompletionHelper(b []byte, i int) (done, ret bool, val 
 	return
 }
 
-func menuSelect(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
-	// The user cannot show completions if currently in Vim Normal mode
-	// if rl.InputMode == Vim && rl.modeViMode != vimInsert {
-	// 	read = true
-	//
-	// 	return
-	// }
-
-	// If we have asked for completions, already printed, and we want to move selection.
-	if rl.modeTabCompletion && !rl.compConfirmWait {
-		rl.tabCompletionSelect = true
-		rl.moveTabCompletionHighlight(1, 0)
-		rl.updateVirtualComp()
-		rl.renderHelpers()
-		rl.undoSkipAppend = true
-
-		return
-	}
-
-	defer func() {
-		rl.updateHelpers() // WARN: Redundant with update helpers below
-		rl.undoSkipAppend = true
-
-		read = true
-	}()
-
-	// Else we might be asked to confirm printing (if too many suggestions), or not.
-	rl.getTabCompletion()
-
-	// If too many completions and no yet confirmed, ask user for completion
-	// comps, lines := rl.getCompletionCount()
-	// if ((lines > GetTermLength()) || (lines > rl.MaxTabCompleterRows)) && !rl.compConfirmWait {
-	//         sentence := fmt.Sprintf("%s show all %d completions (%d lines) ? tab to confirm",
-	//                 FOREWHITE, comps, lines)
-	//         rl.promptCompletionConfirm(sentence)
-	//         continue
-	// }
-
-	rl.compConfirmWait = false
-	rl.modeTabCompletion = true
-
-	// Also here, if only one candidate is available, automatically
-	// insert it and don't bother printing completions.
-	// Quit the tab completion mode to avoid asking to the user
-	// to press Enter twice to actually run the command.
-	if rl.hasOneCandidate() {
-		rl.insertCandidate()
-
-		// Refresh first, and then quit the completion mode
-		rl.updateHelpers() // REDUNDANT WITH getTabCompletion()
-		rl.resetTabCompletion()
-	}
-
-	return
-}
-
 func historyMenuComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
 	rl.resetVirtualComp(false)
 	// For some modes only, if we are in vim Keys mode,
@@ -223,73 +167,14 @@ func (rl *Instance) inputCompletionFind() {
 	rl.undoSkipAppend = true
 }
 
-func (rl *Instance) inputCompletionTab(b []byte, i int) (done, ret bool, val string, err error) {
-	// The user cannot show completions if currently in Vim Normal mode
-	// if rl.InputMode == Vim && rl.modeViMode != vimInsert {
-	// 	done = true
-	//
-	// 	return
-	// }
-
-	// If we have asked for completions, already printed, and we want to move selection.
-	if rl.modeTabCompletion && !rl.compConfirmWait {
-		rl.tabCompletionSelect = true
-		rl.moveTabCompletionHighlight(1, 0)
-		rl.updateVirtualComp()
-		rl.renderHelpers()
-		rl.undoSkipAppend = true
-
-		return
-	}
-
-	defer func() {
-		rl.updateHelpers() // WARN: Redundant with update helpers below
-		rl.undoSkipAppend = true
-
-		done = true
-	}()
-
-	// Else we might be asked to confirm printing (if too many suggestions), or not.
-	rl.getTabCompletion()
-
-	// If too many completions and no yet confirmed, ask user for completion
-	// comps, lines := rl.getCompletionCount()
-	// if ((lines > GetTermLength()) || (lines > rl.MaxTabCompleterRows)) && !rl.compConfirmWait {
-	//         sentence := fmt.Sprintf("%s show all %d completions (%d lines) ? tab to confirm",
-	//                 FOREWHITE, comps, lines)
-	//         rl.promptCompletionConfirm(sentence)
-	//         continue
-	// }
-
-	rl.compConfirmWait = false
-	rl.modeTabCompletion = true
-
-	done = true
-
-	// Also here, if only one candidate is available, automatically
-	// insert it and don't bother printing completions.
-	// Quit the tab completion mode to avoid asking to the user
-	// to press Enter twice to actually run the command.
-	if rl.hasOneCandidate() {
-		rl.insertCandidate()
-
-		// Refresh first, and then quit the completion mode
-		rl.updateHelpers() // REDUNDANT WITH getTabCompletion()
-		rl.resetTabCompletion()
-
-	}
-
-	return
-}
-
 // getTabCompletion - This root function sets up all completion items and engines,
 // dealing with all search and completion modes. But it does not perform printing.
 func (rl *Instance) getTabCompletion() {
 	// Populate registers if requested.
-	if rl.modeAutoFind && rl.searchMode == RegisterFind {
-		rl.getRegisterCompletion()
-		return
-	}
+	// if rl.modeAutoFind && rl.searchMode == RegisterFind {
+	// 	rl.registerCompletion()
+	// 	return
+	// }
 
 	// Populate for completion search if in this mode
 	if rl.modeAutoFind && rl.searchMode == CompletionFind {
@@ -304,56 +189,17 @@ func (rl *Instance) getTabCompletion() {
 	}
 
 	// Else, yield normal completions
-	rl.getNormalCompletion()
-}
-
-// getRegisterCompletion - Populates and sets up completion for Vim registers.
-func (rl *Instance) getRegisterCompletion() {
-	rl.tcGroups = rl.completeRegisters()
-	if len(rl.tcGroups) == 0 {
-		return
-	}
-
-	// Avoid nil maps in groups
-	var groups []CompletionGroup
-	for _, group := range rl.tcGroups {
-		groups = append(groups, *group)
-	}
-	rl.tcGroups = checkNilItems(groups)
-
-	// Adjust the index for each group after the first:
-	// this ensures no latency when we will move around them.
-	for i, group := range rl.tcGroups {
-		group.init(rl)
-		if i != 0 {
-			group.tcPosY = 1
-		}
-	}
-
-	// If there aren't ANY completion candidates, we
-	// escape the completion mode from here directly.
-	var items bool
-	for _, group := range rl.tcGroups {
-		if len(group.Values) > 0 {
-			items = true
-		}
-	}
-	if !items {
-		rl.modeTabCompletion = false
-	}
+	// rl.getNormalCompletion()
 }
 
 // getTabSearchCompletion - Populates and sets up completion for completion search.
 func (rl *Instance) getTabSearchCompletion() {
 	// Get completions from the engine, and make sure there is a current group.
-	rl.getCompletions()
+	rl.generateCompletions()
 	if len(rl.tcGroups) == 0 {
 		return
 	}
 	rl.getCurrentGroup()
-
-	// Set the hint for this completion mode
-	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
 
 	// Set the hint for this completion mode
 	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
@@ -402,39 +248,10 @@ func (rl *Instance) getHistorySearchCompletion() {
 	}
 }
 
-// getNormalCompletion - Populates and sets up completion for normal comp mode.
-// Will automatically cancel the completion mode if there are no candidates.
-func (rl *Instance) getNormalCompletion() {
-	// Get completions groups, pass delayedTabContext and check nils
-	rl.getCompletions()
-
-	// Adjust the index for each group after the first:
-	// this ensures no latency when we will move around them.
-	for i, group := range rl.tcGroups {
-		group.init(rl)
-		if i != 0 {
-			group.tcPosY = 1
-		}
-	}
-
-	// If there aren't ANY completion candidates, we
-	// escape the completion mode from here directly.
-	var items bool
-	for _, group := range rl.tcGroups {
-		if len(group.Values) > 0 {
-			items = true
-		}
-	}
-	if !items {
-		rl.modeTabCompletion = false
-	}
-}
-
-// getCompletions - Calls the completion engine/function to yield a list of 0 or more completion groups,
+// generateCompletions - Calls the completion engine/function to yield a list of 0 or more completion groups,
 // sets up a delayed tab context and passes it on to the tab completion engine function, and ensure no
 // nil groups/items will pass through. This function is called by different comp search/nav modes.
-func (rl *Instance) getCompletions() {
-	// If there is no wired tab completion engine, nothing we can do.
+func (rl *Instance) generateCompletions() {
 	if rl.TabCompleter == nil {
 		return
 	}
@@ -451,32 +268,15 @@ func (rl *Instance) getCompletions() {
 	// Get the correct line to be completed, and the current cursor position
 	compLine, compPos := rl.getCompletionLine()
 
-	// Call up the completion engine/function to yield completion groups
 	prefix, groups := rl.TabCompleter(compLine, compPos, rl.delayedTabContext)
 
 	rl.tcPrefix = prefix
-
-	// Avoid nil maps in groups. Maybe we could also pop any empty group.
 	rl.tcGroups = checkNilItems(groups)
-
-	// We have been loading fresh completion sin this function,
-	// so adjust the positions for each group, so that cycling
-	// correctly occurs in both directions (tab/shift+tab)
-	for i, group := range rl.tcGroups {
-		if i > 0 {
-			switch group.DisplayType {
-			case TabDisplayGrid:
-				group.tcPosX = 1
-			case TabDisplayList, TabDisplayMap:
-				group.tcPosY = 1
-			}
-		}
-	}
 }
 
-// moveTabCompletionHighlight - This function is in charge of
+// moveCompletionSelection - This function is in charge of
 // computing the new position in the current completions liste.
-func (rl *Instance) moveTabCompletionHighlight(x, y int) {
+func (rl *Instance) moveCompletionSelection(x, y int) {
 	g := rl.getCurrentGroup()
 
 	// If there is no current group, we leave any current completion mode.
@@ -520,16 +320,15 @@ func (rl *Instance) moveTabCompletionHighlight(x, y int) {
 	}
 }
 
-// writeTabCompletion - Prints all completion groups and their items
-func (rl *Instance) writeTabCompletion() {
+// printCompletions - Prints all completion groups and their items
+func (rl *Instance) printCompletions() {
+	rl.tcUsedY = 0
+
 	// The final completions string to print.
 	var completions string
 
-	// This stablizes the completion printing just beyond the input line
-	rl.tcUsedY = 0
-
 	// Safecheck
-	if !rl.modeTabCompletion {
+	if rl.local != menuselect && rl.local != isearch {
 		return
 	}
 
@@ -601,7 +400,9 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 				break
 			}
 		}
+
 		cropped, _ = moreComps(cropped, count)
+
 		return cropped, count
 	}
 
@@ -624,7 +425,9 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 				break
 			}
 		}
-		cropped, _ := moreComps(cropped, rl.config.MaxTabCompleterRows+cutAbove)
+
+		cropped, _ = moreComps(cropped, rl.config.MaxTabCompleterRows+cutAbove)
+
 		return cropped, count - cutAbove
 	}
 
@@ -734,41 +537,6 @@ func (rl *Instance) cyclePreviousGroup() {
 	}
 }
 
-// Check if we have a single completion candidate
-func (rl *Instance) hasOneCandidate() bool {
-	if len(rl.tcGroups) == 0 {
-		return false
-	}
-
-	// If one group and one option, obvious
-	if len(rl.tcGroups) == 1 {
-		cur := rl.getCurrentGroup()
-		if cur == nil {
-			return false
-		}
-		if len(cur.Values) == 1 {
-			return true
-		}
-		return false
-	}
-
-	// If many groups but only one option overall
-	if len(rl.tcGroups) > 1 {
-		var count int
-		for _, group := range rl.tcGroups {
-			for range group.Values {
-				count++
-			}
-		}
-		if count == 1 {
-			return true
-		}
-		return false
-	}
-
-	return false
-}
-
 // When the completions are either longer than:
 // - The user-specified max completion length
 // - The terminal lengh
@@ -799,32 +567,47 @@ func (rl *Instance) getCompletionCount() (comps int, lines int, adjusted int) {
 	return
 }
 
-func (rl *Instance) resetTabCompletion() {
-	rl.modeTabCompletion = false
-	rl.tabCompletionSelect = false
-	rl.compConfirmWait = false
-
-	rl.tcUsedY = 0
-	rl.modeTabFind = false
-	rl.modeAutoFind = false
-	rl.tfLine = []rune{}
-
-	// Reset tab highlighting
-	if len(rl.tcGroups) > 0 {
-		for _, g := range rl.tcGroups {
-			g.isCurrent = false
-		}
-		rl.tcGroups[0].isCurrent = true
+func (rl *Instance) getCurrentCandidate() (comp string) {
+	cur := rl.getCurrentGroup()
+	if cur == nil {
+		return
 	}
+
+	return cur.getCurrentCell(rl).Value
 }
 
-// ensureCompState is called before we process
+// updateCompletionState is called before we process
 // an input key in the main readline loop.
-func (rl *Instance) ensureCompState() {
+func (rl *Instance) updateCompletionState() {
 	// Before anything: we can never be both in modeTabCompletion and compConfirmWait,
 	// because we need to confirm before entering completion. If both are true, there
 	// is a problem (at least, the user has escaped the confirm hint some way).
-	if (rl.modeTabCompletion && rl.searchMode != HistoryFind) && rl.compConfirmWait {
-		rl.compConfirmWait = false
-	}
+	// if (rl.modeTabCompletion && rl.searchMode != HistoryFind) && rl.compConfirmWait {
+	// 	rl.compConfirmWait = false
+	// }
+
+	// The current cursor position is needed so that we will
+	// know if we should discard printed completions or not.
+
+	rl.resetVirtualComp(false)
+	rl.resetTabCompletion()
 }
+
+// func (rl *Instance) resetTabCompletionAlt() {
+// 	rl.modeTabCompletion = false
+// 	rl.tabCompletionSelect = false
+// 	rl.compConfirmWait = false
+//
+// 	rl.tcUsedY = 0
+// 	rl.modeTabFind = false
+// 	rl.modeAutoFind = false
+// 	rl.tfLine = []rune{}
+//
+// 	// Reset tab highlighting
+// 	if len(rl.tcGroups) > 0 {
+// 		for _, g := range rl.tcGroups {
+// 			g.isCurrent = false
+// 		}
+// 		rl.tcGroups[0].isCurrent = true
+// 	}
+// }

@@ -67,7 +67,8 @@ type config struct {
 	// Completion settings
 	//
 
-	MaxTabCompleterRows int `yaml:"maxTabCompleterRows"`
+	MaxTabCompleterRows int  `yaml:"maxTabCompleterRows"`
+	AutoComplete        bool `yaml:"autoComplete"`
 
 	//
 	// Other helpers
@@ -263,6 +264,7 @@ func (rl *Instance) loadDefaultConfig() {
 
 		// Completions
 		MaxTabCompleterRows: 50,
+		AutoComplete:        true,
 
 		// Other helpers
 		HintFormatting: DIM,
@@ -276,6 +278,8 @@ func (rl *Instance) loadDefaultConfig() {
 	config.Keymaps[vicmd] = vicmdKeys
 	config.Keymaps[viopp] = vioppKeys
 	config.Keymaps[visual] = visualKeys
+
+	config.Keymaps[menuselect] = menuselectKeys
 
 	// First load the default configuration to preserve
 	// the comment, and then apply our default values onto it.

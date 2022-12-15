@@ -79,11 +79,12 @@ func (rl *Instance) computeLine() {
 
 // computeCursorPos determines the X and Y coordinates of the cursor.
 func (rl *Instance) computeCursorPos() {
-	// First, ensure the cursor position on the line itself is good.
+	line := rl.getLineVirtual()
+
 	if rl.pos < 0 {
 		rl.pos = 0
-	} else if rl.pos > len(rl.line) {
-		rl.pos = len(rl.line)
+	} else if rl.pos > len(line) {
+		rl.pos = len(line)
 	}
 
 	// In Vim command mode, the cursor must be on the last character

@@ -195,6 +195,12 @@ func (rl *Instance) getWidget(name string) lineWidget {
 	// Incremental search
 
 	// Completion
+	if widget, found := rl.completionWidgets()[name]; found && widget != nil {
+		return func(_ []rune) (bool, bool, string, error) {
+			widget()
+			return false, false, "", nil
+		}
+	}
 
 	return nil
 }

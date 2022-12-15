@@ -16,11 +16,15 @@ func (rl *Instance) initHelpers() {
 // it should coordinate reprinting the input line, any hints and completions
 // and manage to get back to the current (computed) cursor coordinates
 func (rl *Instance) updateHelpers() {
-	// Load all hints & completions before anything.
-	// Thus overwrites anything having been dirtily added/forced/modified, like rl.SetHintText()
 	rl.getHintText()
-	if rl.modeTabCompletion {
-		rl.getTabCompletion()
+
+	// Since we get called just before reading a new key (thus just
+	// after having processed the last one), we should refresh the
+	// completions if autocompletion is on.
+	if rl.config.AutoComplete && len(rl.line) > 0 {
+		rl.resetTabCompletion()
+		rl.generateCompletions()
+		rl.initializeCompletions()
 	}
 
 	// We clear everything
@@ -137,7 +141,7 @@ func (rl *Instance) renderHelpers() {
 
 		// Print completions and go back to beginning of this line
 		print("\n")
-		rl.writeTabCompletion()
+		rl.printCompletions()
 		moveCursorBackwards(GetTermWidth())
 		moveCursorUp(rl.tcUsedY)
 	}

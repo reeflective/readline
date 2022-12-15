@@ -641,7 +641,6 @@ func (rl *Instance) viDelete() {
 		rl.skipUndoAppend()
 
 		rl.deleteSelection()
-		rl.resetSelection()
 
 		if rl.local == visual {
 			rl.viCommandMode()

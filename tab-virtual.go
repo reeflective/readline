@@ -19,7 +19,9 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 	}
 
 	// We place the cursor back at the beginning of the previous virtual candidate
-	rl.pos -= len(rl.currentComp)
+	if rl.pos > 0 {
+		rl.pos -= len(rl.currentComp)
+	}
 
 	// We delete the previous virtual completion, just
 	// like we would delete a word in vim editing mode.
@@ -59,57 +61,61 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 func (rl *Instance) insertCandidate() {
 	cur := rl.getCurrentGroup()
 
-	if cur != nil {
-		completion := cur.getCurrentCell(rl).Value
-		prefix := len(rl.tcPrefix)
+	if cur == nil {
+		return
+	}
 
-		// Special case for the only special escape, which
-		// if not handled, will make us insert the first
-		// character of our actual rl.tcPrefix in the candidate.
-		if strings.HasPrefix(string(rl.tcPrefix), "%") {
-			prefix++
-		}
+	completion := cur.getCurrentCell(rl).Value
+	prefix := len(rl.tcPrefix)
 
-		// Ensure no indexing error happens with prefix
-		if len(completion) >= prefix {
-			rl.insert([]rune(completion[prefix:]))
-			if !cur.TrimSlash && !cur.NoSpace {
-				rl.insert([]rune(" "))
-			}
+	// Special case for the only special escape, which
+	// if not handled, will make us insert the first
+	// character of our actual rl.tcPrefix in the candidate.
+	if strings.HasPrefix(string(rl.tcPrefix), "%") {
+		prefix++
+	}
+
+	// Ensure no indexing error happens with prefix
+	if len(completion) >= prefix {
+		rl.insert([]rune(completion[prefix:]))
+		if !cur.TrimSlash && !cur.NoSpace {
+			rl.insert([]rune(" "))
 		}
 	}
 }
 
-// updateVirtualComp - Either insert the current completion candidate virtually, or on the real line.
+// updateVirtualComp - Either insert the current completion
+// candidate virtually, or on the real line.
 func (rl *Instance) updateVirtualComp() {
 	cur := rl.getCurrentGroup()
-	if cur != nil {
+	if cur == nil {
+		return
+	}
 
-		completion := cur.getCurrentCell(rl).Value
-		prefix := len(rl.tcPrefix)
+	completion := cur.getCurrentCell(rl).Value
+	prefix := len(rl.tcPrefix)
 
-		// If the total number of completions is one, automatically insert it.
-		if rl.hasOneCandidate() {
-			rl.insertCandidate()
-			// Quit the tab completion mode to avoid asking to the user to press
-			// Enter twice to actually run the command
-			// Refresh first, and then quit the completion mode
-			rl.undoSkipAppend = true
-			rl.resetTabCompletion()
-		} else {
+	// If the total number of completions is one, automatically insert it.
+	if rl.hasUniqueCandidate() {
+		rl.insertCandidate()
+		// Quit the tab completion mode to avoid asking to the user to press
+		// Enter twice to actually run the command
+		// Refresh first, and then quit the completion mode
+		rl.undoSkipAppend = true
+		rl.resetTabCompletion()
+	} else {
 
-			// Special case for the only special escape, which
-			// if not handled, will make us insert the first
-			// character of our actual rl.tcPrefix in the candidate.
-			// TODO: This should changed.
-			if strings.HasPrefix(string(rl.tcPrefix), "%") {
-				prefix++
-			}
+		// Special case for the only special escape, which
+		// if not handled, will make us insert the first
+		// character of our actual rl.tcPrefix in the candidate.
+		// TODO: This should changed.
+		if strings.HasPrefix(string(rl.tcPrefix), "%") {
+			prefix++
+		}
 
-			// Or insert it virtually.
-			if len(completion) >= prefix {
-				rl.insertCandidateVirtual([]rune(completion[prefix:]))
-			}
+		// Or insert it virtually.
+		if len(completion) >= prefix {
+			rl.insertCandidateVirtual([]rune(completion[prefix:]))
 		}
 	}
 }
@@ -118,8 +124,6 @@ func (rl *Instance) updateVirtualComp() {
 // and makes sure that the current completion (virtually inserted) is either inserted or dropped,
 // and that all related parameters are reinitialized.
 func (rl *Instance) resetVirtualComp(drop bool) {
-	// If we don't have a current virtual completion, there's nothing to do.
-	// IMPORTANT: this MUST be first, to avoid nil problems with empty comps.
 	if len(rl.currentComp) == 0 {
 		return
 	}
@@ -130,7 +134,9 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	if cur == nil {
 		return
 	}
+
 	completion := cur.getCurrentCell(rl).Value
+
 	// Avoid problems with empty completions
 	if completion == "" {
 		rl.clearVirtualComp()
@@ -139,6 +145,7 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 
 	// We will only insert the net difference between prefix and completion.
 	prefix := len(rl.tcPrefix)
+
 	// Special case for the only special escape, which
 	// if not handled, will make us insert the first
 	// character of our actual rl.tcPrefix in the candidate.
@@ -159,17 +166,15 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	// - We add a space only if the group has not explicitely specified not to add one.
 	if cur.TrimSlash {
 		trimmed, hadSlash := trimTrailing(completion)
-		if !hadSlash && rl.compAddSpace {
+		if !hadSlash {
 			if !cur.NoSpace {
 				trimmed = trimmed + " "
 			}
 		}
 		rl.insertCandidateVirtual([]rune(trimmed[prefix:]))
 	} else {
-		if rl.compAddSpace {
-			if !cur.NoSpace {
-				completion = completion + " "
-			}
+		if !cur.NoSpace {
+			completion = completion + " "
 		}
 		rl.insertCandidateVirtual([]rune(completion[prefix:]))
 	}
@@ -195,10 +200,7 @@ func trimTrailing(comp string) (trimmed string, hadSlash bool) {
 
 // viDeleteByAdjustVirtual - Same as viDeleteByAdjust, but for our virtually completed input line.
 func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
-	var (
-		newLine []rune
-		backOne bool
-	)
+	var newLine []rune // backOne bool
 
 	// Avoid doing anything if input line is empty.
 	if len(rl.lineComp) == 0 {
@@ -211,8 +213,9 @@ func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
 		return
 	case rl.pos+adjust == len(rl.lineComp)-1:
 		newLine = rl.lineComp[:rl.pos]
-		// backOne = true // Deleted, otherwise the completion moves back when we don't want to.
 	case rl.pos+adjust == 0:
+		println(adjust)
+		println(rl.pos)
 		newLine = rl.lineComp[rl.pos:]
 	case adjust < 0:
 		newLine = append(rl.lineComp[:rl.pos+adjust], rl.lineComp[rl.pos:]...)
@@ -225,10 +228,6 @@ func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
 
 	if adjust < 0 {
 		rl.moveCursorByAdjust(adjust)
-	}
-
-	if backOne {
-		rl.pos--
 	}
 }
 
@@ -253,6 +252,7 @@ func (rl *Instance) viJumpEVirtual(tokeniser func([]rune, int) ([]string, int, i
 	default:
 		adjust = len(word) - pos - 1
 	}
+
 	return
 }
 
@@ -275,5 +275,4 @@ func (rl *Instance) deleteVirtual() {
 func (rl *Instance) clearVirtualComp() {
 	rl.line = rl.lineComp
 	rl.currentComp = []rune{}
-	rl.compAddSpace = false
 }

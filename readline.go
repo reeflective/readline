@@ -59,10 +59,6 @@ func (rl *Instance) Readline() (string, error) {
 		// are not hidden by the local keymap ones can still be used.
 		rl.updateKeymaps()
 
-		// Ensure the completion system is in a sane
-		// state before processing an input key.
-		rl.ensureCompState()
-
 		// Read user key stroke(s) ---------------------------------------------
 		//
 		// Read the input from stdin if any, and upon successfull
@@ -114,17 +110,24 @@ func (rl *Instance) Readline() (string, error) {
 		//   completions or performing history/incremental search.
 		// - In Vim, this can be either 'visual', 'viopp', 'completion' or
 		//   'incremental' search.
+		// - When completing/searching, can be 'menuselect' or 'isearch'
 		widget, prefix := rl.matchKeymap(keys, rl.local)
 		if widget != nil {
-			read, ret, val, err := rl.run(widget, keys)
+			_, ret, val, err := rl.run(widget, keys)
 			if ret || err != nil {
 				return val, err
-			} else if read {
-				continue
+				// } else if read {
+				// 	continue
 			}
+			continue
 		} else if prefix {
 			continue
 		}
+
+		// Past the local keymap, our actions have a direct effect on the line
+		// or on the cursor position, so we must first "reset" or accept any
+		// completion state we're in, if any, such as a virtually inserted candidate.
+		rl.updateCompletionState()
 
 		// 2) If the key was not matched against any local widget, match it
 		// against the global keymap, which can never be nil.
@@ -132,12 +135,13 @@ func (rl *Instance) Readline() (string, error) {
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
 		widget, prefix = rl.matchKeymap(keys, rl.main)
 		if widget != nil {
-			read, ret, val, err := rl.run(widget, keys)
+			_, ret, val, err := rl.run(widget, keys)
 			if ret || err != nil {
 				return val, err
-			} else if read {
-				continue
+				// } else if read {
+				// 	continue
 			}
+			continue
 		} else if prefix {
 			continue
 		}

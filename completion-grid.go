@@ -50,7 +50,8 @@ func (g *CompletionGroup) moveTabGridHighlight(rl *Instance, x, y int) (done boo
 
 	// Columns
 	if g.tcPosX < 1 {
-		if g.tcPosY == 1 && rl.tabCompletionReverse {
+		if g.tcPosY == 1 && (x < 0 || y < 0) {
+			// if g.tcPosY == 1 && rl.tabCompletionReverse {
 			g.tcPosX = 1
 			g.tcPosY = 0
 		} else {
@@ -85,7 +86,8 @@ func (g *CompletionGroup) moveTabGridHighlight(rl *Instance, x, y int) (done boo
 	// In case we are reverse cycling and currently selecting the first item,
 	// we adjust the coordinates to point to the last item and return
 	// We set g.tcPosY because the printer needs to get the a candidate nonetheless.
-	if rl.tabCompletionReverse && g.tcPosX == 1 && g.tcPosY == 0 {
+	if (x < 0 || y < 0) && g.tcPosX == 1 && g.tcPosY == 0 {
+		// if rl.tabCompletionReverse && g.tcPosX == 1 && g.tcPosY == 0 {
 		g.tcPosY = 1
 		return true, false
 	}

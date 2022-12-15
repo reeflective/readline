@@ -91,6 +91,7 @@ func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error)
 	//
 	// // The line is prepared and the actual runes to insert are as well.
 	// r = []rune(tokens[pos-1])
+	// 		rl.insert([]rune(tokens[pos-1]))
 
 	for {
 		// I don't really understand why `0` is creaping in at the end of the
@@ -158,8 +159,6 @@ func (rl *Instance) acceptLine(_ []rune) (read, ret bool, val string, err error)
 		}
 
 		// Else, we insert the completion candidate in the real input line.
-		// By default we add a space, unless completion group asks otherwise.
-		rl.compAddSpace = true
 		rl.resetVirtualComp(false)
 
 		// If we were in history completion, immediately execute the line.
@@ -823,6 +822,15 @@ func (rl *Instance) switchKeyword() {
 		rl.pos = bpos + len(word) - 1
 
 		return
+	}
+}
+
+func (rl *Instance) deleteCharOrList() {
+	switch {
+	case rl.pos < len(rl.line):
+		rl.deleteChar()
+	default:
+		rl.expandOrComplete()
 	}
 }
 

@@ -37,7 +37,8 @@ func (g *CompletionGroup) moveTabMapHighlight(rl *Instance, x, y int) (done bool
 
 	// Lines
 	if g.tcPosY < 1 {
-		if rl.tabCompletionReverse {
+		if x < 0 || y < 0 {
+			// if rl.tabCompletionReverse {
 			if g.tcOffset > 0 {
 				g.tcPosY = 1
 				g.tcOffset--

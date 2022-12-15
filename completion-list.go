@@ -39,7 +39,8 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 	// Lines
 	// TODO: Refactor in function
 	if g.tcPosY < 1 {
-		if rl.tabCompletionReverse {
+		if x < 0 || y < 0 {
+			// if rl.tabCompletionReverse {
 			if g.tcOffset > 0 {
 				g.tcPosY = 1
 				g.tcOffset--
@@ -67,7 +68,8 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 	// Get the row and subrow of the current candidate
 	row, inRow := g.getCurrentRowValues()
 
-	if rl.tabCompletionReverse {
+	if x < 0 || y < 0 {
+		// if rl.tabCompletionReverse {
 		newY, found := g.getPreviousCandidate(row+1, inRow)
 		if found {
 			g.tcPosY -= newY
