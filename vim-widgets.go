@@ -25,7 +25,7 @@ func (rl *Instance) viWidgets() baseWidgets {
 		"vi-forward-word-end":           rl.viForwardWordEnd,
 		"vi-forward-blank-word-end":     rl.viForwardBlankWordEnd,
 		"vi-backward-word":              rl.viBackwardWord,
-		"vi-backward-blank-word":        rl.viBackwardBlankWord, // TODO vi-backward-blank-word-end/vi-backward-word-end (ge / gE)
+		"vi-backward-blank-word":        rl.viBackwardBlankWord,
 		"vi-backward-word-end":          rl.viBackwardWordEnd,
 		"vi-backward-blank-word-end":    rl.viBackwardBlankWordEnd,
 		"vi-kill-eol":                   rl.viKillEol,
@@ -425,9 +425,9 @@ func (rl *Instance) viForwardWord() {
 
 	// We make an adjustment to the mark if we are currently
 	// yanking, and this widget is the argument action.
-	// if rl.local == viopp && rl.activeRegion {
-	// 	rl.pos--
-	// }
+	if rl.local == viopp && rl.activeRegion && rl.pos < len(rl.line)-1 {
+		rl.pos--
+	}
 }
 
 func (rl *Instance) viForwardBlankWord() {
@@ -445,6 +445,8 @@ func (rl *Instance) viForwardBlankWord() {
 }
 
 func (rl *Instance) viDeleteChar() {
+	rl.undoHistoryAppend()
+
 	vii := rl.getIterations()
 
 	// We might be on an active register, but not yanking...
@@ -457,6 +459,10 @@ func (rl *Instance) viDeleteChar() {
 }
 
 func (rl *Instance) viBackwardDeleteChar() {
+	if rl.main != viins {
+		rl.undoHistoryAppend()
+	}
+
 	vii := rl.getIterations()
 
 	// We might be on an active register, but not yanking...
@@ -706,13 +712,13 @@ func (rl *Instance) viSelectAShellWord() {
 
 	// If none matched, use blankword
 	if mark == -1 && cpos == -1 {
-		rl.viSelectInBlankWord()
+		rl.viSelectABlankWord()
 
 		return
 	}
 
 	// Adjust for spaces preceding
-	if rl.pos == len(rl.line)-1 || mark > 0 && rl.line[mark-1] == ' ' {
+	if rl.pos == len(rl.line)-1 {
 		rl.pos = mark
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
