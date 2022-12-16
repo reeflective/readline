@@ -195,7 +195,7 @@ func (rl *Instance) viDeleteByAdjust(adjust int) {
 		rl.skipUndoAppend()
 		return
 	case rl.pos+adjust >= len(rl.line)-1:
-		newLine = rl.line[:rl.pos]
+		newLine = rl.line[:rl.pos-1]
 	case rl.pos+adjust == 0:
 		newLine = rl.line[rl.pos:]
 	case adjust < 0:
