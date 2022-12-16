@@ -5,15 +5,8 @@ package readline
 func (rl *Instance) autosuggestHistory(line []rune) {
 	rl.histSuggested = make([]rune, 0)
 
-	rl.mainHist = true
-
-	// Work with correct history source (depends on CtrlR/CtrlE)
-	var history History
-	if !rl.mainHist {
-		history = rl.altHistory
-	} else {
-		history = rl.mainHistory
-	}
+	rl.historySourcePos = 0
+	history := rl.currentHistory()
 
 	// Nothing happens if the history is nil or empty.
 	if history == nil || history.Len() == 0 {

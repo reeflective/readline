@@ -218,22 +218,21 @@ func (rl *Instance) insert(r []rune) {
 func (rl *Instance) carriageReturn() {
 	rl.clearHelpers()
 	print("\r\n")
+
 	if rl.config.HistoryAutoWrite {
 		var err error
 
 		// Main history
-		if rl.mainHistory != nil {
-			rl.histPos, err = rl.mainHistory.Write(string(rl.line))
+		for _, history := range rl.histories {
+			if history == nil {
+				continue
+			}
+
+			rl.histPos, err = history.Write(string(rl.line))
 			if err != nil {
 				print(err.Error() + "\r\n")
 			}
-		}
-		// Alternative history
-		if rl.altHistory != nil {
-			rl.histPos, err = rl.altHistory.Write(string(rl.line))
-			if err != nil {
-				print(err.Error() + "\r\n")
-			}
+
 		}
 	}
 }

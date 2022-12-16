@@ -28,26 +28,20 @@ type History interface {
 	Dump() interface{}
 }
 
-// SetHistoryCtrlR - Set the history source triggered with Ctrl-r combination
-func (rl *Instance) SetHistoryCtrlR(name string, history History) {
-	rl.mainHistName = name
-	rl.mainHistory = history
-}
+// AddHistorySource adds a source of history lines bound to a given name
+// (printed above this source when used). All history sources can be used
+// when completing history, and repeatedly using the completion key will
+// cycle through them.
+// When only the default in-memory history is bound, it is replaced with
+// the provided ones. All following sources are added to the list.
+func (rl *Instance) AddHistorySource(name string, history History) {
+	if len(rl.histories) == 1 && rl.historyNames[0] == "local history" {
+		delete(rl.histories, "local history")
+		rl.historyNames = make([]string, 0)
+	}
 
-// GetHistoryCtrlR - Returns the history source triggered by Ctrl-r
-func (rl *Instance) GetHistoryCtrlR() History {
-	return rl.mainHistory
-}
-
-// SetHistoryAltR - Set the history source triggered with Alt-r combination
-func (rl *Instance) SetHistoryAltR(name string, history History) {
-	rl.altHistName = name
-	rl.altHistory = history
-}
-
-// GetHistoryAltR - Returns the history source triggered by Alt-r
-func (rl *Instance) GetHistoryAltR() History {
-	return rl.altHistory
+	rl.historyNames = append(rl.historyNames, name)
+	rl.histories[name] = history
 }
 
 // ExampleHistory is an example of a LineHistory interface:
@@ -102,9 +96,35 @@ func (h *NullHistory) Dump() interface{} {
 
 // initHistory is ran once at the beginning of an instance start.
 func (rl *Instance) initHistory() {
-	// We need this set to the last command, so that we can access it quickly
+	rl.historySourcePos = 0
 	rl.histPos = 0
 	rl.undoHistory = []undoItem{{line: "", pos: 0}}
+}
+
+func (rl *Instance) nextHistorySource() {
+	for i := range rl.historyNames {
+		if i == rl.historySourcePos+1 {
+			rl.historySourcePos = i
+			break
+		} else if i == len(rl.historyNames)-1 {
+			rl.historySourcePos = 0
+		}
+	}
+}
+
+func (rl *Instance) prevHistorySource() {
+	for i := range rl.historyNames {
+		if i == rl.historySourcePos-1 {
+			rl.historySourcePos = i
+			break
+		} else if i == len(rl.historyNames)-1 {
+			rl.historySourcePos = len(rl.historyNames) - 1
+		}
+	}
+}
+
+func (rl *Instance) currentHistory() History {
+	return rl.histories[rl.historyNames[rl.historySourcePos]]
 }
 
 // walkHistory - Browse historic lines
@@ -114,13 +134,9 @@ func (rl *Instance) walkHistory(i int) {
 		err error
 	)
 
-	// Work with correct history source (depends on CtrlR/CtrlE)
-	var history History
-	if !rl.mainHist {
-		history = rl.altHistory
-	} else {
-		history = rl.mainHistory
-	}
+	// Always use the main/first history.
+	rl.historySourcePos = 0
+	history := rl.currentHistory()
 
 	if history == nil || history.Len() == 0 {
 		return
@@ -168,40 +184,32 @@ func (rl *Instance) walkHistory(i int) {
 
 // completeHistory - Populates a CompletionGroup with history and returns it the shell
 // we populate only one group, so as to pass it to the main completion engine.
-func (rl *Instance) completeHistory() (hist *CompletionGroup, notEmpty bool) {
-	hist = &CompletionGroup{
+func (rl *Instance) completeHistory() {
+	if len(rl.histories) == 0 {
+		return
+	}
+
+	hist := &CompletionGroup{
 		DisplayType: TabDisplayMap,
 		MaxLength:   10,
 	}
 
-	// Switch to completion flux first
-	var history History
-	if !rl.mainHist {
-		if rl.altHistory == nil {
-			return
-		}
-		history = rl.altHistory
-		rl.histHint = []rune(rl.altHistName + ": ")
-	} else {
-		if rl.mainHistory == nil {
-			return
-		}
-		history = rl.mainHistory
-		rl.histHint = []rune(rl.mainHistName + ": ")
+	history := rl.currentHistory()
+	if history == nil {
+		return
 	}
 
-	if history.Len() > 0 {
-		notEmpty = true
-	}
+	rl.histHint = []rune(rl.historyNames[rl.historySourcePos])
 
-	hist.init(rl)
+	// Set the hint line with everything
+	rl.histHint = append([]rune(BOLD+seqFgCyanBright+string(rl.histHint)+RESET), rl.tfLine...)
+	rl.histHint = append(rl.histHint, []rune(RESET)...)
+	rl.hintText = rl.histHint
 
 	var (
 		line string
 		err  error
 	)
-
-	// rl.tcPrefix = string(rl.line) // We use the current full line for filtering
 
 NEXT_LINE:
 	for i := history.Len() - 1; i > -1; i-- {
@@ -210,7 +218,7 @@ NEXT_LINE:
 			continue
 		}
 
-		if !strings.HasPrefix(line, rl.tcPrefix) || strings.TrimSpace(line) == "" {
+		if !strings.HasPrefix(line, string(rl.line)) || strings.TrimSpace(line) == "" {
 			continue
 		}
 
@@ -230,5 +238,5 @@ NEXT_LINE:
 		hist.Values = append(hist.Values, value)
 	}
 
-	return
+	rl.tcGroups = []*CompletionGroup{hist}
 }

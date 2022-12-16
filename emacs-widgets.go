@@ -38,8 +38,8 @@ func (rl *Instance) commonWidgets() baseWidgets {
 		"backward-word":                  rl.backwardWord,
 		"digit-argument":                 rl.digitArgument,
 		"undo":                           rl.undo,
-		"down-line-or-history":           rl.historyNext,
-		"up-line-or-history":             rl.historyPrev,
+		"down-line-or-history":           rl.downHistory,
+		"up-line-or-history":             rl.upHistory,
 		"down-history":                   rl.downHistory,
 		"up-history":                     rl.upHistory,
 		"infer-next-history":             rl.inferNextHistory,
@@ -342,12 +342,12 @@ func (rl *Instance) backwardWord() {
 }
 
 func (rl *Instance) downHistory() {
-	rl.mainHist = true
+	rl.skipUndoAppend()
 	rl.walkHistory(-1)
 }
 
 func (rl *Instance) upHistory() {
-	rl.mainHist = true
+	rl.skipUndoAppend()
 	rl.walkHistory(1)
 }
 
@@ -370,18 +370,6 @@ func (rl *Instance) digitArgument() {
 	}
 }
 
-func (rl *Instance) historyNext() {
-	rl.skipUndoAppend()
-	rl.mainHist = true
-	rl.walkHistory(-1)
-}
-
-func (rl *Instance) historyPrev() {
-	rl.skipUndoAppend()
-	rl.mainHist = true
-	rl.walkHistory(1)
-}
-
 func (rl *Instance) killBuffer() {
 	rl.undoHistoryAppend()
 
@@ -396,15 +384,10 @@ func (rl *Instance) inferNextHistory() {
 	rl.skipUndoAppend()
 	matchIndex := 0
 	histSuggested := make([]rune, 0)
-	rl.mainHist = true
 
-	// Work with correct history source (depends on CtrlR/CtrlE)
-	var history History
-	if !rl.mainHist {
-		history = rl.altHistory
-	} else {
-		history = rl.mainHistory
-	}
+	// Work with correct history source
+	rl.historySourcePos = 0
+	history := rl.currentHistory()
 
 	// Nothing happens if the history is nil or empty.
 	if history == nil || history.Len() == 0 {
@@ -540,13 +523,8 @@ func (rl *Instance) beginningOfBufferOrHistory() {
 	rl.skipUndoAppend()
 
 	if rl.pos == 0 {
-		var history History
-		rl.mainHist = true
-		if !rl.mainHist {
-			history = rl.altHistory
-		} else {
-			history = rl.mainHistory
-		}
+		rl.historySourcePos = 0
+		history := rl.currentHistory()
 
 		if history == nil {
 			return
@@ -573,13 +551,8 @@ func (rl *Instance) endOfBufferOrHistory() {
 	rl.skipUndoAppend()
 
 	if rl.pos == len(rl.line) {
-		var history History
-		rl.mainHist = true
-		if !rl.mainHist {
-			history = rl.altHistory
-		} else {
-			history = rl.mainHistory
-		}
+		rl.historySourcePos = 0
+		history := rl.currentHistory()
 
 		if history == nil {
 			return

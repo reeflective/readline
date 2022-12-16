@@ -4,6 +4,7 @@ package readline
 func (rl *Instance) initHelpers() {
 	rl.resetHintText()
 	rl.resetTabCompletion()
+	rl.completer = nil
 	rl.getHintText()
 }
 
@@ -18,11 +19,7 @@ func (rl *Instance) updateHelpers() {
 	// completions if autocompletion is on.
 	// We don't do it when we are currently in the completion keymap,
 	// since that means completions have already been computed.
-	if rl.needsAutoComplete() {
-		rl.resetTabCompletion()
-		rl.generateCompletions()
-		rl.initializeCompletions()
-	}
+	rl.autoComplete()
 
 	// We clear everything
 	rl.clearHelpers()

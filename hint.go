@@ -12,17 +12,17 @@ func (rl *Instance) SetHint(s string) {
 }
 
 func (rl *Instance) getHintText() {
-	if !rl.modeAutoFind && !rl.modeTabFind {
-		// Return if no hints provided by the user/engine
-		if rl.HintText == nil {
-			rl.resetHintText()
-			return
-		}
-		// The hint text also works with the virtual completion line system.
-		// This way, the hint is also refreshed depending on what we are pointing
-		// at with our cursor.
-		rl.hintText = rl.HintText(rl.getCompletionLine())
-	}
+	// if !rl.modeAutoFind && !rl.modeTabFind {
+	// 	// Return if no hints provided by the user/engine
+	// 	if rl.HintText == nil {
+	// 		rl.resetHintText()
+	// 		return
+	// 	}
+	// 	// The hint text also works with the virtual completion line system.
+	// 	// This way, the hint is also refreshed depending on what we are pointing
+	// 	// at with our cursor.
+	// 	rl.hintText = rl.HintText(rl.getCompletionLine())
+	// }
 }
 
 // writeHintText - only writes the hint text and computes its offsets.

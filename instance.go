@@ -106,8 +106,9 @@ type Instance struct {
 	DelayedSyntaxWorker func([]rune) []rune
 	delayedSyntaxCount  int64
 
-	// MaxTabCompletionRows is the maximum number of rows to display in the tab completion grid.
-	// MaxTabCompleterRows int
+	// The current completer to use to produce completions: normal/history/registers
+	// Used so that autocomplete can use the correct completer all along.
+	completer func()
 
 	// tab completion operating parameters
 	tcGroups []*CompletionGroup // All of our suggestions tree is in here
@@ -131,7 +132,6 @@ type Instance struct {
 	modeAutoFind bool           // for when invoked via ^R or ^F outside of [tab]
 	searchMode   FindMode       // Used for varying hints, and underlying functions called
 	regexSearch  *regexp.Regexp // Holds the current search regex match
-	mainHist     bool           // Which history stdin do we want
 	histHint     []rune         // We store a hist hint, for dual history sources
 
 	//
@@ -145,18 +145,11 @@ type Instance struct {
 	forcedUndoAppend bool // A widget may force its operation to append to undo history (eg. dw).
 
 	// Past history
-	// mainHistory - current mapped to CtrlR by default, with rl.SetHistoryCtrlR()
-	mainHistory  History
-	mainHistName string
-	// altHistory is an alternative history input, if a user wants to have different history flows.
-	// Mapped to CtrlE by default, with rl.SetHistoryCtrlE()
-	altHistory  History
-	altHistName string
-
-	// history operating params
-	lineBuf    string
-	histPos    int
-	histNavIdx int // Used for quick history navigation.
+	histories        map[string]History // Sources of history lines
+	historyNames     []string           // Names of histories stored in histories
+	historySourcePos int                // The index of the currently used history
+	lineBuf          string             // The current line saved when we are on another history line
+	histPos          int                // Index used for navigating the history lines with arrows/j/k
 
 	//
 	// Hints -------------------------------------------------------------------------------------
@@ -203,7 +196,9 @@ func NewInstance() *Instance {
 	rl.initRegisters()
 
 	// History
-	rl.mainHistory = new(ExampleHistory) // In-memory history by default.
+	rl.historyNames = append(rl.historyNames, "local history")
+	rl.histories = make(map[string]History)
+	rl.histories["local history"] = new(ExampleHistory)
 
 	// Others
 	rl.TempDirectory = os.TempDir()
