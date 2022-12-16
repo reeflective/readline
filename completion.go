@@ -26,6 +26,44 @@ const (
 	TabDisplayMap
 )
 
+// 	rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+
+// startMenuComplete generates a completion menu with completions
+// generated from a given completer, without selecting a candidate.
+func (rl *Instance) startMenuComplete(completer func()) {
+	rl.local = menuselect
+	rl.compConfirmWait = false
+	rl.skipUndoAppend()
+
+	// Call the provided completer function
+	// to produce all possible completions.
+	completer()
+
+	// And store it if it's going to be used by autocomplete.
+	rl.completer = completer
+
+	// Cancel completion mode if we don't have any candidates.
+	if rl.noCompletions() {
+		rl.resetTabCompletion()
+		return
+	}
+
+	// Let all groups compute their display/candidate strings
+	// and coordinates, and do some adjustments where needed.
+	rl.initializeCompletions()
+
+	// Always ensure we have a current group.
+	rl.getCurrentGroup()
+
+	// When there is only candidate, automatically insert it
+	// and exit the completion mode.
+	if rl.hasUniqueCandidate() {
+		rl.undoSkipAppend = false
+		rl.insertCandidate()
+		rl.resetTabCompletion()
+	}
+}
+
 // TODO: This is the function to be just bound to any key, so that any one can bind a given completion menu
 // in one key. This can be used for custom uer histories, certain types of candidates, etc.
 //
@@ -42,14 +80,13 @@ func (rl *Instance) inputCompletionHelper(b []byte, i int) (done, ret bool, val 
 	// 	rl.computePrompt()
 	// }
 
-	rl.mainHist = true // false before
-	rl.searchMode = HistoryFind
-	rl.modeAutoFind = true
-	rl.modeTabCompletion = true
+	// rl.searchMode = HistoryFind
+	// rl.modeAutoFind = true
+	// rl.modeTabCompletion = true
 
-	rl.modeTabFind = true
-	rl.updateTabFind([]rune{})
-	rl.undoSkipAppend = true
+	// rl.modeTabFind = true
+	// rl.updateTabFind([]rune{})
+	// rl.undoSkipAppend = true
 
 	return
 }
@@ -64,53 +101,52 @@ func historyMenuComplete(rl *Instance, b []byte, i int, r []rune) (read, ret boo
 	// 	rl.computePrompt()
 	// }
 
-	rl.mainHist = true // false before
-	rl.searchMode = HistoryFind
-	rl.modeAutoFind = true
-	rl.modeTabCompletion = true
-
-	rl.modeTabFind = true
-	rl.updateTabFind([]rune{})
-	rl.undoSkipAppend = true
+	// rl.searchMode = HistoryFind
+	// rl.modeAutoFind = true
+	// rl.modeTabCompletion = true
+	//
+	// rl.modeTabFind = true
+	// rl.updateTabFind([]rune{})
+	// rl.undoSkipAppend = true
 
 	return
 }
 
 func exitComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
-	if rl.modeAutoFind && rl.searchMode == HistoryFind {
-		rl.resetVirtualComp(false)
-		rl.resetTabFind()
-		rl.resetHelpers()
-		rl.renderHelpers()
+	// if rl.modeAutoFind && rl.searchMode == HistoryFind {
+	// 	rl.resetVirtualComp(false)
+	// 	rl.resetTabFind()
+	// 	rl.resetHelpers()
+	// 	rl.renderHelpers()
+	//
+	// 	read = true
+	// 	return
+	// }
 
-		read = true
-		return
-	}
-
-	if rl.modeAutoFind {
-		rl.resetTabFind()
-		rl.resetHelpers()
-		rl.renderHelpers()
-	}
+	// if rl.modeAutoFind {
+	// 	rl.resetTabFind()
+	// 	rl.resetHelpers()
+	// 	rl.renderHelpers()
+	// }
 
 	return
 }
 
 func (rl *Instance) inputCompletionReset() (done, ret bool, val string, err error) {
-	if rl.modeAutoFind && rl.searchMode == HistoryFind {
-		rl.resetVirtualComp(false)
-		rl.resetTabFind()
-		rl.resetHelpers()
-		rl.renderHelpers()
+	// if rl.modeAutoFind && rl.searchMode == HistoryFind {
+	// 	rl.resetVirtualComp(false)
+	// 	rl.resetTabFind()
+	// 	rl.resetHelpers()
+	// 	rl.renderHelpers()
+	//
+	// 	return true, ret, val, err
+	// }
 
-		return true, ret, val, err
-	}
-
-	if rl.modeAutoFind {
-		rl.resetTabFind()
-		rl.resetHelpers()
-		rl.renderHelpers()
-	}
+	// if rl.modeAutoFind {
+	// 	rl.resetTabFind()
+	// 	rl.resetHelpers()
+	// 	rl.renderHelpers()
+	// }
 
 	return
 }
@@ -118,9 +154,9 @@ func (rl *Instance) inputCompletionReset() (done, ret bool, val string, err erro
 func searchComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, err error) {
 	rl.resetVirtualComp(true)
 
-	if !rl.modeTabCompletion {
-		rl.modeTabCompletion = true
-	}
+	// if !rl.modeTabCompletion {
+	// 	rl.modeTabCompletion = true
+	// }
 
 	if rl.compConfirmWait {
 		rl.resetHelpers()
@@ -128,13 +164,13 @@ func searchComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, er
 
 	// Both these settings apply to when we already
 	// are in completion mode and when we are not.
-	rl.searchMode = CompletionFind
-	rl.modeAutoFind = true
+	// rl.searchMode = CompletionFind
+	// rl.modeAutoFind = true
 
 	// Switch from history to completion search
-	if rl.modeTabCompletion && rl.searchMode == HistoryFind {
-		rl.searchMode = CompletionFind
-	}
+	// if rl.modeTabCompletion && rl.searchMode == HistoryFind {
+	// 	rl.searchMode = CompletionFind
+	// }
 
 	rl.updateTabFind([]rune{})
 	rl.undoSkipAppend = true
@@ -145,9 +181,9 @@ func searchComplete(rl *Instance, b []byte, i int, r []rune) (read, ret bool, er
 func (rl *Instance) inputCompletionFind() {
 	rl.resetVirtualComp(true)
 
-	if !rl.modeTabCompletion {
-		rl.modeTabCompletion = true
-	}
+	// if !rl.modeTabCompletion {
+	// 	rl.modeTabCompletion = true
+	// }
 
 	if rl.compConfirmWait {
 		rl.resetHelpers()
@@ -155,41 +191,16 @@ func (rl *Instance) inputCompletionFind() {
 
 	// Both these settings apply to when we already
 	// are in completion mode and when we are not.
-	rl.searchMode = CompletionFind
-	rl.modeAutoFind = true
+	// rl.searchMode = CompletionFind
+	// rl.modeAutoFind = true
 
 	// Switch from history to completion search
-	if rl.modeTabCompletion && rl.searchMode == HistoryFind {
-		rl.searchMode = CompletionFind
-	}
+	// if rl.modeTabCompletion && rl.searchMode == HistoryFind {
+	// 	rl.searchMode = CompletionFind
+	// }
 
 	rl.updateTabFind([]rune{})
 	rl.undoSkipAppend = true
-}
-
-// getTabCompletion - This root function sets up all completion items and engines,
-// dealing with all search and completion modes. But it does not perform printing.
-func (rl *Instance) getTabCompletion() {
-	// Populate registers if requested.
-	// if rl.modeAutoFind && rl.searchMode == RegisterFind {
-	// 	rl.registerCompletion()
-	// 	return
-	// }
-
-	// Populate for completion search if in this mode
-	if rl.modeAutoFind && rl.searchMode == CompletionFind {
-		rl.getTabSearchCompletion()
-		return
-	}
-
-	// Populate for History search if in this mode
-	if rl.modeAutoFind && rl.searchMode == HistoryFind {
-		rl.getHistorySearchCompletion()
-		return
-	}
-
-	// Else, yield normal completions
-	// rl.getNormalCompletion()
 }
 
 // getTabSearchCompletion - Populates and sets up completion for completion search.
@@ -211,40 +222,6 @@ func (rl *Instance) getTabSearchCompletion() {
 	// If total number of matches is zero, we directly change the hint, and return
 	if comps, _, _ := rl.getCompletionCount(); comps == 0 {
 		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
-	}
-}
-
-// getHistorySearchCompletion - Populates and sets up completion for command history search
-func (rl *Instance) getHistorySearchCompletion() {
-	hist, notEmpty := rl.completeHistory()
-	rl.tcGroups = []*CompletionGroup{hist}
-	if len(rl.tcGroups) == 0 {
-		return
-	}
-
-	// Make sure there is a current group
-	rl.getCurrentGroup()
-
-	// The history hint is already set, but overwrite it if we don't have completions
-	if len(rl.tcGroups[0].Values) == 0 && !notEmpty {
-		rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
-			"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
-		rl.hintText = rl.histHint
-		return
-	}
-
-	// Set the hint line with everything
-	rl.histHint = append([]rune(seqFgBlueBright+string(rl.histHint)+RESET), rl.tfLine...)
-	rl.histHint = append(rl.histHint, []rune(RESET)...)
-	rl.hintText = rl.histHint
-
-	// Refresh filtered candidates
-	rl.tcGroups[0].updateTabFind(rl)
-
-	// If no items matched history, add hint text that we failed to search
-	if len(rl.tcGroups[0].Values) == 0 {
-		rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
-		return
 	}
 }
 
@@ -281,7 +258,6 @@ func (rl *Instance) moveCompletionSelection(x, y int) {
 
 	// If there is no current group, we leave any current completion mode.
 	if g == nil || len(g.Values) == 0 {
-		rl.modeTabCompletion = false
 		return
 	}
 
@@ -618,13 +594,8 @@ func (rl *Instance) resetTabCompletion() {
 		rl.local = ""
 	}
 
-	rl.modeTabCompletion = false
-	rl.tabCompletionSelect = false
 	rl.compConfirmWait = false
-
 	rl.tcUsedY = 0
-	rl.modeTabFind = false
-	rl.modeAutoFind = false
 	rl.tfLine = []rune{}
 
 	// Reset tab highlighting
@@ -689,4 +660,22 @@ func (rl *Instance) isAutoCompleting() bool {
 	}
 
 	return false
+}
+
+// autoComplete generates the correct completions
+// if the shell is set to autocomplete.
+func (rl *Instance) autoComplete() {
+	if !rl.needsAutoComplete() {
+		return
+	}
+
+	rl.resetTabCompletion()
+
+	if rl.completer != nil {
+		rl.completer()
+	} else {
+		rl.generateCompletions()
+	}
+
+	rl.initializeCompletions()
 }

@@ -38,12 +38,11 @@ type Instance struct {
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
 
-	iterations  string
-	negativeArg bool
-	registers   *registers // All memory text registers, can be consulted with Alt"
-
-	viopp             bool   // Keeps track of vi operator pending mode BEFORE trying to match the current key.
-	pendingIterations string // Iterations specific to viopp mode. (2y2w => "2"w)
+	iterations        string
+	negativeArg       bool
+	registers         *registers // All memory text registers, can be consulted with Alt"
+	viopp             bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
+	pendingIterations string     // Iterations specific to viopp mode. (2y2w => "2"w)
 	pendingActions    []action
 
 	// Input Line ---------------------------------------------------------------------------------
@@ -111,28 +110,16 @@ type Instance struct {
 	completer func()
 
 	// tab completion operating parameters
-	tcGroups []*CompletionGroup // All of our suggestions tree is in here
-	tcPrefix string             // The current tab completion prefix  against which to build candidates
-
-	modeTabCompletion   bool
-	compConfirmWait     bool // When too many completions, we ask the user to confirm with another Tab keypress.
-	tabCompletionSelect bool // We may have completions printed, but no selected candidate yet
-	tcUsedY             int  // Comprehensive offset of the currently built completions
-
-	// Candidate /  virtual completion string / etc
-	currentComp []rune // The currently selected item, not yet a real part of the input line.
-	lineComp    []rune // Same as rl.line, but with the currentComp inserted.
-	lineRemain  []rune // When we complete in the middle of a line, we cut and keep the remain.
-
-	//
-	// Completion Search  (Normal & History) -----------------------------------------------------
-
-	modeTabFind  bool           // This does not change, because we will search in all options, no matter the group
-	tfLine       []rune         // The current search pattern entered
-	modeAutoFind bool           // for when invoked via ^R or ^F outside of [tab]
-	searchMode   FindMode       // Used for varying hints, and underlying functions called
-	regexSearch  *regexp.Regexp // Holds the current search regex match
-	histHint     []rune         // We store a hist hint, for dual history sources
+	tcGroups        []*CompletionGroup // All of our suggestions tree is in here
+	tcPrefix        string             // The current tab completion prefix  against which to build candidates
+	compConfirmWait bool               // When too many completions, we ask the user to confirm with another Tab keypress.
+	tcUsedY         int                // Comprehensive offset of the currently built completions
+	currentComp     []rune             // The currently selected item, not yet a real part of the input line.
+	lineComp        []rune             // Same as rl.line, but with the currentComp inserted.
+	lineRemain      []rune             // When we complete in the middle of a line, we cut and keep the remain.
+	tfLine          []rune             // The current search pattern entered
+	regexSearch     *regexp.Regexp     // Holds the current search regex match
+	histHint        []rune             // We store a hist hint, for dual history sources
 
 	//
 	// History -----------------------------------------------------------------------------------

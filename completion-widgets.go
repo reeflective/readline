@@ -1,5 +1,9 @@
 package readline
 
+import (
+	"fmt"
+)
+
 func (rl *Instance) completionWidgets() baseWidgets {
 	return map[string]func(){
 		"expand-or-complete":         rl.expandOrComplete,
@@ -12,6 +16,7 @@ func (rl *Instance) completionWidgets() baseWidgets {
 		"expand-word":                rl.expandWord,
 		"list-choices":               rl.listChoices,
 		"vi-registers-complete":      rl.viRegistersComplete,
+		"history-complete":           rl.historyComplete,
 		"incremental-search-history": rl.incrementalSearchHistory,
 	}
 }
@@ -120,6 +125,8 @@ func (rl *Instance) expandWord() {
 }
 
 func (rl *Instance) listChoices() {
+	rl.skipUndoAppend()
+
 	switch rl.local {
 	case isearch:
 	case menuselect:
@@ -128,7 +135,6 @@ func (rl *Instance) listChoices() {
 
 	rl.local = menuselect
 	rl.compConfirmWait = false
-	rl.skipUndoAppend()
 
 	// Call the completer to produce
 	// all possible completions.
@@ -147,6 +153,8 @@ func (rl *Instance) listChoices() {
 }
 
 func (rl *Instance) viRegistersComplete() {
+	rl.skipUndoAppend()
+
 	switch rl.local {
 	case isearch:
 	default:
@@ -170,32 +178,23 @@ func (rl *Instance) viRegistersComplete() {
 func (rl *Instance) incrementalSearchHistory() {
 }
 
-// startMenuComplete generates a completion menu with completions
-// generated from a given completer, without selecting a candidate.
-func (rl *Instance) startMenuComplete(completer func()) {
-	rl.local = menuselect
-	rl.compConfirmWait = false
+func (rl *Instance) historyComplete() {
 	rl.skipUndoAppend()
 
-	// Call the provided completer function
-	// to produce all possible completions.
-	completer()
+	switch rl.local {
+	case isearch:
+	case menuselect:
+		rl.nextHistorySource()
+		fallthrough
+	default:
+		// Indicate to the user if we don't have history sources at all.
+		if rl.currentHistory() == nil {
+			rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
+				"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
+			rl.hintText = rl.histHint
+		}
 
-	// Cancel completion mode if we don't have any candidates.
-	if rl.noCompletions() {
-		rl.resetTabCompletion()
-		return
-	}
-
-	// Let all groups compute their display/candidate strings
-	// and coordinates, and do some adjustments where needed.
-	rl.initializeCompletions()
-
-	// When there is only candidate, automatically insert it
-	// and exit the completion mode.
-	if rl.hasUniqueCandidate() {
-		rl.undoSkipAppend = false
-		rl.insertCandidate()
-		rl.resetTabCompletion()
+		// Else, generate the completions.
+		rl.startMenuComplete(rl.completeHistory)
 	}
 }

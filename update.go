@@ -89,9 +89,6 @@ func (rl *Instance) updateReferences() {
 }
 
 func (rl *Instance) resetHelpers() {
-	rl.modeAutoFind = false
-
-	// Now reset all below-input helpers
 	rl.resetHintText()
 	rl.resetTabCompletion()
 }

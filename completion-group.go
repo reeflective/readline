@@ -103,9 +103,9 @@ func (g *CompletionGroup) updateTabFind(rl *Instance) {
 	g.init(rl)
 
 	// If we are in history completion, we directly pass to the first candidate
-	if rl.modeAutoFind && rl.searchMode == HistoryFind && len(g.Values) > 0 {
-		g.tcPosY = 1
-	}
+	// if rl.modeAutoFind && rl.searchMode == HistoryFind && len(g.Values) > 0 {
+	// 	g.tcPosY = 1
+	// }
 }
 
 // checkCycle - Based on the number of groups given to the shell, allows cycling or not
@@ -174,18 +174,18 @@ func (g *CompletionGroup) getCurrentCell(rl *Instance) CompletionValue {
 		}
 		return CompletionValue{}
 
-	case TabDisplayMap:
-		// x & y coodinates + safety check
-		cell := g.tcOffset + g.tcPosY - 1
-		if cell < 0 {
-			cell = 0
-		}
+	// case TabDisplayMap:
+	// 	// x & y coodinates + safety check
+	// 	cell := g.tcOffset + g.tcPosY - 1
+	// 	if cell < 0 {
+	// 		cell = 0
+	// 	}
+	//
+	// 	// TODO: Here we didn't ensure some values have not the same description
+	// 	sugg := g.Values[cell]
+	// 	return sugg
 
-		// TODO: Here we didn't ensure some values have not the same description
-		sugg := g.Values[cell]
-		return sugg
-
-	case TabDisplayList:
+	case TabDisplayList, TabDisplayMap:
 		return g.selected
 	}
 

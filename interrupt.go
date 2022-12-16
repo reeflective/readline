@@ -31,14 +31,15 @@ func (rl *Instance) errorCtrlC(_ []rune) (read, ret bool, val string, err error)
 	val = string(rl.line)
 	rl.keys = ""
 
-	if rl.modeTabCompletion {
-		rl.resetVirtualComp(true)
-		rl.resetHelpers()
-		rl.renderHelpers()
-
-		read = true
-		return
-	}
+	// TODO: Handle completions
+	// if rl.modeTabCompletion {
+	// 	rl.resetVirtualComp(true)
+	// 	rl.resetHelpers()
+	// 	rl.renderHelpers()
+	//
+	// 	read = true
+	// 	return
+	// }
 	rl.clearHelpers()
 
 	ret = true

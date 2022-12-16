@@ -18,6 +18,11 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 		}
 	}
 
+	// Always select the first available candidate for the group.
+	if len(g.grouped) > 0 {
+		g.selected = g.grouped[0][g.tcPosX]
+	}
+
 	g.tcPosX = 0
 	g.tcPosY = 0
 	g.tcOffset = 0
