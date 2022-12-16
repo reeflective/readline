@@ -2,11 +2,6 @@ package readline
 
 // initHelpers is called once at the very beginning of a readline start.
 func (rl *Instance) initHelpers() {
-	// Line parameters
-	// TODO: REMOVE THIS ?
-	rl.mark = -1
-
-	// Descriptive helpers
 	rl.resetHintText()
 	rl.resetTabCompletion()
 	rl.getHintText()
@@ -21,7 +16,9 @@ func (rl *Instance) updateHelpers() {
 	// Since we get called just before reading a new key (thus just
 	// after having processed the last one), we should refresh the
 	// completions if autocompletion is on.
-	if rl.config.AutoComplete && len(rl.line) > 0 {
+	// We don't do it when we are currently in the completion keymap,
+	// since that means completions have already been computed.
+	if rl.needsAutoComplete() {
 		rl.resetTabCompletion()
 		rl.generateCompletions()
 		rl.initializeCompletions()
