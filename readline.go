@@ -53,10 +53,6 @@ func (rl *Instance) Readline() (string, error) {
 		// The last key might have modified both the local keymap mode or
 		// the global keymap (main), which is either emacs or viins/vicmd.
 		//
-		// Here we must ensure/actualize the reference to the main keymap:
-		// - If we are now in viins, the main keymap is viins
-		// - If in vicmd, the main keymap is vicmd.
-		//
 		// These are the only keymaps that actually can be bound to main:
 		// If we are now in a viopp, or menu-select, or isearch, this main
 		// keymap reference does NOT change, so that any of its keys that
@@ -78,7 +74,7 @@ func (rl *Instance) Readline() (string, error) {
 		// We store the key in our key stack. which is used
 		// when the key only matches some widgets as a prefix.
 		// We use a copy for the matches below, as some actions
-		// will reset this stack.
+		// will reset/consume this stack.
 		rl.keys += string(r)
 		keys := rl.keys
 

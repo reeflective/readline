@@ -120,9 +120,9 @@ func (p *prompt) compute(rl *Instance) {
 
 	lastLineIndex := strings.LastIndex(prompt, "\n")
 	if lastLineIndex != -1 {
-		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt[lastLineIndex:])))
+		rl.Prompt.inputAt = getRealLength(prompt[lastLineIndex+1:])
 	} else {
-		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt)))
+		rl.Prompt.inputAt = getRealLength(prompt)
 	}
 }
 
@@ -149,12 +149,7 @@ func (p *prompt) printLast(rl *Instance) {
 	}
 
 	// Print the primary prompt in any case.
-	defer func() {
-		primary := p.getPrimaryLastLine()
-		print(primary)
-		moveCursorBackwards(len(primary))
-		moveCursorForwards(p.inputAt)
-	}()
+	defer print(p.getPrimaryLastLine())
 
 	if rprompt == "" {
 		return

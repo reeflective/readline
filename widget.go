@@ -92,7 +92,10 @@ func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val stri
 
 	if len(event.HintText) > 0 {
 		rl.hintText = event.HintText
-		rl.updateHelpers()
+	}
+
+	if len(event.ToolTip) > 0 {
+		rl.Prompt.tooltip = event.ToolTip
 	}
 
 	// If the callback has a widget, run it. Any instruction to return, or an error
