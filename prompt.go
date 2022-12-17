@@ -2,6 +2,7 @@ package readline
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	ansi "github.com/acarl005/stripansi"
 )
@@ -21,6 +22,9 @@ type prompt struct {
 
 	transient  string
 	transientF func() string
+
+	tooltip  string
+	tooltipF func(tip string) string
 
 	// True if some logs have printed asynchronously
 	// since last loop. Check refresh prompt funcs.
@@ -52,6 +56,11 @@ func (p *prompt) Transient(prompt func() string) {
 	p.transientF = prompt
 }
 
+// Tooltip uses a function returning the prompt to use as a tooltip prompt.
+func (p *prompt) Tooltip(prompt func(tip string) string) {
+	p.tooltipF = prompt
+}
+
 // initPrompt is ran once at the beginning of an instance start.
 func (p *prompt) init(rl *Instance) {
 	// Generate the prompt strings for this run
@@ -70,26 +79,57 @@ func (p *prompt) init(rl *Instance) {
 	rl.Prompt.compute(rl)
 }
 
-func (p *prompt) printLast(rl *Instance) {
-	if p.right != "" {
-		// Only print the right prompt if the input line is shorter than the adjusted term width
-		lineFits := (rl.Prompt.inputAt + len(rl.line) + getRealLength(p.right) + 1) < GetTermWidth()
+func (p *prompt) update(rl *Instance) {
+	var tooltipWord string
 
-		if lineFits {
-			// First go back to beginning of line, and clear everything
-			moveCursorBackwards(GetTermWidth())
-			print(seqClearLine)
-			print(seqClearScreenBelow)
-
-			// Go to where we must print the right prompt, print and go back
-			forwardOffset := GetTermWidth() - getRealLength(p.right) - 1
-			moveCursorForwards(forwardOffset)
-			print(p.right)
-			moveCursorBackwards(GetTermWidth())
-		}
+	shellWords := strings.Split(string(rl.line), " ")
+	if len(shellWords) > 0 {
+		tooltipWord = shellWords[0]
 	}
 
-	print(p.getPrimaryLastLine())
+	rl.Prompt.tooltip = rl.Prompt.tooltipF(tooltipWord)
+}
+
+func (p *prompt) printLast(rl *Instance) {
+	// Either use RPROMPT or tooltip.
+	var rprompt string
+	if p.tooltip != "" {
+		rprompt = p.tooltip
+	} else {
+		rprompt = p.right
+	}
+
+	// Print the primary prompt in any case.
+	defer func() {
+		primary := p.getPrimaryLastLine()
+		print(primary)
+		moveCursorBackwards(len(primary))
+		moveCursorForwards(p.inputAt)
+	}()
+
+	if rprompt == "" {
+		return
+	}
+
+	// Only print the right prompt if the input line
+	// is shorter than the adjusted terminal width.
+	lineFits := (rl.Prompt.inputAt + len(rl.line) +
+		getRealLength(rprompt) + 1) < GetTermWidth()
+
+	if !lineFits {
+		return
+	}
+
+	// First go back to beginning of line, and clear everything
+	moveCursorBackwards(GetTermWidth())
+	print(seqClearLine)
+	print(seqClearScreenBelow)
+
+	// Go to where we must print the right prompt, print and go back
+	forwardOffset := GetTermWidth() - getRealLength(rprompt) - 1
+	moveCursorForwards(forwardOffset)
+	print(rprompt)
+	moveCursorBackwards(GetTermWidth())
 }
 
 // getPromptPrimary returns either the entire prompt if
@@ -128,7 +168,7 @@ func (p *prompt) compute(rl *Instance) {
 
 	lastLineIndex := strings.LastIndex(prompt, "\n")
 	if lastLineIndex != -1 {
-		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt[lastLineIndex+1:])))
+		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt[lastLineIndex:])))
 	} else {
 		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt)))
 	}
@@ -291,5 +331,6 @@ func (p *prompt) compute(rl *Instance) {
 // components depend on other's length, so we always pass the string in this for
 // getting its real-printed length.
 func getRealLength(s string) (l int) {
-	return len(ansi.Strip(s))
+	colorStripped := ansi.Strip(s)
+	return utf8.RuneCountInString(colorStripped)
 }

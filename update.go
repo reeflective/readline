@@ -12,8 +12,8 @@ func (rl *Instance) initHelpers() {
 // it should coordinate reprinting the input line, any hints and completions
 // and manage to get back to the current (computed) cursor coordinates
 func (rl *Instance) updateHelpers() {
+	rl.Prompt.update(rl)
 	rl.autoComplete()
-
 	rl.getHintText()
 	rl.clearHelpers()
 	rl.renderHelpers()
