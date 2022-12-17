@@ -26,7 +26,7 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 	// We delete the previous virtual completion, just
 	// like we would delete a word in vim editing mode.
 	if len(rl.currentComp) == 1 {
-		rl.deleteVirtual() // Delete a single character
+		rl.deleteVirtual()
 	} else if len(rl.currentComp) > 0 {
 		rl.viDeleteByAdjustVirtual(rl.viJumpEVirtual(tokeniseSplitSpaces) + 1)
 	}

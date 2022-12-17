@@ -27,22 +27,24 @@ func (rl *Instance) isInterrupt(keys string) (lineWidget, bool) {
 // on our current shell mode: this is because this handler is not directly registered
 // on one of our keymaps, and every input key is checked against this before keymaps.
 func (rl *Instance) errorCtrlC(_ []rune) (read, ret bool, val string, err error) {
-	err = ErrCtrlC
-	val = string(rl.line)
 	rl.keys = ""
 
-	// TODO: Handle completions
-	// if rl.modeTabCompletion {
-	// 	rl.resetVirtualComp(true)
-	// 	rl.resetHelpers()
-	// 	rl.renderHelpers()
-	//
-	// 	read = true
-	// 	return
-	// }
-	rl.clearHelpers()
+	// When we have a completion inserted, just cancel the completions.
+	if len(rl.currentComp) > 0 {
+		rl.resetVirtualComp(true)
+		rl.resetTabCompletion()
+		rl.completer = nil
 
+		read = true
+		return
+	}
+
+	// Or return the current command line
+	err = ErrCtrlC
+	val = string(rl.line)
+	rl.clearHelpers()
 	ret = true
+
 	return
 }
 
