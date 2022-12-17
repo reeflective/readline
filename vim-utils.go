@@ -27,10 +27,14 @@ func (rl *Instance) addIteration(i string) {
 }
 
 func (rl *Instance) getIterations() int {
-	i, _ := strconv.Atoi(rl.iterations)
-	if i < 1 {
+	i, err := strconv.Atoi(rl.iterations)
+
+	// Emacs accepts negative args
+	if rl.main != emacs && i < 0 ||
+		rl.main == emacs && err != nil {
 		i = 1
 	}
+
 	rl.iterations = ""
 	return i
 }

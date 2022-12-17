@@ -27,6 +27,7 @@ var emacsKeys = keymap{
 	"^X^O": "overwrite-mode",
 	"^X^U": "undo",
 	"^X^V": "vi-cmd-mode",
+	"^X^X": "exchange-point-and-mark",
 	"^Xu":  "undo",
 
 	// TODO: ^Xr ^Xs incremental-search-history. same as CtrlR above.

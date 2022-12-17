@@ -45,7 +45,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 		"infer-next-history":             rl.inferNextHistory,
 		"overwrite-mode":                 rl.overwriteMode,
 		"set-mark-command":               rl.setMarkCommand,
-		"exhange-point-and-mark":         rl.exchangePointAndMark,
+		"exchange-point-and-mark":        rl.exchangePointAndMark,
 		"quote-region":                   rl.quoteRegion,
 		"quote-line":                     rl.quoteLine,
 		"neg-argument":                   rl.negArgument,
@@ -56,6 +56,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 		"down-case-word":                 rl.downCaseWord,
 		"up-case-word":                   rl.upCaseWord,
 		"transpose-words":                rl.transposeWords,
+		"transpose-chars":                rl.transposeChars,
 		"copy-region-as-kill":            rl.copyRegionAsKill,
 		"copy-prev-word":                 rl.copyPrevWord,
 		"copy-prev-shell-word":           rl.copyPrevShellWord,
@@ -471,7 +472,7 @@ func (rl *Instance) setMarkCommand() {
 		rl.resetSelection()
 		rl.visualLine = false
 	default:
-		rl.markSelection(rl.pos)
+		rl.mark = rl.pos
 	}
 }
 
@@ -773,7 +774,8 @@ func (rl *Instance) switchKeyword() {
 			continue
 		}
 
-		// Update the line and the cursor, and return since we have a handler that has been ran.
+		// Update the line and the cursor, and return
+		// since we have a handler that has been ran.
 		begin := string(rl.line[:bpos])
 		end := string(rl.line[epos:])
 		newLine := append([]rune(begin), []rune(word)...)
@@ -788,16 +790,52 @@ func (rl *Instance) switchKeyword() {
 func (rl *Instance) deleteCharOrList() {
 	switch {
 	case rl.pos < len(rl.line):
-		rl.deleteChar()
+		rl.deletex()
 	default:
 		rl.expandOrComplete()
 	}
 }
 
 func (rl *Instance) exchangePointAndMark() {
+	rl.skipUndoAppend()
+	vii := rl.getIterations()
+	if rl.mark == -1 {
+		return
+	}
+
+	switch {
+	case vii < 0:
+		pos := rl.pos
+		rl.pos = rl.mark
+		rl.mark = pos
+	case vii > 0:
+		pos := rl.pos
+		rl.pos = rl.mark
+		rl.mark = pos
+		rl.activeRegion = true
+	case vii == 0:
+		rl.activeRegion = true
+	}
 }
 
 func (rl *Instance) transposeChars() {
+	if rl.pos < 2 || len(rl.line) < 2 {
+		rl.skipUndoAppend()
+		return
+	}
+
+	switch {
+	case rl.pos == len(rl.line):
+		last := rl.line[rl.pos-1]
+		blast := rl.line[rl.pos-2]
+		rl.line[rl.pos-2] = last
+		rl.line[rl.pos-1] = blast
+	default:
+		last := rl.line[rl.pos]
+		blast := rl.line[rl.pos-1]
+		rl.line[rl.pos-1] = last
+		rl.line[rl.pos] = blast
+	}
 }
 
 // 	"^[N": "history-search-forward",

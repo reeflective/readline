@@ -130,7 +130,9 @@ func (rl *Instance) addVisualHighlight(line []rune) {
 		}
 	}
 
-	if rl.local != visual {
+	// Either Vim visual, or emacs active region.
+	if rl.main == emacs && !rl.activeRegion ||
+		(rl.main == vicmd || rl.main == viins) && rl.local != visual {
 		return
 	}
 
