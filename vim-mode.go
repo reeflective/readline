@@ -44,7 +44,7 @@ func (rl *Instance) exitVisualMode() {
 func (rl *Instance) enterVioppMode(widget string) {
 	// When the widget is empty, we just want to update the cursor.
 	if widget == "" {
-		rl.viopp = true
+		rl.isViopp = true
 		return
 	}
 
@@ -63,7 +63,7 @@ func (rl *Instance) exitVioppMode() {
 	if rl.local == viopp {
 		rl.local = ""
 	}
-	rl.viopp = false
+	rl.isViopp = false
 }
 
 // isVimEscape checks if the key matches the custom Vim mode escapes,
@@ -125,7 +125,7 @@ func (rl *Instance) viHintMessage() {
 
 	// The internal VI operator pending is used when
 	// we don't bother changing the keymap just to read a key.
-	if rl.viopp {
+	if rl.isViopp {
 		vioppMsg := fmt.Sprintf("viopp: %s", rl.keys)
 		rl.hintText = []rune(vioppMsg)
 		return

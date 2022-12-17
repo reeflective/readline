@@ -20,35 +20,35 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 
 	// We place the cursor back at the beginning of the previous virtual candidate
 	if rl.pos > 0 {
-		rl.pos -= len(rl.currentComp)
+		rl.pos -= len(rl.comp)
 	}
 
 	// We delete the previous virtual completion, just
 	// like we would delete a word in vim editing mode.
-	if len(rl.currentComp) == 1 {
+	if len(rl.comp) == 1 {
 		rl.deleteVirtual()
-	} else if len(rl.currentComp) > 0 {
+	} else if len(rl.comp) > 0 {
 		rl.viDeleteByAdjustVirtual(rl.viJumpEVirtual(tokeniseSplitSpaces) + 1)
 	}
 
 	// We then keep a reference to the new candidate
-	rl.currentComp = candidate
+	rl.comp = candidate
 
 	// We should not have a remaining virtual completion
 	// line, so it is now identical to the real line.
-	rl.lineComp = rl.line
+	rl.compLine = rl.line
 
 	// Insert the new candidate in the virtual line.
 	switch {
-	case len(rl.lineComp) == 0:
-		rl.lineComp = candidate
+	case len(rl.compLine) == 0:
+		rl.compLine = candidate
 	case rl.pos == 0:
-		rl.lineComp = append(candidate, rl.lineComp...)
-	case rl.pos < len(rl.lineComp):
-		r := append(candidate, rl.lineComp[rl.pos:]...)
-		rl.lineComp = append(rl.lineComp[:rl.pos], r...)
+		rl.compLine = append(candidate, rl.compLine...)
+	case rl.pos < len(rl.compLine):
+		r := append(candidate, rl.compLine[rl.pos:]...)
+		rl.compLine = append(rl.compLine[:rl.pos], r...)
 	default:
-		rl.lineComp = append(rl.lineComp, candidate...)
+		rl.compLine = append(rl.compLine, candidate...)
 	}
 
 	// We place the cursor at the end of our new virtually completed item
@@ -130,7 +130,7 @@ func (rl *Instance) updateVirtualComp() {
 // and makes sure that the current completion (virtually inserted) is either inserted or dropped,
 // and that all related parameters are reinitialized.
 func (rl *Instance) resetVirtualComp(drop bool) {
-	if len(rl.currentComp) == 0 {
+	if len(rl.comp) == 0 {
 		return
 	}
 
@@ -174,36 +174,22 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	// move it away from the line and return.
 	if drop {
 		rl.pos -= len([]rune(completion[prefix:]))
-		rl.lineComp = rl.line
+		rl.compLine = rl.line
 		rl.clearVirtualComp()
 		return
 	}
 
-	// If at the end of the line and in Vim command mode
-	// we just got the cursor position back. Briefly put
-	// it back
-	// needsVimOffset := rl.main == vicmd && rl.pos == len(rl.line)
-	// if needsVimOffset {
-	// 	rl.pos++
-	// }
-
-	// Insert the current candidate.
+	// Insert the current candidate and reset
 	rl.insertCandidateVirtual([]rune(completion[prefix:]))
-
-	// if needsVimOffset {
-	// 	rl.pos--
-	// }
-
-	// Reset virtual
 	rl.clearVirtualComp()
 }
 
 // viDeleteByAdjustVirtual - Same as viDeleteByAdjust, but for our virtually completed input line.
 func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
-	var newLine []rune // backOne bool
+	var newLine []rune
 
 	// Avoid doing anything if input line is empty.
-	if len(rl.lineComp) == 0 {
+	if len(rl.compLine) == 0 {
 		return
 	}
 
@@ -211,18 +197,18 @@ func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
 	case adjust == 0:
 		rl.undoSkipAppend = true
 		return
-	case rl.pos+adjust == len(rl.lineComp)-1:
-		newLine = rl.lineComp[:rl.pos]
+	case rl.pos+adjust == len(rl.compLine)-1:
+		newLine = rl.compLine[:rl.pos]
 	case rl.pos+adjust == 0:
-		newLine = rl.lineComp[rl.pos:]
+		newLine = rl.compLine[rl.pos:]
 	case adjust < 0:
-		newLine = append(rl.lineComp[:rl.pos+adjust], rl.lineComp[rl.pos:]...)
+		newLine = append(rl.compLine[:rl.pos+adjust], rl.compLine[rl.pos:]...)
 	default:
-		newLine = append(rl.lineComp[:rl.pos], rl.lineComp[rl.pos+adjust:]...)
+		newLine = append(rl.compLine[:rl.pos], rl.compLine[rl.pos+adjust:]...)
 	}
 
 	// We have our new line completed
-	rl.lineComp = newLine
+	rl.compLine = newLine
 
 	if adjust < 0 {
 		rl.moveCursorByAdjust(adjust)
@@ -231,7 +217,7 @@ func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
 
 // viJumpEVirtual - Same as viJumpE, but for our virtually completed input line.
 func (rl *Instance) viJumpEVirtual(tokeniser func([]rune, int) ([]string, int, int)) (adjust int) {
-	split, index, pos := tokeniser(rl.lineComp, rl.pos)
+	split, index, pos := tokeniser(rl.compLine, rl.pos)
 	if len(split) == 0 {
 		return
 	}
@@ -256,21 +242,21 @@ func (rl *Instance) viJumpEVirtual(tokeniser func([]rune, int) ([]string, int, i
 
 func (rl *Instance) deleteVirtual() {
 	switch {
-	case len(rl.lineComp) == 0:
+	case len(rl.compLine) == 0:
 		return
 	case rl.pos == 0:
-		rl.lineComp = rl.lineComp[1:]
-	case rl.pos > len(rl.lineComp):
-	case rl.pos == len(rl.lineComp):
-		rl.lineComp = rl.lineComp[:rl.pos]
+		rl.compLine = rl.compLine[1:]
+	case rl.pos > len(rl.compLine):
+	case rl.pos == len(rl.compLine):
+		rl.compLine = rl.compLine[:rl.pos]
 	default:
-		rl.lineComp = append(rl.lineComp[:rl.pos], rl.lineComp[rl.pos+1:]...)
+		rl.compLine = append(rl.compLine[:rl.pos], rl.compLine[rl.pos+1:]...)
 	}
 }
 
 // We are done with the current virtual completion candidate.
 // Get ready for the next one
 func (rl *Instance) clearVirtualComp() {
-	rl.line = rl.lineComp
-	rl.currentComp = []rune{}
+	rl.line = rl.compLine
+	rl.comp = []rune{}
 }

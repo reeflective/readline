@@ -12,11 +12,6 @@ func (rl *Instance) initHelpers() {
 // it should coordinate reprinting the input line, any hints and completions
 // and manage to get back to the current (computed) cursor coordinates
 func (rl *Instance) updateHelpers() {
-	// Since we get called just before reading a new key (thus just
-	// after having processed the last one), we should refresh the
-	// completions if autocompletion is on.
-	// We don't do it when we are currently in the completion keymap,
-	// since that means completions have already been computed.
 	rl.autoComplete()
 
 	rl.getHintText()
@@ -38,9 +33,9 @@ func (rl *Instance) updateReferences() {
 	}
 
 	var fullLine, cPosLine int
-	if len(rl.currentComp) > 0 {
-		fullLine = len(rl.lineComp)
-		cPosLine = len(rl.lineComp[:rl.pos])
+	if len(rl.comp) > 0 {
+		fullLine = len(rl.compLine)
+		cPosLine = len(rl.compLine[:rl.pos])
 	} else {
 		fullLine = len(rl.line)
 		cPosLine = len(rl.line[:rl.pos])

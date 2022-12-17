@@ -52,7 +52,7 @@ func (rl *Instance) updateKeymaps() {
 
 	// When matching a widget, we need to know if the shell was in operator
 	// pending mode before trying to match the key against our keymaps.
-	rl.viopp = rl.local == viopp
+	rl.isViopp = rl.local == viopp
 }
 
 // matchKeymap checks if the provided key matches a precise widget, or if only a prefix

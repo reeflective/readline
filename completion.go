@@ -295,7 +295,7 @@ func (rl *Instance) getAbsPos() int {
 // We pass a special subset of the current input line, so that
 // completions are available no matter where the cursor is.
 func (rl *Instance) getCompletionLine() (line []rune, pos int) {
-	pos = rl.pos - len(rl.currentComp)
+	pos = rl.pos - len(rl.comp)
 	if pos < 0 {
 		pos = 0
 	}
@@ -515,7 +515,7 @@ func (rl *Instance) needsAutoComplete() bool {
 
 	// We always refresh history, except when
 	// currently having a candidate selection.
-	if completingHistory && isCorrectMenu && len(rl.currentComp) == 0 {
+	if completingHistory && isCorrectMenu && len(rl.comp) == 0 {
 		return true
 	}
 

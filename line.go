@@ -8,8 +8,8 @@ import (
 func (rl *Instance) initLine() {
 	// Line
 	rl.line = []rune{}
-	rl.currentComp = []rune{} // No virtual completion yet
-	rl.lineComp = []rune{}    // So no virtual line either
+	rl.comp = []rune{}     // No virtual completion yet
+	rl.compLine = []rune{} // So no virtual line either
 	rl.pos = 0
 	rl.posY = 0
 
@@ -22,7 +22,7 @@ func (rl *Instance) initLine() {
 // When the DelayedSyntaxWorker gives us a new line, we need to check if there
 // is any processing to be made, that all lines match in terms of content.
 func (rl *Instance) updateLine(line []rune) {
-	if len(rl.currentComp) > 0 {
+	if len(rl.comp) > 0 {
 	} else {
 		rl.line = line
 	}
@@ -33,8 +33,8 @@ func (rl *Instance) updateLine(line []rune) {
 // getLineVirtual - In many places we need the current line input. We either return the real line,
 // or the one that includes the current completion candidate, if there is any.
 func (rl *Instance) getLineVirtual() []rune {
-	if len(rl.currentComp) > 0 {
-		return rl.lineComp
+	if len(rl.comp) > 0 {
+		return rl.compLine
 	}
 	return rl.line
 }
@@ -44,8 +44,8 @@ func (rl *Instance) computeLine() {
 	var usedLines, usedX int
 
 	var line string
-	if len(rl.currentComp) > 0 {
-		line = string(rl.lineComp)
+	if len(rl.comp) > 0 {
+		line = string(rl.compLine)
 	} else {
 		line = string(rl.line)
 	}
@@ -118,8 +118,8 @@ func (rl *Instance) printLine() {
 
 		// Assemble the line, taking virtual completions into account
 		var line []rune
-		if len(rl.currentComp) > 0 {
-			line = rl.lineComp
+		if len(rl.comp) > 0 {
+			line = rl.compLine
 		} else {
 			line = rl.line
 		}
@@ -174,7 +174,7 @@ func (rl *Instance) clearLine() {
 
 	// Real input line
 	rl.line = []rune{}
-	rl.lineComp = []rune{}
+	rl.compLine = []rune{}
 	rl.pos = 0
 	rl.posX = 0
 	rl.fullX = 0

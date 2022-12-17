@@ -121,7 +121,7 @@ func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val stri
 	}
 
 	// Finally, we might have any pending widget to run.
-	if rl.viopp {
+	if rl.isViopp {
 		rl.runPendingWidget(keys)
 	}
 

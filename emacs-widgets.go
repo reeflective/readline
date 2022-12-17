@@ -346,7 +346,7 @@ func (rl *Instance) digitArgument() {
 	// operation, we should not yet trigger the caller.
 	// This boolean is recomputed at the next key read:
 	// This just postpones running the caller a little.
-	rl.viopp = false
+	rl.isViopp = false
 
 	if len(rl.keys) > 1 {
 		// The first rune is the alt modifier.

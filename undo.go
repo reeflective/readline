@@ -8,14 +8,7 @@ type undoItem struct {
 // will only skip appending to undo history if not forced
 // to append by another pending/running widget.
 func (rl *Instance) skipUndoAppend() {
-	if !rl.forcedUndoAppend {
-		rl.undoSkipAppend = true
-	}
-}
-
-// undoAppend will force the end action to be added to undo history.
-func (rl *Instance) undoAppend() {
-	rl.forcedUndoAppend = true
+	rl.undoSkipAppend = true
 }
 
 func (rl *Instance) undoHistoryAppend() {
@@ -89,7 +82,6 @@ func (rl *Instance) redo() {
 
 func (rl *Instance) resetUndoDirectives() {
 	rl.undoSkipAppend = false
-	rl.forcedUndoAppend = false
 
 	if !rl.isUndoing {
 		rl.undoPos = 0

@@ -30,7 +30,7 @@ func (rl *Instance) errorCtrlC(_ []rune) (read, ret bool, val string, err error)
 	rl.keys = ""
 
 	// When we have a completion inserted, just cancel the completions.
-	if len(rl.currentComp) > 0 {
+	if len(rl.comp) > 0 {
 		rl.resetVirtualComp(true)
 		rl.resetTabCompletion()
 		rl.completer = nil

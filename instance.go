@@ -21,29 +21,29 @@ type Instance struct {
 	//
 	// Keymaps ------------------------------------------------------------------------------------
 
-	main          keymapMode // The main/global keymap, partially overridden by any local keymap.
-	local         keymapMode // The local keymap is used when completing menus, using Vim operators, etc.
-	specialKeymap keymap     // A keymap that is matched using regexp, (for things like digit arguments, etc.)
-
-	// Widgets implementations are wrapped into EventCallbacks at bind time, and for each
-	// of the keys in our keymap (mapping to a widget name), the corresponding wrapped widget
-	// is bound into this widget map.
-	widgets map[keymapMode]widgets
+	main    keymapMode             // The main/global keymap, partially overridden by any local keymap.
+	local   keymapMode             // The local keymap is used when completing menus, using Vim operators, etc.
+	widgets map[keymapMode]widgets // Widgets wrapped into EventCallbacks at bind time
 
 	// widgetPrefixMatched is a widget that perfectly matched a given input key, but was also
 	// found along other widgets matching the key only as prefix. This is used so that when reading
 	// the next key, if no match is found, the key is used by this widget.
 	widgetPrefixMatched EventCallback
 
+	// interruptHandlers are all special handlers being called when the shell receives an interrupt
+	// signal key, like CtrlC/CtrlD. These are not directly assigned in the various keymaps, and are
+	// matched against input keys before any other keymap.
+	interruptHandlers map[string]lineWidget
+
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
 
-	iterations        string
-	negativeArg       bool
-	registers         *registers // All memory text registers, can be consulted with Alt"
-	viopp             bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
-	pendingIterations string     // Iterations specific to viopp mode. (2y2w => "2"w)
-	pendingActions    []action   // Widgets that have registered themselves as waiting for another action to be ran.
+	iterations      string
+	negativeArg     bool
+	registers       *registers // All memory text registers, can be consulted with Alt"
+	isViopp         bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
+	iterationsViopp string     // Iterations specific to viopp mode. (2y2w => "2"w)
+	pendingActions  []action   // Widgets that have registered themselves as waiting for another action to be ran.
 
 	// Input Line ---------------------------------------------------------------------------------
 
@@ -69,8 +69,8 @@ type Instance struct {
 	histSuggested []rune // The last matching history line matching the current input.
 	pos           int    // Cursor position in the entire line.
 	posX          int    // Cursor position X
-	fullX         int    // X coordinate of the full input line, including the prompt if needed.
 	posY          int    // Cursor position Y (if multiple lines span)
+	fullX         int    // X coordinate of the full input line, including the prompt if needed.
 	fullY         int    // Y offset to the end of input line.
 
 	// Buffer received from host programms
@@ -114,12 +114,11 @@ type Instance struct {
 	tcPrefix        string             // The current tab completion prefix  against which to build candidates
 	compConfirmWait bool               // When too many completions, we ask the user to confirm with another Tab keypress.
 	tcUsedY         int                // Comprehensive offset of the currently built completions
-	currentComp     []rune             // The currently selected item, not yet a real part of the input line.
-	lineComp        []rune             // Same as rl.line, but with the currentComp inserted.
-	lineRemain      []rune             // When we complete in the middle of a line, we cut and keep the remain.
+	comp            []rune             // The currently selected item, not yet a real part of the input line.
+	compLine        []rune             // Same as rl.line, but with the currentComp inserted.
+	compLineRest    []rune             // When we complete in the middle of a line, we cut and keep the remain.
 	tfLine          []rune             // The current search pattern entered
 	regexSearch     *regexp.Regexp     // Holds the current search regex match
-	histHint        []rune             // We store a hist hint, for dual history sources
 
 	//
 	// History -----------------------------------------------------------------------------------
@@ -137,6 +136,7 @@ type Instance struct {
 	historySourcePos int                // The index of the currently used history
 	lineBuf          string             // The current line saved when we are on another history line
 	histPos          int                // Index used for navigating the history lines with arrows/j/k
+	histHint         []rune             // We store a hist hint, for dual history sources
 
 	//
 	// Hints -------------------------------------------------------------------------------------
@@ -151,11 +151,6 @@ type Instance struct {
 
 	//
 	// Other -------------------------------------------------------------------------------------
-
-	// interruptHandlers are all special handlers being called when the shell
-	// receives an interrupt signal key, like CtrlC/CtrlD. These are not directly
-	// assigned in the various keymaps.
-	interruptHandlers map[string]lineWidget
 
 	// TempDirectory is the path to write temporary files when
 	// editing a line in $EDITOR. This will default to os.TempDir().

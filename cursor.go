@@ -42,7 +42,7 @@ const (
 func (rl *Instance) updateCursor() {
 	// The internal VI operator pending is used when
 	// we don't bother changing the keymap just to read a key.
-	if rl.viopp {
+	if rl.isViopp {
 		print(rl.config.Vim.OperatorPendingCursor.String())
 		return
 	}
