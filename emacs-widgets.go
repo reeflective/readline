@@ -51,6 +51,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 		"neg-argument":                   rl.negArgument,
 		"beginning-of-buffer-or-history": rl.beginningOfBufferOrHistory,
 		"end-of-buffer-or-history":       rl.endOfBufferOrHistory,
+		"history-autosuggest-insert":     rl.historyAutosuggestInsert,
 		"capitalize-word":                rl.capitalizeWord,
 		"down-case-word":                 rl.downCaseWord,
 		"up-case-word":                   rl.upCaseWord,

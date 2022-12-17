@@ -42,3 +42,21 @@ func (rl *Instance) autosuggestHistory(line []rune) {
 		}
 	}
 }
+
+// historyAutosuggestInsert inserts the currently autosuggested history line.
+// This does nothing if history autosuggestion is not enabled in the config.
+func (rl *Instance) historyAutosuggestInsert() {
+	if !rl.config.HistoryAutosuggest {
+		return
+	}
+
+	if len(rl.histSuggested) == 0 {
+		return
+	}
+
+	rl.undoHistoryAppend()
+
+	rl.line = append(rl.line, rl.histSuggested...)
+	rl.pos = len(rl.line) - 1
+	rl.histSuggested = []rune{}
+}

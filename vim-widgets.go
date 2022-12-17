@@ -252,6 +252,12 @@ func (rl *Instance) viForwardBlankWordEnd() {
 }
 
 func (rl *Instance) viForwardChar() {
+	// Only exception where we actually don't forward a character.
+	if rl.config.HistoryAutosuggest && len(rl.histSuggested) > 0 {
+		rl.historyAutosuggestInsert()
+		return
+	}
+
 	rl.skipUndoAppend()
 
 	// In vi-cmd-mode, we don't go further than the
