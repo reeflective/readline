@@ -51,7 +51,7 @@ func (p *prompt) Secondary(prompt func() string) {
 	p.secondaryF = prompt
 }
 
-// Transient uses a function returning the prompt to use as a transcient prompt.
+// Transient uses a function returning the prompt to use as a transient prompt.
 func (p *prompt) Transient(prompt func() string) {
 	p.transientF = prompt
 }
@@ -70,15 +70,64 @@ func (p *prompt) init(rl *Instance) {
 	if p.rightF != nil {
 		p.right = p.rightF()
 	}
+	if p.transientF != nil {
+		p.transient = p.transientF()
+	}
+	if p.secondaryF != nil {
+		p.secondary = p.secondaryF()
+	}
+
+	// Compute some offsets needed by the last line.
+	rl.Prompt.compute(rl)
 
 	// Print the primary prompt, potentially excluding the last line.
 	print(p.getPrimary())
 	p.stillOnRefresh = false
-
-	// Compute some offsets needed by the last line.
-	rl.Prompt.compute(rl)
 }
 
+// getPromptPrimary returns either the entire prompt if
+// it's a single-line, or everything except the last line.
+func (p *prompt) getPrimary() string {
+	var primary string
+
+	lastLineIndex := strings.LastIndex(p.primary, "\n")
+	if lastLineIndex != -1 {
+		primary = p.primary[:lastLineIndex+1]
+	} else {
+		primary = p.primary
+	}
+
+	return primary
+}
+
+// Get the last line of the prompt to be printed.
+func (p *prompt) getPrimaryLastLine() string {
+	var lastLine string
+	lastLineIndex := strings.LastIndex(p.primary, "\n")
+	if lastLineIndex != -1 {
+		lastLine = p.primary[lastLineIndex+1:]
+	} else {
+		lastLine = p.primary
+	}
+
+	return lastLine
+}
+
+// computePromptAlt computes the correct lengths and offsets
+// for all prompt components, but does not print any of them.
+func (p *prompt) compute(rl *Instance) {
+	prompt := rl.Prompt.primary
+
+	lastLineIndex := strings.LastIndex(prompt, "\n")
+	if lastLineIndex != -1 {
+		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt[lastLineIndex:])))
+	} else {
+		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt)))
+	}
+}
+
+// update is called after each key/widget processing, and refreshes
+// the prompts that need to be at these intervals
 func (p *prompt) update(rl *Instance) {
 	var tooltipWord string
 
@@ -132,46 +181,22 @@ func (p *prompt) printLast(rl *Instance) {
 	moveCursorBackwards(GetTermWidth())
 }
 
-// getPromptPrimary returns either the entire prompt if
-// it's a single-line, or everything except the last line.
-func (p *prompt) getPrimary() string {
-	var primary string
-
-	// Get the last line of the prompt to be printed.
-	lastLineIndex := strings.LastIndex(p.primary, "\n")
-	if lastLineIndex != -1 {
-		primary = p.primary[:lastLineIndex+1]
-	} else {
-		primary = p.primary
+func (p *prompt) printTransient(rl *Instance) {
+	if p.transient == "" {
+		return
 	}
 
-	return primary
-}
+	// First offset the newlines returned by our widgets,
+	// and clear everything below us.
+	moveCursorBackwards(GetTermWidth())
+	promptLines := strings.Count(p.primary, "\n") + 1
+	moveCursorUp(promptLines)
+	print(seqClearLine)
+	print(seqClearScreenBelow)
 
-// Get the last line of the prompt to be printed.
-func (p *prompt) getPrimaryLastLine() string {
-	var lastLine string
-	lastLineIndex := strings.LastIndex(p.primary, "\n")
-	if lastLineIndex != -1 {
-		lastLine = p.primary[lastLineIndex+1:]
-	} else {
-		lastLine = p.primary
-	}
-
-	return lastLine
-}
-
-// computePromptAlt computes the correct lengths and offsets
-// for all prompt components, but does not print any of them.
-func (p *prompt) compute(rl *Instance) {
-	prompt := rl.Prompt.primary
-
-	lastLineIndex := strings.LastIndex(prompt, "\n")
-	if lastLineIndex != -1 {
-		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt[lastLineIndex:])))
-	} else {
-		rl.Prompt.inputAt = len([]rune(ansi.Strip(prompt)))
-	}
+	// And print both the prompt and the input line.
+	print(p.transient)
+	println(string(rl.line))
 }
 
 // Prompt refresh offsets

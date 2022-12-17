@@ -42,8 +42,10 @@ func (rl *Instance) errorCtrlC(_ []rune) (read, ret bool, val string, err error)
 	// Or return the current command line
 	err = ErrCtrlC
 	val = string(rl.line)
-	rl.clearHelpers()
 	ret = true
+
+	rl.clearHelpers()
+	print("\r\n")
 
 	return
 }
@@ -56,6 +58,7 @@ func (rl *Instance) errorEOF(_ []rune) (read, ret bool, val string, err error) {
 	rl.keys = ""
 
 	rl.clearHelpers()
+	print("\r\n")
 
 	ret = true
 	return

@@ -29,6 +29,10 @@ func (rl *Instance) Readline() (string, error) {
 	// but other components (PS2/tips) are computed more than once.
 	rl.Prompt.init(rl)
 
+	// If the prompt is set as transient, print it once
+	// our command line is returned to the caller.
+	defer rl.Prompt.printTransient(rl)
+
 	// Multisplit
 	if len(rl.multilineSplit) > 0 {
 		return rl.initMultiline()
