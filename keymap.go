@@ -71,15 +71,15 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 	}
 
 	// Get all widgets matched by the key, either exactly or by prefix.
-	matchWidgets := rl.widgetsA[mode]
+	matchWidgets := rl.widgets[mode]
 	cb, prefixed := rl.matchWidgets(key, matchWidgets)
 
 	// When we have absolutely no matching widget for the keys,
 	// we either return, or if we have a perfectly matching one
 	// waiting for an input, we execute it.
 	if cb == nil && len(prefixed) == 0 {
-		cb = rl.prefixMatchedWidget
-		rl.prefixMatchedWidget = nil
+		cb = rl.widgetPrefixMatched
+		rl.widgetPrefixMatched = nil
 
 		return
 	}
@@ -89,7 +89,7 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 	// the next key, if not matching any of those prefix-matched
 	// widgets, is passed as argument to this one.
 	if cb != nil && len(prefixed) > 0 {
-		rl.prefixMatchedWidget = cb
+		rl.widgetPrefixMatched = cb
 		return nil, true
 	}
 

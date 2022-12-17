@@ -44,6 +44,7 @@ func (rl *Instance) startMenuComplete(completer func()) {
 
 	// Cancel completion mode if we don't have any candidates.
 	if rl.noCompletions() {
+		rl.hintNoMatches()
 		rl.resetTabCompletion()
 		return
 	}
@@ -56,8 +57,8 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	rl.getCurrentGroup()
 
 	// When there is only candidate, automatically insert it
-	// and exit the completion mode.
-	if rl.hasUniqueCandidate() {
+	// and exit the completion mode, except in history completion.
+	if rl.hasUniqueCandidate() && len(rl.histHint) == 0 {
 		rl.undoSkipAppend = false
 		rl.insertCandidate()
 		rl.resetTabCompletion()
@@ -590,10 +591,14 @@ func (rl *Instance) initializeCompletions() {
 }
 
 func (rl *Instance) resetTabCompletion() {
-	if rl.local == menuselect {
+	// When we have a history hint, that means we are
+	// currently completing history, potentially in
+	// autocomplete: don't exit the current menu.
+	if rl.local == menuselect && len(rl.histHint) == 0 {
 		rl.local = ""
 	}
 
+	rl.tcPrefix = ""
 	rl.compConfirmWait = false
 	rl.tcUsedY = 0
 	rl.tfLine = []rune{}
@@ -644,9 +649,18 @@ func (rl *Instance) needsAutoComplete() bool {
 		rl.local != isearch
 
 	isCorrectMenu := rl.main != vicmd
-	isAtLineEnd := rl.pos == len(rl.line)
 
-	if needsComplete && isCorrectMenu && isAtLineEnd {
+	// We might be at the beginning of line,
+	// but currently proposing history completion.
+	completingHistory := len(rl.histHint) > 0
+
+	// We always refresh history, except when
+	// currently having a candidate selection.
+	if completingHistory && isCorrectMenu && len(rl.currentComp) == 0 {
+		return true
+	}
+
+	if needsComplete && isCorrectMenu {
 		return true
 	}
 
@@ -662,8 +676,9 @@ func (rl *Instance) isAutoCompleting() bool {
 	return false
 }
 
-// autoComplete generates the correct completions
-// if the shell is set to autocomplete.
+// autoComplete generates the correct completions in autocomplete mode.
+// We don't do it when we are currently in the completion keymap,
+// since that means completions have already been computed.
 func (rl *Instance) autoComplete() {
 	if !rl.needsAutoComplete() {
 		return

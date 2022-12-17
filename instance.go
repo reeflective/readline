@@ -28,12 +28,12 @@ type Instance struct {
 	// Widgets implementations are wrapped into EventCallbacks at bind time, and for each
 	// of the keys in our keymap (mapping to a widget name), the corresponding wrapped widget
 	// is bound into this widget map.
-	widgetsA map[keymapMode]widgets
+	widgets map[keymapMode]widgets
 
-	// prefixMatchedWidget is a widget that perfectly matched a given input key, but was also
+	// widgetPrefixMatched is a widget that perfectly matched a given input key, but was also
 	// found along other widgets matching the key only as prefix. This is used so that when reading
 	// the next key, if no match is found, the key is used by this widget.
-	prefixMatchedWidget EventCallback
+	widgetPrefixMatched EventCallback
 
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
@@ -43,7 +43,7 @@ type Instance struct {
 	registers         *registers // All memory text registers, can be consulted with Alt"
 	viopp             bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
 	pendingIterations string     // Iterations specific to viopp mode. (2y2w => "2"w)
-	pendingActions    []action
+	pendingActions    []action   // Widgets that have registered themselves as waiting for another action to be ran.
 
 	// Input Line ---------------------------------------------------------------------------------
 
@@ -64,7 +64,7 @@ type Instance struct {
 	PasswordMask rune
 
 	// readline operating parameters
-	keys          string // Contains all keys (input by user) currently being processed by the shell.
+	keys          string // Contains all keys (input by user) not yet consumed by the shell widgets.
 	line          []rune // This is the input line, with entered text: full line = mlnPrompt + line
 	histSuggested []rune // The last matching history line matching the current input.
 	pos           int    // Cursor position in the entire line.
@@ -133,7 +133,7 @@ type Instance struct {
 
 	// Past history
 	histories        map[string]History // Sources of history lines
-	historyNames     []string           // Names of histories stored in histories
+	historyNames     []string           // Names of histories stored in rl.histories
 	historySourcePos int                // The index of the currently used history
 	lineBuf          string             // The current line saved when we are on another history line
 	histPos          int                // Index used for navigating the history lines with arrows/j/k
@@ -157,8 +157,8 @@ type Instance struct {
 	// assigned in the various keymaps.
 	interruptHandlers map[string]lineWidget
 
-	// TempDirectory is the path to write temporary files when editing a line in
-	// $EDITOR. This will default to os.TempDir()
+	// TempDirectory is the path to write temporary files when
+	// editing a line in $EDITOR. This will default to os.TempDir().
 	TempDirectory string
 
 	// concurency

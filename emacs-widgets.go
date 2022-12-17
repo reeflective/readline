@@ -239,6 +239,7 @@ func (rl *Instance) killWholeLine() {
 
 func (rl *Instance) backwardKillWord() {
 	rl.undoHistoryAppend()
+	rl.skipUndoAppend()
 
 	rl.saveToRegister(rl.viJumpB(tokeniseLine))
 	rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
@@ -854,5 +855,10 @@ func (rl *Instance) acceptAndDownHistory() {
 
 // space has different behavior depending on the modes we're currently in.
 func (rl *Instance) space() {
-	rl.selfInsert([]rune(rl.keys))
+	switch rl.local {
+	case isearch:
+		// Insert in the isearch buffer
+	default:
+		rl.selfInsert([]rune{' '})
+	}
 }

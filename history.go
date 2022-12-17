@@ -189,11 +189,6 @@ func (rl *Instance) completeHistory() {
 		return
 	}
 
-	hist := &CompletionGroup{
-		DisplayType: TabDisplayMap,
-		MaxLength:   10,
-	}
-
 	history := rl.currentHistory()
 	if history == nil {
 		return
@@ -204,7 +199,13 @@ func (rl *Instance) completeHistory() {
 	// Set the hint line with everything
 	rl.histHint = append([]rune(BOLD+seqFgCyanBright+string(rl.histHint)+RESET), rl.tfLine...)
 	rl.histHint = append(rl.histHint, []rune(RESET)...)
-	rl.hintText = rl.histHint
+
+	hist := &CompletionGroup{
+		DisplayType: TabDisplayMap,
+		MaxLength:   10,
+	}
+
+	rl.tcPrefix = string(rl.line)
 
 	var (
 		line string

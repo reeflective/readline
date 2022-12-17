@@ -45,7 +45,6 @@ func (g *CompletionGroup) moveTabListHighlight(rl *Instance, x, y int) (done boo
 	// TODO: Refactor in function
 	if g.tcPosY < 1 {
 		if x < 0 || y < 0 {
-			// if rl.tabCompletionReverse {
 			if g.tcOffset > 0 {
 				g.tcPosY = 1
 				g.tcOffset--

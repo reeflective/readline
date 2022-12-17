@@ -17,39 +17,29 @@ type CompletionValue struct {
 // The output, if there are multiple groups available for a given completion input,
 // will look like ZSH's completion system.
 type CompletionGroup struct {
-	Name        string         // If not nil, printed on top of the group's completions
-	Description string         // Appended to name if not nil
-	DisplayType TabDisplayType // Map, list or normal
-	MaxLength   int            // Each group can be limited in the number of comps offered
-	Values      []CompletionValue
+	Name          string            // Printed on top of the group's completions
+	DisplayType   TabDisplayType    // Map, list or normal
+	MaxLength     int               // Each group can be limited in the number of comps offered
+	Values        []CompletionValue // All candidates with their styles and descriptions.
+	SuffixMatcher []rune            // Suffixes to remove if a space or non-nil character is entered after the completion.
+	ListSeparator string            // This is used to separate completion candidates from their descriptions.
 
-	// SuffixMatcher is a list of runes that we remove when entering a space
-	// or any non-nil character directly after the completion.
-	SuffixMatcher []rune
-
-	// For each group, we can define the min and max tab item length
-	MinTabItemLength int
-	MaxTabItemLength int
-
-	// This is used to separate completion candidates from their descriptions.
-	ListSeparator string
-
-	// Internal completions listed, grouped and with columns/paddings computed
-	grouped      [][]CompletionValue
-	columnsWidth []int
-	selected     CompletionValue
-
-	// Values used by the shell
+	// Internal parameters
+	grouped        [][]CompletionValue // Values are grouped by aliases/rows, with computed paddings.
+	columnsWidth   []int               // Computed width for each column of completions, when aliases
+	selected       CompletionValue     // The currently selected completion in this group
+	tcMaxLength    int                 // Used when display is map/list, for determining message width
+	tcMaxLengthAlt int                 // Same as tcMaxLength but for SuggestionsAlt.
+	allowCycle     bool                // Cycle through suggestions because they overflow MaxLength
+	isCurrent      bool                // Currently cycling through this group, for highlighting choice
+	minCellLength  int
+	maxCellLength  int
+	rows           int
 	tcPosX         int
 	tcPosY         int
 	tcMaxX         int
 	tcMaxY         int
 	tcOffset       int
-	tcMaxLength    int // Used when display is map/list, for determining message width
-	tcMaxLengthAlt int // Same as tcMaxLength but for SuggestionsAlt.
-	rows           int
-	allowCycle     bool // true if we want to cycle through suggestions because they overflow MaxLength
-	isCurrent      bool // This is to say we are currently cycling through this group, for highlighting choice
 }
 
 // init - The completion group computes and sets all its values, and is then ready to work.
@@ -93,11 +83,6 @@ func (g *CompletionGroup) updateTabFind(rl *Instance) {
 
 	// Finally, the group computes its new printing settings
 	g.init(rl)
-
-	// If we are in history completion, we directly pass to the first candidate
-	// if rl.modeAutoFind && rl.searchMode == HistoryFind && len(g.Values) > 0 {
-	// 	g.tcPosY = 1
-	// }
 }
 
 // checkCycle - Based on the number of groups given to the shell, allows cycling or not
@@ -166,18 +151,18 @@ func (g *CompletionGroup) getCurrentCell(rl *Instance) CompletionValue {
 		}
 		return CompletionValue{}
 
-	// case TabDisplayMap:
-	// 	// x & y coodinates + safety check
-	// 	cell := g.tcOffset + g.tcPosY - 1
-	// 	if cell < 0 {
-	// 		cell = 0
-	// 	}
-	//
-	// 	// TODO: Here we didn't ensure some values have not the same description
-	// 	sugg := g.Values[cell]
-	// 	return sugg
+	case TabDisplayMap:
+		// x & y coodinates + safety check
+		cell := g.tcOffset + g.tcPosY - 1
+		if cell < 0 {
+			cell = 0
+		}
 
-	case TabDisplayList, TabDisplayMap:
+		// TODO: Here we didn't ensure some values have not the same description
+		sugg := g.Values[cell]
+		return sugg
+
+	case TabDisplayList:
 		return g.selected
 	}
 

@@ -1,6 +1,9 @@
 package readline
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // SetHint - a nasty function to force writing a new hint text.
 // It does not update helpers, it just renders them, so the hint
@@ -12,17 +15,56 @@ func (rl *Instance) SetHint(s string) {
 }
 
 func (rl *Instance) getHintText() {
-	// if !rl.modeAutoFind && !rl.modeTabFind {
-	// 	// Return if no hints provided by the user/engine
-	// 	if rl.HintText == nil {
-	// 		rl.resetHintText()
-	// 		return
-	// 	}
-	// 	// The hint text also works with the virtual completion line system.
-	// 	// This way, the hint is also refreshed depending on what we are pointing
-	// 	// at with our cursor.
-	// 	rl.hintText = rl.HintText(rl.getCompletionLine())
-	// }
+	// Use the user-provided hint by default.
+	// Useful when command/flag usage is given.
+	rl.hintText = rl.HintText(rl.getCompletionLine())
+
+	// Remove the hint if we are autocompleting in insert mode.
+	if rl.isAutoCompleting() && rl.main != vicmd {
+		rl.resetHintText()
+	}
+
+	// When completing history, we have a special hint
+	if len(rl.histHint) > 0 {
+		rl.hintText = rl.histHint
+	}
+
+	// But the local keymap, especially completions,
+	// overwrites the user hint, since either:
+	// - We have some completions, which are self-describing
+	// - We didn't match any, thus we have a new error hint.
+	switch rl.local {
+	case menuselect:
+		if rl.noCompletions() {
+			rl.hintNoMatches()
+		}
+	}
+}
+
+// generate a hint when no completion matches the prefix.
+func (rl *Instance) hintNoMatches() {
+	noMatches := DIM + RED + "no matches"
+
+	var groups []string
+	for _, group := range rl.tcGroups {
+		if group.Name == "" {
+			continue
+		}
+		groups = append(groups, group.Name)
+	}
+
+	// History has no named group, so add it
+	if len(groups) == 0 && len(rl.histHint) > 0 {
+		groups = append(groups, rl.historyNames[rl.historySourcePos])
+	}
+
+	if len(groups) > 0 {
+		noMatches += " in "
+		groupsStr := strings.Join(groups, ", ")
+		noMatches += "'" + groupsStr + "'"
+	}
+
+	rl.hintText = []rune(noMatches)
 }
 
 // writeHintText - only writes the hint text and computes its offsets.

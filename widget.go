@@ -45,7 +45,7 @@ type action struct {
 // decoding the key from caret notation (if used) and compiling it as a regular
 // expression, and binds it to the internal widget list for the given mode.
 func (rl *Instance) bindWidgets() {
-	rl.widgetsA = make(map[keymapMode]widgets)
+	rl.widgets = make(map[keymapMode]widgets)
 
 	// Since the key might be in caret notation, we decode the key
 	// first, so that when we can match the key as detected by the
@@ -60,7 +60,7 @@ func (rl *Instance) bindWidgets() {
 			rl.bindWidget(key, widget, &keymapWidgets, decoder, b)
 		}
 
-		rl.widgetsA[mode] = keymapWidgets
+		rl.widgets[mode] = keymapWidgets
 	}
 
 	switch rl.config.InputMode {
@@ -264,7 +264,7 @@ func (rl *Instance) runWidget(name string, keys []rune) (ret bool, val string, e
 	// We matched a single widget, so reset
 	// the current key as stored by the shell.
 	defer func() {
-		rl.prefixMatchedWidget = nil
+		rl.widgetPrefixMatched = nil
 		rl.keys = ""
 	}()
 

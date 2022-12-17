@@ -18,11 +18,6 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 		}
 	}
 
-	// Always select the first available candidate for the group.
-	if len(g.grouped) > 0 {
-		g.selected = g.grouped[0][g.tcPosX]
-	}
-
 	g.tcPosX = 0
 	g.tcPosY = 0
 	g.tcOffset = 0
@@ -38,12 +33,11 @@ func (g *CompletionGroup) initMap(rl *Instance) {
 // moveTabMapHighlight - Moves the highlighting for currently selected completion item (map display)
 func (g *CompletionGroup) moveTabMapHighlight(rl *Instance, x, y int) (done bool, next bool) {
 	g.tcPosY += x
-	g.tcPosY += y
+	// g.tcPosY += y
 
 	// Lines
 	if g.tcPosY < 1 {
 		if x < 0 || y < 0 {
-			// if rl.tabCompletionReverse {
 			if g.tcOffset > 0 {
 				g.tcPosY = 1
 				g.tcOffset--

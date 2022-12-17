@@ -68,7 +68,7 @@ func (rl *Instance) AddEvent(key string, callback EventCallback, keymaps ...keym
 
 	// Add the callback to all keymaps
 	for _, mode := range keymaps {
-		if widgets, found := rl.widgetsA[mode]; found {
+		if widgets, found := rl.widgets[mode]; found {
 			rl.bindWidget(key, "", &widgets, decoder, b)
 		}
 	}
@@ -105,7 +105,7 @@ func (rl *Instance) DelEvent(key string, keymaps ...keymapMode) {
 
 	// Remove the callback from all keymaps
 	for _, mode := range keymaps {
-		if widgets, found := rl.widgetsA[mode]; found {
+		if widgets, found := rl.widgets[mode]; found {
 			delete(widgets, reg)
 		}
 	}

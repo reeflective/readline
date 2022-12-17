@@ -27,7 +27,11 @@ func (rl *Instance) expandOrComplete() {
 	case menuselect:
 		rl.menuComplete()
 	default:
-		rl.startMenuComplete(rl.generateCompletions)
+		if rl.completer != nil {
+			rl.startMenuComplete(rl.completer)
+		} else {
+			rl.startMenuComplete(rl.generateCompletions)
+		}
 
 		// In autocomplete mode, we already have completions
 		// printed, so we automatically move to the first comp.
@@ -69,13 +73,13 @@ func (rl *Instance) menuComplete() {
 
 	// No completions are being printed yet, so simply generate the completions
 	// as if we just request them without immediately selecting a candidate.
-	if rl.local != menuselect && rl.local != isearch {
+	if rl.local != menuselect && rl.local != isearch && len(rl.histHint) == 0 {
 		rl.startMenuComplete(rl.generateCompletions)
 	}
 
 	// Some of the actions taken in the above switch might have exited
 	// completions, and if that is the case, we should not do anything.
-	if rl.local != menuselect && rl.local != isearch {
+	if rl.local != menuselect && rl.local != isearch && len(rl.histHint) == 0 {
 		return
 	}
 
@@ -184,14 +188,24 @@ func (rl *Instance) historyComplete() {
 	switch rl.local {
 	case isearch:
 	case menuselect:
+		// If we are currently completing the last history
+		// source, cancel history completion.
+		if rl.historySourcePos == len(rl.histories)-1 {
+			rl.histHint = []rune{}
+			rl.resetTabCompletion()
+			rl.completer = nil
+			return
+		}
+
+		// Else complete the next history source.
 		rl.nextHistorySource()
 		fallthrough
+
 	default:
 		// Indicate to the user if we don't have history sources at all.
 		if rl.currentHistory() == nil {
 			rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
 				"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
-			rl.hintText = rl.histHint
 		}
 
 		// Else, generate the completions.

@@ -12,8 +12,6 @@ func (rl *Instance) initHelpers() {
 // it should coordinate reprinting the input line, any hints and completions
 // and manage to get back to the current (computed) cursor coordinates
 func (rl *Instance) updateHelpers() {
-	rl.getHintText()
-
 	// Since we get called just before reading a new key (thus just
 	// after having processed the last one), we should refresh the
 	// completions if autocompletion is on.
@@ -21,11 +19,8 @@ func (rl *Instance) updateHelpers() {
 	// since that means completions have already been computed.
 	rl.autoComplete()
 
-	// We clear everything
+	rl.getHintText()
 	rl.clearHelpers()
-
-	// We are at the prompt line (with the latter
-	// not printed yet), then reprint everything
 	rl.renderHelpers()
 }
 
