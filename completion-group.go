@@ -23,17 +23,9 @@ type CompletionGroup struct {
 	MaxLength   int            // Each group can be limited in the number of comps offered
 	Values      []CompletionValue
 
-	// When this is true, the completion is inserted really (not virtually) without
-	// the trailing slash, if any. This is used when we want to complete paths.
-	TrimSlash bool
-	// PathSeparator - If you intend to write path completions, you can specify the path
-	// separator to use, depending on which OS you want completion for. By default, this
-	// will be set to the GOOS of the binary. This is also used internally for many things.
-	PathSeparator rune
-
-	// When this is true, we don't add a space after entering the candidate.
-	// Can be used for multi-stage completions, like URLS (scheme:// + host)
-	NoSpace bool
+	// SuffixMatcher is a list of runes that we remove when entering a space
+	// or any non-nil character directly after the completion.
+	SuffixMatcher []rune
 
 	// For each group, we can define the min and max tab item length
 	MinTabItemLength int
@@ -41,10 +33,6 @@ type CompletionGroup struct {
 
 	// This is used to separate completion candidates from their descriptions.
 	ListSeparator string
-
-	// SuffixMatcher is a list of runes that we remove when entering a space
-	// or any non-nil character directly after the completion.
-	SuffixMatcher []rune
 
 	// Internal completions listed, grouped and with columns/paddings computed
 	grouped      [][]CompletionValue
@@ -60,12 +48,8 @@ type CompletionGroup struct {
 	tcMaxLength    int // Used when display is map/list, for determining message width
 	tcMaxLengthAlt int // Same as tcMaxLength but for SuggestionsAlt.
 	rows           int
-
-	// true if we want to cycle through suggestions because they overflow MaxLength
-	allowCycle bool
-
-	// This is to say we are currently cycling through this group, for highlighting choice
-	isCurrent bool
+	allowCycle     bool // true if we want to cycle through suggestions because they overflow MaxLength
+	isCurrent      bool // This is to say we are currently cycling through this group, for highlighting choice
 }
 
 // init - The completion group computes and sets all its values, and is then ready to work.
