@@ -60,7 +60,6 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 // or the only candidate available, if the total number of candidates is 1.
 func (rl *Instance) insertCandidate() {
 	cur := rl.getCurrentGroup()
-
 	if cur == nil {
 		return
 	}
@@ -75,12 +74,19 @@ func (rl *Instance) insertCandidate() {
 		prefix++
 	}
 
+	// When there are no suffix matchers, add space by default
+	if len(cur.SuffixMatcher) == 0 && rl.keys == " " {
+		cur.SuffixMatcher = append(cur.SuffixMatcher, ' ')
+	}
+
+	// Trim any suffix when found
+	if yes, suf := cur.matchesSuffix(completion); yes {
+		completion = strings.TrimSuffix(completion, string(suf))
+	}
+
 	// Ensure no indexing error happens with prefix
 	if len(completion) >= prefix {
 		rl.insert([]rune(completion[prefix:]))
-		if !cur.TrimSlash && !cur.NoSpace {
-			rl.insert([]rune(" "))
-		}
 	}
 }
 
@@ -108,7 +114,7 @@ func (rl *Instance) updateVirtualComp() {
 		// Special case for the only special escape, which
 		// if not handled, will make us insert the first
 		// character of our actual rl.tcPrefix in the candidate.
-		// TODO: This should changed.
+		// TODO: This should be changed.
 		if strings.HasPrefix(string(rl.tcPrefix), "%") {
 			prefix++
 		}
@@ -143,7 +149,8 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 		return
 	}
 
-	// We will only insert the net difference between prefix and completion.
+	// We will only insert the net difference
+	// between prefix and completion.
 	prefix := len(rl.tcPrefix)
 
 	// Special case for the only special escape, which
@@ -153,7 +160,18 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 		prefix++
 	}
 
-	// If we are asked to drop the completion, move it away from the line and return.
+	// When there are no suffix matchers, add space by default
+	if len(cur.SuffixMatcher) == 0 {
+		cur.SuffixMatcher = append(cur.SuffixMatcher, ' ')
+	}
+
+	// Trim any suffix when found
+	if yes, suf := cur.matchesSuffix(completion); yes {
+		completion = strings.TrimSuffix(completion, string(suf))
+	}
+
+	// If we are asked to drop the completion,
+	// move it away from the line and return.
 	if drop {
 		rl.pos -= len([]rune(completion[prefix:]))
 		rl.lineComp = rl.line
@@ -161,41 +179,11 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 		return
 	}
 
-	// Insert the current candidate. A bit of processing happens:
-	// - We trim the trailing slash if needed
-	// - We add a space only if the group has not explicitely specified not to add one.
-	if cur.TrimSlash {
-		trimmed, hadSlash := trimTrailing(completion)
-		if !hadSlash {
-			if !cur.NoSpace {
-				trimmed = trimmed + " "
-			}
-		}
-		rl.insertCandidateVirtual([]rune(trimmed[prefix:]))
-	} else {
-		if !cur.NoSpace {
-			completion = completion + " "
-		}
-		rl.insertCandidateVirtual([]rune(completion[prefix:]))
-	}
+	// Insert the current candidate.
+	rl.insertCandidateVirtual([]rune(completion[prefix:]))
 
 	// Reset virtual
 	rl.clearVirtualComp()
-}
-
-// trimTrailing - When the group to which the current candidate
-// belongs has TrimSlash enabled, we process the candidate.
-// This is used when the completions are directory/file paths.
-func trimTrailing(comp string) (trimmed string, hadSlash bool) {
-	// Unix paths
-	if strings.HasSuffix(comp, "/") {
-		return strings.TrimSuffix(comp, "/"), true
-	}
-	// Windows paths
-	if strings.HasSuffix(comp, "\\") {
-		return strings.TrimSuffix(comp, "\\"), true
-	}
-	return comp, false
 }
 
 // viDeleteByAdjustVirtual - Same as viDeleteByAdjust, but for our virtually completed input line.
@@ -214,8 +202,6 @@ func (rl *Instance) viDeleteByAdjustVirtual(adjust int) {
 	case rl.pos+adjust == len(rl.lineComp)-1:
 		newLine = rl.lineComp[:rl.pos]
 	case rl.pos+adjust == 0:
-		println(adjust)
-		println(rl.pos)
 		newLine = rl.lineComp[rl.pos:]
 	case adjust < 0:
 		newLine = append(rl.lineComp[:rl.pos+adjust], rl.lineComp[rl.pos:]...)

@@ -1,5 +1,9 @@
 package readline
 
+import (
+	"strings"
+)
+
 // CompletionValue represents a completion candidate
 type CompletionValue struct {
 	Value       string
@@ -37,6 +41,10 @@ type CompletionGroup struct {
 
 	// This is used to separate completion candidates from their descriptions.
 	ListSeparator string
+
+	// SuffixMatcher is a list of runes that we remove when entering a space
+	// or any non-nil character directly after the completion.
+	SuffixMatcher []rune
 
 	// Internal completions listed, grouped and with columns/paddings computed
 	grouped      [][]CompletionValue
@@ -346,6 +354,15 @@ func checkNilItems(groups []CompletionGroup) (checked []*CompletionGroup) {
 		checked = append(checked, &groups[i])
 	}
 
+	return
+}
+
+func (g *CompletionGroup) matchesSuffix(value string) (yes bool, suf rune) {
+	for _, r := range g.SuffixMatcher {
+		if r == '*' || strings.HasSuffix(value, string(r)) {
+			return true, r
+		}
+	}
 	return
 }
 
