@@ -179,8 +179,20 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 		return
 	}
 
+	// If at the end of the line and in Vim command mode
+	// we just got the cursor position back. Briefly put
+	// it back
+	// needsVimOffset := rl.main == vicmd && rl.pos == len(rl.line)
+	// if needsVimOffset {
+	// 	rl.pos++
+	// }
+
 	// Insert the current candidate.
 	rl.insertCandidateVirtual([]rune(completion[prefix:]))
+
+	// if needsVimOffset {
+	// 	rl.pos--
+	// }
 
 	// Reset virtual
 	rl.clearVirtualComp()

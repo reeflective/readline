@@ -26,8 +26,6 @@ const (
 	TabDisplayMap
 )
 
-// 	rl.hintText = append(rl.histHint, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
-
 // startMenuComplete generates a completion menu with completions
 // generated from a given completer, without selecting a candidate.
 func (rl *Instance) startMenuComplete(completer func()) {
