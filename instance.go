@@ -38,8 +38,8 @@ type Instance struct {
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
 
-	iterations      string
-	negativeArg     bool
+	iterations      string     // Global iterations.
+	negativeArg     bool       // Emacs supports negative iterations.
 	registers       *registers // All memory text registers, can be consulted with Alt"
 	isViopp         bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
 	iterationsViopp string     // Iterations specific to viopp mode. (2y2w => "2"w)
@@ -67,6 +67,7 @@ type Instance struct {
 	keys          string // Contains all keys (input by user) not yet consumed by the shell widgets.
 	line          []rune // This is the input line, with entered text: full line = mlnPrompt + line
 	histSuggested []rune // The last matching history line matching the current input.
+	accepted      bool   // Set by 'accept-line' widget, to notify return the line to the caller
 	pos           int    // Cursor position in the entire line.
 	posX          int    // Cursor position X
 	posY          int    // Cursor position Y (if multiple lines span)

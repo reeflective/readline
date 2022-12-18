@@ -43,7 +43,7 @@ func (rl *Instance) getHintText() {
 
 // generate a hint when no completion matches the prefix.
 func (rl *Instance) hintNoMatches() {
-	noMatches := DIM + RED + "no matches"
+	noMatches := DIM + RED + "no matching "
 
 	var groups []string
 	for _, group := range rl.tcGroups {
@@ -59,12 +59,11 @@ func (rl *Instance) hintNoMatches() {
 	}
 
 	if len(groups) > 0 {
-		noMatches += " in "
 		groupsStr := strings.Join(groups, ", ")
 		noMatches += "'" + groupsStr + "'"
 	}
 
-	rl.hintText = []rune(noMatches)
+	rl.hintText = []rune(noMatches + " completions")
 }
 
 // writeHintText - only writes the hint text and computes its offsets.

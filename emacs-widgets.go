@@ -5,24 +5,12 @@ import (
 	"strings"
 )
 
-// lineWidgets maps widget names to their corresponding line widgets.
-type lineWidgets map[string]lineWidget
-
-// standardLineWidgets either need access to the input key,
-// or need to return specific instructions and values.
-func (rl *Instance) commonLineWidgets() lineWidgets {
-	widgets := map[string]lineWidget{
-		"accept-line": rl.acceptLine,
-		"self-insert": rl.selfInsert,
-	}
-
-	return widgets
-}
-
 // standardWidgets don't need access to the input key.
 func (rl *Instance) commonWidgets() baseWidgets {
 	widgets := map[string]func(){
 		"clear-screen":                   rl.clearScreen,
+		"self-insert":                    rl.selfInsert,
+		"accept-line":                    rl.acceptLine,
 		"beginning-of-line":              rl.beginningOfLine,
 		"end-of-line":                    rl.endOfLine,
 		"kill-line":                      rl.killLine,
@@ -70,7 +58,7 @@ func (rl *Instance) commonWidgets() baseWidgets {
 }
 
 // selfInsert inserts the given rune into the input line at the current cursor position.
-func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error) {
+func (rl *Instance) selfInsert() {
 	rl.skipUndoAppend()
 
 	// Prepare the line
@@ -94,6 +82,8 @@ func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error)
 	// // The line is prepared and the actual runes to insert are as well.
 	// r = []rune(tokens[pos-1])
 	// 		rl.insert([]rune(tokens[pos-1]))
+
+	r := []rune(rl.keys)
 
 	for {
 		// I don't really understand why `0` is creaping in at the end of the
@@ -133,7 +123,7 @@ func (rl *Instance) selfInsert(r []rune) (read, ret bool, val string, err error)
 }
 
 // acceptLine returns the line to the readline caller for being executed/evaluated.
-func (rl *Instance) acceptLine(_ []rune) (read, ret bool, val string, err error) {
+func (rl *Instance) acceptLine() {
 	// TODO: Handle completions
 	// if rl.modeTabCompletion {
 	// 	cur := rl.getCurrentGroup()
@@ -184,9 +174,7 @@ func (rl *Instance) acceptLine(_ []rune) (read, ret bool, val string, err error)
 	// }
 
 	rl.carriageReturn()
-
-	val = string(rl.line)
-	ret = true
+	rl.accepted = true
 
 	return
 }
@@ -851,46 +839,11 @@ func (rl *Instance) historySearchSackward() {
 func (rl *Instance) expandHistory() {
 }
 
-func (rl *Instance) acceptAndHold() {
-}
-
 func (rl *Instance) acceptAndInferNextHistory() {
 }
 
 func (rl *Instance) acceptAndDownHistory() {
 }
-
-// 	"^[y":     "yank-pop",
-// func (rl *Instance) yankPop() {
-// }
-
-// "^[$":  "spell-word",
-// func (rl *Instance) spellWord() {
-// }
-
-// "^[.":  "insert-last-word",
-// func (rl *Instance) insertLastWord() {
-// }
-//
-
-// 	"^[A": "accept-and-hold",
-// func (rl *Instance) acceptAndHold() {
-// }
-
-// func (rl *Instance) getLine() {
-// }
-
-// 	"^[Q": "push-line",
-// func (rl *Instance) pushLine() {
-// }
-
-// 	"^[x":     "execute-named-cmd",
-// func (rl *Instance) executeNamedCmd() {
-// }
-
-// 	"^[z":     "execute-last-named-cmd",
-// func (rl *Instance) executeLastNamedCmd() {
-// }
 
 // space has different behavior depending on the modes we're currently in.
 func (rl *Instance) space() {
@@ -898,6 +851,7 @@ func (rl *Instance) space() {
 	case isearch:
 		// Insert in the isearch buffer
 	default:
-		rl.selfInsert([]rune{' '})
+		rl.keys = " "
+		rl.selfInsert()
 	}
 }

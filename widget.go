@@ -179,14 +179,6 @@ func (rl *Instance) getWidget(name string) lineWidget {
 		}
 	}
 
-	// Standard line widgets, wrapped inside a compliant handler.
-	if widget, found := rl.commonLineWidgets()[name]; found && widget != nil {
-		return func(keys []rune) (bool, bool, string, error) {
-			read, ret, val, err := widget(keys)
-			return read, ret, val, err
-		}
-	}
-
 	// Vim standard widgets don't return anything, wrap them in a simple call.
 	if widget, found := rl.viWidgets()[name]; found && widget != nil {
 		return func(_ []rune) (bool, bool, string, error) {
