@@ -33,6 +33,7 @@ func (rl *Instance) errorCtrlC() (err error) {
 	if len(rl.comp) > 0 {
 		rl.resetVirtualComp(true)
 		rl.resetTabCompletion()
+		rl.resetIsearch()
 		rl.completer = nil
 
 		return

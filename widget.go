@@ -67,9 +67,15 @@ func (rl *Instance) bindWidgets() {
 
 // run is in charge of executing the matched EventCallback, unwrapping its values and return behavior
 // parameters (errors/lines/read), and optionally to execute pending widgets (vi operator pending mode),
-func (rl *Instance) run(cb EventCallback, keys string) {
+func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) {
 	if cb == nil {
 		return
+	}
+
+	// Use the minibuffer if currently working in isearch mode.
+	if rl.isIsearchMode(mode) {
+		rl.useIsearchLine()
+		defer rl.exitIsearchLine()
 	}
 
 	// Run the callback, and by default, use its behavior for return values
@@ -162,21 +168,24 @@ func (rl *Instance) bindWidget(key, widget string, km *widgets, decoder caret.De
 // all widgets look the same to the shell instance.
 func (rl *Instance) getWidget(name string) widget {
 	// Standard widgets (all editing modes/styles)
-	if widget, found := rl.standardWidgets()[name]; found && widget != nil {
-		return widget
+	if wg, found := rl.standardWidgets()[name]; found && wg != nil {
+		return wg
 	}
 
 	// Vim standard widgets don't return anything, wrap them in a simple call.
-	if widget, found := rl.viWidgets()[name]; found && widget != nil {
-		return widget
+	if wg, found := rl.viWidgets()[name]; found && wg != nil {
+		return wg
 	}
 
 	// Completion
-	if widget, found := rl.completionWidgets()[name]; found && widget != nil {
-		return widget
+	if wg, found := rl.completionWidgets()[name]; found && wg != nil {
+		return wg
 	}
 
 	// Incremental search
+	if wg, found := rl.isearchWidgets()[name]; found && wg != nil {
+		return wg
+	}
 
 	return nil
 }
@@ -267,13 +276,13 @@ func (rl *Instance) runPendingWidget() {
 		return
 	}
 
-	widget := rl.getWidget(pending.widget)
-	if widget == nil {
+	pendingWidget := rl.getWidget(pending.widget)
+	if pendingWidget == nil {
 		return
 	}
 
 	for i := 0; i < pending.iterations; i++ {
-		widget()
+		pendingWidget()
 		if rl.accepted {
 			return
 		}

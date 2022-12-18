@@ -81,6 +81,10 @@ func (rl *Instance) isVimEscape(key string) (cb EventCallback, yes bool) {
 		// do it here instead.
 		rl.updateCompletionState()
 
+		// Reset any incremental search parameters
+		// if we were currently editing its buffer.
+		rl.resetIsearch()
+
 		event := &EventReturn{
 			Widget:  "vi-cmd-mode",
 			NewLine: rl.line,

@@ -72,6 +72,14 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 
 	// Get all widgets matched by the key, either exactly or by prefix.
 	matchWidgets := rl.widgets[mode]
+
+	// When our keymap is main but the local is search, the set
+	// of valid widgets is restricted, and we work on the minibuffer.
+	if rl.isIsearchMode(mode) {
+		matchWidgets = rl.filterIsearchWidgets(mode)
+	}
+
+	// Get the widgets for which the key matches exactly or by prefix.
 	cb, prefixed := rl.matchWidgets(key, matchWidgets)
 
 	// When we have absolutely no matching widget for the keys,
@@ -101,4 +109,17 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 
 	// We either have a single widget callback, or nothing.
 	return
+}
+
+// resetUndefinedKey contains all things which should be done when a
+// given input key has not been matched against any keymap widget.
+func (rl *Instance) resetUndefinedKey() {
+	// Discard the key stack
+	rl.keys = ""
+
+	// Leave the isearch mode if we were.
+	if rl.local == isearch {
+		rl.resetIsearch()
+		rl.local = ""
+	}
 }

@@ -118,8 +118,6 @@ func (rl *Instance) selfInsert() {
 	}
 
 	rl.pos += len(r)
-
-	return
 }
 
 // acceptLine returns the line to the readline caller for being executed/evaluated.
@@ -848,6 +846,8 @@ func (rl *Instance) space() {
 	switch rl.local {
 	case isearch:
 		// Insert in the isearch buffer
+		rl.keys = " "
+		rl.selfInsert()
 	default:
 		rl.keys = " "
 		rl.selfInsert()

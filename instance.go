@@ -119,6 +119,7 @@ type Instance struct {
 	compLine        []rune             // Same as rl.line, but with the currentComp inserted.
 	compLineRest    []rune             // When we complete in the middle of a line, we cut and keep the remain.
 	tfLine          []rune             // The current search pattern entered
+	tfPos           int                // Cursor position in the isearch buffer
 	regexSearch     *regexp.Regexp     // Holds the current search regex match
 
 	//

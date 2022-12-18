@@ -460,7 +460,6 @@ func (rl *Instance) resetTabCompletion() {
 	rl.tcPrefix = ""
 	rl.compConfirmWait = false
 	rl.tcUsedY = 0
-	rl.tfLine = []rune{}
 
 	// Reset tab highlighting
 	if len(rl.tcGroups) > 0 {

@@ -34,6 +34,8 @@ func (rl *Instance) getHintText() {
 	// - We have some completions, which are self-describing
 	// - We didn't match any, thus we have a new error hint.
 	switch rl.local {
+	case isearch:
+		rl.isearchHint()
 	case menuselect:
 		if rl.noCompletions() {
 			rl.hintNoMatches()
@@ -64,6 +66,14 @@ func (rl *Instance) hintNoMatches() {
 	}
 
 	rl.hintText = []rune(noMatches + " completions")
+}
+
+func (rl *Instance) isearchHint() {
+	rl.hintText = append([]rune(BOLD+seqFgCyanBright+"isearch: "), rl.tfLine...)
+
+	if rl.noCompletions() {
+		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+	}
 }
 
 // writeHintText - only writes the hint text and computes its offsets.

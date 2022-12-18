@@ -111,7 +111,7 @@ func (rl *Instance) Readline() (string, error) {
 		// - When completing/searching, can be 'menuselect' or 'isearch'
 		widget, prefix := rl.matchKeymap(keys, rl.local)
 		if widget != nil {
-			rl.run(widget, keys)
+			rl.run(widget, keys, rl.local)
 			if rl.accepted || rl.err != nil {
 				return string(rl.line), rl.err
 			}
@@ -131,7 +131,7 @@ func (rl *Instance) Readline() (string, error) {
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
 		widget, prefix = rl.matchKeymap(keys, rl.main)
 		if widget != nil {
-			rl.run(widget, keys)
+			rl.run(widget, keys, rl.main)
 			if rl.accepted || rl.err != nil {
 				return string(rl.line), rl.err
 			}
@@ -140,8 +140,8 @@ func (rl *Instance) Readline() (string, error) {
 			continue
 		}
 
-		// When the key has not matched any keybind pattern in any of the
-		// active keymaps (perfectly or by prefix), we discard the key stack.
-		rl.keys = ""
+		// If the key was not matched against any keymap (exact or by prefix)
+		// we discard the input stack, and exit some local keymaps (isearch)
+		rl.resetUndefinedKey()
 	}
 }
