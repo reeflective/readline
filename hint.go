@@ -69,7 +69,8 @@ func (rl *Instance) hintNoMatches() {
 }
 
 func (rl *Instance) isearchHint() {
-	rl.hintText = append([]rune(BOLD+seqFgCyanBright+"isearch: "), rl.tfLine...)
+	rl.hintText = []rune(BOLD + seqFgCyan + "isearch: " + seqReset)
+	rl.hintText = append(rl.hintText, rl.tfLine...)
 
 	if rl.regexSearch == nil && len(rl.tfLine) > 0 {
 		rl.hintText = append(rl.hintText, []rune(Red(" ! failed to compile search regexp"))...)

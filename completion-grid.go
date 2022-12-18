@@ -125,7 +125,7 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 		val := g.Values[i]
 
 		styling := g.highlight(val.Style, y, x)
-		value := rl.isearchHighlight(val.Value, styling)
+		value := g.isearchHighlight(rl, val.Value, styling, y, x)
 
 		comp += fmt.Sprintf("%s%-"+cellWidth+"s %s", styling, value, seqReset)
 	}

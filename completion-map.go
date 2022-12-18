@@ -119,7 +119,7 @@ func (g *CompletionGroup) buildMap(rl *Instance, maxLen, maxDescLen int) (comp s
 		}
 
 		styling := g.highlight(val.Style, y, g.tcPosX)
-		item = rl.isearchHighlight(item, styling)
+		item = g.isearchHighlight(rl, item, styling, y, g.tcPosX)
 
 		description := val.Description
 		if len(description) > maxLen {

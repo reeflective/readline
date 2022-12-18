@@ -319,7 +319,7 @@ func (g *CompletionGroup) buildList(rl *Instance, maxLen, maxDescLen int) (comp 
 
 			pad := g.columnsWidth[column] - len(item)
 			styling := g.highlight(val.Style, y, column)
-			item = rl.isearchHighlight(item, styling)
+			item = g.isearchHighlight(rl, item, styling, y, column)
 
 			item = fmt.Sprintf("%s%s%s", styling, item+seqReset, strings.Repeat(" ", pad)+" ")
 			comp += item

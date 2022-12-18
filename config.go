@@ -280,6 +280,7 @@ func (rl *Instance) loadDefaultConfig() {
 	config.Keymaps[visual] = visualKeys
 
 	config.Keymaps[menuselect] = menuselectKeys
+	config.Keymaps[isearch] = menuselectKeys
 
 	// First load the default configuration to preserve
 	// the comment, and then apply our default values onto it.

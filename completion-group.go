@@ -348,6 +348,22 @@ func (g *CompletionGroup) highlight(style string, y int, x int) string {
 	return sgrStart + fgColorStart + style + sgrEnd
 }
 
+// isearchHighlight applies highlighting to all isearch matches in a completion.
+func (g *CompletionGroup) isearchHighlight(rl *Instance, item, reset string, y, x int) string {
+	if rl.local != isearch || rl.regexSearch == nil || len(rl.tfLine) == 0 {
+		return item
+	}
+
+	if y == g.tcPosY && x == g.tcPosX && g.isCurrent {
+		return item
+	}
+
+	match := rl.regexSearch.FindString(item)
+	match = seqBgBlackBright + match + seqReset + reset
+
+	return rl.regexSearch.ReplaceAllLiteralString(item, match)
+}
+
 const (
 	sgrStart     = "\x1b["
 	fgColorStart = "38;05;"
