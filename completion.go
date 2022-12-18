@@ -63,28 +63,6 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	}
 }
 
-// getTabSearchCompletion - Populates and sets up completion for completion search.
-func (rl *Instance) getTabSearchCompletion() {
-	// Get completions from the engine, and make sure there is a current group.
-	rl.generateCompletions()
-	if len(rl.tcGroups) == 0 {
-		return
-	}
-	rl.getCurrentGroup()
-
-	// Set the hint for this completion mode
-	rl.hintText = append([]rune("Completion search: "), rl.tfLine...)
-
-	for _, g := range rl.tcGroups {
-		g.updateTabFind(rl)
-	}
-
-	// If total number of matches is zero, we directly change the hint, and return
-	if comps, _, _ := rl.getCompletionCount(); comps == 0 {
-		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
-	}
-}
-
 // generateCompletions - Calls the completion engine/function to yield a list of 0 or more completion groups,
 // sets up a delayed tab context and passes it on to the tab completion engine function, and ensure no
 // nil groups/items will pass through. This function is called by different comp search/nav modes.
@@ -506,7 +484,7 @@ func (rl *Instance) needsAutoComplete() bool {
 		rl.local != menuselect &&
 		rl.local != isearch
 
-	isCorrectMenu := rl.main != vicmd
+	isCorrectMenu := rl.main != vicmd && rl.local != isearch
 
 	// We might be at the beginning of line,
 	// but currently proposing history completion.

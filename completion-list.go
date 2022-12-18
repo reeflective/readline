@@ -344,7 +344,7 @@ func (g *CompletionGroup) buildList(rl *Instance, maxLen, maxDescLen int) (comp 
 			}
 		}
 
-		desc = rl.isearchHighlight(desc, DIM)
+		desc = g.isearchHighlight(rl, desc, DIM, -1, -1)
 
 		comp += desc + "\n"
 	}

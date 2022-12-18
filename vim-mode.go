@@ -75,15 +75,16 @@ func (rl *Instance) isVimEscape(key string) (cb EventCallback, yes bool) {
 
 	// Make the callback even if not used
 	cb = func(_ string, _ []rune, _ int) *EventReturn {
+		// Reset any incremental search parameters
+		// if we were currently editing its buffer.
+		rl.resetIsearch()
+		rl.resetHintText()
+
 		// Most of the time this will be caught as if this
 		// callback/widget was found on the local keymap,
 		// thus avoiding the update of the completion system:
 		// do it here instead.
 		rl.updateCompletionState()
-
-		// Reset any incremental search parameters
-		// if we were currently editing its buffer.
-		rl.resetIsearch()
 
 		event := &EventReturn{
 			Widget:  "vi-cmd-mode",

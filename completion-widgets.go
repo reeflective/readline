@@ -186,13 +186,15 @@ func (rl *Instance) historyComplete() {
 	rl.skipUndoAppend()
 
 	switch rl.local {
-	case isearch:
-	case menuselect:
+	// case isearch:
+	case menuselect, isearch:
 		// If we are currently completing the last history
 		// source, cancel history completion.
 		if rl.historySourcePos == len(rl.histories)-1 {
 			rl.histHint = []rune{}
 			rl.resetTabCompletion()
+			rl.local = ""
+			rl.resetHintText()
 			rl.completer = nil
 			return
 		}
@@ -205,7 +207,7 @@ func (rl *Instance) historyComplete() {
 		// Indicate to the user if we don't have history sources at all.
 		if rl.currentHistory() == nil {
 			rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
-				"No command history source, or empty (Ctrl-G/Esc to cancel)", RESET))
+				"No command history source", RESET))
 		}
 
 		// Else, generate the completions.

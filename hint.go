@@ -26,7 +26,7 @@ func (rl *Instance) getHintText() {
 
 	// When completing history, we have a special hint
 	if len(rl.histHint) > 0 {
-		rl.hintText = rl.histHint
+		rl.hintText = append([]rune{}, rl.histHint...)
 	}
 
 	// But the local keymap, especially completions,

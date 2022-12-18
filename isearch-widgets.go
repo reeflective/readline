@@ -192,15 +192,3 @@ func hasUpper(line []rune) bool {
 
 	return false
 }
-
-// isearchHighlight applies highlighting to all isearch matches in a completion.
-func (rl *Instance) isearchHighlight(item, resetStyle string) string {
-	if rl.local != isearch || rl.regexSearch == nil || len(rl.tfLine) == 0 {
-		return item
-	}
-
-	match := rl.regexSearch.FindString(item)
-	match = seqBgBlackBright + match + seqReset + resetStyle
-
-	return rl.regexSearch.ReplaceAllLiteralString(item, match)
-}
