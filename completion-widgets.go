@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-func (rl *Instance) completionWidgets() baseWidgets {
-	return map[string]func(){
+func (rl *Instance) completionWidgets() lineWidgets {
+	return map[string]widget{
 		"expand-or-complete":         rl.expandOrComplete,
 		"expand-or-complete-prefix":  rl.expandOrCompletePrefix,
 		"menu-complete":              rl.menuComplete,

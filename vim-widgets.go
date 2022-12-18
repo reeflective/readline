@@ -5,12 +5,12 @@ import (
 	"unicode"
 )
 
-// baseWidgets maps widget names to their implementation.
-type baseWidgets map[string]func()
+// lineWidgets maps widget names to their implementation.
+type lineWidgets map[string]widget
 
 // standardViWidgets don't need access to the input key.
-func (rl *Instance) viWidgets() baseWidgets {
-	return map[string]func(){
+func (rl *Instance) viWidgets() lineWidgets {
+	return map[string]widget{
 		"vi-insert-mode":                rl.viInsertMode,
 		"vi-cmd-mode":                   rl.viCommandMode,
 		"visual-mode":                   rl.viVisualMode,
@@ -974,7 +974,7 @@ func (rl *Instance) viChange() {
 	rl.markSelection(rl.pos)
 
 	// Run the widget. We don't care about return values
-	widget([]rune(key))
+	widget()
 
 	rl.deleteSelection()
 

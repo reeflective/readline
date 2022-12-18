@@ -12,13 +12,7 @@ import (
 // and are thus the first dispatcher used when receiving a key sequence.
 // Thus, they are the only handlers that can tell the shell either to keep
 // reading input, or to return the entire line to the readline caller.
-//
-// These handlers return the following values:
-// @read =>     read the next character at the input line
-// @return =>   Return the line read before starting a new readline loop
-// @val    =>   The string returned to the readline caller, generally the line input, or nothing.
-// @error =>    Any error caught, generally those returned on signals like CtrlC
-type lineWidget func(r []rune) (bool, bool, string, error)
+type widget func()
 
 // widgets maps keys (either in caret or hex notation) to an EventCallback,
 // which wraps the corresponding widget for this key.
@@ -73,15 +67,14 @@ func (rl *Instance) bindWidgets() {
 
 // run is in charge of executing the matched EventCallback, unwrapping its values and return behavior
 // parameters (errors/lines/read), and optionally to execute pending widgets (vi operator pending mode),
-func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val string, err error) {
+func (rl *Instance) run(cb EventCallback, keys string) {
 	if cb == nil {
-		read = true
 		return
 	}
 
 	// Run the callback, and by default, use its behavior for return values
 	event := cb(keys, rl.line, rl.pos)
-	ret = event.CloseReadline
+	rl.accepted = event.CloseReadline
 	rl.line = append(event.NewLine, []rune{}...)
 	rl.pos = event.NewPos
 
@@ -101,8 +94,8 @@ func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val stri
 	// If the callback has a widget, run it. Any instruction to return, or an error
 	// being raised has precedence over other callback read/return settings.
 	if event.Widget != "" {
-		ret, val, err = rl.runWidget(event.Widget, []rune(keys))
-		if ret || err != nil {
+		rl.runWidget(event.Widget, []rune(keys))
+		if rl.accepted || rl.err != nil {
 			return
 		}
 	}
@@ -110,8 +103,7 @@ func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val stri
 	// If we are asked to close the readline, we don't care about pending operations.
 	if event.CloseReadline {
 		rl.clearHelpers()
-		ret = true
-		val = string(rl.line)
+		rl.accepted = true
 
 		return
 	}
@@ -119,16 +111,14 @@ func (rl *Instance) run(cb EventCallback, keys string) (read, ret bool, val stri
 	// If we don't have to dispatch the key to next keymaps
 	// (in the same loop), we are done with this callback.
 	// This is the default for all builtin widgets.
+	// TODO: What to do here
 	if !event.ForwardKey {
-		read = true
 	}
 
 	// Finally, we might have any pending widget to run.
 	if rl.isViopp {
-		rl.runPendingWidget(keys)
+		rl.runPendingWidget()
 	}
-
-	return
 }
 
 // bindWidget wraps a widget into an EventCallback and binds it to the corresponding keymap.
@@ -170,32 +160,23 @@ func (rl *Instance) bindWidget(key, widget string, km *widgets, decoder caret.De
 // getWidget looks in the various widget lists for a target widget,
 // and if it finds it, sometimes will wrap it into a function so that
 // all widgets look the same to the shell instance.
-func (rl *Instance) getWidget(name string) lineWidget {
+func (rl *Instance) getWidget(name string) widget {
 	// Standard widgets (all editing modes/styles)
-	if widget, found := rl.commonWidgets()[name]; found && widget != nil {
-		return func(_ []rune) (bool, bool, string, error) {
-			widget()
-			return false, false, "", nil
-		}
+	if widget, found := rl.standardWidgets()[name]; found && widget != nil {
+		return widget
 	}
 
 	// Vim standard widgets don't return anything, wrap them in a simple call.
 	if widget, found := rl.viWidgets()[name]; found && widget != nil {
-		return func(_ []rune) (bool, bool, string, error) {
-			widget()
-			return false, false, "", nil
-		}
+		return widget
 	}
-
-	// Incremental search
 
 	// Completion
 	if widget, found := rl.completionWidgets()[name]; found && widget != nil {
-		return func(_ []rune) (bool, bool, string, error) {
-			widget()
-			return false, false, "", nil
-		}
+		return widget
 	}
+
+	// Incremental search
 
 	return nil
 }
@@ -250,7 +231,7 @@ func (rl *Instance) matchWidgets(key string, wids widgets) (cb EventCallback, al
 
 // runWidget wraps a few calls for finding a widget and executing it, returning some basic
 // instructions pertaining to what to do next: either keep reading input, or return the line.
-func (rl *Instance) runWidget(name string, keys []rune) (ret bool, val string, err error) {
+func (rl *Instance) runWidget(name string, keys []rune) {
 	widget := rl.getWidget(name)
 	if widget == nil {
 		return
@@ -264,8 +245,8 @@ func (rl *Instance) runWidget(name string, keys []rune) (ret bool, val string, e
 	}()
 
 	// Execute the widget
-	read, ret, val, err := widget(keys)
-	if read || ret {
+	widget()
+	if rl.accepted {
 		return
 	}
 
@@ -273,13 +254,11 @@ func (rl *Instance) runWidget(name string, keys []rune) (ret bool, val string, e
 	// not to push "its effect" onto our undo stack. Thus if we're
 	// here, we store the key in our Undo history (Vim mode).
 	rl.undoHistoryAppend()
-
-	return
 }
 
 // runPendingWidget finds the last widget pushed onto the
 // pending stack and runs it against the provided input key.
-func (rl *Instance) runPendingWidget(key string) {
+func (rl *Instance) runPendingWidget() {
 	defer rl.donePending()
 
 	pending := rl.getPendingWidget()
@@ -293,13 +272,15 @@ func (rl *Instance) runPendingWidget(key string) {
 		return
 	}
 
-	// Any remaining pending widget
-	// will wait for the following key.
-	rl.keys = ""
-
 	for i := 0; i < pending.iterations; i++ {
-		widget([]rune(key))
+		widget()
+		if rl.accepted {
+			return
+		}
 	}
+
+	// Any remaining pending widget will wait for the following key.
+	rl.keys = ""
 
 	// The pending widget might have its own effect on the line.
 	rl.undoHistoryAppend()

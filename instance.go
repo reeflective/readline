@@ -33,7 +33,7 @@ type Instance struct {
 	// interruptHandlers are all special handlers being called when the shell receives an interrupt
 	// signal key, like CtrlC/CtrlD. These are not directly assigned in the various keymaps, and are
 	// matched against input keys before any other keymap.
-	interruptHandlers map[string]lineWidget
+	interruptHandlers map[string]func() error
 
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
@@ -64,15 +64,15 @@ type Instance struct {
 	PasswordMask rune
 
 	// readline operating parameters
-	keys          string // Contains all keys (input by user) not yet consumed by the shell widgets.
-	line          []rune // This is the input line, with entered text: full line = mlnPrompt + line
-	histSuggested []rune // The last matching history line matching the current input.
-	accepted      bool   // Set by 'accept-line' widget, to notify return the line to the caller
-	pos           int    // Cursor position in the entire line.
-	posX          int    // Cursor position X
-	posY          int    // Cursor position Y (if multiple lines span)
-	fullX         int    // X coordinate of the full input line, including the prompt if needed.
-	fullY         int    // Y offset to the end of input line.
+	keys     string // Contains all keys (input by user) not yet consumed by the shell widgets.
+	line     []rune // This is the input line, with entered text: full line = mlnPrompt + line
+	accepted bool   // Set by 'accept-line' widget, to notify return the line to the caller
+	err      error  // Errors returned by interrupt signal handlers
+	pos      int    // Cursor position in the entire line.
+	posX     int    // Cursor position X
+	posY     int    // Cursor position Y (if multiple lines span)
+	fullX    int    // X coordinate of the full input line, including the prompt if needed.
+	fullY    int    // Y offset to the end of input line.
 
 	// Buffer received from host programms
 	multilineBuffer []byte
@@ -138,6 +138,7 @@ type Instance struct {
 	lineBuf          string             // The current line saved when we are on another history line
 	histPos          int                // Index used for navigating the history lines with arrows/j/k
 	histHint         []rune             // We store a hist hint, for dual history sources
+	histSuggested    []rune             // The last matching history line matching the current input.
 
 	//
 	// Hints -------------------------------------------------------------------------------------

@@ -30,7 +30,7 @@ func (rl *Instance) getIterations() int {
 	i, err := strconv.Atoi(rl.iterations)
 
 	// Emacs accepts negative args
-	if rl.main != emacs && i < 0 ||
+	if rl.main != emacs && i <= 0 ||
 		rl.main == emacs && err != nil {
 		i = 1
 	}

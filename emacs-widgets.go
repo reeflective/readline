@@ -6,8 +6,8 @@ import (
 )
 
 // standardWidgets don't need access to the input key.
-func (rl *Instance) commonWidgets() baseWidgets {
-	widgets := map[string]func(){
+func (rl *Instance) standardWidgets() lineWidgets {
+	widgets := map[string]widget{
 		"clear-screen":                   rl.clearScreen,
 		"self-insert":                    rl.selfInsert,
 		"accept-line":                    rl.acceptLine,
@@ -175,8 +175,6 @@ func (rl *Instance) acceptLine() {
 
 	rl.carriageReturn()
 	rl.accepted = true
-
-	return
 }
 
 func (rl *Instance) clearScreen() {

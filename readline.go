@@ -93,11 +93,9 @@ func (rl *Instance) Readline() (string, error) {
 		// These handlers adapt their behavior on their own, depending on
 		// the current state of the shell, keymap, etc.
 		if handler, yes := rl.isInterrupt(keys); yes && handler != nil {
-			done, ret, val, err := handler(r)
-			if ret {
-				return val, err
-			} else if done {
-				continue
+			err := handler()
+			if err != nil {
+				return string(rl.line), err
 			}
 		}
 
@@ -113,11 +111,9 @@ func (rl *Instance) Readline() (string, error) {
 		// - When completing/searching, can be 'menuselect' or 'isearch'
 		widget, prefix := rl.matchKeymap(keys, rl.local)
 		if widget != nil {
-			_, ret, val, err := rl.run(widget, keys)
-			if ret || err != nil {
-				return val, err
-				// } else if read {
-				// 	continue
+			rl.run(widget, keys)
+			if rl.accepted || rl.err != nil {
+				return string(rl.line), rl.err
 			}
 			continue
 		} else if prefix {
@@ -135,11 +131,9 @@ func (rl *Instance) Readline() (string, error) {
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
 		widget, prefix = rl.matchKeymap(keys, rl.main)
 		if widget != nil {
-			_, ret, val, err := rl.run(widget, keys)
-			if ret || err != nil {
-				return val, err
-				// } else if read {
-				// 	continue
+			rl.run(widget, keys)
+			if rl.accepted || rl.err != nil {
+				return string(rl.line), rl.err
 			}
 			continue
 		} else if prefix {
