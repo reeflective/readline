@@ -272,7 +272,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	maxDescWidth := termWidth - maxLength - 4
 
 	// Generate the aggregated completions block as a string.
-	comps, usedY := g.buildList(maxLength, maxDescWidth)
+	comps, usedY := g.buildList(rl, maxLength, maxDescWidth)
 	comp += comps
 	rl.tcUsedY += usedY
 
@@ -289,7 +289,7 @@ func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 }
 
 // buildList generates the string for the entire group of completions, excluding its title.
-func (g *CompletionGroup) buildList(maxLength, maxDescWidth int) (comp string, y int) {
+func (g *CompletionGroup) buildList(rl *Instance, maxLen, maxDescLen int) (comp string, y int) {
 	for i := g.tcOffset; i < len(g.grouped); i++ {
 		y++ // Consider next item
 		if y > g.tcMaxY {
@@ -313,12 +313,13 @@ func (g *CompletionGroup) buildList(maxLength, maxDescWidth int) (comp string, y
 			}
 
 			item := val.Value
-			if len(item) > maxLength {
-				item = item[:maxLength-3] + "..."
+			if len(item) > maxLen {
+				item = item[:maxLen-3] + "..."
 			}
 
 			pad := g.columnsWidth[column] - len(item)
 			styling := g.highlight(val.Style, y, column)
+			item = rl.isearchHighlight(item, styling)
 
 			item = fmt.Sprintf("%s%s%s", styling, item+seqReset, strings.Repeat(" ", pad)+" ")
 			comp += item
@@ -336,12 +337,15 @@ func (g *CompletionGroup) buildList(maxLength, maxDescWidth int) (comp string, y
 		// And add the description
 		desc := g.grouped[i][0].Description
 		if desc != "" {
-			if len(desc) > maxDescWidth {
-				desc = g.ListSeparator + " " + desc[:maxDescWidth-3] + "..." + seqReset
+			if len(desc) > maxDescLen {
+				desc = DIM + g.ListSeparator + " " + desc[:maxDescLen-3] + "..." + seqReset
 			} else {
-				desc = g.ListSeparator + " " + desc + RESET
+				desc = DIM + g.ListSeparator + " " + desc + RESET
 			}
 		}
+
+		desc = rl.isearchHighlight(desc, DIM)
+
 		comp += desc + "\n"
 	}
 

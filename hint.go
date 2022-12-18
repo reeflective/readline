@@ -71,9 +71,13 @@ func (rl *Instance) hintNoMatches() {
 func (rl *Instance) isearchHint() {
 	rl.hintText = append([]rune(BOLD+seqFgCyanBright+"isearch: "), rl.tfLine...)
 
-	if rl.noCompletions() {
-		rl.hintText = append(rl.hintText, []rune(DIM+RED+" ! no matches (Ctrl-G/Esc to cancel)"+RESET)...)
+	if rl.regexSearch == nil && len(rl.tfLine) > 0 {
+		rl.hintText = append(rl.hintText, []rune(Red(" ! failed to compile search regexp"))...)
+	} else if rl.noCompletions() {
+		rl.hintText = append(rl.hintText, []rune(RED+" ! no matches")...)
 	}
+
+	rl.hintText = append(rl.hintText, []rune(RESET)...)
 }
 
 // writeHintText - only writes the hint text and computes its offsets.

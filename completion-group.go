@@ -63,6 +63,10 @@ func (g *CompletionGroup) init(rl *Instance) {
 // we ask each of them to filter its own items and return the results to the shell for aggregating them.
 // The rx parameter is passed, as the shell already checked that the search pattern is valid.
 func (g *CompletionGroup) updateTabFind(rl *Instance) {
+	if rl.regexSearch == nil {
+		return
+	}
+
 	var suggs []CompletionValue
 
 	// We perform filter right here, so we create a new
@@ -342,7 +346,6 @@ func (g *CompletionGroup) highlight(style string, y int, x int) string {
 	}
 
 	return sgrStart + fgColorStart + style + sgrEnd
-	// return style
 }
 
 const (

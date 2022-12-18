@@ -89,7 +89,7 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	maxDescWidth := termWidth - maxLength - 4
 
 	// Generate the aggregated completions block as a string.
-	comps, usedY := g.buildMap(maxLength, maxDescWidth)
+	comps, usedY := g.buildMap(rl, maxLength, maxDescWidth)
 	comp += comps
 	rl.tcUsedY += usedY
 
@@ -101,9 +101,9 @@ func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	return
 }
 
-func (g *CompletionGroup) buildMap(maxLength, maxDescWidth int) (comp string, y int) {
-	cellWidth := strconv.Itoa(maxLength)
-	itemWidth := strconv.Itoa(maxDescWidth)
+func (g *CompletionGroup) buildMap(rl *Instance, maxLen, maxDescLen int) (comp string, y int) {
+	cellWidth := strconv.Itoa(maxLen)
+	itemWidth := strconv.Itoa(maxDescLen)
 
 	for i := g.tcOffset; i < len(g.Values); i++ {
 		y++ // Consider new item
@@ -114,16 +114,17 @@ func (g *CompletionGroup) buildMap(maxLength, maxDescWidth int) (comp string, y 
 		val := g.Values[i]
 		item := val.Display
 
-		if len(item) > maxDescWidth {
-			item = item[:maxDescWidth-3] + "..."
-		}
-
-		description := val.Description
-		if len(description) > maxLength {
-			description = description[:maxLength-3] + "..."
+		if len(item) > maxDescLen {
+			item = item[:maxDescLen-3] + "..."
 		}
 
 		styling := g.highlight(val.Style, y, g.tcPosX)
+		item = rl.isearchHighlight(item, styling)
+
+		description := val.Description
+		if len(description) > maxLen {
+			description = description[:maxLen-3] + "..."
+		}
 
 		comp += fmt.Sprintf("\r%-"+cellWidth+"s %s %-"+itemWidth+"s %s\n",
 			description, styling, item, seqReset)

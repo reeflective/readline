@@ -2,6 +2,8 @@ package readline
 
 import (
 	"bytes"
+	"regexp"
+	"unicode"
 
 	"github.com/reiver/go-caret"
 )
@@ -149,4 +151,52 @@ func (rl *Instance) resetIsearch() {
 
 	rl.tfLine = []rune{}
 	rl.tfPos = 0
+	rl.regexSearch = nil
+}
+
+// updateIsearch recompiles the isearch as a regex and
+// filters matching candidates in the available completions.
+func (rl *Instance) updateIsearch() {
+	// First compile the search as regular expression
+	var regexStr string
+	if hasUpper(rl.tfLine) {
+		regexStr = string(rl.tfLine)
+	} else {
+		regexStr = "(?i)" + string(rl.tfLine)
+	}
+
+	var err error
+	rl.regexSearch, err = regexp.Compile(regexStr)
+	if err != nil {
+		rl.hintText = append(rl.hintText, []rune(Red("Failed to compile search regexp"))...)
+	}
+
+	rl.completer()
+
+	// And filter out the completions.
+	for _, g := range rl.tcGroups {
+		g.updateTabFind(rl)
+	}
+}
+
+func hasUpper(line []rune) bool {
+	for _, r := range line {
+		if unicode.IsUpper(r) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isearchHighlight applies highlighting to all isearch matches in a completion.
+func (rl *Instance) isearchHighlight(item, resetStyle string) string {
+	if rl.local != isearch || rl.regexSearch == nil || len(rl.tfLine) == 0 {
+		return item
+	}
+
+	match := rl.regexSearch.FindString(item)
+	match = seqBgBlackBright + match + seqReset + resetStyle
+
+	return rl.regexSearch.ReplaceAllLiteralString(item, match)
 }

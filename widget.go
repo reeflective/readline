@@ -75,6 +75,7 @@ func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) {
 	// Use the minibuffer if currently working in isearch mode.
 	if rl.isIsearchMode(mode) {
 		rl.useIsearchLine()
+		defer rl.updateIsearch() // Order matters: defer is executed in inverse order.
 		defer rl.exitIsearchLine()
 	}
 

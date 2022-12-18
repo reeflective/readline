@@ -124,14 +124,10 @@ func (g *CompletionGroup) writeGrid(rl *Instance) (comp string) {
 
 		val := g.Values[i]
 
-		// Set coloring for active candidate, or with display color
-		if (x == g.tcPosX && y == g.tcPosY) && (g.isCurrent) {
-			comp += seqCtermFg255 + seqFgBlackBright
-		} else {
-			comp += val.Style
-		}
+		styling := g.highlight(val.Style, y, x)
+		value := rl.isearchHighlight(val.Value, styling)
 
-		comp += fmt.Sprintf("%-"+cellWidth+"s %s", val.Value, seqReset)
+		comp += fmt.Sprintf("%s%-"+cellWidth+"s %s", styling, value, seqReset)
 	}
 
 	// Always add a newline to the group if the end if not punctuated with one
