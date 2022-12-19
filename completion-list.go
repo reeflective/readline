@@ -251,7 +251,7 @@ func (g *CompletionGroup) goNextLineColumn() (done bool, next bool) {
 // and reports on the space this group uses on the terminal.
 func (g *CompletionGroup) writeList(rl *Instance) (comp string) {
 	if g.Name != "" {
-		comp += fmt.Sprintf("%s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
+		comp += fmt.Sprintf("%s%s%s %s\n", seqBold, seqFgYellow, g.Name, seqReset)
 		rl.tcUsedY++
 	}
 
@@ -338,13 +338,13 @@ func (g *CompletionGroup) buildList(rl *Instance, maxLen, maxDescLen int) (comp 
 		desc := g.grouped[i][0].Description
 		if desc != "" {
 			if len(desc) > maxDescLen {
-				desc = DIM + g.ListSeparator + " " + desc[:maxDescLen-3] + "..." + seqReset
+				desc = seqDim + g.ListSeparator + " " + desc[:maxDescLen-3] + "..." + seqReset
 			} else {
-				desc = DIM + g.ListSeparator + " " + desc + RESET
+				desc = seqDim + g.ListSeparator + " " + desc + seqReset
 			}
 		}
 
-		desc = g.isearchHighlight(rl, desc, DIM, -1, -1)
+		desc = g.isearchHighlight(rl, desc, seqDim, -1, -1)
 
 		comp += desc + "\n"
 	}

@@ -263,7 +263,7 @@ func (r *registers) resetRegister() {
 // The user can show registers completions and insert, no matter the cursor position.
 func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
 	// We set the hint exceptionally
-	hint := BLUE + "-- registers --" + RESET
+	hint := seqFgBlue + "-- registers --" + seqReset
 	rl.hintText = []rune(hint)
 
 	// Make the groups
@@ -277,7 +277,7 @@ func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
 	unnamed := CompletionValue{
 		Value:       string(rl.registers.unnamed),
 		Display:     string(rl.registers.unnamed),
-		Description: DIM + "\"\"" + seqReset,
+		Description: seqDim + "\"\"" + seqReset,
 	}
 	anonRegs.Values = append(anonRegs.Values, unnamed)
 	groups = append(groups, anonRegs)
@@ -302,7 +302,7 @@ func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
 func (rl *Instance) completeNumRegisters() *CompletionGroup {
 	// Numbered registers
 	numRegs := &CompletionGroup{
-		Name:        DIM + "num ([0-9])" + RESET,
+		Name:        seqDim + "num ([0-9])" + seqReset,
 		DisplayType: TabDisplayMap,
 		MaxLength:   20,
 	}
@@ -318,7 +318,7 @@ func (rl *Instance) completeNumRegisters() *CompletionGroup {
 		value := CompletionValue{
 			Value:       string(buf),
 			Display:     string(buf),
-			Description: fmt.Sprintf("%s\"%d%s", DIM, val, seqReset),
+			Description: fmt.Sprintf("%s\"%d%s", seqDim, val, seqReset),
 		}
 		numRegs.Values = append(numRegs.Values, value)
 	}
@@ -328,7 +328,7 @@ func (rl *Instance) completeNumRegisters() *CompletionGroup {
 
 func (rl *Instance) completeAlphaRegisters() *CompletionGroup {
 	alphaRegs := &CompletionGroup{
-		Name:        DIM + "alpha ([a-z], [A-Z])" + RESET,
+		Name:        seqDim + "alpha ([a-z], [A-Z])" + seqReset,
 		DisplayType: TabDisplayMap,
 		MaxLength:   20,
 	}
@@ -342,7 +342,7 @@ func (rl *Instance) completeAlphaRegisters() *CompletionGroup {
 		value := CompletionValue{
 			Value:       string(buf),
 			Display:     string(buf),
-			Description: fmt.Sprintf("%s\"%s%s", DIM, reg, seqReset),
+			Description: fmt.Sprintf("%s\"%s%s", seqDim, reg, seqReset),
 		}
 		alphaRegs.Values = append(alphaRegs.Values, value)
 	}

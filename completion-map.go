@@ -70,7 +70,7 @@ func (g *CompletionGroup) moveTabMapHighlight(rl *Instance, x, y int) (done bool
 func (g *CompletionGroup) writeMap(rl *Instance) (comp string) {
 	if g.Name != "" {
 		// Print group title (changes with line returns depending on type)
-		comp += fmt.Sprintf("%s%s%s %s\n", BOLD, YELLOW, g.Name, RESET)
+		comp += fmt.Sprintf("%s%s%s %s\n", seqBold, seqFgYellow, g.Name, seqReset)
 		rl.tcUsedY++
 	}
 

@@ -141,7 +141,7 @@ func (rl *Instance) printLine() {
 			rl.autosuggestHistory(line)
 			if len(rl.histSuggested) > 0 {
 				moveCursorBackwards(1)
-				print(Dim(string(rl.histSuggested)))
+				print(seqDim + string(rl.histSuggested))
 			}
 		}
 	}

@@ -68,7 +68,7 @@ func (rl *Instance) getHighlights(line []rune) map[int][]rune {
 			if reg.epos == lineIndex {
 				pending = append(pending[:i], pending[i+1:]...)
 				if !doneReset {
-					posHl = append(posHl, []rune(RESET)...)
+					posHl = append(posHl, []rune(seqReset)...)
 				}
 			}
 		}
@@ -115,7 +115,7 @@ func (rl *Instance) highlightLine(line []rune) string {
 		highlighted += string(r)
 	}
 
-	highlighted += RESET
+	highlighted += seqReset
 
 	return highlighted
 }

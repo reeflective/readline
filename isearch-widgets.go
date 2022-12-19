@@ -121,7 +121,7 @@ func isValidIsearchWidget(widget string) bool {
 
 func (rl *Instance) enterIsearchMode() {
 	rl.local = isearch
-	rl.hintText = []rune(BOLD + seqFgCyan + "isearch: " + seqReset)
+	rl.hintText = []rune(seqBold + seqFgCyan + "isearch: " + seqReset)
 	rl.hintText = append(rl.hintText, rl.tfLine...)
 }
 
@@ -172,7 +172,7 @@ func (rl *Instance) updateIsearch() {
 	var err error
 	rl.regexSearch, err = regexp.Compile(regexStr)
 	if err != nil {
-		rl.hintText = append(rl.hintText, []rune(Red("Failed to compile search regexp"))...)
+		rl.hintText = append(rl.hintText, []rune(seqFgRed+"Failed to compile search regexp")...)
 	}
 
 	rl.completer()

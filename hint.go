@@ -45,7 +45,7 @@ func (rl *Instance) getHintText() {
 
 // generate a hint when no completion matches the prefix.
 func (rl *Instance) hintNoMatches() {
-	noMatches := DIM + RED + "no matching "
+	noMatches := seqDim + seqFgRed + "no matching "
 
 	var groups []string
 	for _, group := range rl.tcGroups {
@@ -69,16 +69,16 @@ func (rl *Instance) hintNoMatches() {
 }
 
 func (rl *Instance) isearchHint() {
-	rl.hintText = []rune(BOLD + seqFgCyan + "isearch: " + seqReset)
+	rl.hintText = []rune(seqBold + seqFgCyan + "isearch: " + seqReset)
 	rl.hintText = append(rl.hintText, rl.tfLine...)
 
 	if rl.regexSearch == nil && len(rl.tfLine) > 0 {
-		rl.hintText = append(rl.hintText, []rune(Red(" ! failed to compile search regexp"))...)
+		rl.hintText = append(rl.hintText, []rune(seqFgRed+" ! failed to compile search regexp")...)
 	} else if rl.noCompletions() {
-		rl.hintText = append(rl.hintText, []rune(RED+" ! no matches")...)
+		rl.hintText = append(rl.hintText, []rune(seqFgRed+" ! no matches")...)
 	}
 
-	rl.hintText = append(rl.hintText, []rune(RESET)...)
+	rl.hintText = append(rl.hintText, []rune(seqReset)...)
 }
 
 // writeHintText - only writes the hint text and computes its offsets.
@@ -90,8 +90,8 @@ func (rl *Instance) writeHintText() {
 
 	width := GetTermWidth()
 
-	// Wraps the line, and counts the number of newlines in the string,
-	// adjusting the offset as well.
+	// Wraps the line, and counts the number of newlines
+	// in the string, adjusting the offset as well.
 	re := regexp.MustCompile(`\r?\n`)
 	newlines := re.Split(string(rl.hintText), -1)
 	offset := len(newlines)

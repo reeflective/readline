@@ -197,8 +197,8 @@ func (rl *Instance) completeHistory() {
 	rl.histHint = []rune(rl.historyNames[rl.historySourcePos])
 
 	// Set the hint line with everything
-	rl.histHint = append([]rune(BOLD+seqFgCyanBright+string(rl.histHint)+RESET), rl.tfLine...)
-	rl.histHint = append(rl.histHint, []rune(RESET)...)
+	rl.histHint = append([]rune(seqBold+seqFgCyanBright+string(rl.histHint)+seqReset), rl.tfLine...)
+	rl.histHint = append(rl.histHint, []rune(seqReset)...)
 
 	hist := &CompletionGroup{
 		DisplayType: TabDisplayMap,
@@ -234,7 +234,7 @@ NEXT_LINE:
 		value := CompletionValue{
 			Display:     line,
 			Value:       line,
-			Description: DIM + strconv.Itoa(i) + seqReset,
+			Description: seqDim + strconv.Itoa(i) + seqReset,
 		}
 		hist.Values = append(hist.Values, value)
 	}

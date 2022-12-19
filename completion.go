@@ -183,7 +183,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 		if remain == 0 {
 			return cropped, true
 		}
-		hint := fmt.Sprintf(DIM+YELLOW+" %d more completions... (scroll down to show)"+RESET+"\n", remain)
+		hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completions... (scroll down to show)"+seqReset+"\n", remain)
 		hinted = cropped + hint
 		return hinted, false
 	}

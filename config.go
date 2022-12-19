@@ -267,7 +267,7 @@ func (rl *Instance) loadDefaultConfig() {
 		AutoComplete:        true,
 
 		// Other helpers
-		HintFormatting: DIM,
+		HintFormatting: seqDim,
 	}
 
 	// Load keymaps, which are defaults themselves:

@@ -206,8 +206,8 @@ func (rl *Instance) historyComplete() {
 	default:
 		// Indicate to the user if we don't have history sources at all.
 		if rl.currentHistory() == nil {
-			rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", DIM, RED,
-				"No command history source", RESET))
+			rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", seqDim, seqFgRed,
+				"No command history source", seqReset))
 		}
 
 		// Else, generate the completions.

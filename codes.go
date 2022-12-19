@@ -1,5 +1,9 @@
 package readline
 
+import (
+	"os"
+)
+
 // Character codes
 const (
 	charCtrlA           = iota + 1 // "^A"
@@ -39,6 +43,8 @@ const (
 // This block maps all nil-character special keys, including
 // their combinations with key modifiers.
 var (
+	seqCtrl = []string{"\x033", "\\e", "\x1b"}
+
 	// Sequences with modifiers
 	seqInsert     = string([]byte{27, 91, 50, 126}) // ^[[2~
 	seqDelete     = string([]byte{27, 91, 51, 126}) // ^[[3~
@@ -97,21 +103,19 @@ const (
 	seqCursorTopLeft    = "\x1b[H"  // Clears screen and places cursor on top-left
 
 	seqGetCursorPos = "\x1b6n" // response: "\x1b{Line};{Column}R"
-
-	seqCtrlLeftArrow  = "\x1b[1;5D"
-	seqCtrlRightArrow = "\x1b[1;5C"
 )
 
 // Text effects
-const (
+var (
 	seqReset      = "\x1b[0m"
 	seqBold       = "\x1b[1m"
+	seqDim        = "\x1b[2m"
 	seqUnderscore = "\x1b[4m"
 	seqBlink      = "\x1b[5m"
 )
 
 // Text colours
-const (
+var (
 	seqFgBlack   = "\x1b[30m"
 	seqFgRed     = "\x1b[31m"
 	seqFgGreen   = "\x1b[32m"
@@ -136,7 +140,7 @@ const (
 )
 
 // Background colours
-const (
+var (
 	seqBgBlack   = "\x1b[40m"
 	seqBgRed     = "\x1b[41m"
 	seqBgGreen   = "\x1b[42m"
@@ -156,9 +160,77 @@ const (
 	seqBgMagentaBright = "\x1b[1;45m"
 	seqBgCyanBright    = "\x1b[1;46m"
 	seqBgWhiteBright   = "\x1b[1;47m"
+	seqBgDarkGray      = "\x1b[100m"
+	seqBgBlueLight     = "\x1b[104m"
 )
 
 // Xterm 256 colors
 const (
 	seqCtermFg255 = "\033[48;5;255m"
 )
+
+// Effects returns true if colors and effects are supported
+// on the current terminal.
+func hasEffects() bool {
+	if term := os.Getenv("TERM"); term == "" {
+		return false
+	} else if term == "dumb" {
+		return false
+	}
+	return true
+}
+
+// Disable will disable all colors and effects.
+func DisableEffects() {
+	// Effects
+	seqReset = ""
+	seqBold = ""
+	seqDim = ""
+	seqUnderscore = ""
+	seqBlink = ""
+
+	// Foreground colors
+	seqFgBlack = ""
+	seqFgRed = ""
+	seqFgGreen = ""
+	seqFgYellow = ""
+	seqFgBlue = ""
+	seqFgMagenta = ""
+	seqFgCyan = ""
+	seqFgWhite = ""
+
+	seqFgBlueDark = ""
+
+	seqFgBlackBright = ""
+	seqFgRedBright = ""
+	seqFgGreenBright = ""
+	seqFgYellowBright = ""
+	seqFgBlueBright = ""
+	seqFgMagentaBright = ""
+	seqFgCyanBright = ""
+	seqFgWhiteBright = ""
+	seqFgBlueDarkBright = ""
+
+	// Background colours
+	seqBgBlack = ""
+	seqBgRed = ""
+	seqBgGreen = ""
+	seqBgYellow = ""
+	seqBgBlue = ""
+	seqBgMagenta = ""
+	seqBgCyan = ""
+	seqBgWhite = ""
+
+	seqBgBlueDark = ""
+
+	seqBgBlackBright = ""
+	seqBgRedBright = ""
+	seqBgGreenBright = ""
+	seqBgYellowBright = ""
+	seqBgBlueBright = ""
+	seqBgMagentaBright = ""
+	seqBgCyanBright = ""
+	seqBgWhiteBright = ""
+	seqBgDarkGray = ""
+	seqBgBlueLight = ""
+}
