@@ -88,22 +88,20 @@ func (rl *Instance) writeHintText() {
 		return
 	}
 
-	width := GetTermWidth()
-
 	// Wraps the line, and counts the number of newlines
 	// in the string, adjusting the offset as well.
 	re := regexp.MustCompile(`\r?\n`)
 	newlines := re.Split(string(rl.hintText), -1)
 	offset := len(newlines)
 
-	wrapped, hintLen := WrapText(string(rl.hintText), width)
+	wrapped, hintLen := wrapText(string(rl.hintText), GetTermWidth())
 	offset += hintLen
 	rl.hintY = offset
 
 	hintText := string(wrapped)
 
 	if len(hintText) > 0 {
-		print("\r" + rl.config.HintFormatting + string(hintText) + seqReset)
+		print("\r" + string(hintText) + seqReset)
 	}
 }
 

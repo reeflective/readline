@@ -268,7 +268,5 @@ historyAutoWrite: true
 
 # The maximum number of completion rows to print at any time.
 maxTabCompleterRows: 50
-
-# The color formatting (or any other string sequence) to use 
-# when printing shell hint messages (command/flag/arg usages, etc).
-hintFormatting: "\e[2m"
+# Autocomplete asynchrously generates completions as text is typed in the line.
+autoComplete: true

@@ -44,29 +44,29 @@ func (rl *Instance) AddHistorySource(name string, history History) {
 	rl.histories[name] = history
 }
 
-// ExampleHistory is an example of a LineHistory interface:
-type ExampleHistory struct {
+// defaultHistory is an example of a LineHistory interface:
+type defaultHistory struct {
 	items []string
 }
 
 // Write to history
-func (h *ExampleHistory) Write(s string) (int, error) {
+func (h *defaultHistory) Write(s string) (int, error) {
 	h.items = append(h.items, s)
 	return len(h.items), nil
 }
 
 // GetLine returns a line from history
-func (h *ExampleHistory) GetLine(i int) (string, error) {
+func (h *defaultHistory) GetLine(i int) (string, error) {
 	return h.items[i], nil
 }
 
 // Len returns the number of lines in history
-func (h *ExampleHistory) Len() int {
+func (h *defaultHistory) Len() int {
 	return len(h.items)
 }
 
 // Dump returns the entire history
-func (h *ExampleHistory) Dump() interface{} {
+func (h *defaultHistory) Dump() interface{} {
 	return h.items
 }
 

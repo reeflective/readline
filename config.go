@@ -67,15 +67,10 @@ type config struct {
 	// Completion settings
 	//
 
-	MaxTabCompleterRows int  `yaml:"maxTabCompleterRows"`
-	AutoComplete        bool `yaml:"autoComplete"`
-
-	//
-	// Other helpers
-	//
-
-	// HintColor any ANSI escape codes you wish to use for hint formatting.
-	HintFormatting string `yaml:"hintFormatting"`
+	// The maximum number of completion rows to print at any time.
+	MaxTabCompleterRows int `yaml:"maxTabCompleterRows"`
+	// Autocomplete asynchrously generates completions as text is typed in the line.
+	AutoComplete bool `yaml:"autoComplete"`
 }
 
 // Config returns the current configuration of the readline instance.
@@ -265,9 +260,6 @@ func (rl *Instance) loadDefaultConfig() {
 		// Completions
 		MaxTabCompleterRows: 50,
 		AutoComplete:        true,
-
-		// Other helpers
-		HintFormatting: seqDim,
 	}
 
 	// Load keymaps, which are defaults themselves:
