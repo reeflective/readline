@@ -84,7 +84,14 @@ func (rl *Instance) menuComplete() {
 	}
 
 	// Else, select the next candidate.
-	rl.moveCompletionSelection(1, 0)
+	switch rl.keys {
+	case seqArrowRight:
+		rl.updateSelector(1, 0)
+	case seqArrowDown:
+		rl.updateSelector(0, 1)
+	default:
+		rl.updateSelector(0, 1)
+	}
 	rl.updateVirtualComp()
 }
 
@@ -100,7 +107,14 @@ func (rl *Instance) reverseMenuComplete() {
 	}
 
 	// Else, select the previous candidate.
-	rl.moveCompletionSelection(-1, 0)
+	switch rl.keys {
+	case seqArrowLeft:
+		rl.updateSelector(-1, 0)
+	case seqArrowUp:
+		rl.updateSelector(0, -1)
+	default:
+		rl.updateSelector(0, -1)
+	}
 	rl.updateVirtualComp()
 }
 
@@ -113,7 +127,7 @@ func (rl *Instance) acceptAndMenuComplete() {
 	}
 
 	// Also return if no candidate
-	if rl.getCurrentCandidate() == "" {
+	if rl.currentCandidate() == "" {
 		return
 	}
 
@@ -121,7 +135,7 @@ func (rl *Instance) acceptAndMenuComplete() {
 	rl.resetVirtualComp(false)
 
 	// And cycle to the next one, without quiting our mode
-	rl.moveCompletionSelection(1, 0)
+	rl.updateSelector(1, 0)
 	rl.updateVirtualComp()
 }
 
@@ -150,10 +164,6 @@ func (rl *Instance) listChoices() {
 		rl.resetTabCompletion()
 		return
 	}
-
-	// Let all groups compute their display/candidate strings
-	// and coordinates, and do some adjustments where needed.
-	rl.initializeCompletions()
 }
 
 func (rl *Instance) viRegistersComplete() {
@@ -163,16 +173,10 @@ func (rl *Instance) viRegistersComplete() {
 	case isearch:
 	default:
 		registerCompletion := func() {
-			rl.tcGroups = rl.completeRegisters()
-			if len(rl.tcGroups) == 0 {
-				return
-			}
-
-			var groups []CompletionGroup
-			for _, group := range rl.tcGroups {
-				groups = append(groups, *group)
-			}
-			rl.tcGroups = checkNilItems(groups)
+			rl.tcGroups = make([]*comps, 0)
+			comps := rl.completeRegisters()
+			rl.groupCompletions(comps)
+			rl.setCompletionPrefix(comps)
 		}
 
 		rl.startMenuComplete(registerCompletion)

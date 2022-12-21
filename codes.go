@@ -106,6 +106,13 @@ const (
 )
 
 // Text effects
+const (
+	sgrStart     = "\x1b["
+	fgColorStart = "38;05;"
+	bgColorStart = "48;05;"
+	sgrEnd       = "m"
+)
+
 var (
 	seqReset      = "\x1b[0m"
 	seqBold       = "\x1b[1m"

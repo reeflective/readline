@@ -17,7 +17,9 @@ func (rl *Instance) SetHint(s string) {
 func (rl *Instance) getHintText() {
 	// Use the user-provided hint by default.
 	// Useful when command/flag usage is given.
-	rl.hintText = rl.HintText(rl.getCompletionLine())
+	if rl.HintText != nil {
+		rl.hintText = rl.HintText(rl.getCompletionLine())
+	}
 
 	// Remove the hint if we are autocompleting in insert mode.
 	if rl.isAutoCompleting() && rl.main != vicmd {
@@ -49,10 +51,10 @@ func (rl *Instance) hintNoMatches() {
 
 	var groups []string
 	for _, group := range rl.tcGroups {
-		if group.Name == "" {
+		if group.tag == "" {
 			continue
 		}
-		groups = append(groups, group.Name)
+		groups = append(groups, group.tag)
 	}
 
 	// History has no named group, so add it

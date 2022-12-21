@@ -116,7 +116,7 @@ func (p *prompt) getPrimaryLastLine() string {
 // computePromptAlt computes the correct lengths and offsets
 // for all prompt components, but does not print any of them.
 func (p *prompt) compute(rl *Instance) {
-	prompt := rl.Prompt.primary
+	prompt := p.primary
 
 	lastLineIndex := strings.LastIndex(prompt, "\n")
 	if lastLineIndex != -1 {
@@ -129,6 +129,10 @@ func (p *prompt) compute(rl *Instance) {
 // update is called after each key/widget processing, and refreshes
 // the prompts that need to be at these intervals
 func (p *prompt) update(rl *Instance) {
+	if rl.Prompt.tooltipF == nil {
+		return
+	}
+
 	var tooltipWord string
 
 	shellWords := strings.Split(string(rl.line), " ")

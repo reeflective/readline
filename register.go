@@ -261,51 +261,28 @@ func (r *registers) resetRegister() {
 }
 
 // The user can show registers completions and insert, no matter the cursor position.
-func (rl *Instance) completeRegisters() (groups []*CompletionGroup) {
-	// We set the hint exceptionally
-	hint := seqFgBlue + "-- registers --" + seqReset
-	rl.hintText = []rune(hint)
-
-	// Make the groups
-	anonRegs := &CompletionGroup{
-		DisplayType: TabDisplayMap,
-		MaxLength:   20,
-	}
+func (rl *Instance) completeRegisters() Completions {
+	// 	// We set the hint exceptionally
+	comps := Message(seqFgBlue + "-- registers --" + seqReset)
 
 	// Unnamed (the added space is because we must have a unique key.
 	// This space is trimmed when the buffer is being passed to users)
-	unnamed := CompletionValue{
-		Value:       string(rl.registers.unnamed),
-		Display:     string(rl.registers.unnamed),
-		Description: seqDim + "\"\"" + seqReset,
+	unnamed := Completion{
+		Value:   string(rl.registers.unnamed),
+		Display: seqDim + "\"\"" + seqFgWhiteBright + " " + string(rl.registers.unnamed),
 	}
-	anonRegs.Values = append(anonRegs.Values, unnamed)
-	groups = append(groups, anonRegs)
+	comps.values = append(comps.values, unnamed)
 
-	// Numbered registers
-	numRegs := rl.completeNumRegisters()
+	comps.values = append(comps.values, rawValues(rl.completeNumRegs())...)
+	comps.values = append(comps.values, rawValues(rl.completeAlphaRegs())...)
 
-	if len(numRegs.Values) > 0 {
-		groups = append(groups, numRegs)
-	}
-
-	// Letter registers
-	alphaRegs := rl.completeAlphaRegisters()
-
-	if len(alphaRegs.Values) > 0 {
-		groups = append(groups, alphaRegs)
-	}
-
-	return
+	return comps
 }
 
-func (rl *Instance) completeNumRegisters() *CompletionGroup {
-	// Numbered registers
-	numRegs := &CompletionGroup{
-		Name:        seqDim + "num ([0-9])" + seqReset,
-		DisplayType: TabDisplayMap,
-		MaxLength:   20,
-	}
+func (rl *Instance) completeNumRegs() []Completion {
+	regs := make([]Completion, 0)
+	tag := seqDim + "num ([0-9])" + seqReset
+
 	var nums []int
 	for reg := range rl.registers.num {
 		nums = append(nums, reg)
@@ -313,39 +290,40 @@ func (rl *Instance) completeNumRegisters() *CompletionGroup {
 
 	sort.Ints(nums)
 
-	for _, val := range nums {
-		buf := rl.registers.num[val]
-		value := CompletionValue{
-			Value:       string(buf),
-			Display:     string(buf),
-			Description: fmt.Sprintf("%s\"%d%s", seqDim, val, seqReset),
+	for _, reg := range nums {
+		buf := rl.registers.num[reg]
+		comp := Completion{
+			Tag:     tag,
+			Value:   string(buf),
+			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqFgWhiteBright, string(buf)),
 		}
-		numRegs.Values = append(numRegs.Values, value)
+
+		regs = append(regs, comp)
 	}
 
-	return numRegs
+	return regs
 }
 
-func (rl *Instance) completeAlphaRegisters() *CompletionGroup {
-	alphaRegs := &CompletionGroup{
-		Name:        seqDim + "alpha ([a-z], [A-Z])" + seqReset,
-		DisplayType: TabDisplayMap,
-		MaxLength:   20,
-	}
+func (rl *Instance) completeAlphaRegs() []Completion {
+	regs := make([]Completion, 0)
+	tag := seqDim + "alpha ([a-z], [A-Z])" + seqReset
+
 	var lett []string
 	for reg := range rl.registers.alpha {
 		lett = append(lett, reg)
 	}
 	sort.Strings(lett)
+
 	for _, reg := range lett {
 		buf := rl.registers.alpha[reg]
-		value := CompletionValue{
-			Value:       string(buf),
-			Display:     string(buf),
-			Description: fmt.Sprintf("%s\"%s%s", seqDim, reg, seqReset),
+		comp := Completion{
+			Tag:     tag,
+			Value:   string(buf),
+			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqFgWhiteBright, string(buf)),
 		}
-		alphaRegs.Values = append(alphaRegs.Values, value)
+
+		regs = append(regs, comp)
 	}
 
-	return alphaRegs
+	return regs
 }

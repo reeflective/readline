@@ -59,12 +59,12 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 // This candidate might either be the currently selected one (white frame),
 // or the only candidate available, if the total number of candidates is 1.
 func (rl *Instance) insertCandidate() {
-	cur := rl.getCurrentGroup()
+	cur := rl.currentGroup()
 	if cur == nil {
 		return
 	}
 
-	completion := cur.getCurrentCell(rl).Value
+	completion := cur.selected().Value
 	prefix := len(rl.tcPrefix)
 
 	// Special case for the only special escape, which
@@ -72,16 +72,6 @@ func (rl *Instance) insertCandidate() {
 	// character of our actual rl.tcPrefix in the candidate.
 	if strings.HasPrefix(string(rl.tcPrefix), "%") {
 		prefix++
-	}
-
-	// When there are no suffix matchers, add space by default
-	if len(cur.SuffixMatcher) == 0 && rl.keys == " " {
-		cur.SuffixMatcher = append(cur.SuffixMatcher, ' ')
-	}
-
-	// Trim any suffix when found
-	if yes, suf := cur.matchesSuffix(completion); yes {
-		completion = strings.TrimSuffix(completion, string(suf))
 	}
 
 	// Ensure no indexing error happens with prefix
@@ -93,12 +83,12 @@ func (rl *Instance) insertCandidate() {
 // updateVirtualComp - Either insert the current completion
 // candidate virtually, or on the real line.
 func (rl *Instance) updateVirtualComp() {
-	cur := rl.getCurrentGroup()
+	cur := rl.currentGroup()
 	if cur == nil {
 		return
 	}
 
-	completion := cur.getCurrentCell(rl).Value
+	completion := cur.selected().Value
 	prefix := len(rl.tcPrefix)
 
 	// If the total number of completions is one, automatically insert it.
@@ -136,12 +126,12 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 
 	// Get the current candidate and its group.
 	// It contains info on how we must process it
-	cur := rl.getCurrentGroup()
+	cur := rl.currentGroup()
 	if cur == nil {
 		return
 	}
 
-	completion := cur.getCurrentCell(rl).Value
+	completion := cur.selected().Value
 
 	// Avoid problems with empty completions
 	if completion == "" {
@@ -161,13 +151,13 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	}
 
 	// When there are no suffix matchers, add space by default
-	if len(cur.SuffixMatcher) == 0 {
-		cur.SuffixMatcher = append(cur.SuffixMatcher, ' ')
+	if cur.noSpace.string == "" {
+		cur.noSpace.Add([]rune{' '}...)
 	}
 
 	// Trim any suffix when found
-	if yes, suf := cur.matchesSuffix(completion); yes {
-		completion = strings.TrimSuffix(completion, string(suf))
+	if yes := cur.noSpace.Matches(completion); yes {
+		completion = completion[:len(completion)-1]
 	}
 
 	// If we are asked to drop the completion,

@@ -1,372 +1,540 @@
 package readline
 
 import (
+	"fmt"
+	"sort"
 	"strings"
+	"unicode/utf8"
 )
 
-// CompletionValue represents a completion candidate
-type CompletionValue struct {
-	Value       string
-	Display     string
-	Description string
-	Style       string
+// comps is used to structure different types of completions with different
+// display types, autosuffix removal matchers, under their tag heading.
+type comps struct {
+	tag           string         // Printed on top of the group's completions
+	values        [][]Completion // Values are grouped by aliases/rows, with computed paddings.
+	noSpace       SuffixMatcher  // Suffixes to remove if a space or non-nil character is entered after the completion.
+	columnsWidth  []int          // Computed width for each column of completions, when aliases
+	listSeparator string         // This is used to separate completion candidates from their descriptions.
+	aliased       bool           // Are their aliased completions
+	isCurrent     bool           // Currently cycling through this group, for highlighting choice
+	maxLength     int            // Each group can be limited in the number of comps offered
+	tcMaxLength   int            // Used when display is map/list, for determining message width
+	maxDescWidth  int
+	maxCellLength int
+	tcPosX        int
+	tcPosY        int
+	tcMaxX        int
+	tcMaxY        int
+	tcOffset      int
 }
 
-// CompletionGroup - A group/category of items offered to completion, with its own
-// name, descriptions and completion display format/type.
-// The output, if there are multiple groups available for a given completion input,
-// will look like ZSH's completion system.
-type CompletionGroup struct {
-	Name          string            // Printed on top of the group's completions
-	DisplayType   TabDisplayType    // Map, list or normal
-	MaxLength     int               // Each group can be limited in the number of comps offered
-	Values        []CompletionValue // All candidates with their styles and descriptions.
-	SuffixMatcher []rune            // Suffixes to remove if a space or non-nil character is entered after the completion.
-	ListSeparator string            // This is used to separate completion candidates from their descriptions.
+//
+// Initialization-time functions ----------------------------------------------------------------------------
+//
 
-	// Internal parameters
-	grouped        [][]CompletionValue // Values are grouped by aliases/rows, with computed paddings.
-	columnsWidth   []int               // Computed width for each column of completions, when aliases
-	selected       CompletionValue     // The currently selected completion in this group
-	tcMaxLength    int                 // Used when display is map/list, for determining message width
-	tcMaxLengthAlt int                 // Same as tcMaxLength but for SuggestionsAlt.
-	allowCycle     bool                // Cycle through suggestions because they overflow MaxLength
-	isCurrent      bool                // Currently cycling through this group, for highlighting choice
-	minCellLength  int
-	maxCellLength  int
-	rows           int
-	tcPosX         int
-	tcPosY         int
-	tcMaxX         int
-	tcMaxY         int
-	tcOffset       int
+func (rl *Instance) newGroup(tag string, vals rawValues, aliased bool, sm SuffixMatcher) {
+	grp := &comps{
+		tag:           tag,
+		noSpace:       sm,
+		listSeparator: "--",
+		tcPosX:        -1,
+		tcPosY:        -1,
+		tcOffset:      0,
+		aliased:       aliased,
+		columnsWidth:  []int{0},
+	}
+
+	// Sort completions first
+	sort.Slice(vals, func(i, j int) bool {
+		return vals[i].Value < vals[j].Value
+	})
+
+	// Check that all comps have a display value,
+	// and begin computing some parameters.
+	vals = grp.checkDisplays(vals, aliased)
+
+	// Keep computing/devising some parameters and constraints.
+	// This does not do much when we have aliased completions.
+	grp.computeCells(vals, aliased)
+
+	// Rearrange all candidates into a matrix of completions,
+	// based on most parameters computed above.
+	grp.makeMatrix(vals, aliased)
+
+	rl.tcGroups = append(rl.tcGroups, grp)
 }
 
-// init - The completion group computes and sets all its values, and is then ready to work.
-func (g *CompletionGroup) init(rl *Instance) {
-	// Details common to all displays
-	g.checkCycle(rl)
-	g.checkMaxLength(rl)
-
-	// Details specific to tab display modes
-	switch g.DisplayType {
-	case TabDisplayGrid:
-		g.initGrid(rl)
-	case TabDisplayMap:
-		g.initMap(rl)
-	case TabDisplayList:
-		g.initList(rl)
-	}
-}
-
-// updateTabFind - When searching through all completion groups (whether it be command history or not),
-// we ask each of them to filter its own items and return the results to the shell for aggregating them.
-// The rx parameter is passed, as the shell already checked that the search pattern is valid.
-func (g *CompletionGroup) updateTabFind(rl *Instance) {
-	if rl.regexSearch == nil {
-		return
-	}
-
-	var suggs []CompletionValue
-
-	// We perform filter right here, so we create a new
-	// completion group, and populate it with our results.
-	for i := range g.Values {
-		value := g.Values[i]
-
-		if rl.regexSearch.MatchString(value.Value) {
-			suggs = append(suggs, value)
-		} else if g.DisplayType == TabDisplayList && rl.regexSearch.MatchString(value.Description) {
-			suggs = append(suggs, value)
-		}
-	}
-
-	// We overwrite the group's items, (will be refreshed
-	// as soon as something is typed in the search)
-	g.Values = suggs
-
-	// Finally, the group computes its new printing settings
-	g.init(rl)
-}
-
-// checkCycle - Based on the number of groups given to the shell, allows cycling or not
-func (g *CompletionGroup) checkCycle(rl *Instance) {
-	if len(rl.tcGroups) == 1 {
-		g.allowCycle = true
-	}
-	if len(rl.tcGroups) >= 10 {
-		g.allowCycle = false
-	}
-}
-
-// checkMaxLength - Based on the number of groups given to the shell, check/set MaxLength defaults
-func (g *CompletionGroup) checkMaxLength(rl *Instance) {
-	// This means the user forgot to set it
-	if g.MaxLength == 0 {
-		if len(rl.tcGroups) < 5 {
-			g.MaxLength = 20
+func (g *comps) checkDisplays(vals rawValues, aliased bool) rawValues {
+	for index, val := range vals {
+		if val.Display == "" {
+			vals[index].Display = val.Value
 		}
 
-		if len(rl.tcGroups) >= 5 {
-			g.MaxLength = 20
-		}
-
-		// Lists that have a alternative completions are not allowed to have
-		// MaxLength set, because rolling does not work yet.
-		if g.DisplayType == TabDisplayList {
-			g.MaxLength = 1000 // Should be enough not to trigger anything related.
-		}
-	}
-}
-
-// writeCompletion - This function produces a formatted string containing all appropriate items
-// and according to display settings. This string is then appended to the main completion string.
-func (g *CompletionGroup) writeCompletion(rl *Instance) (comp string) {
-	// Avoids empty groups in suggestions
-	if len(g.Values) == 0 {
-		return
-	}
-
-	// Depending on display type we produce the approriate string
-	switch g.DisplayType {
-	case TabDisplayGrid:
-		comp += g.writeGrid(rl)
-	case TabDisplayMap:
-		comp += g.writeMap(rl)
-	case TabDisplayList:
-		comp += g.writeList(rl)
-	}
-	return
-}
-
-// getCurrentCell - The completion groups computes the current cell value,
-// depending on its display type and its different parameters
-func (g *CompletionGroup) getCurrentCell(rl *Instance) CompletionValue {
-	switch g.DisplayType {
-	case TabDisplayGrid:
-		// x & y coodinates + safety check
-		cell := (g.tcMaxX * (g.tcPosY - 1)) + g.tcOffset + g.tcPosX - 1
-		if cell < 0 {
-			cell = 0
-		}
-
-		if cell < len(g.Values) {
-			return g.Values[cell]
-		}
-		return CompletionValue{}
-
-	case TabDisplayMap:
-		// x & y coodinates + safety check
-		cell := g.tcOffset + g.tcPosY - 1
-		if cell < 0 {
-			cell = 0
-		}
-
-		// TODO: Here we didn't ensure some values have not the same description
-		sugg := g.Values[cell]
-		return sugg
-
-	case TabDisplayList:
-		return g.selected
-	}
-
-	// We should never get here
-	return CompletionValue{}
-}
-
-func (g *CompletionGroup) goFirstCell() {
-	switch g.DisplayType {
-	case TabDisplayGrid:
-		g.tcPosX = 1
-		g.tcPosY = 1
-
-	case TabDisplayList:
-		g.tcPosX = 0
-		g.tcPosY = 1
-		g.tcOffset = 0
-
-	case TabDisplayMap:
-		g.tcPosX = 0
-		g.tcPosY = 1
-		g.tcOffset = 0
-	}
-}
-
-func (g *CompletionGroup) goLastCell() {
-	switch g.DisplayType {
-	case TabDisplayGrid:
-		g.tcPosY = g.tcMaxY
-
-		restX := len(g.Values) % g.tcMaxX
-		if restX != 0 {
-			g.tcPosX = restX
-		} else {
-			g.tcPosX = g.tcMaxX
-		}
-
-		// We need to adjust the X position depending
-		// on the interpretation of the remainder with
-		// respect to the group's MaxLength.
-		restY := len(g.Values) % g.tcMaxY
-		maxY := len(g.Values) / g.tcMaxX
-		if restY == 0 && maxY > g.MaxLength {
-			g.tcPosX = g.tcMaxX
-		}
-		if restY != 0 && maxY > g.MaxLength-1 {
-			g.tcPosX = g.tcMaxX
-		}
-
-	case TabDisplayList:
-		// By default, the last item is at maxY
-		g.tcPosY = g.tcMaxY - 1
-		//
-		// // If the max length is smaller than the number
-		// // of suggestions, we need to adjust the offset.
-		// if g.rows > g.MaxLength {
-		// 	g.tcOffset = g.rows - g.tcMaxY
-		// }
-		//
-		// // We do not take into account the alternative suggestions
-		// g.tcPosX = 0
-
-		// ALTERNATIVE
-		g.tcPosX = len(g.columnsWidth) - 1
-		g.lastCellList()
-
-	case TabDisplayMap:
-		// By default, the last item is at maxY
-		g.tcPosY = g.tcMaxY
-
-		// If the max length is smaller than the number
-		// of suggestions, we need to adjust the offset.
-		if g.rows > g.MaxLength {
-			g.tcOffset = g.rows - g.tcMaxY
-		}
-
-		// We do not take into account the alternative suggestions
-		g.tcPosX = 0
-	}
-}
-
-func (g *CompletionGroup) lastCellList() {
-	remaining := g.grouped
-	y := 0
-	found := false
-
-	for i := len(remaining); i > 0; i-- {
-		row := remaining[i-1]
-
-		// Adjust the first row if it has multiple subrows
-		// if i == len(remaining) && inRow > 0 {
-		// 	row = row[:(inRow * len(g.columnsWidth))]
-		// }
-
-		// Skip if its does not have enough columns
-		if len(row)-1 < g.tcPosX {
-			y++
+		// If we have aliases, the padding will be computed later.
+		// Don't concatenate the description to the value as display.
+		if aliased {
 			continue
 		}
 
-		// Else we have candidate for the given column,
-		// just break since our posY has been updated.
-		g.selected = row[g.tcPosX]
-
-		found = true
-		break
+		// Otherwise update the size of the longest candidate
+		valLen := utf8.RuneCountInString(val.Display)
+		if valLen > g.columnsWidth[0] {
+			g.columnsWidth[0] = valLen
+		}
 	}
 
-	// If this column did not yield a candidate, perform
-	// the same lookup on the previous column, starting at bottom.
-	if !found && g.tcPosX > 0 {
-		g.tcPosX--
-		g.tcPosY = g.rows
-		g.lastCellList()
-
-		return
-	}
-
-	g.tcPosY -= y - 1
+	return vals
 }
 
-// numValues returns the number of unique completion values, which
-// is the number of completions that do NOT have the same description.
-func (g *CompletionGroup) numValues() int {
-	var unique []string
+func (g *comps) makeMatrix(vals rawValues, aliased bool) {
+NEXT_VALUE:
+	for _, val := range vals {
+		valLen := utf8.RuneCountInString(val.Display)
 
-	for _, value := range g.Values {
-		var found bool
+		// If we have an alias, and we must get the right
+		// column and the right padding for this column.
+		if aliased {
+			for i, row := range g.values {
+				if row[0].Description == val.Description {
+					g.values[i] = append(row, val)
+					g.columnsWidth = getColumnPad(g.columnsWidth, valLen, len(g.values[i]))
 
-		// If the value has no descriptions, it will
-		// not be printed along with any other value.
-		if value.Description == "" {
-			for _, existing := range unique {
-				if existing == value.Description {
-					found = true
-					break
+					continue NEXT_VALUE
 				}
 			}
 		}
 
-		if !found {
-			unique = append(unique, value.Description)
+		// Else, either add it to the current row if there is still room
+		// on it for this candidate, or add a new one. We only do that when
+		// we know we don't have aliases.
+		if !aliased && g.canFitInRow(val) {
+			g.values[len(g.values)-1] = append(g.values[len(g.values)-1], val)
+		} else {
+			// Else create a new row, and update the row pad.
+			g.values = append(g.values, []Completion{val})
+			if g.columnsWidth[0] < valLen {
+				g.columnsWidth[0] = valLen
+			}
 		}
 	}
 
-	return len(unique)
+	if aliased {
+		g.tcMaxX = len(g.columnsWidth)
+		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth)
+	}
+
+	g.tcMaxY = len(g.values)
+	if g.tcMaxY > g.maxLength && g.maxLength != 0 {
+		g.tcMaxY = g.maxLength
+	}
 }
 
-// checkNilItems - For each completion group we avoid nil maps and possibly other items
-func checkNilItems(groups []CompletionGroup) (checked []*CompletionGroup) {
-	for i := range groups {
-		// if grp.Descriptions == nil || len(grp.Descriptions) == 0 {
-		// 	grp.Descriptions = make(map[string]string)
-		// }
-		// if grp.Aliases == nil || len(grp.Aliases) == 0 {
-		// 	grp.Aliases = make(map[string]string)
-		// }
-		checked = append(checked, &groups[i])
+func (g *comps) computeCells(vals rawValues, aliased bool) {
+	// Aliases will compute themselves individually, later.
+	if aliased {
+		return
+	}
+
+	g.tcMaxLength = g.columnsWidth[0]
+
+	// Each value first computes the total amount of space
+	// it is going to take in a row (including the description)
+	for _, val := range vals {
+		candidate := g.displayTrimmed(val.Display)
+		pad := g.tcMaxLength - len(candidate)
+		desc := g.descriptionTrimmed(val.Description)
+		display := fmt.Sprintf("%s%s%s", candidate, strings.Repeat(" ", pad)+" ", desc)
+		valLen := utf8.RuneCountInString(display)
+		if valLen > g.maxCellLength {
+			g.maxCellLength = valLen
+		}
+	}
+
+	g.tcMaxX = GetTermWidth()/g.maxCellLength + 2
+	if g.tcMaxX < 1 {
+		g.tcMaxX = 1 // avoid a divide by zero error
+	}
+
+	if g.tcMaxX > len(vals) {
+		g.tcMaxX = len(vals)
+	}
+
+	// We also have the width for each column
+	g.columnsWidth = make([]int, GetTermWidth()/g.maxCellLength+2)
+	for i := 0; i < g.tcMaxX; i++ {
+		g.columnsWidth[i] = g.maxCellLength
+	}
+}
+
+// checkMaxLength - Based on the number of groups given to the shell, check/set MaxLength defaults
+func (g *comps) checkMaxLength(rl *Instance) {
+	// This means the user forgot to set it
+	if g.maxLength == 0 {
+		if len(rl.tcGroups) < 5 {
+			g.maxLength = 20
+		}
+
+		if len(rl.tcGroups) >= 5 {
+			g.maxLength = 20
+		}
+	}
+}
+
+func (g *comps) canFitInRow(val Completion) bool {
+	if len(g.values) == 0 {
+		return false
+	}
+
+	if GetTermWidth()/(g.maxCellLength+2)-1 < len(g.values[len(g.values)-1]) {
+		return false
+	}
+
+	return true
+}
+
+// updateIsearch - When searching through all completion groups (whether it be command history or not),
+// we ask each of them to filter its own items and return the results to the shell for aggregating them.
+// The rx parameter is passed, as the shell already checked that the search pattern is valid.
+func (g *comps) updateIsearch(rl *Instance) {
+	if rl.regexSearch == nil {
+		return
+	}
+
+	var suggs [][]Completion
+
+	// We perform filter right here, so we create a new
+	// completion group, and populate it with our results.
+	for i := range g.values {
+		row := g.values[i]
+
+		var filtered []Completion
+
+		for _, val := range row {
+			if rl.regexSearch.MatchString(val.Value) {
+				filtered = append(filtered, val)
+			} else if val.Description != "" && rl.regexSearch.MatchString(val.Description) {
+				filtered = append(filtered, val)
+			}
+		}
+
+		suggs = append(suggs, filtered)
+	}
+
+	// We overwrite the group's items, (will be refreshed
+	// as soon as something is typed in the search)
+	g.values = suggs
+
+	g.tcPosX = -1
+	g.tcPosY = -1
+	g.tcOffset = 0
+
+	// Finally, the group computes its new printing settings
+	// g.init(rl)
+}
+
+//
+// Usage-time functions (selecting/writing) 9----------------------------------------------------------------
+//
+
+func (g *comps) firstCell() {
+	g.tcPosX = 0
+	g.tcPosY = 0
+	g.tcOffset = 0
+}
+
+func (g *comps) lastCell() {
+	g.tcPosY = len(g.values) - 1
+	g.tcPosX = len(g.columnsWidth) - 1
+	g.tcOffset = 0
+
+	g.findFirstCandidate(0, -1)
+}
+
+func (g *comps) selected() (comp Completion) {
+	if g.tcPosY == -1 || g.tcPosX == -1 {
+		return g.values[0][0]
+	}
+	return g.values[g.tcPosY][g.tcPosX]
+}
+
+func (g *comps) writeComps(rl *Instance) (comp string) {
+	if g.tag != "" {
+		comp += fmt.Sprintf("%s%s%s %s\n", seqBold, seqFgYellow, g.tag, seqReset)
+		rl.tcUsedY++
+	}
+
+	// Base parameters
+	x := 0
+	y := 0
+	done := false
+
+	for range g.values {
+		// var lineComp string
+
+		// Generate the completion string for this row (comp/aliases
+		// and/or descriptions), and apply any styles and isearch
+		// highlighting with pattern replacement,
+		comp += g.writeRow(rl, x, y)
+
+		x, y, done = g.indexes(x, y)
+		if done {
+			break
+		}
+	}
+
+	// Always add a newline to the group if
+	// the end if not punctuated with one.
+	if !strings.HasSuffix(comp, "\n") {
+		comp += "\n"
+	}
+
+	rl.tcUsedY += y
+
+	return
+}
+
+func (g *comps) moveSelector(rl *Instance, x, y int) (done, next bool) {
+	// When the group has not yet been used, adjust
+	if g.tcPosX == -1 && g.tcPosY == -1 {
+		if x > 0 {
+			g.tcPosY++
+		} else {
+			g.tcPosX++
+		}
+	}
+
+	g.tcPosX += x
+	g.tcPosY += y
+
+	// 1) Ensure columns is minimum one, if not, either
+	// go to previous row, or go to previous group.
+	if g.tcPosX < 0 {
+		if g.tcPosY == 0 && (x < 0 || y < 0) {
+			g.tcPosX = 0
+			g.tcPosY = 0
+			return true, false
+		} else {
+			g.tcPosY--
+		}
+	}
+
+	// 2) If we are reverse-cycling and currently on the first candidate,
+	// we are done with this group. Stay on those coordinates still.
+	if g.tcPosY < 0 {
+		if g.tcPosX == 0 {
+			g.tcPosX = 0
+			g.tcPosY = 0
+			return true, false
+		} else {
+			g.tcPosY = len(g.values) - 1
+			g.tcPosX--
+		}
+	}
+
+	// If we are on the last row, we might have to move to
+	// the next column, if there is another one.
+	if g.tcPosY > g.tcMaxY-1 {
+		g.tcPosY = 0
+		if g.tcPosX < len(g.columnsWidth)-1 {
+			g.tcPosX++
+		} else {
+			return true, true
+		}
+	}
+
+	// Else check that there is indeed a completion in the column
+	// for a given row, otherwise loop in the direction wished until
+	// one is found, or go next/previous column, and so on.
+	if done, next = g.findFirstCandidate(x, y); done {
+		return
+	}
+
+	// By default, come back to this group for next item.
+	return false, false
+}
+
+// Check that there is indeed a completion in the column for a given row,
+// otherwise loop in the direction wished until one is found, or go next/
+// previous column, and so on.
+func (g *comps) findFirstCandidate(x, y int) (done, next bool) {
+	for g.tcPosX > len(g.values[g.tcPosY])-1 {
+		g.tcPosY += y
+
+		// Previous column or group
+		if g.tcPosY < 0 {
+			if g.tcPosX == 0 {
+				g.tcPosX = 0
+				g.tcPosY = 0
+				return true, false
+			} else {
+				g.tcPosY = len(g.values) - 1
+				g.tcPosX--
+			}
+		}
+
+		// Next column or group
+		if g.tcPosY > g.tcMaxY-1 {
+			g.tcPosY = 0
+			if g.tcPosX < len(g.columnsWidth)-1 {
+				g.tcPosX++
+			} else {
+				return true, true
+			}
+		}
 	}
 
 	return
 }
 
-func (g *CompletionGroup) matchesSuffix(value string) (yes bool, suf rune) {
-	for _, r := range g.SuffixMatcher {
-		if r == '*' || strings.HasSuffix(value, string(r)) {
-			return true, r
+func (g *comps) indexes(x, y int) (int, int, bool) {
+	// var comp string
+	done := false
+
+	// current := g.values[y]
+
+	// We return to a new line if either we reached
+	// the maximum number of columns in the grid, or
+	// if we reached the last column of a list/aliased.
+	x++
+	y++
+	// if x > len(current) || x > g.tcMaxX {
+	// x = 1
+	// y++
+	if y > g.tcMaxY {
+		// y--
+		done = true
+		// } else {
+		// 	comp += "\r\n"
+	}
+	// }
+
+	return x, y, done
+}
+
+func (g *comps) writeRow(rl *Instance, x, y int) (comp string) {
+	current := g.values[y]
+
+	writeDesc := func(val Completion, x, y, pad int) string {
+		desc := g.highlightDescription(rl, val, y, x)
+		descPad := g.padDescription(val, pad)
+		desc = fmt.Sprintf("%s%s", desc, strings.Repeat(" ", descPad))
+
+		return desc
+	}
+
+	for i, val := range current {
+		// Generate the highlighted candidate with its padding
+		pad := g.padCandidate(current, val, i)
+		candidate := g.highlightCandidate(rl, val, y, i)
+		comp += fmt.Sprintf("%s%s", candidate, strings.Repeat(" ", pad)+" ")
+
+		// And append the description only if at the end of the row,
+		// or if there are no aliases, in which case all comps are described.
+		if !g.aliased || i == len(current)-1 {
+			comp += writeDesc(val, x, i, pad) + " "
 		}
 	}
+
+	comp += "\r\n"
+
 	return
 }
 
-// function highlights the cell depending on current selector place.
-func (g *CompletionGroup) highlight(style string, y int, x int) string {
-	if y == g.tcPosY && x == g.tcPosX && g.isCurrent {
-		return seqCtermFg255 + seqFgBlackBright
+func (g *comps) highlightCandidate(rl *Instance, val Completion, y, x int) (candidate string) {
+	reset := sgrStart + val.Style + sgrEnd
+	candidate = g.displayTrimmed(val.Display)
+
+	if rl.local == isearch && rl.regexSearch != nil && len(rl.tfLine) > 0 {
+		match := rl.regexSearch.FindString(candidate)
+		match = seqBgBlackBright + match + seqReset + reset
+		candidate = rl.regexSearch.ReplaceAllLiteralString(candidate, match)
 	}
 
-	return sgrStart + fgColorStart + style + sgrEnd
+	switch {
+	case y == g.tcPosY && x == g.tcPosX && g.isCurrent:
+		candidate = seqCtermFg255 + seqFgBlackBright + candidate
+		if g.aliased {
+			candidate += seqReset
+		}
+
+	default:
+		candidate = sgrStart + val.Style + sgrEnd + candidate + seqReset
+	}
+
+	return
 }
 
-// isearchHighlight applies highlighting to all isearch matches in a completion.
-func (g *CompletionGroup) isearchHighlight(rl *Instance, item, reset string, y, x int) string {
-	if rl.local != isearch || rl.regexSearch == nil || len(rl.tfLine) == 0 {
-		return item
+func (g *comps) highlightDescription(rl *Instance, val Completion, y, x int) (desc string) {
+	if val.Description == "" {
+		return seqReset
 	}
 
-	if y == g.tcPosY && x == g.tcPosX && g.isCurrent {
-		return item
+	desc = g.descriptionTrimmed(val.Description)
+
+	desc = seqDim + g.listSeparator + " " + desc
+	reset := seqReset + seqDim
+
+	if rl.local == isearch && rl.regexSearch != nil && len(rl.tfLine) > 0 {
+		match := rl.regexSearch.FindString(desc)
+		match = seqBgBlackBright + match + seqReset + reset
+		desc = rl.regexSearch.ReplaceAllLiteralString(desc, match)
 	}
 
-	match := rl.regexSearch.FindString(item)
-	match = seqBgBlackBright + match + seqReset + reset
+	desc += seqReset
 
-	return rl.regexSearch.ReplaceAllLiteralString(item, match)
+	return desc
 }
 
-const (
-	sgrStart     = "\x1b["
-	fgColorStart = "38;05;"
-	bgColorStart = "48;05;"
-	sgrEnd       = "m"
-)
+func (g *comps) padCandidate(row []Completion, val Completion, x int) (pad int) {
+	valLen := utf8.RuneCountInString(val.Display)
+
+	if !g.aliased {
+		return g.tcMaxLength - valLen
+	}
+
+	if len(row) == 1 {
+		return sum(g.columnsWidth) + 1 - valLen
+	}
+
+	return g.columnsWidth[x] - valLen
+}
+
+func (g *comps) padDescription(val Completion, valPad int) (pad int) {
+	if g.aliased {
+		return 1
+	}
+
+	candidateLen := len(g.displayTrimmed(val.Display)) + valPad + 1
+	return g.maxCellLength - candidateLen - len(g.descriptionTrimmed(val.Description))
+}
+
+func (g *comps) displayTrimmed(val string) string {
+	termWidth := GetTermWidth()
+	if g.tcMaxLength > termWidth-9 {
+		g.tcMaxLength = termWidth - 9
+	}
+
+	if len(val) > g.tcMaxLength {
+		val = val[:g.tcMaxLength-3] + "..."
+	}
+
+	return val
+}
+
+func (g *comps) descriptionTrimmed(desc string) string {
+	if desc == "" {
+		return desc
+	}
+
+	termWidth := GetTermWidth()
+	if g.tcMaxLength > termWidth-9 {
+		g.tcMaxLength = termWidth - 9
+	}
+	g.maxDescWidth = termWidth - g.tcMaxLength - 5 // TODO: Replace 4 by length of separator.
+
+	if len(desc) > g.maxDescWidth {
+		desc = desc[:g.maxDescWidth-3] + "..."
+	}
+
+	return desc
+}

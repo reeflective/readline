@@ -7,25 +7,6 @@ import (
 	"strings"
 )
 
-// TabDisplayType defines how the autocomplete suggestions display
-type TabDisplayType int
-
-const (
-	// TabDisplayGrid is the default. It's where the screen below the prompt is
-	// divided into a grid with each suggestion occupying an individual cell.
-	TabDisplayGrid = iota
-
-	// TabDisplayList is where suggestions are displayed as a list with a
-	// description. The suggestion gets highlighted but both are searchable (ctrl+f)
-	TabDisplayList
-
-	// TabDisplayMap is where suggestions are displayed as a list with a
-	// description however the description is what gets highlighted and only
-	// that is searchable (ctrl+f). The benefit of TabDisplayMap is when your
-	// autocomplete suggestions are IDs rather than human terms.
-	TabDisplayMap
-)
-
 // startMenuComplete generates a completion menu with completions
 // generated from a given completer, without selecting a candidate.
 func (rl *Instance) startMenuComplete(completer func()) {
@@ -47,12 +28,8 @@ func (rl *Instance) startMenuComplete(completer func()) {
 		return
 	}
 
-	// Let all groups compute their display/candidate strings
-	// and coordinates, and do some adjustments where needed.
-	rl.initializeCompletions()
-
 	// Always ensure we have a current group.
-	rl.getCurrentGroup()
+	rl.currentGroup()
 
 	// When there is only candidate, automatically insert it
 	// and exit the completion mode, except in history completion.
@@ -67,9 +44,11 @@ func (rl *Instance) startMenuComplete(completer func()) {
 // sets up a delayed tab context and passes it on to the tab completion engine function, and ensure no
 // nil groups/items will pass through. This function is called by different comp search/nav modes.
 func (rl *Instance) generateCompletions() {
-	if rl.TabCompleter == nil {
+	if rl.Completer == nil {
 		return
 	}
+
+	rl.tcGroups = make([]*comps, 0)
 
 	// Cancel any existing tab context first.
 	if rl.delayedTabContext.cancel != nil {
@@ -83,54 +62,109 @@ func (rl *Instance) generateCompletions() {
 	// Get the correct line to be completed, and the current cursor position
 	compLine, compPos := rl.getCompletionLine()
 
-	prefix, groups := rl.TabCompleter(compLine, compPos, rl.delayedTabContext)
-
-	rl.tcPrefix = prefix
-	rl.tcGroups = checkNilItems(groups)
+	// Generate the completions, setup the prefix and group the results.
+	comps := rl.Completer(compLine, compPos, rl.delayedTabContext)
+	rl.groupCompletions(comps)
+	rl.setCompletionPrefix(comps)
 }
 
-// moveCompletionSelection - This function is in charge of
-// computing the new position in the current completions liste.
-func (rl *Instance) moveCompletionSelection(x, y int) {
-	g := rl.getCurrentGroup()
+func (rl *Instance) groupCompletions(comps Completions) {
+	// TODO: Set up the hints with our messages/usage strings.
 
-	// If there is no current group, we leave any current completion mode.
-	if g == nil || len(g.Values) == 0 {
+	// Nothing else to do if no completions
+	if len(comps.values) == 0 {
 		return
 	}
 
-	// done means we need to find the next/previous group.
-	// next determines if we need to get the next OR previous group.
-	var done, next bool
+	comps.values.eachTag(func(tag string, values rawValues) {
+		// Separate the completions that have a description and
+		// those which don't, and devise if there are aliases.
+		vals, noDescVals, aliased := groupValues(values)
 
-	// Depending on the display, we only keep track of x or (x and y)
-	switch g.DisplayType {
-	case TabDisplayGrid:
-		done, next = g.moveTabGridHighlight(rl, x, y)
-	case TabDisplayList:
-		done, next = g.moveTabListHighlight(rl, x, y)
-	case TabDisplayMap:
-		done, next = g.moveTabMapHighlight(rl, x, y)
+		// Create a "first" group with the "first" grouped values
+		rl.newGroup(tag, vals, aliased, comps.noSpace)
+
+		// If we have a remaining group of values without descriptions,
+		// we will print and use them in a separate, anonymous group.
+		if len(noDescVals) > 0 {
+			rl.newGroup("", noDescVals, false, comps.noSpace)
+		}
+	})
+}
+
+// groupValues separates values based on whether they have descriptions, or are aliases of each other.
+func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
+	var descriptions []string
+
+	for _, val := range values {
+		// Grid completions
+		if val.Description == "" {
+			noDescVals = append(noDescVals, val)
+			continue
+		}
+
+		// List/map completions.
+		if stringInSlice(val.Description, descriptions) {
+			aliased = true
+		}
+		descriptions = append(descriptions, val.Description)
+		vals = append(vals, val)
 	}
 
-	// Cycle to next/previous group, if done with current one.
-	if done {
-		g.selected = CompletionValue{}
+	// if no candidates have a description, swap
+	if len(vals) == 0 {
+		vals = noDescVals
+		noDescVals = make(rawValues, 0)
+	}
 
-		if next {
-			rl.cycleNextGroup()
-			nextGroup := rl.getCurrentGroup()
-			nextGroup.goFirstCell()
+	return
+}
 
-			nextGroup.selected = nextGroup.grouped[0][0]
-		} else {
-			rl.cyclePreviousGroup()
-			prevGroup := rl.getCurrentGroup()
-			prevGroup.goLastCell()
-
-			lastRow := g.grouped[len(g.grouped)-1]
-			g.selected = lastRow[len(lastRow)-1]
+func (rl *Instance) setCompletionPrefix(comps Completions) {
+	switch comps.PREFIX {
+	case "":
+		// When no prefix has been specified, use
+		// the current word up to the cursor position.
+		lineWords, _, _ := tokeniseSplitSpaces(rl.line, rl.pos)
+		if len(lineWords) > 0 {
+			last := lineWords[len(lineWords)-1]
+			if last[len(last)-1] != ' ' {
+				rl.tcPrefix = lineWords[len(lineWords)-1]
+			}
 		}
+
+	default:
+		// When the prefix has been overriden, add it to all
+		// completions AND as a line prefix, for correct candidate insertion.
+		rl.tcPrefix = comps.PREFIX
+	}
+}
+
+func (rl *Instance) updateSelector(x, y int) {
+	grp := rl.currentGroup()
+
+	// If there is no current group, we
+	// leave any current completion mode.
+	if grp == nil || len(grp.values) == 0 {
+		return
+	}
+
+	done, next := grp.moveSelector(rl, x, y)
+	if !done {
+		return
+	}
+
+	var newGrp *comps
+
+	if next {
+		rl.cycleNextGroup()
+		newGrp = rl.currentGroup()
+		newGrp.firstCell()
+
+	} else {
+		rl.cyclePreviousGroup()
+		newGrp = rl.currentGroup()
+		newGrp.lastCell()
 	}
 }
 
@@ -149,7 +183,7 @@ func (rl *Instance) printCompletions() {
 	// In any case, we write the completions strings, trimmed for redundant
 	// newline occurences that have been put at the end of each group.
 	for _, group := range rl.tcGroups {
-		completions += group.writeCompletion(rl)
+		completions += group.writeComps(rl)
 	}
 
 	// Because some completion groups might have more suggestions
@@ -178,7 +212,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	// we will add a line to the end of the comps, giving the actualized
 	// number of completions remaining and not printed
 	moreComps := func(cropped string, offset int) (hinted string, noHint bool) {
-		_, _, adjusted := rl.getCompletionCount()
+		_, _, adjusted := rl.completionCount()
 		remain := adjusted - offset
 		if remain == 0 {
 			return cropped, true
@@ -248,148 +282,6 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	return
 }
 
-func (rl *Instance) getAbsPos() int {
-	var prev int
-	var foundCurrent bool
-	for _, grp := range rl.tcGroups {
-		if grp.isCurrent {
-			prev += grp.tcPosY + 1 // + 1 for title
-			foundCurrent = true
-			break
-		} else {
-			prev += grp.tcMaxY + 1 // + 1 for title
-		}
-	}
-
-	// If there was no current group, it means
-	// we showed completions but there is no
-	// candidate selected yet, return 0
-	if !foundCurrent {
-		return 0
-	}
-	return prev
-}
-
-// We pass a special subset of the current input line, so that
-// completions are available no matter where the cursor is.
-func (rl *Instance) getCompletionLine() (line []rune, pos int) {
-	pos = rl.pos - len(rl.comp)
-	if pos < 0 {
-		pos = 0
-	}
-
-	switch {
-	case rl.pos == len(rl.line):
-		line = rl.line
-	case rl.pos < len(rl.line):
-		line = rl.line[:pos]
-	default:
-		line = rl.line
-	}
-
-	return
-}
-
-func (rl *Instance) getCurrentGroup() (group *CompletionGroup) {
-	for _, g := range rl.tcGroups {
-		if g.isCurrent && len(g.Values) > 0 {
-			return g
-		}
-	}
-	// We might, for whatever reason, not find one.
-	// If there are groups but no current, make first one the king.
-	if len(rl.tcGroups) > 0 {
-		// Find first group that has list > 0, as another checkup
-		for _, g := range rl.tcGroups {
-			if len(g.Values) > 0 {
-				g.isCurrent = true
-				return g
-			}
-		}
-	}
-	return
-}
-
-// cycleNextGroup - Finds either the first non-empty group,
-// or the next non-empty group after the current one.
-func (rl *Instance) cycleNextGroup() {
-	for i, g := range rl.tcGroups {
-		if g.isCurrent {
-			g.isCurrent = false
-			if i == len(rl.tcGroups)-1 {
-				rl.tcGroups[0].isCurrent = true
-			} else {
-				rl.tcGroups[i+1].isCurrent = true
-				// Here, we check if the cycled group is not empty.
-				// If yes, cycle to next one now.
-				next := rl.getCurrentGroup()
-				if len(next.Values) == 0 {
-					rl.cycleNextGroup()
-				}
-			}
-			break
-		}
-	}
-}
-
-// cyclePreviousGroup - Same as cycleNextGroup but reverse
-func (rl *Instance) cyclePreviousGroup() {
-	for i, g := range rl.tcGroups {
-		if g.isCurrent {
-			g.isCurrent = false
-			if i == 0 {
-				rl.tcGroups[len(rl.tcGroups)-1].isCurrent = true
-			} else {
-				rl.tcGroups[i-1].isCurrent = true
-				prev := rl.getCurrentGroup()
-				if len(prev.Values) == 0 {
-					rl.cyclePreviousGroup()
-				}
-			}
-			break
-		}
-	}
-}
-
-// When the completions are either longer than:
-// - The user-specified max completion length
-// - The terminal lengh
-// we use this function to prompt for confirmation before printing comps.
-func (rl *Instance) promptCompletionConfirm(sentence string) {
-	rl.hintText = []rune(sentence)
-
-	rl.compConfirmWait = true
-	rl.undoSkipAppend = true
-
-	rl.renderHelpers()
-}
-
-func (rl *Instance) getCompletionCount() (comps int, lines int, adjusted int) {
-	for _, group := range rl.tcGroups {
-		comps += group.rows
-		// if group.Name != "" {
-		adjusted++ // Title
-		// }
-		if group.tcMaxY > group.rows {
-			lines += group.rows
-			adjusted += group.rows
-		} else {
-			lines += group.tcMaxY
-			adjusted += group.tcMaxY
-		}
-	}
-	return
-}
-
-func (rl *Instance) getCurrentCandidate() (comp string) {
-	cur := rl.getCurrentGroup()
-	if cur == nil {
-		return
-	}
-
-	return cur.getCurrentCell(rl).Value
-}
-
 // this is called once and only if the local keymap has not
 // matched a given input key: that means no completion menu
 // helpers were used, so we need to update our completion
@@ -397,34 +289,6 @@ func (rl *Instance) getCurrentCandidate() (comp string) {
 func (rl *Instance) updateCompletionState() {
 	rl.resetVirtualComp(false)
 	rl.resetTabCompletion()
-}
-
-func (rl *Instance) noCompletions() bool {
-	for _, group := range rl.tcGroups {
-		if len(group.Values) > 0 {
-			return false
-		}
-	}
-
-	return true
-}
-
-// initializeCompletions lets each group compute its completion strings,
-// and compute its various coordinates/limits according to what it contains.
-// Once done, adjust some start coordinates for some groups.
-func (rl *Instance) initializeCompletions() {
-	for i, group := range rl.tcGroups {
-		// Let the group compute all its coordinates.
-		group.init(rl)
-
-		if i > 0 {
-			group.tcPosY = 1
-
-			if group.DisplayType == TabDisplayGrid {
-				group.tcPosX = 1
-			}
-		}
-	}
 }
 
 func (rl *Instance) resetTabCompletion() {
@@ -455,19 +319,27 @@ func (rl *Instance) hasUniqueCandidate() bool {
 		return false
 
 	case 1:
-		cur := rl.getCurrentGroup()
+		cur := rl.currentGroup()
 		if cur == nil {
 			return false
 		}
 
-		return len(cur.Values) == 1
+		if len(cur.values) == 1 {
+			return len(cur.values[0]) == 1
+		}
+
+		return len(cur.values) == 1
+
 	default:
 		var count int
 
 	GROUPS:
 		for _, group := range rl.tcGroups {
-			for range group.Values {
+			for _, row := range group.values {
 				count++
+				for range row {
+					count++
+				}
 				if count > 1 {
 					break GROUPS
 				}
@@ -527,6 +399,4 @@ func (rl *Instance) autoComplete() {
 	} else {
 		rl.generateCompletions()
 	}
-
-	rl.initializeCompletions()
 }

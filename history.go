@@ -1,8 +1,8 @@
 package readline
 
 import (
-	"strconv"
-	"strings"
+// "strconv"
+// "strings"
 )
 
 // History is an interface to allow you to write your own history logging
@@ -200,44 +200,43 @@ func (rl *Instance) completeHistory() {
 	rl.histHint = append([]rune(seqBold+seqFgCyanBright+string(rl.histHint)+seqReset), rl.tfLine...)
 	rl.histHint = append(rl.histHint, []rune(seqReset)...)
 
-	hist := &CompletionGroup{
-		DisplayType: TabDisplayMap,
-		MaxLength:   10,
+	hist := &comps{
+		maxLength: 10,
 	}
 
 	rl.tcPrefix = string(rl.line)
 
-	var (
-		line string
-		err  error
-	)
+	// 	var (
+	// 		line string
+	// 		err  error
+	// 	)
+	//
+	// NEXT_LINE:
+	// 	for i := history.Len() - 1; i > -1; i-- {
+	// 		line, err = history.GetLine(i)
+	// 		if err != nil {
+	// 			continue
+	// 		}
+	//
+	// 		if !strings.HasPrefix(line, string(rl.line)) || strings.TrimSpace(line) == "" {
+	// 			continue
+	// 		}
+	//
+	// 		line = strings.ReplaceAll(line, "\n", ` `)
+	//
+	// 		for _, val := range hist.Values {
+	// 			if val.Display == line {
+	// 				continue NEXT_LINE
+	// 			}
+	// 		}
+	//
+	// 		value := CompletionValue{
+	// 			Display:     line,
+	// 			Value:       line,
+	// 			Description: seqDim + strconv.Itoa(i) + seqReset,
+	// 		}
+	// 		hist.Values = append(hist.Values, value)
+	// 	}
 
-NEXT_LINE:
-	for i := history.Len() - 1; i > -1; i-- {
-		line, err = history.GetLine(i)
-		if err != nil {
-			continue
-		}
-
-		if !strings.HasPrefix(line, string(rl.line)) || strings.TrimSpace(line) == "" {
-			continue
-		}
-
-		line = strings.ReplaceAll(line, "\n", ` `)
-
-		for _, val := range hist.Values {
-			if val.Display == line {
-				continue NEXT_LINE
-			}
-		}
-
-		value := CompletionValue{
-			Display:     line,
-			Value:       line,
-			Description: seqDim + strconv.Itoa(i) + seqReset,
-		}
-		hist.Values = append(hist.Values, value)
-	}
-
-	rl.tcGroups = []*CompletionGroup{hist}
+	rl.tcGroups = []*comps{hist}
 }

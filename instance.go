@@ -92,7 +92,7 @@ type Instance struct {
 	// It takes the readline line ([]rune) and cursor pos.
 	// Returns a prefix string, and several completion groups with their items and description
 	// Asynchronously add/refresh completions
-	TabCompleter      func([]rune, int, DelayedTabContext) (string, []CompletionGroup)
+	Completer         func([]rune, int, DelayedTabContext) Completions
 	delayedTabContext DelayedTabContext
 
 	// SyntaxCompletion is used to autocomplete code syntax (like braces and
@@ -111,16 +111,17 @@ type Instance struct {
 	completer func()
 
 	// tab completion operating parameters
-	tcGroups        []*CompletionGroup // All of our suggestions tree is in here
-	tcPrefix        string             // The current tab completion prefix  against which to build candidates
-	compConfirmWait bool               // When too many completions, we ask the user to confirm with another Tab keypress.
-	tcUsedY         int                // Comprehensive offset of the currently built completions
-	comp            []rune             // The currently selected item, not yet a real part of the input line.
-	compLine        []rune             // Same as rl.line, but with the currentComp inserted.
-	compLineRest    []rune             // When we complete in the middle of a line, we cut and keep the remain.
-	tfLine          []rune             // The current search pattern entered
-	tfPos           int                // Cursor position in the isearch buffer
-	regexSearch     *regexp.Regexp     // Holds the current search regex match
+	tcGroups []*comps // All of our suggestions tree is in here
+	// tcGroups        []*CompletionGroup // All of our suggestions tree is in here
+	tcPrefix        string         // The current tab completion prefix  against which to build candidates
+	compConfirmWait bool           // When too many completions, we ask the user to confirm with another Tab keypress.
+	tcUsedY         int            // Comprehensive offset of the currently built completions
+	comp            []rune         // The currently selected item, not yet a real part of the input line.
+	compLine        []rune         // Same as rl.line, but with the currentComp inserted.
+	compLineRest    []rune         // When we complete in the middle of a line, we cut and keep the remain.
+	tfLine          []rune         // The current search pattern entered
+	tfPos           int            // Cursor position in the isearch buffer
+	regexSearch     *regexp.Regexp // Holds the current search regex match
 
 	//
 	// History -----------------------------------------------------------------------------------
