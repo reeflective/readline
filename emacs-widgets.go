@@ -211,7 +211,7 @@ func (rl *Instance) endOfLine() {
 func (rl *Instance) killLine() {
 	rl.undoHistoryAppend()
 
-	rl.saveBufToRegister(rl.line[rl.pos-1:])
+	rl.saveBufToRegister(rl.line[rl.pos:])
 	rl.line = rl.line[:rl.pos]
 	rl.resetHelpers()
 	rl.addIteration("")

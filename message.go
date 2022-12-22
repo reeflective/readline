@@ -80,7 +80,7 @@ func (sm *suffixMatcher) Add(suffixes ...rune) {
 			unique = append(unique, r)
 		}
 	}
-	sort.Sort(ByRune(unique))
+	sort.Sort(byRune(unique))
 	sm.string = string(unique)
 }
 
@@ -99,8 +99,8 @@ func (sm suffixMatcher) Matches(s string) bool {
 	return false
 }
 
-type ByRune []rune
+type byRune []rune
 
-func (r ByRune) Len() int           { return len(r) }
-func (r ByRune) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-func (r ByRune) Less(i, j int) bool { return r[i] < r[j] }
+func (r byRune) Len() int           { return len(r) }
+func (r byRune) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r byRune) Less(i, j int) bool { return r[i] < r[j] }
