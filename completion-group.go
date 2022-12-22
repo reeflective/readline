@@ -150,7 +150,7 @@ func (g *comps) computeCells(vals rawValues) {
 		}
 	}
 
-	g.tcMaxX = GetTermWidth() / g.maxCellLength
+	g.tcMaxX = GetTermWidth() / (g.maxCellLength + 2)
 	if g.tcMaxX < 1 {
 		g.tcMaxX = 1 // avoid a divide by zero error
 	}
@@ -160,7 +160,7 @@ func (g *comps) computeCells(vals rawValues) {
 	}
 
 	// We also have the width for each column
-	g.columnsWidth = make([]int, GetTermWidth()/g.maxCellLength)
+	g.columnsWidth = make([]int, GetTermWidth()/(g.maxCellLength+3))
 	for i := 0; i < g.tcMaxX; i++ {
 		g.columnsWidth[i] = g.maxCellLength
 	}
@@ -528,7 +528,7 @@ func (g *comps) padDescription(val Completion, valPad int) (pad int) {
 	}
 
 	candidateLen := len(g.displayTrimmed(val.Display)) + valPad + 1
-	individualRest := (GetTermWidth() % g.maxCellLength) / (g.tcMaxX + 1)
+	individualRest := (GetTermWidth() % g.maxCellLength) / (g.tcMaxX + 3)
 	return g.maxCellLength - candidateLen - len(g.descriptionTrimmed(val.Description)) + individualRest
 }
 

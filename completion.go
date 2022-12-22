@@ -287,7 +287,13 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 // helpers were used, so we need to update our completion
 // menu before actually editing/moving around the line.
 func (rl *Instance) updateCompletion() {
-	rl.resetVirtualComp(false)
+	switch rl.local {
+	case isearch:
+		rl.resetVirtualComp(true)
+	default:
+		rl.resetVirtualComp(false)
+	}
+
 	rl.resetCompletion()
 }
 
