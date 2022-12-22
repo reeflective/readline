@@ -83,14 +83,22 @@ func (rl *Instance) menuComplete() {
 		return
 	}
 
+	x, y := 1, 0
+
+	// Override the default move depending on the group
+	cur := rl.currentGroup()
+	if cur.aliased && rl.keys != seqArrowRight {
+		x, y = 0, 1
+	}
+
 	// Else, select the next candidate.
 	switch rl.keys {
 	case seqArrowRight:
-		rl.updateSelector(1, 0)
+		rl.updateSelector(x, y)
 	case seqArrowDown:
-		rl.updateSelector(0, 1)
+		rl.updateSelector(x, y)
 	default:
-		rl.updateSelector(0, 1)
+		rl.updateSelector(x, y)
 	}
 	rl.updateVirtualComp()
 }
@@ -106,14 +114,22 @@ func (rl *Instance) reverseMenuComplete() {
 		return
 	}
 
+	x, y := -1, 0
+
+	// Override the default move depending on the group
+	cur := rl.currentGroup()
+	if cur.aliased && rl.keys != seqArrowLeft {
+		x, y = 0, -1
+	}
+
 	// Else, select the previous candidate.
 	switch rl.keys {
 	case seqArrowLeft:
-		rl.updateSelector(-1, 0)
+		rl.updateSelector(x, y)
 	case seqArrowUp:
-		rl.updateSelector(0, -1)
+		rl.updateSelector(x, y)
 	default:
-		rl.updateSelector(0, -1)
+		rl.updateSelector(x, y)
 	}
 	rl.updateVirtualComp()
 }

@@ -5,4 +5,8 @@ var menuselectKeys = map[string]string{
 	"^[[Z": "reverse-menu-complete",
 	"^@":   "accept-and-menu-complete",
 	"^F":   "incremental-search-forward",
+	"^[[A": "reverse-menu-complete",
+	"^[[B": "menu-complete",
+	"^[[C": "menu-complete",
+	"^[[D": "reverse-menu-complete",
 }

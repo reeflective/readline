@@ -112,8 +112,8 @@ NEXT_VALUE:
 		} else {
 			// Else create a new row, and update the row pad.
 			g.values = append(g.values, []Completion{val})
-			if g.columnsWidth[0] < valLen {
-				g.columnsWidth[0] = valLen
+			if g.columnsWidth[0] < valLen+1 {
+				g.columnsWidth[0] = valLen + 1
 			}
 		}
 	}
@@ -150,7 +150,7 @@ func (g *comps) computeCells(vals rawValues) {
 		}
 	}
 
-	g.tcMaxX = GetTermWidth()/g.maxCellLength + 2
+	g.tcMaxX = GetTermWidth() / g.maxCellLength
 	if g.tcMaxX < 1 {
 		g.tcMaxX = 1 // avoid a divide by zero error
 	}
@@ -160,7 +160,7 @@ func (g *comps) computeCells(vals rawValues) {
 	}
 
 	// We also have the width for each column
-	g.columnsWidth = make([]int, GetTermWidth()/g.maxCellLength+2)
+	g.columnsWidth = make([]int, GetTermWidth()/g.maxCellLength)
 	for i := 0; i < g.tcMaxX; i++ {
 		g.columnsWidth[i] = g.maxCellLength
 	}
@@ -185,7 +185,7 @@ func (g *comps) canFitInRow(val Completion) bool {
 		return false
 	}
 
-	if GetTermWidth()/(g.maxCellLength+2)-1 < len(g.values[len(g.values)-1]) {
+	if GetTermWidth()/(g.maxCellLength)-1 < len(g.values[len(g.values)-1]) {
 		return false
 	}
 
@@ -249,7 +249,11 @@ func (g *comps) lastCell() {
 	g.tcPosX = len(g.columnsWidth) - 1
 	g.tcOffset = 0
 
-	g.findFirstCandidate(0, -1)
+	if g.aliased {
+		g.findFirstCandidate(0, -1)
+	} else {
+		g.tcPosX = len(g.values[g.tcPosY]) - 1
+	}
 }
 
 func (g *comps) selected() (comp Completion) {
@@ -307,17 +311,18 @@ func (g *comps) moveSelector(rl *Instance, x, y int) (done, next bool) {
 
 	g.tcPosX += x
 	g.tcPosY += y
+	reverse := (x < 0 || y < 0)
 
 	// 1) Ensure columns is minimum one, if not, either
 	// go to previous row, or go to previous group.
 	if g.tcPosX < 0 {
-		if g.tcPosY == 0 && (x < 0 || y < 0) {
+		if g.tcPosY == 0 && reverse {
 			g.tcPosX = 0
 			g.tcPosY = 0
 			return true, false
-		} else {
-			g.tcPosY--
 		}
+		g.tcPosY--
+		g.tcPosX = len(g.values[g.tcPosY]) - 1
 	}
 
 	// 2) If we are reverse-cycling and currently on the first candidate,
@@ -327,28 +332,33 @@ func (g *comps) moveSelector(rl *Instance, x, y int) (done, next bool) {
 			g.tcPosX = 0
 			g.tcPosY = 0
 			return true, false
-		} else {
-			g.tcPosY = len(g.values) - 1
-			g.tcPosX--
 		}
+		g.tcPosY = len(g.values) - 1
+		g.tcPosX--
 	}
 
 	// If we are on the last row, we might have to move to
 	// the next column, if there is another one.
 	if g.tcPosY > g.tcMaxY-1 {
 		g.tcPosY = 0
-		if g.tcPosX < len(g.columnsWidth)-1 {
+		if g.tcPosX < len(g.values[g.tcPosY])-1 {
 			g.tcPosX++
 		} else {
 			return true, true
 		}
 	}
 
-	// Else check that there is indeed a completion in the column
-	// for a given row, otherwise loop in the direction wished until
-	// one is found, or go next/previous column, and so on.
-	if done, next = g.findFirstCandidate(x, y); done {
-		return
+	// If we are on the last column, go to next row or next group
+	if g.tcPosX > len(g.values[g.tcPosY])-1 {
+		if g.aliased {
+			return g.findFirstCandidate(x, y)
+		}
+		g.tcPosX = 0
+		if g.tcPosY < g.tcMaxY-1 {
+			g.tcPosY++
+		} else {
+			return true, true
+		}
 	}
 
 	// By default, come back to this group for next item.
@@ -361,6 +371,7 @@ func (g *comps) moveSelector(rl *Instance, x, y int) (done, next bool) {
 func (g *comps) findFirstCandidate(x, y int) (done, next bool) {
 	for g.tcPosX > len(g.values[g.tcPosY])-1 {
 		g.tcPosY += y
+		g.tcPosY += x
 
 		// Previous column or group
 		if g.tcPosY < 0 {
@@ -426,14 +437,14 @@ func (g *comps) writeRow(rl *Instance, x, y int) (comp string) {
 
 	for i, val := range current {
 		// Generate the highlighted candidate with its padding
-		pad := g.padCandidate(current, val, i)
-		candidate := g.highlightCandidate(rl, val, y, i)
-		comp += fmt.Sprintf("%s%s", candidate, strings.Repeat(" ", pad)+" ")
+		isSelected := y == g.tcPosY && i == g.tcPosX && g.isCurrent
+		cell, pad := g.padCandidate(current, val, i)
+		comp += g.highlightCandidate(rl, val, cell, pad, isSelected) + " "
 
 		// And append the description only if at the end of the row,
 		// or if there are no aliases, in which case all comps are described.
 		if !g.aliased || i == len(current)-1 {
-			comp += writeDesc(val, i, y, pad) + " "
+			comp += writeDesc(val, i, y, len(cell)+len(pad))
 		}
 	}
 
@@ -442,9 +453,9 @@ func (g *comps) writeRow(rl *Instance, x, y int) (comp string) {
 	return
 }
 
-func (g *comps) highlightCandidate(rl *Instance, val Completion, y, x int) (candidate string) {
+func (g *comps) highlightCandidate(rl *Instance, val Completion, cell, pad string, selected bool) (candidate string) {
 	reset := sgrStart + val.Style + sgrEnd
-	candidate = g.displayTrimmed(val.Display)
+	candidate = g.displayTrimmed(val.Display) + cell
 
 	if rl.local == isearch && rl.isearch != nil && len(rl.tfLine) > 0 {
 		match := rl.isearch.FindString(candidate)
@@ -454,15 +465,17 @@ func (g *comps) highlightCandidate(rl *Instance, val Completion, y, x int) (cand
 
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
-	case y == g.tcPosY && x == g.tcPosX && g.isCurrent:
+	case selected:
 		candidate = seqCtermFg255 + seqFgBlackBright + val.Display
 		if g.aliased {
-			candidate += seqReset
+			candidate += cell + seqReset
 		}
 
 	default:
 		candidate = sgrStart + val.Style + sgrEnd + candidate + seqReset
 	}
+
+	candidate += pad
 
 	return
 }
@@ -491,18 +504,22 @@ func (g *comps) highlightDescription(rl *Instance, val Completion, y, x int) (de
 	return desc
 }
 
-func (g *comps) padCandidate(row []Completion, val Completion, x int) (pad int) {
+func (g *comps) padCandidate(row []Completion, val Completion, x int) (cell, pad string) {
+	cellLen, padLen := 0, 0
 	valLen := utf8.RuneCountInString(val.Display)
 
 	if !g.aliased {
-		return g.tcMaxLength - valLen
+		padLen = g.tcMaxLength - valLen
+		return "", strings.Repeat(" ", padLen)
 	}
+
+	cellLen = g.columnsWidth[x] - valLen
 
 	if len(row) == 1 {
-		return sum(g.columnsWidth) + 1 - valLen
+		padLen = sum(g.columnsWidth) + len(g.columnsWidth) - g.columnsWidth[x] - 1
 	}
 
-	return g.columnsWidth[x] - valLen
+	return strings.Repeat(" ", cellLen), strings.Repeat(" ", padLen)
 }
 
 func (g *comps) padDescription(val Completion, valPad int) (pad int) {
@@ -511,7 +528,8 @@ func (g *comps) padDescription(val Completion, valPad int) (pad int) {
 	}
 
 	candidateLen := len(g.displayTrimmed(val.Display)) + valPad + 1
-	return g.maxCellLength - candidateLen - len(g.descriptionTrimmed(val.Description))
+	individualRest := (GetTermWidth() % g.maxCellLength) / (g.tcMaxX + 1)
+	return g.maxCellLength - candidateLen - len(g.descriptionTrimmed(val.Description)) + individualRest
 }
 
 func (g *comps) displayTrimmed(val string) string {
@@ -536,7 +554,7 @@ func (g *comps) descriptionTrimmed(desc string) string {
 	if g.tcMaxLength > termWidth-9 {
 		g.tcMaxLength = termWidth - 9
 	}
-	g.maxDescWidth = termWidth - g.tcMaxLength - 5 // TODO: Replace 4 by length of separator.
+	g.maxDescWidth = termWidth - g.tcMaxLength - 6 // TODO: Replace 4 by length of separator.
 
 	if len(desc) > g.maxDescWidth {
 		desc = desc[:g.maxDescWidth-3] + "..."
