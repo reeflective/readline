@@ -15,7 +15,7 @@ type Completion struct {
 	// A list of runes that are automatically trimmed when a space or a non-nil character is
 	// inserted immediately after the completion. This is used for slash-autoremoval in path
 	// completions, comma-separated completions, etc.
-	noSpace SuffixMatcher
+	noSpace suffixMatcher
 }
 
 // Completions holds all completions candidates and their associated data,
@@ -24,8 +24,8 @@ type Completion struct {
 // except when these candidates have their own corresponding settings.
 type Completions struct {
 	values   rawValues
-	messages Messages
-	noSpace  SuffixMatcher
+	messages messages
+	noSpace  suffixMatcher
 	usage    string
 
 	// Initially this will be set to the part of the current word

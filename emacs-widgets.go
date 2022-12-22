@@ -61,6 +61,11 @@ func (rl *Instance) standardWidgets() lineWidgets {
 func (rl *Instance) selfInsert() {
 	rl.skipUndoAppend()
 
+	// If we just inserted a completion candidate, we still have the
+	// corresponding suffix matcher. Remove the last rune if needed,
+	// and forget the matcher.
+	rl.removeSuffixInserted()
+
 	// Prepare the line
 	// line, err := rl.mainHistory.GetLine(rl.mainHistory.Len() - 1)
 	// if err != nil {

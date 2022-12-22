@@ -10,7 +10,7 @@ import (
 // will survive until the helpers (thus including the hint) will
 // be updated/recomputed.
 func (rl *Instance) SetHint(s string) {
-	rl.hintText = []rune(s)
+	rl.hint = []rune(s)
 	rl.renderHelpers()
 }
 
@@ -18,7 +18,7 @@ func (rl *Instance) getHintText() {
 	// Use the user-provided hint by default.
 	// Useful when command/flag usage is given.
 	if rl.HintText != nil {
-		rl.hintText = rl.HintText(rl.getCompletionLine())
+		rl.hint = rl.HintText(rl.getCompletionLine())
 	}
 
 	// Remove the hint if we are autocompleting in insert mode.
@@ -28,7 +28,7 @@ func (rl *Instance) getHintText() {
 
 	// When completing history, we have a special hint
 	if len(rl.histHint) > 0 {
-		rl.hintText = append([]rune{}, rl.histHint...)
+		rl.hint = append([]rune{}, rl.histHint...)
 	}
 
 	// But the local keymap, especially completions,
@@ -67,25 +67,12 @@ func (rl *Instance) hintNoMatches() {
 		noMatches += "'" + groupsStr + "'"
 	}
 
-	rl.hintText = []rune(noMatches + " completions")
-}
-
-func (rl *Instance) isearchHint() {
-	rl.hintText = []rune(seqBold + seqFgCyan + "isearch: " + seqReset)
-	rl.hintText = append(rl.hintText, rl.tfLine...)
-
-	if rl.regexSearch == nil && len(rl.tfLine) > 0 {
-		rl.hintText = append(rl.hintText, []rune(seqFgRed+" ! failed to compile search regexp")...)
-	} else if rl.noCompletions() {
-		rl.hintText = append(rl.hintText, []rune(seqFgRed+" ! no matches")...)
-	}
-
-	rl.hintText = append(rl.hintText, []rune(seqReset)...)
+	rl.hint = []rune(noMatches + " completions")
 }
 
 // writeHintText - only writes the hint text and computes its offsets.
 func (rl *Instance) writeHintText() {
-	if len(rl.hintText) == 0 {
+	if len(rl.hint) == 0 {
 		rl.hintY = 0
 		return
 	}
@@ -93,10 +80,10 @@ func (rl *Instance) writeHintText() {
 	// Wraps the line, and counts the number of newlines
 	// in the string, adjusting the offset as well.
 	re := regexp.MustCompile(`\r?\n`)
-	newlines := re.Split(string(rl.hintText), -1)
+	newlines := re.Split(string(rl.hint), -1)
 	offset := len(newlines)
 
-	wrapped, hintLen := wrapText(string(rl.hintText), GetTermWidth())
+	wrapped, hintLen := wrapText(string(rl.hint), GetTermWidth())
 	offset += hintLen
 	rl.hintY = offset
 
@@ -109,5 +96,5 @@ func (rl *Instance) writeHintText() {
 
 func (rl *Instance) resetHintText() {
 	rl.hintY = 0
-	rl.hintText = []rune{}
+	rl.hint = []rune{}
 }

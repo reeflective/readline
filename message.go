@@ -6,27 +6,27 @@ import (
 	"strings"
 )
 
-type Messages struct {
+type messages struct {
 	messages map[string]bool
 }
 
-func (m *Messages) init() {
+func (m *messages) init() {
 	if m.messages == nil {
 		m.messages = make(map[string]bool)
 	}
 }
 
-func (m Messages) IsEmpty() bool {
+func (m messages) IsEmpty() bool {
 	// TODO replacement for Action.skipCache - does this need to consider suppressed messages or is this fine?
 	return len(m.messages) == 0
 }
 
-func (m *Messages) Add(s string) {
+func (m *messages) Add(s string) {
 	m.init()
 	m.messages[s] = true
 }
 
-func (m Messages) Get() []string {
+func (m messages) Get() []string {
 	messages := make([]string, 0)
 	for message := range m.messages {
 		messages = append(messages, message)
@@ -35,7 +35,7 @@ func (m Messages) Get() []string {
 	return messages
 }
 
-func (m *Messages) Suppress(expr ...string) error {
+func (m *messages) Suppress(expr ...string) error {
 	m.init()
 
 	for _, e := range expr {
@@ -53,7 +53,7 @@ func (m *Messages) Suppress(expr ...string) error {
 	return nil
 }
 
-func (m *Messages) Merge(other Messages) {
+func (m *messages) Merge(other messages) {
 	if other.messages == nil {
 		return
 	}
@@ -63,11 +63,12 @@ func (m *Messages) Merge(other Messages) {
 	}
 }
 
-type SuffixMatcher struct {
+type suffixMatcher struct {
 	string
+	pos int // Used to know if the saved suffix matcher is deprecated
 }
 
-func (sm *SuffixMatcher) Add(suffixes ...rune) {
+func (sm *suffixMatcher) Add(suffixes ...rune) {
 	if strings.Contains(sm.string, "*") || strings.Contains(string(suffixes), "*") {
 		sm.string = "*"
 		return
@@ -83,13 +84,13 @@ func (sm *SuffixMatcher) Add(suffixes ...rune) {
 	sm.string = string(unique)
 }
 
-func (sm *SuffixMatcher) Merge(other SuffixMatcher) {
+func (sm *suffixMatcher) Merge(other suffixMatcher) {
 	for _, r := range []rune(other.string) {
 		sm.Add(r)
 	}
 }
 
-func (sm SuffixMatcher) Matches(s string) bool {
+func (sm suffixMatcher) Matches(s string) bool {
 	for _, r := range []rune(sm.string) {
 		if r == '*' || strings.HasSuffix(s, string(r)) {
 			return true

@@ -10,8 +10,8 @@ import (
 
 func (rl *Instance) enterIsearchMode() {
 	rl.local = isearch
-	rl.hintText = []rune(seqBold + seqFgCyan + "isearch: " + seqReset)
-	rl.hintText = append(rl.hintText, rl.tfLine...)
+	rl.hint = []rune(seqBold + seqFgCyan + "isearch: " + seqReset)
+	rl.hint = append(rl.hint, rl.tfLine...)
 }
 
 // useIsearchLine replaces the input line with our current
@@ -49,9 +49,9 @@ func (rl *Instance) updateIsearch() {
 	}
 
 	var err error
-	rl.regexSearch, err = regexp.Compile(regexStr)
+	rl.isearch, err = regexp.Compile(regexStr)
 	if err != nil {
-		rl.hintText = append(rl.hintText, []rune(seqFgRed+"Failed to compile search regexp")...)
+		rl.hint = append(rl.hint, []rune(seqFgRed+"Failed to compile search regexp")...)
 	}
 
 	rl.completer()
@@ -62,6 +62,19 @@ func (rl *Instance) updateIsearch() {
 	}
 }
 
+func (rl *Instance) isearchHint() {
+	rl.hint = []rune(seqBold + seqFgCyan + "isearch: " + seqReset + seqBgDarkGray)
+	rl.hint = append(rl.hint, rl.tfLine...)
+
+	if rl.isearch == nil && len(rl.tfLine) > 0 {
+		rl.hint = append(rl.hint, []rune(seqFgRed+" ! failed to compile search regexp")...)
+	} else if rl.noCompletions() {
+		rl.hint = append(rl.hint, []rune(seqFgRed+" ! no matches")...)
+	}
+
+	rl.hint = append(rl.hint, []rune(seqReset)...)
+}
+
 func (rl *Instance) resetIsearch() {
 	if rl.local != isearch {
 		return
@@ -69,7 +82,7 @@ func (rl *Instance) resetIsearch() {
 
 	rl.tfLine = []rune{}
 	rl.tfPos = 0
-	rl.regexSearch = nil
+	rl.isearch = nil
 }
 
 func (rl *Instance) isIsearchMode(mode keymapMode) bool {

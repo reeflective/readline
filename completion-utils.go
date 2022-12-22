@@ -25,7 +25,7 @@ func (rl *Instance) getCompletionLine() (line []rune, pos int) {
 // - The terminal lengh
 // we use this function to prompt for confirmation before printing comps.
 func (rl *Instance) promptCompletionConfirm(sentence string) {
-	rl.hintText = []rune(sentence)
+	rl.hint = []rune(sentence)
 
 	rl.compConfirmWait = true
 	rl.undoSkipAppend = true

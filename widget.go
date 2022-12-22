@@ -91,7 +91,7 @@ func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) {
 	}
 
 	if len(event.HintText) > 0 {
-		rl.hintText = event.HintText
+		rl.hint = event.HintText
 	}
 
 	if len(event.ToolTip) > 0 {

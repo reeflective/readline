@@ -12,7 +12,7 @@ import (
 type comps struct {
 	tag           string         // Printed on top of the group's completions
 	values        [][]Completion // Values are grouped by aliases/rows, with computed paddings.
-	noSpace       SuffixMatcher  // Suffixes to remove if a space or non-nil character is entered after the completion.
+	noSpace       suffixMatcher  // Suffixes to remove if a space or non-nil character is entered after the completion.
 	columnsWidth  []int          // Computed width for each column of completions, when aliases
 	listSeparator string         // This is used to separate completion candidates from their descriptions.
 	aliased       bool           // Are their aliased completions
@@ -32,7 +32,7 @@ type comps struct {
 // Initialization-time functions ----------------------------------------------------------------------------
 //
 
-func (rl *Instance) newGroup(tag string, vals rawValues, aliased bool, sm SuffixMatcher) {
+func (rl *Instance) newGroup(tag string, vals rawValues, aliased bool, sm suffixMatcher) {
 	grp := &comps{
 		tag:           tag,
 		noSpace:       sm,
@@ -51,20 +51,20 @@ func (rl *Instance) newGroup(tag string, vals rawValues, aliased bool, sm Suffix
 
 	// Check that all comps have a display value,
 	// and begin computing some parameters.
-	vals = grp.checkDisplays(vals, aliased)
+	vals = grp.checkDisplays(vals)
 
 	// Keep computing/devising some parameters and constraints.
 	// This does not do much when we have aliased completions.
-	grp.computeCells(vals, aliased)
+	grp.computeCells(vals)
 
 	// Rearrange all candidates into a matrix of completions,
 	// based on most parameters computed above.
-	grp.makeMatrix(vals, aliased)
+	grp.makeMatrix(vals)
 
 	rl.tcGroups = append(rl.tcGroups, grp)
 }
 
-func (g *comps) checkDisplays(vals rawValues, aliased bool) rawValues {
+func (g *comps) checkDisplays(vals rawValues) rawValues {
 	for index, val := range vals {
 		if val.Display == "" {
 			vals[index].Display = val.Value
@@ -72,7 +72,7 @@ func (g *comps) checkDisplays(vals rawValues, aliased bool) rawValues {
 
 		// If we have aliases, the padding will be computed later.
 		// Don't concatenate the description to the value as display.
-		if aliased {
+		if g.aliased {
 			continue
 		}
 
@@ -86,14 +86,14 @@ func (g *comps) checkDisplays(vals rawValues, aliased bool) rawValues {
 	return vals
 }
 
-func (g *comps) makeMatrix(vals rawValues, aliased bool) {
+func (g *comps) makeMatrix(vals rawValues) {
 NEXT_VALUE:
 	for _, val := range vals {
 		valLen := utf8.RuneCountInString(val.Display)
 
 		// If we have an alias, and we must get the right
 		// column and the right padding for this column.
-		if aliased {
+		if g.aliased {
 			for i, row := range g.values {
 				if row[0].Description == val.Description {
 					g.values[i] = append(row, val)
@@ -107,7 +107,7 @@ NEXT_VALUE:
 		// Else, either add it to the current row if there is still room
 		// on it for this candidate, or add a new one. We only do that when
 		// we know we don't have aliases.
-		if !aliased && g.canFitInRow(val) {
+		if !g.aliased && g.canFitInRow(val) {
 			g.values[len(g.values)-1] = append(g.values[len(g.values)-1], val)
 		} else {
 			// Else create a new row, and update the row pad.
@@ -118,7 +118,7 @@ NEXT_VALUE:
 		}
 	}
 
-	if aliased {
+	if g.aliased {
 		g.tcMaxX = len(g.columnsWidth)
 		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth)
 	}
@@ -129,9 +129,9 @@ NEXT_VALUE:
 	}
 }
 
-func (g *comps) computeCells(vals rawValues, aliased bool) {
+func (g *comps) computeCells(vals rawValues) {
 	// Aliases will compute themselves individually, later.
-	if aliased {
+	if g.aliased {
 		return
 	}
 
@@ -196,40 +196,42 @@ func (g *comps) canFitInRow(val Completion) bool {
 // we ask each of them to filter its own items and return the results to the shell for aggregating them.
 // The rx parameter is passed, as the shell already checked that the search pattern is valid.
 func (g *comps) updateIsearch(rl *Instance) {
-	if rl.regexSearch == nil {
+	if rl.isearch == nil {
 		return
 	}
 
-	var suggs [][]Completion
-
-	// We perform filter right here, so we create a new
-	// completion group, and populate it with our results.
+	suggs := make(rawValues, 0)
 	for i := range g.values {
 		row := g.values[i]
 
-		var filtered []Completion
-
 		for _, val := range row {
-			if rl.regexSearch.MatchString(val.Value) {
-				filtered = append(filtered, val)
-			} else if val.Description != "" && rl.regexSearch.MatchString(val.Description) {
-				filtered = append(filtered, val)
+			if rl.isearch.MatchString(val.Value) {
+				suggs = append(suggs, val)
+			} else if val.Description != "" && rl.isearch.MatchString(val.Description) {
+				suggs = append(suggs, val)
 			}
 		}
-
-		suggs = append(suggs, filtered)
 	}
 
-	// We overwrite the group's items, (will be refreshed
-	// as soon as something is typed in the search)
-	g.values = suggs
-
+	// Reset the group parameters
+	g.values = make([][]Completion, 0)
 	g.tcPosX = -1
 	g.tcPosY = -1
 	g.tcOffset = 0
+	g.columnsWidth = []int{0}
 
-	// Finally, the group computes its new printing settings
-	// g.init(rl)
+	// Assign the filtered values
+	vals, _, aliased := groupValues(suggs)
+	g.aliased = aliased
+
+	if len(vals) == 0 {
+		return
+	}
+
+	// And perform the usual initialization routines.
+	vals = g.checkDisplays(vals)
+	g.computeCells(vals)
+	g.makeMatrix(vals)
 }
 
 //
@@ -431,7 +433,7 @@ func (g *comps) writeRow(rl *Instance, x, y int) (comp string) {
 		// And append the description only if at the end of the row,
 		// or if there are no aliases, in which case all comps are described.
 		if !g.aliased || i == len(current)-1 {
-			comp += writeDesc(val, x, i, pad) + " "
+			comp += writeDesc(val, i, y, pad) + " "
 		}
 	}
 
@@ -444,15 +446,16 @@ func (g *comps) highlightCandidate(rl *Instance, val Completion, y, x int) (cand
 	reset := sgrStart + val.Style + sgrEnd
 	candidate = g.displayTrimmed(val.Display)
 
-	if rl.local == isearch && rl.regexSearch != nil && len(rl.tfLine) > 0 {
-		match := rl.regexSearch.FindString(candidate)
+	if rl.local == isearch && rl.isearch != nil && len(rl.tfLine) > 0 {
+		match := rl.isearch.FindString(candidate)
 		match = seqBgBlackBright + match + seqReset + reset
-		candidate = rl.regexSearch.ReplaceAllLiteralString(candidate, match)
+		candidate = rl.isearch.ReplaceAllLiteralString(candidate, match)
 	}
 
 	switch {
+	// If the comp is currently selected, overwrite any highlighting already applied.
 	case y == g.tcPosY && x == g.tcPosX && g.isCurrent:
-		candidate = seqCtermFg255 + seqFgBlackBright + candidate
+		candidate = seqCtermFg255 + seqFgBlackBright + val.Display
 		if g.aliased {
 			candidate += seqReset
 		}
@@ -471,16 +474,19 @@ func (g *comps) highlightDescription(rl *Instance, val Completion, y, x int) (de
 
 	desc = g.descriptionTrimmed(val.Description)
 
-	desc = seqDim + g.listSeparator + " " + desc
-	reset := seqReset + seqDim
-
-	if rl.local == isearch && rl.regexSearch != nil && len(rl.tfLine) > 0 {
-		match := rl.regexSearch.FindString(desc)
-		match = seqBgBlackBright + match + seqReset + reset
-		desc = rl.regexSearch.ReplaceAllLiteralString(desc, match)
+	if rl.local == isearch && rl.isearch != nil && len(rl.tfLine) > 0 {
+		match := rl.isearch.FindString(desc)
+		match = seqBgBlackBright + match + seqReset + seqDim
+		desc = rl.isearch.ReplaceAllLiteralString(desc, match)
 	}
 
-	desc += seqReset
+	switch {
+	// If the comp is currently selected, overwrite any highlighting already applied.
+	case y == g.tcPosY && x == g.tcPosX && g.isCurrent && !g.aliased:
+		desc = seqCtermFg255 + seqFgBlackBright + g.descriptionTrimmed(val.Description)
+	}
+
+	desc = seqDim + g.listSeparator + " " + desc + seqReset
 
 	return desc
 }

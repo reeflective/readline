@@ -117,11 +117,12 @@ type Instance struct {
 	compConfirmWait bool           // When too many completions, we ask the user to confirm with another Tab keypress.
 	tcUsedY         int            // Comprehensive offset of the currently built completions
 	comp            []rune         // The currently selected item, not yet a real part of the input line.
+	compSuffix      suffixMatcher  // The suffix matcher is kept for removal after actually inserting the candidate.
 	compLine        []rune         // Same as rl.line, but with the currentComp inserted.
 	compLineRest    []rune         // When we complete in the middle of a line, we cut and keep the remain.
 	tfLine          []rune         // The current search pattern entered
 	tfPos           int            // Cursor position in the isearch buffer
-	regexSearch     *regexp.Regexp // Holds the current search regex match
+	isearch         *regexp.Regexp // Holds the current search regex match
 
 	//
 	// History -----------------------------------------------------------------------------------
@@ -150,8 +151,8 @@ type Instance struct {
 	// It returns the hint text to display.
 	HintText func([]rune, int) []rune
 
-	hintText []rune // The actual hint text
-	hintY    int    // Offset to hints, if it spans multiple lines
+	hint  []rune // The actual hint text
+	hintY int    // Offset to hints, if it spans multiple lines
 
 	//
 	// Other -------------------------------------------------------------------------------------

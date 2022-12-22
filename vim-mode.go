@@ -132,7 +132,7 @@ func (rl *Instance) viHintMessage() {
 	// we don't bother changing the keymap just to read a key.
 	if rl.isViopp {
 		vioppMsg := fmt.Sprintf("viopp: %s", rl.keys)
-		rl.hintText = []rune(vioppMsg)
+		rl.hint = []rune(vioppMsg)
 		return
 	}
 
@@ -140,7 +140,7 @@ func (rl *Instance) viHintMessage() {
 	switch rl.local {
 	case viopp:
 		vioppMsg := fmt.Sprintf("viopp: %s", rl.keys)
-		rl.hintText = []rune(vioppMsg)
+		rl.hint = []rune(vioppMsg)
 		return
 	case visual:
 		return
@@ -149,9 +149,9 @@ func (rl *Instance) viHintMessage() {
 	// But if not, we check for the global keymap
 	switch rl.main {
 	case viins:
-		rl.hintText = []rune("-- INSERT --")
+		rl.hint = []rune("-- INSERT --")
 	case vicmd:
-		rl.hintText = []rune("-- VIM KEYS -- (press `i` to return to normal editing mode)")
+		rl.hint = []rune("-- VIM KEYS -- (press `i` to return to normal editing mode)")
 	default:
 		rl.getHintText()
 	}

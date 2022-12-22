@@ -114,7 +114,7 @@ func (rl *Instance) renderHelpers() {
 	// Print hints, check for any confirmation hint current.
 	// (do not overwrite the confirmation question hint)
 	if !rl.compConfirmWait {
-		if len(rl.hintText) > 0 {
+		if len(rl.hint) > 0 {
 			print("\n")
 		}
 		rl.writeHintText()
@@ -137,7 +137,7 @@ func (rl *Instance) renderHelpers() {
 	}
 
 	// Anyway, compensate for hint printout
-	if len(rl.hintText) > 0 {
+	if len(rl.hint) > 0 {
 		moveCursorUp(rl.hintY)
 	} else if !rl.compConfirmWait {
 		moveCursorUp(1)
