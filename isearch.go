@@ -80,6 +80,7 @@ func (rl *Instance) resetIsearch() {
 		return
 	}
 
+	rl.local = ""
 	rl.tfLine = []rune{}
 	rl.tfPos = 0
 	rl.isearch = nil
