@@ -119,13 +119,7 @@ func (rl *Instance) printLine() {
 		rl.Prompt.printLast(rl)
 
 		// Assemble the line, taking virtual completions into account
-		var line []rune
-		if len(rl.comp) > 0 {
-			line = rl.compLine
-		} else {
-			line = rl.line
-		}
-
+		line := rl.getLineVirtual()
 		highlighted := string(line) + " "
 
 		// Print the input line with optional syntax highlighting
@@ -139,12 +133,9 @@ func (rl *Instance) printLine() {
 		// And print
 		print(highlighted)
 
-		if rl.config.HistoryAutosuggest {
-			rl.autosuggestHistory(line)
-			if len(rl.histSuggested) > 0 {
-				moveCursorBackwards(1)
-				print(seqDim + string(rl.histSuggested) + seqReset)
-			}
+		if len(rl.histSuggested) > 0 {
+			moveCursorBackwards(1)
+			print(seqDim + string(rl.histSuggested) + seqReset)
 		}
 	}
 
@@ -218,7 +209,10 @@ func (rl *Instance) insert(r []rune) {
 }
 
 func (rl *Instance) carriageReturn() {
+	// Remove all helpers and line autosuggest
+	rl.histSuggested = []rune{}
 	rl.clearHelpers()
+	rl.printLine()
 	print("\r\n")
 
 	if rl.config.HistoryAutoWrite {

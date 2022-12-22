@@ -105,6 +105,9 @@ func (rl *Instance) clearHelpers() {
 // computes or refreshes any value, except from inside the echo function.
 func (rl *Instance) renderHelpers() {
 	// Optional, because neutral on placement
+	if rl.config.HistoryAutosuggest {
+		rl.autosuggestHistory(rl.getLineVirtual())
+	}
 	rl.printLine()
 
 	// Go at beginning of first line after input remainder
