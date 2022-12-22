@@ -130,7 +130,7 @@ func (rl *Instance) updateVirtualComp() {
 		// Enter twice to actually run the command
 		// Refresh first, and then quit the completion mode
 		rl.undoSkipAppend = true
-		rl.resetTabCompletion()
+		rl.resetCompletion()
 	} else {
 
 		// Special case for the only special escape, which
@@ -202,6 +202,11 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 
 func (rl *Instance) removeSuffixCandidate(cur *comps) (comp string) {
 	comp = cur.selected().Value
+
+	// Add a space to suffix matcher when empty.
+	if cur.noSpace.string == "" {
+		cur.noSpace.Add([]rune{' '}...)
+	}
 
 	// When the suffix matcher is a wildcard, that just means
 	// it's a noSpace directive: if the currently inserted key

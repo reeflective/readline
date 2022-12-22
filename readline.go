@@ -123,7 +123,7 @@ func (rl *Instance) Readline() (string, error) {
 		// Past the local keymap, our actions have a direct effect on the line
 		// or on the cursor position, so we must first "reset" or accept any
 		// completion state we're in, if any, such as a virtually inserted candidate.
-		rl.updateCompletionState()
+		rl.updateCompletion()
 
 		// 2) If the key was not matched against any local widget, match it
 		// against the global keymap, which can never be nil.

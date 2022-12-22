@@ -38,12 +38,13 @@ type Instance struct {
 	//
 	// Vim Operating Parameters -------------------------------------------------------------------
 
-	iterations      string     // Global iterations.
-	negativeArg     bool       // Emacs supports negative iterations.
-	registers       *registers // All memory text registers, can be consulted with Alt"
-	isViopp         bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
-	iterationsViopp string     // Iterations specific to viopp mode. (2y2w => "2"w)
-	pendingActions  []action   // Widgets that have registered themselves as waiting for another action to be ran.
+	iterations        string     // Global iterations.
+	negativeArg       bool       // Emacs supports negative iterations.
+	registers         *registers // All memory text registers, can be consulted with Alt"
+	registersComplete bool       // When the completer is for registers, used to reset
+	isViopp           bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
+	iterationsViopp   string     // Iterations specific to viopp mode. (2y2w => "2"w)
+	pendingActions    []action   // Widgets that have registered themselves as waiting for another action to be ran.
 
 	// Input Line ---------------------------------------------------------------------------------
 
@@ -111,8 +112,7 @@ type Instance struct {
 	completer func()
 
 	// tab completion operating parameters
-	tcGroups []*comps // All of our suggestions tree is in here
-	// tcGroups        []*CompletionGroup // All of our suggestions tree is in here
+	tcGroups        []*comps       // All of our suggestions tree is in here
 	tcPrefix        string         // The current tab completion prefix  against which to build candidates
 	compConfirmWait bool           // When too many completions, we ask the user to confirm with another Tab keypress.
 	tcUsedY         int            // Comprehensive offset of the currently built completions

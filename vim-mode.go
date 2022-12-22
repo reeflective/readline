@@ -84,7 +84,7 @@ func (rl *Instance) isVimEscape(key string) (cb EventCallback, yes bool) {
 		// callback/widget was found on the local keymap,
 		// thus avoiding the update of the completion system:
 		// do it here instead.
-		rl.updateCompletionState()
+		rl.updateCompletion()
 
 		event := &EventReturn{
 			Widget:  "vi-cmd-mode",

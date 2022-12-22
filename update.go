@@ -3,7 +3,7 @@ package readline
 // initHelpers is called once at the very beginning of a readline start.
 func (rl *Instance) initHelpers() {
 	rl.resetHintText()
-	rl.resetTabCompletion()
+	rl.resetCompletion()
 	rl.completer = nil
 	rl.getHintText()
 }
@@ -80,7 +80,7 @@ func (rl *Instance) updateReferences() {
 
 func (rl *Instance) resetHelpers() {
 	rl.resetHintText()
-	rl.resetTabCompletion()
+	rl.resetCompletion()
 }
 
 // clearHelpers - Clears everything: prompt, input, hints & comps,

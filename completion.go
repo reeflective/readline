@@ -24,7 +24,7 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	// Cancel completion mode if we don't have any candidates.
 	if rl.noCompletions() {
 		rl.hintNoMatches()
-		rl.resetTabCompletion()
+		rl.resetCompletion()
 		return
 	}
 
@@ -36,7 +36,7 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	if rl.hasUniqueCandidate() && len(rl.histHint) == 0 {
 		rl.undoSkipAppend = false
 		rl.insertCandidate()
-		rl.resetTabCompletion()
+		rl.resetCompletion()
 	}
 }
 
@@ -286,12 +286,12 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 // matched a given input key: that means no completion menu
 // helpers were used, so we need to update our completion
 // menu before actually editing/moving around the line.
-func (rl *Instance) updateCompletionState() {
+func (rl *Instance) updateCompletion() {
 	rl.resetVirtualComp(false)
-	rl.resetTabCompletion()
+	rl.resetCompletion()
 }
 
-func (rl *Instance) resetTabCompletion() {
+func (rl *Instance) resetCompletion() {
 	// When we have a history hint, that means we are
 	// currently completing history, potentially in
 	// autocomplete: don't exit the current menu.
@@ -302,6 +302,12 @@ func (rl *Instance) resetTabCompletion() {
 	rl.tcPrefix = ""
 	rl.compConfirmWait = false
 	rl.tcUsedY = 0
+
+	// Don't persist registers completion.
+	if rl.registersComplete {
+		rl.completer = nil
+		rl.registersComplete = false
+	}
 
 	// Reset tab highlighting
 	if len(rl.tcGroups) > 0 {
@@ -392,7 +398,7 @@ func (rl *Instance) autoComplete() {
 		return
 	}
 
-	rl.resetTabCompletion()
+	rl.resetCompletion()
 
 	if rl.completer != nil {
 		rl.completer()

@@ -161,7 +161,7 @@ func (rl *Instance) listChoices() {
 	// Cancel completion mode if
 	// we don't have any candidates.
 	if rl.noCompletions() {
-		rl.resetTabCompletion()
+		rl.resetCompletion()
 		return
 	}
 }
@@ -173,6 +173,7 @@ func (rl *Instance) viRegistersComplete() {
 	case isearch:
 	default:
 		registerCompletion := func() {
+			rl.registersComplete = true
 			rl.tcGroups = make([]*comps, 0)
 			comps := rl.completeRegisters()
 			rl.groupCompletions(comps)
@@ -196,7 +197,7 @@ func (rl *Instance) historyComplete() {
 		// source, cancel history completion.
 		if rl.historySourcePos == len(rl.histories)-1 {
 			rl.histHint = []rune{}
-			rl.resetTabCompletion()
+			rl.resetCompletion()
 			rl.local = ""
 			rl.resetHintText()
 			rl.completer = nil
