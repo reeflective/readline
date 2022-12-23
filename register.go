@@ -269,7 +269,7 @@ func (rl *Instance) completeRegisters() Completions {
 	// This space is trimmed when the buffer is being passed to users)
 	unnamed := Completion{
 		Value:   string(rl.registers.unnamed),
-		Display: seqDim + "\"\"" + seqFgWhiteBright + " " + string(rl.registers.unnamed),
+		Display: seqDim + "\"\"" + seqDimReset + " " + string(rl.registers.unnamed),
 	}
 	comps.values = append(comps.values, unnamed)
 
@@ -295,7 +295,7 @@ func (rl *Instance) completeNumRegs() []Completion {
 		comp := Completion{
 			Tag:     tag,
 			Value:   string(buf),
-			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqFgWhiteBright, string(buf)),
+			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqDimReset, string(buf)),
 		}
 
 		regs = append(regs, comp)
@@ -319,7 +319,7 @@ func (rl *Instance) completeAlphaRegs() []Completion {
 		comp := Completion{
 			Tag:     tag,
 			Value:   string(buf),
-			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqFgWhiteBright, string(buf)),
+			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqDimReset, string(buf)),
 		}
 
 		regs = append(regs, comp)

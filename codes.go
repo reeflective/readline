@@ -119,6 +119,12 @@ var (
 	seqDim        = "\x1b[2m"
 	seqUnderscore = "\x1b[4m"
 	seqBlink      = "\x1b[5m"
+
+	// Effects reset
+	seqBoldReset       = "\x1b[21m"
+	seqDimReset        = "\x1b[22m"
+	seqUnderscoreReset = "\x1b[24m"
+	seqBlinkReset      = "\x1b[25m"
 )
 
 // Text colours

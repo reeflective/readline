@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
+
+	ansi "github.com/acarl005/stripansi"
 )
 
 // comps is used to structure different types of completions with different
@@ -466,7 +468,7 @@ func (g *comps) highlightCandidate(rl *Instance, val Completion, cell, pad strin
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case selected:
-		candidate = seqCtermFg255 + seqFgBlackBright + val.Display
+		candidate = seqCtermFg255 + seqFgBlackBright + ansi.Strip(val.Display)
 		if g.aliased {
 			candidate += cell + seqReset
 		}

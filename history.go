@@ -1,8 +1,9 @@
 package readline
 
 import (
-// "strconv"
-// "strings"
+	"fmt"
+	"strconv"
+	"strings"
 )
 
 // History is an interface to allow you to write your own history logging
@@ -184,14 +185,14 @@ func (rl *Instance) walkHistory(i int) {
 
 // completeHistory - Populates a CompletionGroup with history and returns it the shell
 // we populate only one group, so as to pass it to the main completion engine.
-func (rl *Instance) completeHistory() {
+func (rl *Instance) completeHistory() Completions {
 	if len(rl.histories) == 0 {
-		return
+		return Completions{}
 	}
 
 	history := rl.currentHistory()
 	if history == nil {
-		return
+		return Completions{}
 	}
 
 	rl.histHint = []rune(rl.historyNames[rl.historySourcePos])
@@ -204,39 +205,47 @@ func (rl *Instance) completeHistory() {
 		maxLength: 10,
 	}
 
-	rl.tcPrefix = string(rl.line)
+	compLines := make([]Completion, 0)
 
-	// 	var (
-	// 		line string
-	// 		err  error
-	// 	)
-	//
-	// NEXT_LINE:
-	// 	for i := history.Len() - 1; i > -1; i-- {
-	// 		line, err = history.GetLine(i)
-	// 		if err != nil {
-	// 			continue
-	// 		}
-	//
-	// 		if !strings.HasPrefix(line, string(rl.line)) || strings.TrimSpace(line) == "" {
-	// 			continue
-	// 		}
-	//
-	// 		line = strings.ReplaceAll(line, "\n", ` `)
-	//
-	// 		for _, val := range hist.Values {
-	// 			if val.Display == line {
-	// 				continue NEXT_LINE
-	// 			}
-	// 		}
-	//
-	// 		value := CompletionValue{
-	// 			Display:     line,
-	// 			Value:       line,
-	// 			Description: seqDim + strconv.Itoa(i) + seqReset,
-	// 		}
-	// 		hist.Values = append(hist.Values, value)
-	// 	}
+	var (
+		line string
+		err  error
+	)
 
-	rl.tcGroups = []*comps{hist}
+NEXT_LINE:
+	for i := history.Len() - 1; i > -1; i-- {
+		line, err = history.GetLine(i)
+		if err != nil {
+			continue
+		}
+
+		if !strings.HasPrefix(line, string(rl.line)) || strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		line = strings.ReplaceAll(line, "\n", ` `)
+
+		for _, row := range hist.values {
+			if row[0].Display == line {
+				continue NEXT_LINE
+			}
+		}
+
+		// Proper pad for indexes
+		indexStr := strconv.Itoa(i)
+		pad := strings.Repeat(" ", len(strconv.Itoa(history.Len()))-len(indexStr))
+		display := fmt.Sprintf("%s%s %s%s", seqDim, indexStr+pad, seqDimReset, line)
+
+		value := Completion{
+			Display: display,
+			Value:   line,
+		}
+
+		compLines = append(compLines, value)
+	}
+
+	comps := CompleteRaw(compLines)
+	comps.PREFIX = string(rl.line)
+
+	return comps
 }

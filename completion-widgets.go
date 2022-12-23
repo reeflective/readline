@@ -232,6 +232,12 @@ func (rl *Instance) historyComplete() {
 		}
 
 		// Else, generate the completions.
-		rl.startMenuComplete(rl.completeHistory)
+		histCompletion := func() {
+			rl.tcGroups = make([]*comps, 0)
+			comps := rl.completeHistory()
+			rl.groupCompletions(comps)
+			rl.setCompletionPrefix(comps)
+		}
+		rl.startMenuComplete(histCompletion)
 	}
 }
