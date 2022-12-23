@@ -46,14 +46,27 @@ func (rl *Instance) undo() {
 		rl.lineBuf = string(rl.line)
 	}
 
-	rl.undoPos++
+	var undo undoItem
 
-	if rl.undoPos > len(rl.undoHistory) {
-		rl.undoPos = len(rl.undoHistory)
-		return
+	// When undoing, we loop through preceding undo items
+	// as long as they are identical to the current line.
+	for {
+		rl.undoPos++
+
+		// Exit if we reached the end.
+		if rl.undoPos > len(rl.undoHistory) {
+			rl.undoPos = len(rl.undoHistory)
+			return
+		}
+
+		// Break as soon as we find a non-matching line.
+		undo = rl.undoHistory[len(rl.undoHistory)-rl.undoPos]
+		if undo.line != string(rl.line) {
+			break
+		}
 	}
 
-	undo := rl.undoHistory[len(rl.undoHistory)-rl.undoPos]
+	// Use the undo we found
 	rl.line = []rune(undo.line)
 	rl.pos = undo.pos
 }
