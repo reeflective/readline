@@ -272,20 +272,17 @@ func (g *comps) writeComps(rl *Instance) (comp string) {
 	}
 
 	// Base parameters
-	x := 0
-	y := 0
-	done := false
+	var x, y int
 
 	for range g.values {
-		// var lineComp string
-
 		// Generate the completion string for this row (comp/aliases
 		// and/or descriptions), and apply any styles and isearch
 		// highlighting with pattern replacement,
 		comp += g.writeRow(rl, x, y)
 
-		x, y, done = g.indexes(x, y)
-		if done {
+		x++
+		y++
+		if y > g.tcMaxY {
 			break
 		}
 	}
@@ -399,31 +396,6 @@ func (g *comps) findFirstCandidate(x, y int) (done, next bool) {
 	}
 
 	return
-}
-
-func (g *comps) indexes(x, y int) (int, int, bool) {
-	// var comp string
-	done := false
-
-	// current := g.values[y]
-
-	// We return to a new line if either we reached
-	// the maximum number of columns in the grid, or
-	// if we reached the last column of a list/aliased.
-	x++
-	y++
-	// if x > len(current) || x > g.tcMaxX {
-	// x = 1
-	// y++
-	if y > g.tcMaxY {
-		// y--
-		done = true
-		// } else {
-		// 	comp += "\r\n"
-	}
-	// }
-
-	return x, y, done
 }
 
 func (g *comps) writeRow(rl *Instance, x, y int) (comp string) {

@@ -230,7 +230,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	moreComps := func(cropped string, offset int) (hinted string, noHint bool) {
 		_, _, adjusted := rl.completionCount()
 		remain := adjusted - offset
-		if remain == 0 {
+		if remain <= 0 {
 			return cropped, true
 		}
 		hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completions... (scroll down to show)"+seqReset+"\n", remain)
@@ -252,8 +252,10 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	scanner := bufio.NewScanner(strings.NewReader(comps))
 
 	// If absPos < MaxTabCompleterRows, cut below MaxTabCompleterRows and return
-	if absPos <= rl.config.MaxTabCompleterRows {
+	if absPos < rl.config.MaxTabCompleterRows {
 		var count int
+		var noRemain bool
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			if count < rl.config.MaxTabCompleterRows {
@@ -265,32 +267,39 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 			}
 		}
 
-		cropped, _ = moreComps(cropped, count)
+		cropped, noRemain = moreComps(cropped, count-1)
+		if noRemain {
+			count--
+		}
 
 		return cropped, count
 	}
 
 	// If absolute > MaxTabCompleterRows, cut above and below and return
 	//      -> This includes de facto when we tabCompletionReverse
-	if absPos > rl.config.MaxTabCompleterRows {
+	if absPos >= rl.config.MaxTabCompleterRows {
 		cutAbove := absPos - rl.config.MaxTabCompleterRows
 		var count int
+		var noRemain bool
+
 		for scanner.Scan() {
 			line := scanner.Text()
-			if count < cutAbove {
+			if count <= cutAbove {
 				count++
 				continue
 			}
-			if count >= cutAbove && count < absPos {
+			if count > cutAbove && count <= absPos {
 				cropped += line + "\n"
 				count++
 			} else {
-				count++
 				break
 			}
 		}
 
-		cropped, _ = moreComps(cropped, rl.config.MaxTabCompleterRows+cutAbove)
+		cropped, noRemain = moreComps(cropped, rl.config.MaxTabCompleterRows+cutAbove+1)
+		if noRemain {
+			count--
+		}
 
 		return cropped, count - cutAbove
 	}

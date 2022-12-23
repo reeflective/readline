@@ -113,7 +113,10 @@ func (rl *Instance) noCompletions() bool {
 
 func (rl *Instance) completionCount() (comps int, lines int, adjusted int) {
 	for _, group := range rl.tcGroups {
-		comps += len(group.values)
+		for _, row := range group.values {
+			comps += len(row)
+		}
+
 		adjusted++
 		if group.tcMaxY > len(group.values) {
 			lines += len(group.values)
@@ -129,14 +132,19 @@ func (rl *Instance) completionCount() (comps int, lines int, adjusted int) {
 func (rl *Instance) getAbsPos() int {
 	var prev int
 	var foundCurrent bool
+
 	for _, grp := range rl.tcGroups {
+		if grp.tag != "" {
+			prev += 1
+		}
+
 		if grp.isCurrent {
-			prev += grp.tcPosY + 1 // + 1 for title
+			prev += grp.tcPosY
 			foundCurrent = true
 			break
-		} else {
-			prev += grp.tcMaxY + 1 // + 1 for title
 		}
+
+		prev += grp.tcMaxY
 	}
 
 	// If there was no current group, it means
