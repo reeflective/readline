@@ -258,7 +258,23 @@ func (rl *Instance) backwardDeleteChar() {
 
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
+
+		var toDelete rune
+		var isSurround, matcher bool
+		if rl.pos > 0 && len(rl.line) > rl.pos {
+			toDelete = rl.line[rl.pos-1]
+			isSurround = isBracket(toDelete) || toDelete == '\'' || toDelete == '"'
+			matcher = rl.matches(toDelete, rl.line[rl.pos])
+		}
+
+		// Delete the character
 		rl.deleteX()
+
+		// When the next character was identified as a surround, delete as well.
+		if isSurround && matcher {
+			rl.pos++
+			rl.deleteX()
+		}
 	}
 
 	if rl.main == viins || rl.main == emacs {

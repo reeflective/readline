@@ -182,6 +182,25 @@ func isBracket(r rune) bool {
 	return false
 }
 
+func (rl *Instance) matches(r, e rune) bool {
+	switch r {
+	case '{':
+		return e == '}'
+	case '(':
+		return e == ')'
+	case '[':
+		return e == ']'
+	case '<':
+		return e == '>'
+	case '"':
+		return e == '"'
+	case '\'':
+		return e == '\''
+	}
+
+	return e == r
+}
+
 //
 // Deletion -------------------------------------------------------------------- //
 //
