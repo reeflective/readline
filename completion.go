@@ -25,6 +25,7 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	if rl.noCompletions() {
 		rl.hintNoMatches()
 		rl.resetCompletion()
+		rl.completer = nil
 		return
 	}
 
@@ -64,6 +65,21 @@ func (rl *Instance) generateCompletions() {
 
 	// Generate the completions, setup the prefix and group the results.
 	comps := rl.Completer(compLine, compPos, rl.delayedTabContext)
+	rl.groupCompletions(comps)
+	rl.setCompletionPrefix(comps)
+}
+
+func (rl *Instance) historyCompletion() {
+	rl.tcGroups = make([]*comps, 0)
+	comps := rl.completeHistory()
+	rl.groupCompletions(comps)
+	rl.setCompletionPrefix(comps)
+}
+
+func (rl *Instance) registerCompletion() {
+	rl.registersComplete = true
+	rl.tcGroups = make([]*comps, 0)
+	comps := rl.completeRegisters()
 	rl.groupCompletions(comps)
 	rl.setCompletionPrefix(comps)
 }

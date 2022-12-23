@@ -60,6 +60,19 @@ func (rl *Instance) updateIsearch() {
 	for _, g := range rl.tcGroups {
 		g.updateIsearch(rl)
 	}
+
+	// In history isearch, insert the first matching candidate.
+	// This candidate will be cleared/replaced as soon as another
+	// key/change is operated on the isearch buffer.
+	if len(rl.histHint) > 0 && len(rl.tcGroups) > 0 && len(rl.tcGroups[0].values) > 0 {
+		rl.resetVirtualComp(true)
+		cur := rl.currentGroup()
+		cur.tcPosY = 0
+		cur.tcPosX = 0
+		rl.updateVirtualComp()
+		cur.tcPosY = -1
+		cur.tcPosX = -1
+	}
 }
 
 func (rl *Instance) isearchHint() {

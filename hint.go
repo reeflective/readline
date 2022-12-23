@@ -97,4 +97,5 @@ func (rl *Instance) writeHintText() {
 func (rl *Instance) resetHintText() {
 	rl.hintY = 0
 	rl.hint = []rune{}
+	rl.histHint = []rune{}
 }

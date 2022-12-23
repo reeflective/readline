@@ -87,6 +87,10 @@ func (rl *Instance) menuComplete() {
 
 	// Override the default move depending on the group
 	cur := rl.currentGroup()
+	if cur == nil {
+		return
+	}
+
 	if cur.aliased && rl.keys != seqArrowRight {
 		x, y = 0, 1
 	}
@@ -188,15 +192,7 @@ func (rl *Instance) viRegistersComplete() {
 	switch rl.local {
 	case isearch:
 	default:
-		registerCompletion := func() {
-			rl.registersComplete = true
-			rl.tcGroups = make([]*comps, 0)
-			comps := rl.completeRegisters()
-			rl.groupCompletions(comps)
-			rl.setCompletionPrefix(comps)
-		}
-
-		rl.startMenuComplete(registerCompletion)
+		rl.startMenuComplete(rl.registerCompletion)
 	}
 }
 
@@ -207,7 +203,6 @@ func (rl *Instance) historyComplete() {
 	rl.skipUndoAppend()
 
 	switch rl.local {
-	// case isearch:
 	case menuselect, isearch:
 		// If we are currently completing the last history
 		// source, cancel history completion.
@@ -232,12 +227,10 @@ func (rl *Instance) historyComplete() {
 		}
 
 		// Else, generate the completions.
-		histCompletion := func() {
-			rl.tcGroups = make([]*comps, 0)
-			comps := rl.completeHistory()
-			rl.groupCompletions(comps)
-			rl.setCompletionPrefix(comps)
+		rl.startMenuComplete(rl.historyCompletion)
+
+		if rl.config.HistoryAutoIsearch {
+			rl.enterIsearchMode()
 		}
-		rl.startMenuComplete(histCompletion)
 	}
 }

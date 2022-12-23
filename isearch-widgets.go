@@ -50,7 +50,7 @@ func (rl *Instance) isearchForward() {
 		if rl.completer != nil {
 			rl.startMenuComplete(rl.completer)
 		} else {
-			rl.startMenuComplete(rl.generateCompletions)
+			rl.startMenuComplete(rl.historyCompletion)
 		}
 
 		// Then enter the isearch mode, which updates

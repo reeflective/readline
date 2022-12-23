@@ -34,6 +34,7 @@ func (rl *Instance) errorCtrlC() (err error) {
 		rl.resetVirtualComp(true)
 		rl.resetCompletion()
 		rl.resetIsearch()
+		rl.resetHintText()
 		rl.completer = nil
 
 		return
