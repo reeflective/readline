@@ -91,7 +91,9 @@ func (rl *Instance) menuComplete() {
 		return
 	}
 
-	if cur.aliased && rl.keys != seqArrowRight {
+	if cur.aliased && rl.keys != seqArrowRight && rl.keys != seqArrowDown {
+		x, y = 0, 1
+	} else if rl.keys == seqArrowDown {
 		x, y = 0, 1
 	}
 
@@ -122,7 +124,9 @@ func (rl *Instance) reverseMenuComplete() {
 
 	// Override the default move depending on the group
 	cur := rl.currentGroup()
-	if cur.aliased && rl.keys != seqArrowLeft {
+	if cur.aliased && rl.keys != seqArrowLeft && rl.keys != seqArrowUp {
+		x, y = 0, -1
+	} else if rl.keys == seqArrowUp {
 		x, y = 0, -1
 	}
 
