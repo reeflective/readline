@@ -434,9 +434,11 @@ func (rl *Instance) autoComplete() {
 
 	rl.resetCompletion()
 
+	// We either have a completer, or we use the normal
+	// if we are not currently completing the history.
 	if rl.completer != nil {
 		rl.completer()
-	} else {
+	} else if len(rl.histHint) == 0 {
 		rl.normalCompletions()
 	}
 }
