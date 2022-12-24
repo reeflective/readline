@@ -41,10 +41,10 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	}
 }
 
-// generateCompletions - Calls the completion engine/function to yield a list of 0 or more completion groups,
+// normalCompletions - Calls the completion engine/function to yield a list of 0 or more completion groups,
 // sets up a delayed tab context and passes it on to the tab completion engine function, and ensure no
 // nil groups/items will pass through. This function is called by different comp search/nav modes.
-func (rl *Instance) generateCompletions() {
+func (rl *Instance) normalCompletions() {
 	if rl.Completer == nil {
 		return
 	}
@@ -72,6 +72,7 @@ func (rl *Instance) generateCompletions() {
 func (rl *Instance) historyCompletion() {
 	rl.tcGroups = make([]*comps, 0)
 	comps := rl.completeHistory()
+	comps = comps.DisplayList("*")
 	rl.groupCompletions(comps)
 	rl.setCompletionPrefix(comps)
 }
@@ -80,6 +81,7 @@ func (rl *Instance) registerCompletion() {
 	rl.registersComplete = true
 	rl.tcGroups = make([]*comps, 0)
 	comps := rl.completeRegisters()
+	comps = comps.DisplayList("*")
 	rl.groupCompletions(comps)
 	rl.setCompletionPrefix(comps)
 }
@@ -98,12 +100,12 @@ func (rl *Instance) groupCompletions(comps Completions) {
 		vals, noDescVals, aliased := groupValues(values)
 
 		// Create a "first" group with the "first" grouped values
-		rl.newGroup(tag, vals, aliased, comps.noSpace)
+		rl.newGroup(comps, tag, vals, aliased)
 
 		// If we have a remaining group of values without descriptions,
 		// we will print and use them in a separate, anonymous group.
 		if len(noDescVals) > 0 {
-			rl.newGroup("", noDescVals, false, comps.noSpace)
+			rl.newGroup(comps, "", noDescVals, false)
 		}
 	})
 }
@@ -434,6 +436,6 @@ func (rl *Instance) autoComplete() {
 	if rl.completer != nil {
 		rl.completer()
 	} else {
-		rl.generateCompletions()
+		rl.normalCompletions()
 	}
 }

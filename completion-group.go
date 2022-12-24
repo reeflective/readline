@@ -17,6 +17,7 @@ type comps struct {
 	noSpace       suffixMatcher  // Suffixes to remove if a space or non-nil character is entered after the completion.
 	columnsWidth  []int          // Computed width for each column of completions, when aliases
 	listSeparator string         // This is used to separate completion candidates from their descriptions.
+	list          bool           // Force completions to be listed instead of grided
 	aliased       bool           // Are their aliased completions
 	isCurrent     bool           // Currently cycling through this group, for highlighting choice
 	maxLength     int            // Each group can be limited in the number of comps offered
@@ -34,10 +35,10 @@ type comps struct {
 // Initialization-time functions ----------------------------------------------------------------------------
 //
 
-func (rl *Instance) newGroup(tag string, vals rawValues, aliased bool, sm suffixMatcher) {
+func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased bool) {
 	grp := &comps{
 		tag:           tag,
-		noSpace:       sm,
+		noSpace:       c.noSpace,
 		listSeparator: "--",
 		tcPosX:        -1,
 		tcPosY:        -1,
@@ -50,6 +51,12 @@ func (rl *Instance) newGroup(tag string, vals rawValues, aliased bool, sm suffix
 	sort.Slice(vals, func(i, j int) bool {
 		return vals[i].Value < vals[j].Value
 	})
+
+	// Override grid/list displays
+	_, grp.list = c.listLong[tag]
+	if _, all := c.listLong["*"]; all && len(c.listLong) == 1 {
+		grp.list = true
+	}
 
 	// Check that all comps have a display value,
 	// and begin computing some parameters.
@@ -109,7 +116,7 @@ NEXT_VALUE:
 		// Else, either add it to the current row if there is still room
 		// on it for this candidate, or add a new one. We only do that when
 		// we know we don't have aliases.
-		if !g.aliased && g.canFitInRow(val) {
+		if !g.aliased && g.canFitInRow(val) && !g.list {
 			g.values[len(g.values)-1] = append(g.values[len(g.values)-1], val)
 		} else {
 			// Else create a new row, and update the row pad.

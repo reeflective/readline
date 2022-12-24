@@ -30,7 +30,7 @@ func (rl *Instance) expandOrComplete() {
 		if rl.completer != nil {
 			rl.startMenuComplete(rl.completer)
 		} else {
-			rl.startMenuComplete(rl.generateCompletions)
+			rl.startMenuComplete(rl.normalCompletions)
 		}
 
 		// In autocomplete mode, we already have completions
@@ -58,7 +58,7 @@ func (rl *Instance) completeWord() {
 	case menuselect:
 		rl.menuComplete()
 	default:
-		rl.startMenuComplete(rl.generateCompletions)
+		rl.startMenuComplete(rl.normalCompletions)
 
 		// In autocomplete mode, we already have completions
 		// printed, so we automatically move to the first comp.
@@ -74,7 +74,7 @@ func (rl *Instance) menuComplete() {
 	// No completions are being printed yet, so simply generate the completions
 	// as if we just request them without immediately selecting a candidate.
 	if rl.local != menuselect && rl.local != isearch && len(rl.histHint) == 0 {
-		rl.startMenuComplete(rl.generateCompletions)
+		rl.startMenuComplete(rl.normalCompletions)
 	}
 
 	// Some of the actions taken in the above switch might have exited
@@ -180,7 +180,7 @@ func (rl *Instance) listChoices() {
 
 	// Call the completer to produce
 	// all possible completions.
-	rl.generateCompletions()
+	rl.normalCompletions()
 
 	// Cancel completion mode if
 	// we don't have any candidates.

@@ -27,6 +27,7 @@ type Completions struct {
 	messages messages
 	noSpace  suffixMatcher
 	usage    string
+	listLong map[string]bool
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor;
@@ -206,6 +207,23 @@ func (c Completions) TagF(f func(value string) string) Completions {
 	return c
 }
 
+// DisplayList forces the completions to be list below each other as a list.
+// A series of tags can be passed to restrict this to these tags. If empty,
+// will be applied to all completions.
+func (c Completions) DisplayList(tags ...string) Completions {
+	if c.listLong == nil {
+		c.listLong = make(map[string]bool)
+	}
+	if len(tags) == 0 {
+		c.listLong["*"] = true
+	}
+	for _, tag := range tags {
+		c.listLong[tag] = true
+	}
+
+	return c
+}
+
 // Filter filters given values (this should be done before any call to Prefix/Suffix as those alter the values being filtered)
 //
 //	a := carapace.ActionValues("A", "B", "C").Invoke(c)
@@ -265,6 +283,12 @@ func (c *Completions) merge(other Completions) {
 	}
 	c.noSpace.Merge(other.noSpace)
 	c.messages.Merge(other.messages)
+
+	for tag := range other.listLong {
+		if _, found := c.listLong[tag]; !found {
+			c.listLong[tag] = true
+		}
+	}
 }
 
 func (c rawValues) eachTag(f func(tag string, values rawValues)) {
