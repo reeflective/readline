@@ -22,8 +22,8 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	rl.completer = completer
 
 	// Cancel completion mode if we don't have any candidates.
+	// The hint string will be provided in a separate step.
 	if rl.noCompletions() {
-		rl.hintNoMatches()
 		rl.resetCompletion()
 		rl.completer = nil
 		return
@@ -38,6 +38,7 @@ func (rl *Instance) startMenuComplete(completer func()) {
 		rl.undoSkipAppend = false
 		rl.insertCandidate()
 		rl.resetCompletion()
+		rl.resetHintText()
 	}
 }
 
@@ -87,7 +88,7 @@ func (rl *Instance) registerCompletion() {
 }
 
 func (rl *Instance) groupCompletions(comps Completions) {
-	// TODO: Set up the hints with our messages/usage strings.
+	rl.hintCompletions(comps)
 
 	// Nothing else to do if no completions
 	if len(comps.values) == 0 {

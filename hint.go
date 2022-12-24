@@ -15,15 +15,17 @@ func (rl *Instance) SetHint(s string) {
 }
 
 func (rl *Instance) getHintText() {
-	// Use the user-provided hint by default.
-	// Useful when command/flag usage is given.
-	if rl.HintText != nil {
-		rl.hint = rl.HintText(rl.getCompletionLine())
-	}
+	// Before entering this function, some completer might have
+	// been called, which might have already populated the hint
+	// area (with either an error, a usage, etc).
+	// Some of the branchings below will overwrite it.
 
-	// Remove the hint if we are autocompleting in insert mode.
-	if rl.isAutoCompleting() && rl.main != vicmd {
-		rl.resetHintText()
+	// Use the user-provided hint by default, if not empty.
+	if rl.HintText != nil {
+		userHint := rl.HintText(rl.getCompletionLine())
+		if len(userHint) > 0 {
+			rl.hint = rl.HintText(rl.getCompletionLine())
+		}
 	}
 
 	// When completing history, we have a special hint
@@ -45,9 +47,40 @@ func (rl *Instance) getHintText() {
 	}
 }
 
+// hintCompletions generates a hint string from all the
+// usage/message strings yielded by completions.
+func (rl *Instance) hintCompletions(comps Completions) {
+	rl.hint = []rune{}
+
+	// First add the command/flag usage string if any,
+	// and only if we don't have completions.
+	if len(comps.values) == 0 {
+		rl.hint = append([]rune(seqDim), []rune(comps.usage)...)
+	}
+
+	// And all further messages
+	for _, message := range comps.messages.Get() {
+		if message == "" {
+			continue
+		}
+
+		rl.hint = append(rl.hint, []rune(message+"\n")...)
+	}
+
+	// Remove the last newline
+	if len(rl.hint) > 0 && rl.hint[len(rl.hint)-1] == '\n' {
+		rl.hint = rl.hint[:len(rl.hint)-2]
+	}
+
+	// And remove the coloring if no hint
+	if string(rl.hint) == seqDim {
+		rl.hint = []rune{}
+	}
+}
+
 // generate a hint when no completion matches the prefix.
 func (rl *Instance) hintNoMatches() {
-	noMatches := seqDim + seqFgRed + "no matching "
+	noMatches := seqDim + "no matching "
 
 	var groups []string
 	for _, group := range rl.tcGroups {
