@@ -3,6 +3,8 @@ package readline
 import (
 	"regexp"
 	"strings"
+
+	ansi "github.com/acarl005/stripansi"
 )
 
 // SetHint - a nasty function to force writing a new hint text.
@@ -116,8 +118,10 @@ func (rl *Instance) writeHintText() {
 	newlines := re.Split(string(rl.hint), -1)
 	offset := len(newlines)
 
-	wrapped, hintLen := wrapText(string(rl.hint), GetTermWidth())
-	offset += hintLen
+	_, actual := wrapText(ansi.Strip(string(rl.hint)), GetTermWidth())
+	wrapped, _ := wrapText(string(rl.hint), GetTermWidth())
+
+	offset += actual
 	rl.hintY = offset
 
 	hintText := string(wrapped)

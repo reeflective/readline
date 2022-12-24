@@ -3,9 +3,12 @@ package readline
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,6 +32,7 @@ var ErrNoSystemConfig = errors.New("no user configuration found in user director
 // as a YAML file, and any file to be imported as a configuration is also
 // unmarshaled as YAML.
 type config struct {
+	rl   *Instance
 	node *yaml.Node // Stores the configuration file bytes including comments.
 
 	//
@@ -86,6 +90,17 @@ func (rl *Instance) Config() *config {
 // It returns an error either if the file is not found, if the shell fails to read it,
 // or if its fails to unmarshal/load it.
 func (c *config) Load(path string) (err error) {
+	if err = c.load(path); err != nil {
+		return err
+	}
+
+	// Successfully read the file, so watch for changes.
+	go c.rl.watchConfig(path)
+
+	return nil
+}
+
+func (c *config) load(path string) (err error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return
@@ -232,6 +247,7 @@ func (c *config) Export() (config []byte, err error) {
 // This function is always executed, even before loading any custom config.
 func (rl *Instance) loadDefaultConfig() {
 	config := &config{
+		rl:   rl,
 		node: &yaml.Node{},
 
 		// Input settings
@@ -286,4 +302,59 @@ func (rl *Instance) loadDefaultConfig() {
 	// config.node.Decode(config)
 
 	rl.config = config
+}
+
+// watchConfig watches for changes in the config file,
+// and reloads it each time a change is notified.
+func (rl *Instance) watchConfig(path string) {
+	watcher, werr := fsnotify.NewWatcher()
+	if werr != nil {
+		rl.hint = []rune(fmt.Sprintf("Failed to create file watcher: %s", werr.Error()))
+		return
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+	go func() {
+		defer close(done)
+
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op.Has(fsnotify.Write) {
+					rl.reloadConfig(event)
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				changeHint := fmt.Sprintf("Error reloading config: %s", err.Error())
+				rl.hint = []rune(changeHint)
+				rl.renderHelpers()
+			}
+		}
+	}()
+
+	err := watcher.Add(path)
+	if err != nil {
+		rl.hint = []rune(fmt.Sprintf("Failed to monitor config: %s", err.Error()))
+	}
+	<-done
+}
+
+func (rl *Instance) reloadConfig(event fsnotify.Event) {
+	defer rl.renderHelpers()
+	loadErr := rl.config.load(event.Name)
+
+	if loadErr != nil {
+		errStr := strings.ReplaceAll(loadErr.Error(), "\n", "")
+		changeHint := fmt.Sprintf(seqFgRed+"Config reload error: %s", errStr)
+		rl.hint = append([]rune{}, []rune(changeHint)...)
+	} else {
+		changeHint := fmt.Sprintf(seqFgGreen+"Config reloaded: %s", event.Name)
+		rl.hint = append([]rune{}, []rune(changeHint)...)
+	}
 }
