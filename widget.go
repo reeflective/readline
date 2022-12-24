@@ -3,6 +3,8 @@ package readline
 import (
 	"bytes"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/reiver/go-caret"
@@ -193,46 +195,41 @@ func (rl *Instance) getWidget(name string) widget {
 
 // matchWidgets returns all widgets matching the current key either perfectly, as a prefix,
 // or as one of the possible values matched by a regular expression.
-func (rl *Instance) matchWidgets(key string, wids widgets) (cb EventCallback, all widgets) {
+func (rl *Instance) matchWidgets(key string, wids widgets, mode keymapMode) (cb EventCallback, all widgets) {
 	all = make(widgets)
 
-	// Test against each regular expression.
-	for r, widget := range wids {
-		reg := *r
+	// Sort binds
+	binds := make([]*regexp.Regexp, 0)
+	for regex := range wids {
+		binds = append(binds, regex)
+	}
+	sort.Slice(binds, func(i, j int) bool {
+		return strconv.QuoteToASCII(binds[i].String()) < strconv.QuoteToASCII(binds[j].String())
+	})
 
-		match := reg.FindString(key)
+	// Test against each regular expression.
+	for _, r := range binds {
+		reg := *r
+		widget := wids[r]
+
+		match := reg.MatchString(key)
 
 		// No match is only valid if the keys are a valid prefix to the keybind.
-		if match == "" {
+		if !match {
 			if strings.HasPrefix(reg.String(), key) && reg.String() != key && key != "" {
 				all[&reg] = widget
 			}
 			continue
 		}
 
-		// If the match is perfect, then we have a default callback to use/store.
-		if match == reg.String() && len(key) == len(reg.String()) {
-			cb = widget
+		if strings.HasPrefix(reg.String(), key) && len(key) < len(reg.String()) {
+			all[&reg] = widget
+
 			continue
 		}
 
-		// The match is finally only valid if the key is shorter than the regex,
-		// since if not, that means we matched a subset of the key only.
-		if len(key) < len(reg.String()) {
-			all[&reg] = widget
-		}
-	}
-
-	// When we have no exact match, and only one widget in our list of matchers,
-	// we consider this widget to be our exact match if it does NOT match by prefix:
-	// this is because the regexp is a range.
-	if cb == nil && len(all) == 1 {
-		for reg, widget := range all {
-			if !strings.HasPrefix(reg.String(), key) {
-				cb = widget
-				all = make(widgets)
-			}
-		}
+		// If the match is perfect, then we have a default callback to use/store.
+		cb = widget
 	}
 
 	return
@@ -321,3 +318,64 @@ func isRegexCapturingGroup(key string) bool {
 
 	return false
 }
+
+// NOTE:; This is the old way of matching key strokes. Its results are pretty much the same as matchWidgets above,
+// and the problem it faces and can't solve are the same: some special characters, like caret, Ctrl+backslash, etc
+// are not printed. This is because some of them are actually prefixes of other binds (like ^W), and thus are not
+// self-inserted. I currently can't find a reliable way to differentiate/discriminate those.
+// Also, this version below is messier, with unneeded stuff.
+//
+// func (rl *Instance) matchWidgetsOld(key string, wids widgets, mode keymapMode) (cb EventCallback, all widgets) {
+// 	all = make(widgets)
+//
+// 	// Test against each regular expression.
+// 	for r, widget := range wids {
+// 		reg := *r
+// 		println("reg:" + strconv.QuoteToASCII(reg.String()))
+//
+// 		match := reg.FindString(key)
+//
+// 		// No match is only valid if the keys are a valid prefix to the keybind.
+// 		if match == "" {
+// 			if strings.HasPrefix(reg.String(), key) && reg.String() != key && key != "" {
+// 				println(strconv.QuoteToASCII(key))
+// 				all[&reg] = widget
+// 			}
+// 			continue
+// 		}
+//
+// 		// If the match is perfect, then we have a default callback to use/store.
+// 		if match == reg.String() && len(key) == len(reg.String()) {
+// 			println(strconv.QuoteToASCII(key))
+// 			cb = widget
+// 			continue
+// 		}
+//
+// 		// The match is finally only valid if the key is shorter than the regex,
+// 		// since if not, that means we matched a subset of the key only.
+// 		if len(key) < len(reg.String()) {
+// 			if mode == viins || mode == emacs {
+// 				cb = widget
+// 				all = make(widgets)
+// 				return
+// 			}
+//
+// 			all[&reg] = widget
+// 		}
+// 	}
+//
+// 	// When we have no exact match, and only one widget in our list of matchers,
+// 	// we consider this widget to be our exact match if it does NOT match by prefix:
+// 	// this is because the regexp is a range.
+// 	if cb == nil && len(all) == 1 {
+// 		for reg, widget := range all {
+// 			if !strings.HasPrefix(reg.String(), key) {
+// 				cb = widget
+// 				all = make(widgets)
+// 			}
+// 		}
+// 	}
+//
+// 	return
+// }
+//

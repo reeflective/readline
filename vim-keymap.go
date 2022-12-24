@@ -34,7 +34,8 @@ var viinsKeys = keymap{
 	"^[[B":    "down-line-or-select", // TODO
 	" ":       "space",
 	"[!-~]":   "self-insert", // Any non-empty, non-modified key (no control sequences)
-	// `[^\-^^]`: "self-insert",
+	// `[^\-^^]`:                 "self-insert",
+	// `[\pL\pM\pN\pP\pS\pZ]`: "self-insert", // Any non-empty, non-modified key (no control sequences)
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode

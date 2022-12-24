@@ -80,7 +80,7 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 	}
 
 	// Get the widgets for which the key matches exactly or by prefix.
-	cb, prefixed := rl.matchWidgets(key, matchWidgets)
+	cb, prefixed := rl.matchWidgets(key, matchWidgets, mode)
 
 	// When we have absolutely no matching widget for the keys,
 	// we either return, or if we have a perfectly matching one
