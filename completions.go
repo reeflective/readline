@@ -28,6 +28,7 @@ type Completions struct {
 	noSpace  suffixMatcher
 	usage    string
 	listLong map[string]bool
+	noSort   map[string]bool
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor;
@@ -219,6 +220,23 @@ func (c Completions) DisplayList(tags ...string) Completions {
 	}
 	for _, tag := range tags {
 		c.listLong[tag] = true
+	}
+
+	return c
+}
+
+// NoSort forces the completions not to sort the completions in alphabetical order.
+// A series of tags can be passed to restrict this to these tags. If empty, will be
+// applied to all completions.
+func (c Completions) NoSort(tags ...string) Completions {
+	if c.noSort == nil {
+		c.noSort = make(map[string]bool)
+	}
+	if len(tags) == 0 {
+		c.noSort["*"] = true
+	}
+	for _, tag := range tags {
+		c.noSort[tag] = true
 	}
 
 	return c

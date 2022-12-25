@@ -225,10 +225,6 @@ func (rl *Instance) completeHistory(forward bool) Completions {
 	rl.histHint = append([]rune(seqBold+seqFgCyanBright+string(rl.histHint)+seqReset), rl.tfLine...)
 	rl.histHint = append(rl.histHint, []rune(seqReset)...)
 
-	// Prepare completions
-	hist := &comps{
-		maxLength: 10,
-	}
 	compLines := make([]Completion, 0)
 
 	// Set up iteration clauses
@@ -262,8 +258,8 @@ NEXT_LINE:
 
 		line = strings.ReplaceAll(line, "\n", ` `)
 
-		for _, row := range hist.values {
-			if row[0].Display == line {
+		for _, comp := range compLines {
+			if comp.Display == line {
 				continue NEXT_LINE
 			}
 		}
@@ -283,6 +279,7 @@ NEXT_LINE:
 	}
 
 	comps := CompleteRaw(compLines)
+	comps = comps.NoSort()
 	comps.PREFIX = string(rl.line)
 
 	return comps

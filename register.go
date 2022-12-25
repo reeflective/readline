@@ -275,6 +275,7 @@ func (rl *Instance) completeRegisters() Completions {
 
 	comps.values = append(comps.values, rawValues(rl.completeNumRegs())...)
 	comps.values = append(comps.values, rawValues(rl.completeAlphaRegs())...)
+	comps = comps.NoSort()
 
 	return comps
 }

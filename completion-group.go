@@ -18,6 +18,7 @@ type comps struct {
 	columnsWidth  []int          // Computed width for each column of completions, when aliases
 	listSeparator string         // This is used to separate completion candidates from their descriptions.
 	list          bool           // Force completions to be listed instead of grided
+	noSort        bool           // Don't sort completions
 	aliased       bool           // Are their aliased completions
 	isCurrent     bool           // Currently cycling through this group, for highlighting choice
 	maxLength     int            // Each group can be limited in the number of comps offered
@@ -47,10 +48,9 @@ func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased 
 		columnsWidth:  []int{0},
 	}
 
-	// Sort completions first
-	sort.Slice(vals, func(i, j int) bool {
-		return vals[i].Value < vals[j].Value
-	})
+	// Check that all comps have a display value,
+	// and begin computing some parameters.
+	vals = grp.checkDisplays(vals)
 
 	// Override grid/list displays
 	_, grp.list = c.listLong[tag]
@@ -58,9 +58,18 @@ func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased 
 		grp.list = true
 	}
 
-	// Check that all comps have a display value,
-	// and begin computing some parameters.
-	vals = grp.checkDisplays(vals)
+	// Override sorting
+	_, grp.list = c.noSort[tag]
+	if _, all := c.noSort["*"]; all && len(c.noSort) == 1 {
+		grp.noSort = true
+	}
+
+	// Sort completions by default
+	if !grp.noSort {
+		sort.Slice(vals, func(i, j int) bool {
+			return vals[i].Display < vals[j].Display
+		})
+	}
 
 	// Keep computing/devising some parameters and constraints.
 	// This does not do much when we have aliased completions.
