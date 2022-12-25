@@ -56,7 +56,7 @@ func (rl *Instance) inferNextHistory() {
 		}
 
 		// If too short
-		if len(histline) <= len(rl.line) {
+		if len(histline) < len(rl.line) {
 			continue
 		}
 

@@ -59,7 +59,7 @@ func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased 
 	}
 
 	// Override sorting
-	_, grp.list = c.noSort[tag]
+	_, grp.noSort = c.noSort[tag]
 	if _, all := c.noSort["*"]; all && len(c.noSort) == 1 {
 		grp.noSort = true
 	}

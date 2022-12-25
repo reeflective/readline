@@ -106,7 +106,7 @@ func (rl *Instance) historyCompletion(forward, filterLine bool) {
 			}
 
 			comps := rl.completeHistory(forward)
-			comps = comps.DisplayList("*")
+			comps = comps.DisplayList()
 			rl.groupCompletions(comps)
 			rl.setCompletionPrefix(comps)
 		}
