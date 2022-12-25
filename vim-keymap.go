@@ -2,7 +2,6 @@ package readline
 
 // viinsKeys are the default keymaps in Vim Insert mode
 var viinsKeys = keymap{
-	// Standard
 	"^[":      "vi-cmd-mode",
 	"^M":      "accept-line",
 	"^L":      "clear-screen",
@@ -36,8 +35,7 @@ var viinsKeys = keymap{
 	"^[[B":    "down-line-or-select", // TODO
 	" ":       "space",
 	"[!-~]":   "self-insert", // Any non-empty, non-modified key (no control sequences)
-	// `[^\-^^]`:                 "self-insert",
-	// `[\pL\pM\pN\pP\pS\pZ]`: "self-insert", // Any non-empty, non-modified key (no control sequences)
+	// "[^\\-^^]": "self-insert",
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode
@@ -163,7 +161,6 @@ var changeMovements = map[string]string{
 	"F": "vi-find-prev-char",
 	"t": "vi-find-next-char-skip",
 	"T": "vi-find-prev-char-skip",
-	"g": "", // TODO WE HAVE THIS READY, fix it
 	"h": "vi-backward-char",
 	"l": "vi-forward-char",
 	"s": "vi-change-surround",
