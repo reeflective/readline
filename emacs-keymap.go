@@ -93,8 +93,5 @@ var emacsKeys = keymap{
 	"^?":          "backward-delete-char",
 	"^[^?":        "backward-kill-word",
 	"^_":          "undo",
-	" ":           "space",
-	"[!-~]":       "self-insert", // Any non-empty, non-modified key (no control sequences)
 	"(\x1b[0-9])": "digit-argument",
-	// "\M-^@"-"\M-^?": "self-insert",
 }

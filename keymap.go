@@ -82,6 +82,12 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 	// Get the widgets for which the key matches exactly or by prefix.
 	cb, prefixed := rl.matchWidgets(key, matchWidgets, mode)
 
+	// When we have no match, and we are currently using the main
+	// keymap in insert mode, we litteraly insert the keys.
+	if cb == nil && len(prefixed) == 0 && (mode == viins || mode == emacs) {
+		cb = rl.selfInsertWidget()
+	}
+
 	// When we have absolutely no matching widget for the keys,
 	// we either return, or if we have a perfectly matching one
 	// waiting for an input, we execute it.

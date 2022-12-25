@@ -33,9 +33,6 @@ var viinsKeys = keymap{
 	"^[[1;5D": "backward-word",
 	"^[[A":    "up-line-or-search",   // TODO
 	"^[[B":    "down-line-or-select", // TODO
-	" ":       "space",
-	"[!-~]":   "self-insert", // Any non-empty, non-modified key (no control sequences)
-	// "[^\\-^^]": "self-insert",
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode
