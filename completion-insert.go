@@ -96,7 +96,7 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 	if len(rl.comp) == 1 {
 		rl.deleteVirtual()
 	} else if len(rl.comp) > 0 {
-		rl.viDeleteByAdjustVirtual(rl.viJumpEVirtual(tokeniseSplitSpaces) + 1)
+		rl.viDeleteByAdjustVirtual(len(rl.comp))
 	}
 
 	// We then keep a reference to the new candidate
