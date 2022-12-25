@@ -117,7 +117,7 @@ const (
 
 func (rl *Instance) refreshVimStatus() {
 	rl.Prompt.compute(rl)
-	rl.updateHelpers()
+	rl.redisplay()
 }
 
 // viHintMessage - lmorg's way of showing Vim status is to overwrite the hint.

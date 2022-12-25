@@ -47,9 +47,11 @@ type EventReturn struct {
 	// tooltip (similar to a right-side prompt) rather than below the input line.
 	ToolTip string
 
+	// HintText is a usage string printed below the input line when the callback is executed.
 	HintText []rune
-	NewLine  []rune
-	NewPos   int
+
+	NewLine []rune // NewLine is the new input line to use after the callback is executed.
+	NewPos  int    // NewPos is the new cursor position to use.
 }
 
 // AddEventTest registers a bindkey handler for the given keyPress.

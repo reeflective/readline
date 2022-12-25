@@ -249,7 +249,7 @@ func (rl *Instance) vimDeleteToken(r rune) bool {
 
 	rl.line = []rune(newLine)
 
-	rl.updateHelpers()
+	rl.redisplay()
 
 	if rl.pos > len(rl.line) {
 		rl.pos = len(rl.line) - 1

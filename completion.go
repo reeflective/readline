@@ -2,7 +2,6 @@ package readline
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"strings"
 )
@@ -14,11 +13,9 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	rl.compConfirmWait = false
 	rl.skipUndoAppend()
 
-	// Call the provided completer function
-	// to produce all possible completions.
+	// Call the completer function to produce completions,
+	// and store it if it's going to be used by autocomplete.
 	completer()
-
-	// And store it if it's going to be used by autocomplete.
 	rl.completer = completer
 
 	// Cancel completion mode if we don't have any candidates.
@@ -29,7 +26,6 @@ func (rl *Instance) startMenuComplete(completer func()) {
 		return
 	}
 
-	// Always ensure we have a current group.
 	rl.currentGroup()
 
 	// When there is only candidate, automatically insert it
@@ -42,9 +38,6 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	}
 }
 
-// normalCompletions - Calls the completion engine/function to yield a list of 0 or more completion groups,
-// sets up a delayed tab context and passes it on to the tab completion engine function, and ensure no
-// nil groups/items will pass through. This function is called by different comp search/nav modes.
 func (rl *Instance) normalCompletions() {
 	if rl.Completer == nil {
 		return
@@ -52,20 +45,11 @@ func (rl *Instance) normalCompletions() {
 
 	rl.tcGroups = make([]*comps, 0)
 
-	// Cancel any existing tab context first.
-	if rl.delayedTabContext.cancel != nil {
-		rl.delayedTabContext.cancel()
-	}
-
-	// Recreate a new context
-	rl.delayedTabContext = DelayedTabContext{rl: rl}
-	rl.delayedTabContext.Context, rl.delayedTabContext.cancel = context.WithCancel(context.Background())
-
 	// Get the correct line to be completed, and the current cursor position
 	compLine, compPos := rl.getCompletionLine()
 
 	// Generate the completions, setup the prefix and group the results.
-	comps := rl.Completer(compLine, compPos, rl.delayedTabContext)
+	comps := rl.Completer(compLine, compPos)
 	rl.groupCompletions(comps)
 	rl.setCompletionPrefix(comps)
 }
@@ -262,9 +246,7 @@ func (rl *Instance) printCompletions() {
 func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	maxRows := rl.getCompletionMaxRows()
 
-	// Else we go on, but we have more comps than what allowed:
-	// we will add a line to the end of the comps, giving the actualized
-	// number of completions remaining and not printed
+	// A function to generate the last string indicating what remains.
 	moreComps := func(cropped string, offset int) (hinted string, noHint bool) {
 		_, _, adjusted := rl.completionCount()
 		remain := adjusted - offset
@@ -276,7 +258,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 		return hinted, false
 	}
 
-	// Get the current absolute candidate position (prev groups x suggestions + curGroup.tcPosY)
+	// Get the current absolute candidate position
 	absPos := rl.getAbsPos()
 
 	// Get absPos - MaxTabCompleterRows for having the number of lines to cut at the top

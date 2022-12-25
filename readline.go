@@ -49,7 +49,7 @@ func (rl *Instance) Readline() (string, error) {
 		//
 		// Since we always update helpers after being asked to read
 		// for user input again, we do it before actually reading it.
-		rl.updateHelpers()
+		rl.redisplay()
 
 		// The last key might have modified both the local keymap mode or
 		// the global keymap (main), which is either emacs or viins/vicmd.

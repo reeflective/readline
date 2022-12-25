@@ -37,14 +37,6 @@ func (rl *Instance) expandOrComplete() {
 			rl.menuComplete()
 		}
 	}
-	// If too many completions and no yet confirmed, ask user for completion
-	// comps, lines := rl.getCompletionCount()
-	// if ((lines > GetTermLength()) || (lines > rl.MaxTabCompleterRows)) && !rl.compConfirmWait {
-	//         sentence := fmt.Sprintf("%s show all %d completions (%d lines) ? tab to confirm",
-	//                 FOREWHITE, comps, lines)
-	//         rl.promptCompletionConfirm(sentence)
-	//         continue
-	// }
 }
 
 func (rl *Instance) expandOrCompletePrefix() {

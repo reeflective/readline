@@ -8,15 +8,8 @@ import (
 	"sync"
 )
 
-var (
-	// registerFreeKeys - Some Vim keys don't act on/ aren't affected by registers,
-	// and using these keys will automatically cancel any active register.
-	// NOTE: Don't forget to update if you add Vim bindings !!
-	registerFreeKeys = []rune{'a', 'A', 'h', 'i', 'I', 'j', 'k', 'l', 'r', 'R', 'u', 'v', '$', '%', '[', ']'}
-
-	// validRegisterKeys - All valid register IDs (keys) for read/write Vim registers
-	validRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
-)
+// validRegisterKeys - All valid register IDs (keys) for read/write Vim registers
+var validRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
 
 // registers - Contains all memory registers resulting from delete/paste/search
 // or other operations in the command line input.
@@ -62,11 +55,8 @@ func (rl *Instance) saveToRegister(adjust int) {
 		buffer = rl.line[begin:end]
 	}
 
-	// Make an immutable copy of the buffer before saving it
 	buf := string(buffer)
 
-	// Put the buffer in the appropriate registers.
-	// By default, always in the unnamed one first.
 	rl.saveBufToRegister([]rune(buf))
 }
 
@@ -99,11 +89,8 @@ func (rl *Instance) saveToRegisterTokenize(tokeniser tokeniser, jumper func(toke
 		buffer = rl.line[begin:end]
 	}
 
-	// Make an immutable copy of the buffer before saving it
 	buf := string(buffer)
 
-	// Put the buffer in the appropriate registers.
-	// By default, always in the unnamed one first.
 	rl.saveBufToRegister([]rune(buf))
 }
 
@@ -111,19 +98,16 @@ func (rl *Instance) saveToRegisterTokenize(tokeniser tokeniser, jumper func(toke
 // let the caller pass directly this buffer, yet relying on the register system to
 // determine which register will store the buffer.
 func (rl *Instance) saveBufToRegister(buffer []rune) {
-	// We must make an immutable version of the buffer first.
 	buf := string(buffer)
 
 	// When exiting this function the currently selected register is dropped,
 	defer rl.registers.resetRegister()
 
-	// If the buffer is empty, just return
 	if len(buffer) == 0 || buf == "" {
 		return
 	}
 
 	// Put the buffer in the appropriate registers.
-	// By default, always in the unnamed one first.
 	rl.registers.unnamed = []rune(buf)
 
 	// If there is an active register, directly give it the buffer.
@@ -144,7 +128,6 @@ func (rl *Instance) saveBufToRegister(buffer []rune) {
 // The user asked to paste a buffer onto the line, so we check from which register
 // we are supposed to select the buffer, and return it to the caller for insertion.
 func (rl *Instance) pasteFromRegister() (buffer []rune) {
-	// When exiting this function the currently selected register is dropped,
 	defer rl.registers.resetRegister()
 
 	// If no actively selected register, return the unnamed buffer
@@ -156,7 +139,6 @@ func (rl *Instance) pasteFromRegister() (buffer []rune) {
 	// Else find the active register, and return its content.
 	num, err := strconv.Atoi(activeRegister)
 
-	// Either from the numbered ones.
 	if err == nil {
 		buf, found := rl.registers.num[num]
 		if found {
@@ -164,12 +146,12 @@ func (rl *Instance) pasteFromRegister() (buffer []rune) {
 		}
 		return
 	}
-	// or the lettered ones
+
 	buf, found := rl.registers.alpha[activeRegister]
 	if found {
 		return buf
 	}
-	// Or the read-only ones
+
 	buf, found = rl.registers.ro[activeRegister]
 	if found {
 		return buf
@@ -262,11 +244,8 @@ func (r *registers) resetRegister() {
 
 // The user can show registers completions and insert, no matter the cursor position.
 func (rl *Instance) completeRegisters() Completions {
-	// 	// We set the hint exceptionally
 	comps := Message(seqFgBlue + "-- registers --" + seqReset)
 
-	// Unnamed (the added space is because we must have a unique key.
-	// This space is trimmed when the buffer is being passed to users)
 	unnamed := Completion{
 		Value:   string(rl.registers.unnamed),
 		Display: seqDim + "\"\"" + seqDimReset + " " + string(rl.registers.unnamed),

@@ -8,10 +8,10 @@ func (rl *Instance) initHelpers() {
 	rl.getHintText()
 }
 
-// updateHelpers is a key part of the whole refresh process:
+// redisplay is a key part of the whole refresh process:
 // it should coordinate reprinting the input line, any hints and completions
 // and manage to get back to the current (computed) cursor coordinates
-func (rl *Instance) updateHelpers() {
+func (rl *Instance) redisplay() {
 	rl.Prompt.update(rl)
 	rl.autoComplete()
 	rl.getHintText()
@@ -104,10 +104,10 @@ func (rl *Instance) clearHelpers() {
 // and replaces the cursor to its current position. This function never
 // computes or refreshes any value, except from inside the echo function.
 func (rl *Instance) renderHelpers() {
-	// Optional, because neutral on placement
 	if rl.config.HistoryAutosuggest {
 		rl.autosuggestHistory(rl.getLineVirtual())
 	}
+
 	rl.printLine()
 
 	// Go at beginning of first line after input remainder
@@ -123,15 +123,16 @@ func (rl *Instance) renderHelpers() {
 		rl.writeHintText()
 		moveCursorBackwards(GetTermWidth())
 
-		// Print completions and go back to beginning of this line
+		// Print completions and go back
+		// to beginning of this line
 		print("\n")
 		rl.printCompletions()
 		moveCursorBackwards(GetTermWidth())
 		moveCursorUp(rl.tcUsedY)
 	}
 
-	// If we are still waiting for the user to confirm too long completions
-	// Immediately refresh the hints
+	// If we are still waiting for the user to confirm
+	// long completions, immediately refresh the hints.
 	if rl.compConfirmWait {
 		print("\n")
 		rl.writeHintText()

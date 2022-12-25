@@ -51,7 +51,7 @@ func (rl *Instance) updateKeymaps() {
 	}
 
 	// When matching a widget, we need to know if the shell was in operator
-	// pending mode before trying to match the key against our keymaps.
+	// pending mode BEFORE trying to match the key against our keymaps.
 	rl.isViopp = rl.local == viopp
 }
 
@@ -70,10 +70,9 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 		return
 	}
 
-	// Get all widgets matched by the key, either exactly or by prefix.
 	matchWidgets := rl.widgets[mode]
 
-	// When our keymap is main but the local is search, the set
+	// When our keymap is main but the local is isearch, the set
 	// of valid widgets is restricted, and we work on the minibuffer.
 	if rl.isIsearchMode(mode) {
 		matchWidgets = rl.filterIsearchWidgets(mode)
@@ -108,7 +107,7 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 	}
 
 	// If we have a non-empty list of prefix-matched widgets,
-	// we must keep reading a key as well.
+	// we must keep read another key as well.
 	if len(prefixed) > 0 {
 		return nil, true
 	}

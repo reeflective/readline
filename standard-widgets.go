@@ -58,28 +58,6 @@ func (rl *Instance) selfInsert() {
 	// and forget the matcher.
 	rl.removeSuffixInserted()
 
-	// Prepare the line
-	// line, err := rl.mainHistory.GetLine(rl.mainHistory.Len() - 1)
-	// if err != nil {
-	// 	return
-	// }
-	// if !rl.mainHist {
-	// 	line, err = rl.altHistory.GetLine(rl.altHistory.Len() - 1)
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// }
-	//
-	// tokens, _, _ := tokeniseSplitSpaces([]rune(line), 0)
-	// pos := int(r[1]) - 48 // convert ASCII to integer
-	// if pos > len(tokens) {
-	// 	return
-	// }
-	//
-	// // The line is prepared and the actual runes to insert are as well.
-	// r = []rune(tokens[pos-1])
-	// 		rl.insert([]rune(tokens[pos-1]))
-
 	r := []rune(rl.keys)
 
 	for {
@@ -98,7 +76,6 @@ func (rl *Instance) selfInsert() {
 		r = append([]rune{'^'}, rune(caret))
 	}
 
-	// We can ONLY have three fondamentally different cases:
 	switch {
 	// The line is empty
 	case len(rl.line) == 0:
@@ -117,7 +94,6 @@ func (rl *Instance) selfInsert() {
 	rl.pos += len(r)
 }
 
-// acceptLine returns the line to the readline caller for being executed/evaluated.
 func (rl *Instance) acceptLine() {
 	rl.carriageReturn()
 	rl.accepted = true
@@ -219,7 +195,8 @@ func (rl *Instance) backwardDeleteChar() {
 		// Delete the character
 		rl.deleteX()
 
-		// When the next character was identified as a surround, delete as well.
+		// When the next character was identified
+		// as a surround, delete as well.
 		if isSurround && matcher {
 			rl.pos++
 			rl.deleteX()
@@ -343,8 +320,7 @@ func (rl *Instance) overwriteMode() {
 			rl.pos++
 		}
 
-		// Update the line
-		rl.updateHelpers()
+		rl.redisplay()
 	}
 }
 

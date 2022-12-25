@@ -380,7 +380,7 @@ func (rl *Instance) viReplace() {
 		}
 
 		// Update the line
-		rl.updateHelpers()
+		rl.redisplay()
 	}
 
 	// When exiting the replace mode, move the cursor back
@@ -1003,7 +1003,7 @@ func (rl *Instance) viChangeSurround() {
 	// Add those two positions to highlighting and update.
 	rl.addRegion("surround", bpos, bpos+1, "", seqBgRed)
 	rl.addRegion("surround", epos, epos+1, "", seqBgRed)
-	rl.updateHelpers()
+	rl.redisplay()
 	defer func() { rl.resetRegions() }()
 
 	// Now read another key.

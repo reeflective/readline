@@ -58,13 +58,12 @@ func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased 
 		grp.list = true
 	}
 
-	// Override sorting
+	// Override sorting or sort if needed
 	_, grp.noSort = c.noSort[tag]
 	if _, all := c.noSort["*"]; all && len(c.noSort) == 1 {
 		grp.noSort = true
 	}
 
-	// Sort completions by default
 	if !grp.noSort {
 		sort.Slice(vals, func(i, j int) bool {
 			return vals[i].Display < vals[j].Display
@@ -352,7 +351,7 @@ func (g *comps) moveSelector(rl *Instance, x, y int) (done, next bool) {
 		g.tcPosX--
 	}
 
-	// If we are on the last row, we might have to move to
+	// 3) If we are on the last row, we might have to move to
 	// the next column, if there is another one.
 	if g.tcPosY > g.tcMaxY-1 {
 		g.tcPosY = 0
@@ -363,7 +362,7 @@ func (g *comps) moveSelector(rl *Instance, x, y int) (done, next bool) {
 		}
 	}
 
-	// If we are on the last column, go to next row or next group
+	// 4) If we are on the last column, go to next row or next group
 	if g.tcPosX > len(g.values[g.tcPosY])-1 {
 		if g.aliased {
 			return g.findFirstCandidate(x, y)

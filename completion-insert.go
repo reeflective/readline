@@ -86,7 +86,7 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 		break
 	}
 
-	// We place the cursor back at the beginning of the previous virtual candidate
+	// Place the cursor at the beginning of the previous virtual candidate
 	if rl.pos > 0 {
 		rl.pos -= len(rl.comp)
 	}
@@ -100,10 +100,9 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 	}
 
 	// We then keep a reference to the new candidate
-	rl.comp = candidate
-
 	// We should not have a remaining virtual completion
 	// line, so it is now identical to the real line.
+	rl.comp = candidate
 	rl.compLine = rl.line
 
 	// Insert the new candidate in the virtual line.
@@ -119,7 +118,6 @@ func (rl *Instance) insertCandidateVirtual(candidate []rune) {
 		rl.compLine = append(rl.compLine, candidate...)
 	}
 
-	// We place the cursor at the end of our new virtually completed item
 	rl.pos += len(candidate)
 }
 
@@ -134,16 +132,11 @@ func (rl *Instance) updateVirtualComp() {
 	completion := cur.selected().Value
 	prefix := len(rl.tcPrefix)
 
-	// If the total number of completions is one, automatically insert it.
 	if rl.hasUniqueCandidate() {
 		rl.insertCandidate()
-		// Quit the tab completion mode to avoid asking to the user to press
-		// Enter twice to actually run the command
-		// Refresh first, and then quit the completion mode
 		rl.undoSkipAppend = true
 		rl.resetCompletion()
 	} else {
-
 		// Special case for the only special escape, which
 		// if not handled, will make us insert the first
 		// character of our actual rl.tcPrefix in the candidate.
@@ -152,7 +145,6 @@ func (rl *Instance) updateVirtualComp() {
 			prefix++
 		}
 
-		// Or insert it virtually.
 		if len(completion) >= prefix {
 			rl.insertCandidateVirtual([]rune(completion[prefix:]))
 		}
@@ -160,15 +152,14 @@ func (rl *Instance) updateVirtualComp() {
 }
 
 // resetVirtualComp - This function is called before most of our readline key handlers,
-// and makes sure that the current completion (virtually inserted) is either inserted or dropped,
-// and that all related parameters are reinitialized.
+// and makes sure that the current completion (virtually inserted) is either inserted
+// or dropped, and that all related parameters are reinitialized.
 func (rl *Instance) resetVirtualComp(drop bool) {
 	if len(rl.comp) == 0 {
 		return
 	}
 
 	// Get the current candidate and its group.
-	// It contains info on how we must process it
 	cur := rl.currentGroup()
 	if cur == nil {
 		return
@@ -182,8 +173,7 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 		return
 	}
 
-	// We will only insert the net difference
-	// between prefix and completion.
+	// We only insert the net difference between prefix and completion.
 	prefix := len(rl.tcPrefix)
 
 	// Special case for the only special escape, which
@@ -193,8 +183,6 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 		prefix++
 	}
 
-	// If we are asked to drop the completion,
-	// move it away from the line and return.
 	if drop {
 		rl.pos -= len([]rune(completion[prefix:]))
 		rl.compLine = rl.line
@@ -205,8 +193,6 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	// Trim any suffix when found, except for a few cases.
 	completion = rl.removeSuffixCandidate(cur, prefix)
 
-	// Insert the current candidate and keep the suffix matcher
-	// for this candidate in case a space is inserted after it.
 	rl.insertCandidateVirtual([]rune(completion[prefix:]))
 	rl.clearVirtualComp()
 }

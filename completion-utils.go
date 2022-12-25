@@ -46,7 +46,6 @@ func (rl *Instance) currentGroup() (group *comps) {
 	// We might, for whatever reason, not find one.
 	// If there are groups but no current, make first one the king.
 	if len(rl.tcGroups) > 0 {
-		// Find first group that has list > 0, as another checkup
 		for _, g := range rl.tcGroups {
 			if len(g.values) > 0 {
 				g.isCurrent = true

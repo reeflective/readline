@@ -94,8 +94,7 @@ type Instance struct {
 	// It takes the readline line ([]rune) and cursor pos.
 	// Returns a prefix string, and several completion groups with their items and description
 	// Asynchronously add/refresh completions
-	Completer         func([]rune, int, DelayedTabContext) Completions
-	delayedTabContext DelayedTabContext
+	Completer func([]rune, int) Completions
 
 	// SyntaxCompletion is used to autocomplete code syntax (like braces and
 	// quotation marks). If you want to complete words or phrases then you might

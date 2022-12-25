@@ -127,13 +127,11 @@ func (rl *Instance) deleteSelection() {
 	bpos, epos, cpos := rl.getSelectionPos()
 	selection := string(rl.line[bpos:epos])
 
-	// Here, adapt cursor position if visual line
-
+	// Save it and update the line
 	rl.saveBufToRegister([]rune(selection))
 	newline = append(rl.line[:bpos], rl.line[epos:]...)
 	rl.line = newline
 
-	// Adapt cursor position when at the end of the
 	rl.pos = cpos
 
 	// Reset the selection since it does not exist anymore.
