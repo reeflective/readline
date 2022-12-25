@@ -697,14 +697,16 @@ func (rl *Instance) viSelectABlankWord() {
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces) - 1)
 
-	final := rl.pos
+	final := rl.pos - 1
 	if rl.pos == len(rl.line)-1 {
-		rl.pos = rl.mark
-		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-		rl.markSelection(rl.pos + 1)
-		rl.pos = final
+		final++
 	}
+	rl.pos = rl.mark
+
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	rl.markSelection(rl.pos + 1)
+	rl.pos = final
 }
 
 func (rl *Instance) viSelectAShellWord() {
@@ -723,12 +725,10 @@ func (rl *Instance) viSelectAShellWord() {
 	}
 
 	// Adjust for spaces preceding
-	if rl.pos == len(rl.line)-1 {
-		rl.pos = mark
-		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-		mark = rl.pos + 1
-	}
+	rl.pos = mark
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	mark = rl.pos + 1
 
 	// Else set the region inside those quotes
 	rl.markSelection(mark)

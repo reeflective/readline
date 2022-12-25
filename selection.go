@@ -229,7 +229,7 @@ func adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos int) (mark, cpos int) {
 		dEpos > sEpos) // ensuring that we are not comparing unfound
 
 	singleFirstAndValid := (sBpos < dBpos &&
-		sBpos <= 0 &&
+		sBpos >= 0 &&
 		dBpos >= 0 &&
 		sEpos > dEpos)
 
