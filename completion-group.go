@@ -115,7 +115,7 @@ NEXT_VALUE:
 
 		// Else, either add it to the current row if there is still room
 		// on it for this candidate, or add a new one. We only do that when
-		// we know we don't have aliases.
+		// we know we don't have aliases, or when we don't have to display list.
 		if !g.aliased && g.canFitInRow(val) && !g.list {
 			g.values[len(g.values)-1] = append(g.values[len(g.values)-1], val)
 		} else {
@@ -169,7 +169,7 @@ func (g *comps) computeCells(vals rawValues) {
 	}
 
 	// We also have the width for each column
-	g.columnsWidth = make([]int, GetTermWidth()/(g.maxCellLength+3))
+	g.columnsWidth = make([]int, GetTermWidth()/(g.maxCellLength+2))
 	for i := 0; i < g.tcMaxX; i++ {
 		g.columnsWidth[i] = g.maxCellLength
 	}
@@ -510,7 +510,11 @@ func (g *comps) padDescription(val Completion, valPad int) (pad int) {
 
 	candidateLen := len(g.displayTrimmed(val.Display)) + valPad + 1
 	individualRest := (GetTermWidth() % g.maxCellLength) / (g.tcMaxX + 3)
-	return g.maxCellLength - candidateLen - len(g.descriptionTrimmed(val.Description)) + individualRest
+	pad = g.maxCellLength - candidateLen - len(g.descriptionTrimmed(val.Description)) + individualRest
+	if pad > 1 {
+		pad--
+	}
+	return pad
 }
 
 func (g *comps) displayTrimmed(val string) string {
