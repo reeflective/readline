@@ -102,7 +102,7 @@ const (
 	seqClearScreen      = "\x1b[2J" // Clears screen fully
 	seqCursorTopLeft    = "\x1b[H"  // Clears screen and places cursor on top-left
 
-	seqGetCursorPos = "\x1b6n" // response: "\x1b{Line};{Column}R"
+	seqGetCursorPos = "\x1b[6n" // response: "\x1b{Line};{Column}R"
 )
 
 // Text effects

@@ -1,5 +1,9 @@
 package readline
 
+import (
+	"os"
+)
+
 // We pass a special subset of the current input line, so that
 // completions are available no matter where the cursor is.
 func (rl *Instance) getCompletionLine() (line []rune, pos int) {
@@ -109,6 +113,35 @@ func (rl *Instance) noCompletions() bool {
 	}
 
 	return true
+}
+
+// returns either the max number of completion rows configured
+// or a reasonable amount of rows so as not to bother the user.
+func (rl *Instance) getCompletionMaxRows() (maxRows int) {
+	maxRows = rl.config.MaxTabCompleterRows
+
+	rl.EnableGetCursorPos = true
+
+	_, cposY := rl.getCursorPos()
+	_, termHeight, err := GetSize(int(os.Stdin.Fd()))
+	if err != nil || cposY == -1 {
+		return
+	}
+
+	spaceBelow := (termHeight - cposY) - 1
+
+	// If we have more space than allowed per configuration, return
+	if rl.config.MaxTabCompleterRows <= spaceBelow {
+		return
+	}
+
+	// Only return the space below if it's reasonably large.
+	if spaceBelow > 15 && spaceBelow < rl.config.MaxTabCompleterRows {
+		return spaceBelow
+	}
+
+	// Otherwise return half the terminal.
+	return termHeight / 2
 }
 
 func (rl *Instance) completionCount() (comps int, lines int, adjusted int) {

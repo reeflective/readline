@@ -156,7 +156,7 @@ func leftMost() []byte {
 	return b
 }
 
-var rxRcvCursorPos = regexp.MustCompile("^\x1b([0-9]+);([0-9]+)R$")
+var rxRcvCursorPos = regexp.MustCompile(`^\x1b\[([0-9]+);([0-9]+)R$`)
 
 func (rl *Instance) getCursorPos() (x int, y int) {
 	if !rl.EnableGetCursorPos {

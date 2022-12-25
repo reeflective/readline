@@ -260,10 +260,7 @@ func (rl *Instance) printCompletions() {
 // than the console MaxTabCompleterRows value, we crop the completions string
 // so that "global" cycling (across all groups) is printed correctly.
 func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
-	// If we actually fit into the MaxTabCompleterRows, return the comps
-	if rl.tcUsedY < rl.config.MaxTabCompleterRows {
-		return comps, rl.tcUsedY
-	}
+	maxRows := rl.getCompletionMaxRows()
 
 	// Else we go on, but we have more comps than what allowed:
 	// we will add a line to the end of the comps, giving the actualized
@@ -271,7 +268,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	moreComps := func(cropped string, offset int) (hinted string, noHint bool) {
 		_, _, adjusted := rl.completionCount()
 		remain := adjusted - offset
-		if remain <= 0 {
+		if remain <= 0 || offset < maxRows {
 			return cropped, true
 		}
 		hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completion rows... (scroll down to show)"+seqReset+"\n", remain)
@@ -284,7 +281,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 
 	// Get absPos - MaxTabCompleterRows for having the number of lines to cut at the top
 	// If the number is negative, that means we don't need to cut anything at the top yet.
-	maxLines := absPos - rl.config.MaxTabCompleterRows
+	maxLines := absPos - maxRows
 	if maxLines < 0 {
 		maxLines = 0
 	}
@@ -293,13 +290,12 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	scanner := bufio.NewScanner(strings.NewReader(comps))
 
 	// If absPos < MaxTabCompleterRows, cut below MaxTabCompleterRows and return
-	if absPos < rl.config.MaxTabCompleterRows {
+	if absPos < maxRows {
 		var count int
-		var noRemain bool
 
 		for scanner.Scan() {
 			line := scanner.Text()
-			if count < rl.config.MaxTabCompleterRows {
+			if count < maxRows {
 				cropped += line + "\n"
 				count++
 			} else {
@@ -308,18 +304,14 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 			}
 		}
 
-		cropped, noRemain = moreComps(cropped, count-1)
-		if noRemain {
-			count--
-		}
-
+		cropped, _ = moreComps(cropped, count-1)
 		return cropped, count
 	}
 
 	// If absolute > MaxTabCompleterRows, cut above and below and return
 	//      -> This includes de facto when we tabCompletionReverse
-	if absPos >= rl.config.MaxTabCompleterRows {
-		cutAbove := absPos - rl.config.MaxTabCompleterRows
+	if absPos >= maxRows {
+		cutAbove := absPos - maxRows
 		var count int
 		var noRemain bool
 
@@ -337,7 +329,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 			}
 		}
 
-		cropped, noRemain = moreComps(cropped, rl.config.MaxTabCompleterRows+cutAbove+1)
+		cropped, noRemain = moreComps(cropped, maxRows+cutAbove+1)
 		if noRemain {
 			count--
 		}
