@@ -98,8 +98,30 @@ func (h *NullHistory) Dump() interface{} {
 // initHistory is ran once at the beginning of an instance start.
 func (rl *Instance) initHistory() {
 	rl.historySourcePos = 0
-	rl.histPos = 0
 	rl.undoHistory = []undoItem{{line: "", pos: 0}}
+
+	// Only reset the history position when we don't
+	// need it to retrieve a line before anything else.
+	if !rl.inferLine {
+		rl.histPos = 0
+	}
+}
+
+// when the last widget invoked accepted a line with a supplementary
+// directive to retrieve a history line (by match or index), find it.
+func (rl *Instance) initHistoryLine() {
+	if !rl.inferLine {
+		return
+	}
+
+	switch rl.histPos {
+	case 0:
+		rl.inferNextHistory()
+	default:
+		rl.walkHistory(-1)
+	}
+
+	rl.inferLine = false
 }
 
 func (rl *Instance) nextHistorySource() {

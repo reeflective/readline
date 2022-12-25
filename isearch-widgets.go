@@ -3,9 +3,6 @@ package readline
 // The isearch keymap is empty by default: the widgets that can
 // be used while in incremental search mode will be found in the
 // main keymap, so that the same keybinds can be used.
-//
-// Completion widgets are added at bind time, so that completion
-// can still be used while searching in them.
 var isearchKeys = map[string]string{}
 
 func (rl *Instance) isearchWidgets() lineWidgets {

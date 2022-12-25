@@ -65,15 +65,16 @@ type Instance struct {
 	PasswordMask rune
 
 	// readline operating parameters
-	keys     string // Contains all keys (input by user) not yet consumed by the shell widgets.
-	line     []rune // This is the input line, with entered text: full line = mlnPrompt + line
-	accepted bool   // Set by 'accept-line' widget, to notify return the line to the caller
-	err      error  // Errors returned by interrupt signal handlers
-	pos      int    // Cursor position in the entire line.
-	posX     int    // Cursor position X
-	posY     int    // Cursor position Y (if multiple lines span)
-	fullX    int    // X coordinate of the full input line, including the prompt if needed.
-	fullY    int    // Y offset to the end of input line.
+	keys      string // Contains all keys (input by user) not yet consumed by the shell widgets.
+	line      []rune // This is the input line, with entered text: full line = mlnPrompt + line
+	accepted  bool   // Set by 'accept-line' widget, to notify return the line to the caller
+	err       error  // Errors returned by interrupt signal handlers
+	inferLine bool   // When a "accept-line-and-down-history" widget wants to immediately retrieve/use a line.
+	pos       int    // Cursor position in the entire line.
+	posX      int    // Cursor position X
+	posY      int    // Cursor position Y (if multiple lines span)
+	fullX     int    // X coordinate of the full input line, including the prompt if needed.
+	fullY     int    // Y offset to the end of input line.
 
 	// Buffer received from host programms
 	multilineBuffer []byte

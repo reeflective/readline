@@ -18,19 +18,21 @@ func (rl *Instance) Readline() (string, error) {
 	}
 	defer Restore(fd, state)
 
-	rl.initLine()
-	rl.initHelpers()
-	rl.initHistory()
-	rl.initKeymap()
+	rl.initLine()        // Clear the line in most cases
+	rl.initHelpers()     // Prepare hints/completions
+	rl.initHistory()     // Reset undo/history indexes in most cases.
+	rl.initHistoryLine() // Retrieve a line from history when asked.
+	rl.initKeymap()      // Verify key mappings and widget binds
 
 	// The prompt reevaluates itself when its corresponding
 	// functions are bound. Some of its components (PS1/RPROMPT)
 	// are normally only computed here (until the next Readline loop),
 	// but other components (PS2/tips) are computed more than once.
+	// Also print the primary prompt (or most of it if multiline).
 	rl.Prompt.init(rl)
 
-	// If the prompt is set as transient, print it once
-	// our command line is returned to the caller.
+	// If the prompt is set as transient, we will print it
+	// once our command line is returned to the caller.
 	defer rl.Prompt.printTransient(rl)
 
 	// Multisplit
@@ -38,8 +40,7 @@ func (rl *Instance) Readline() (string, error) {
 		return rl.initMultiline()
 	}
 
-	// Finally, print any hints or completions
-	// if the TabCompletion engines so desires
+	// Finally, print any hints or completions if needed.
 	rl.renderHelpers()
 
 	// Start handling keystrokes.

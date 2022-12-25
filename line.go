@@ -8,12 +8,16 @@ import (
 
 // initLine is ran once at the beginning of an instance readline run.
 func (rl *Instance) initLine() {
-	// Line
-	rl.line = []rune{}
+	// We only reset the line when we don't need it
+	// to retrieve an matching one/ an history pos index.
+	if !rl.inferLine {
+		rl.line = []rune{}
+		rl.pos = 0
+		rl.posY = 0
+	}
+
 	rl.comp = []rune{}     // No virtual completion yet
 	rl.compLine = []rune{} // So no virtual line either
-	rl.pos = 0
-	rl.posY = 0
 
 	rl.resetSelection()
 
@@ -215,7 +219,7 @@ func (rl *Instance) carriageReturn() {
 	rl.printLine()
 	print("\r\n")
 
-	if rl.config.HistoryAutoWrite {
+	if rl.config.HistoryAutoWrite && !rl.inferLine {
 		var err error
 
 		// Main history
