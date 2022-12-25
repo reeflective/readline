@@ -1,23 +1,20 @@
 package readline
 
-import (
-	"fmt"
-)
-
 func (rl *Instance) completionWidgets() lineWidgets {
 	return map[string]widget{
-		"expand-or-complete":         rl.expandOrComplete,
-		"expand-or-complete-prefix":  rl.expandOrCompletePrefix,
-		"menu-complete":              rl.menuComplete,
-		"complete-word":              rl.completeWord,
-		"menu-expand-or-complete":    rl.menuExpandOrComplete,
-		"reverse-menu-complete":      rl.reverseMenuComplete,
-		"accept-and-menu-complete":   rl.acceptAndMenuComplete,
-		"expand-word":                rl.expandWord,
-		"list-choices":               rl.listChoices,
-		"vi-registers-complete":      rl.viRegistersComplete,
-		"history-complete":           rl.historyComplete,
-		"incremental-search-history": rl.incrementalSearchHistory,
+		"expand-or-complete":        rl.expandOrComplete,
+		"expand-or-complete-prefix": rl.expandOrCompletePrefix,
+		"menu-complete":             rl.menuComplete,
+		"complete-word":             rl.completeWord,
+		"menu-expand-or-complete":   rl.menuExpandOrComplete,
+		"reverse-menu-complete":     rl.reverseMenuComplete,
+		"menu-complete-next-tag":    rl.menuCompleteNextTag,
+		"menu-complete-prev-tag":    rl.menuCompletePrevTag,
+		"accept-and-menu-complete":  rl.acceptAndMenuComplete,
+		"expand-word":               rl.expandWord,
+		"list-choices":              rl.listChoices,
+		"vi-registers-complete":     rl.viRegistersComplete,
+		"menu-incremental-search":   rl.menuIncrementalSearch,
 	}
 }
 
@@ -142,6 +139,35 @@ func (rl *Instance) reverseMenuComplete() {
 	rl.updateVirtualComp()
 }
 
+func (rl *Instance) menuCompleteNextTag() {
+	rl.skipUndoAppend()
+
+	// We don't do anything when not already completing.
+	if rl.local != menuselect && rl.local != isearch {
+		return
+	} else if len(rl.tcGroups) <= 1 {
+		return
+	}
+
+	rl.cycleNextGroup()
+	newGrp := rl.currentGroup()
+	newGrp.firstCell()
+}
+
+func (rl *Instance) menuCompletePrevTag() {
+	rl.skipUndoAppend()
+
+	if rl.local != menuselect && rl.local != isearch {
+		return
+	} else if len(rl.tcGroups) <= 1 {
+		return
+	}
+
+	rl.cyclePreviousGroup()
+	newGrp := rl.currentGroup()
+	newGrp.firstCell()
+}
+
 func (rl *Instance) acceptAndMenuComplete() {
 	rl.skipUndoAppend()
 
@@ -200,41 +226,22 @@ func (rl *Instance) viRegistersComplete() {
 	}
 }
 
-func (rl *Instance) incrementalSearchHistory() {
-}
-
-func (rl *Instance) historyComplete() {
+func (rl *Instance) menuIncrementalSearch() {
 	rl.skipUndoAppend()
 
 	switch rl.local {
-	case menuselect, isearch:
-		// If we are currently completing the last history
-		// source, cancel history completion.
-		if rl.historySourcePos == len(rl.histories)-1 {
-			rl.histHint = []rune{}
-			rl.resetCompletion()
-			rl.local = ""
-			rl.resetHintText()
-			rl.completer = nil
-			return
-		}
-
-		// Else complete the next history source.
-		rl.nextHistorySource()
-		fallthrough
-
+	case isearch:
+	// case menuselect:
 	default:
-		// Indicate to the user if we don't have history sources at all.
-		if rl.currentHistory() == nil {
-			rl.histHint = []rune(fmt.Sprintf("%s%s%s %s", seqDim, seqFgRed,
-				"No command history source", seqReset))
+		// First initialize completions.
+		if rl.completer != nil {
+			rl.startMenuComplete(rl.completer)
+		} else {
+			// rl.startMenuComplete(rl.historyCompletion)
 		}
 
-		// Else, generate the completions.
-		rl.startMenuComplete(rl.historyCompletion)
-
-		if rl.config.HistoryAutoIsearch {
-			rl.enterIsearchMode()
-		}
+		// Then enter the isearch mode, which updates
+		// the hint line, and initializes other things.
+		rl.enterIsearchMode()
 	}
 }

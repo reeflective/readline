@@ -17,7 +17,7 @@ var viinsKeys = keymap{
 	"^O":      "accept-line-and-down-history",
 	"^Q":      "accept-and-infer-next-history",
 	"^P":      "up-line-or-history",
-	"^R":      "history-complete",
+	"^R":      "history-incremental-search-backward",
 	"^W":      "backward-kill-word",
 	"^?":      "backward-delete-char",
 	"^_":      "undo",

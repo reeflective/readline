@@ -5,59 +5,44 @@ import (
 	"strings"
 )
 
-// standardWidgets don't need access to the input key.
 func (rl *Instance) standardWidgets() lineWidgets {
 	widgets := map[string]widget{
-		"clear-screen":                   rl.clearScreen,
-		"self-insert":                    rl.selfInsert,
-		"accept-line":                    rl.acceptLine,
-		"beginning-of-line":              rl.beginningOfLine,
-		"end-of-line":                    rl.endOfLine,
-		"kill-line":                      rl.killLine,
-		"kill-whole-line":                rl.killWholeLine,
-		"backward-kill-word":             rl.backwardKillWord,
-		"kill-word":                      rl.killWord,
-		"yank":                           rl.yank,
-		"backward-delete-char":           rl.backwardDeleteChar,
-		"delete-char":                    rl.deleteChar,
-		"forward-char":                   rl.forwardChar,
-		"backward-char":                  rl.backwardChar,
-		"forward-word":                   rl.forwardWord,
-		"backward-word":                  rl.backwardWord,
-		"digit-argument":                 rl.digitArgument,
-		"undo":                           rl.undo,
-		"overwrite-mode":                 rl.overwriteMode,
-		"set-mark-command":               rl.setMarkCommand,
-		"exchange-point-and-mark":        rl.exchangePointAndMark,
-		"quote-region":                   rl.quoteRegion,
-		"quote-line":                     rl.quoteLine,
-		"neg-argument":                   rl.negArgument,
-		"capitalize-word":                rl.capitalizeWord,
-		"down-case-word":                 rl.downCaseWord,
-		"up-case-word":                   rl.upCaseWord,
-		"transpose-words":                rl.transposeWords,
-		"transpose-chars":                rl.transposeChars,
-		"copy-region-as-kill":            rl.copyRegionAsKill,
-		"copy-prev-word":                 rl.copyPrevWord,
-		"copy-prev-shell-word":           rl.copyPrevShellWord,
-		"kill-region":                    rl.killRegion,
-		"redo":                           rl.redo,
-		"switch-keyword":                 rl.switchKeyword,
-		"space":                          rl.space,
-		"down-line-or-history":           rl.downHistory,
-		"up-line-or-history":             rl.upHistory,
-		"down-history":                   rl.downHistory,
-		"up-history":                     rl.upHistory,
-		"infer-next-history":             rl.inferNextHistory,
-		"beginning-of-buffer-or-history": rl.beginningOfBufferOrHistory,
-		"end-of-buffer-or-history":       rl.endOfBufferOrHistory,
-		"history-autosuggest-insert":     rl.historyAutosuggestInsert,
-		"beginning-of-line-hist":         rl.beginningOfLineHist,
-		"end-of-line-hist":               rl.endOfLineHist,
-		"beginning-of-history":           rl.beginningOfHistory,
-		"end-of-history":                 rl.endOfHistory,
-		"accept-and-infer-next-history":  rl.acceptAndInferNextHistory,
-		"accept-line-and-down-history":   rl.acceptLineAndDownHistory,
+		"clear-screen":            rl.clearScreen,
+		"self-insert":             rl.selfInsert,
+		"accept-line":             rl.acceptLine,
+		"beginning-of-line":       rl.beginningOfLine,
+		"end-of-line":             rl.endOfLine,
+		"kill-line":               rl.killLine,
+		"kill-whole-line":         rl.killWholeLine,
+		"backward-kill-word":      rl.backwardKillWord,
+		"kill-word":               rl.killWord,
+		"yank":                    rl.yank,
+		"backward-delete-char":    rl.backwardDeleteChar,
+		"delete-char":             rl.deleteChar,
+		"forward-char":            rl.forwardChar,
+		"backward-char":           rl.backwardChar,
+		"forward-word":            rl.forwardWord,
+		"backward-word":           rl.backwardWord,
+		"digit-argument":          rl.digitArgument,
+		"undo":                    rl.undo,
+		"overwrite-mode":          rl.overwriteMode,
+		"set-mark-command":        rl.setMarkCommand,
+		"exchange-point-and-mark": rl.exchangePointAndMark,
+		"quote-region":            rl.quoteRegion,
+		"quote-line":              rl.quoteLine,
+		"neg-argument":            rl.negArgument,
+		"capitalize-word":         rl.capitalizeWord,
+		"down-case-word":          rl.downCaseWord,
+		"up-case-word":            rl.upCaseWord,
+		"transpose-words":         rl.transposeWords,
+		"transpose-chars":         rl.transposeChars,
+		"copy-region-as-kill":     rl.copyRegionAsKill,
+		"copy-prev-word":          rl.copyPrevWord,
+		"copy-prev-shell-word":    rl.copyPrevShellWord,
+		"kill-region":             rl.killRegion,
+		"redo":                    rl.redo,
+		"switch-keyword":          rl.switchKeyword,
+		"space":                   rl.space,
 	}
 
 	return widgets
@@ -736,200 +721,4 @@ func (rl *Instance) space() {
 		rl.keys = " "
 		rl.selfInsert()
 	}
-}
-
-func (rl *Instance) downHistory() {
-	rl.skipUndoAppend()
-	rl.walkHistory(-1)
-}
-
-func (rl *Instance) upHistory() {
-	rl.skipUndoAppend()
-	rl.walkHistory(1)
-}
-
-func (rl *Instance) inferNextHistory() {
-	rl.skipUndoAppend()
-	matchIndex := 0
-	histSuggested := make([]rune, 0)
-
-	// Work with correct history source
-	rl.historySourcePos = 0
-	history := rl.currentHistory()
-
-	// Nothing happens if the history is nil or empty.
-	if history == nil || history.Len() == 0 {
-		return
-	}
-
-	for i := 1; i <= history.Len(); i++ {
-		histline, err := history.GetLine(history.Len() - i)
-		if err != nil {
-			return
-		}
-
-		// If too short
-		if len(histline) <= len(rl.line) {
-			continue
-		}
-
-		// Or if not fully matching
-		match := false
-		for i, char := range rl.line {
-			if byte(char) == histline[i] {
-				match = true
-			} else {
-				match = false
-				break
-			}
-		}
-
-		// If the line fully matches, we have our suggestion
-		if match {
-			matchIndex = history.Len() - i
-			histSuggested = append(histSuggested, []rune(histline)...)
-			break
-		}
-	}
-
-	// If we have no match we return, or check for the next line.
-	if (len(histSuggested) == 0 && matchIndex <= 0) || history.Len() <= matchIndex+1 {
-		return
-	}
-
-	// Get the next history line
-	nextLine, err := history.GetLine(matchIndex + 1)
-	if err != nil {
-		return
-	}
-
-	rl.line = []rune(nextLine)
-	rl.pos = len(nextLine)
-}
-
-func (rl *Instance) beginningOfBufferOrHistory() {
-	rl.skipUndoAppend()
-
-	if rl.pos == 0 {
-		rl.historySourcePos = 0
-		history := rl.currentHistory()
-
-		if history == nil {
-			return
-		}
-
-		new, err := history.GetLine(0)
-		if err != nil {
-			rl.resetHelpers()
-			print(rl.Prompt.primary)
-			return
-		}
-
-		rl.clearLine()
-		rl.line = []rune(new)
-		rl.pos = len(rl.line)
-
-		return
-	}
-
-	rl.beginningOfLine()
-}
-
-func (rl *Instance) endOfBufferOrHistory() {
-	rl.skipUndoAppend()
-
-	if rl.pos == len(rl.line) {
-		rl.historySourcePos = 0
-		history := rl.currentHistory()
-
-		if history == nil {
-			return
-		}
-
-		new, err := history.GetLine(history.Len() - 1)
-		if err != nil {
-			rl.resetHelpers()
-			print(rl.Prompt.primary)
-			return
-		}
-
-		rl.clearLine()
-		rl.line = []rune(new)
-		rl.pos = len(rl.line)
-		return
-	}
-
-	rl.endOfLine()
-}
-
-func (rl *Instance) beginningOfLineHist() {
-	rl.skipUndoAppend()
-
-	switch {
-	case rl.pos <= 0:
-		rl.beginningOfLine()
-	default:
-		rl.walkHistory(1)
-	}
-}
-
-func (rl *Instance) endOfLineHist() {
-	rl.skipUndoAppend()
-
-	switch {
-	case rl.pos < len(rl.line)-1:
-		rl.endOfLine()
-	default:
-		rl.walkHistory(-1)
-	}
-}
-
-func (rl *Instance) beginningOfHistory() {
-	history := rl.currentHistory()
-
-	if history == nil {
-		return
-	}
-
-	rl.walkHistory(history.Len())
-}
-
-func (rl *Instance) endOfHistory() {
-	history := rl.currentHistory()
-
-	if history == nil {
-		return
-	}
-
-	rl.walkHistory(-history.Len() + 1)
-}
-
-func (rl *Instance) acceptAndInferNextHistory() {
-	rl.inferLine = true // The next loop will retrieve a line.
-	rl.histPos = 0      // And will find it by trying to match one.
-	rl.acceptLine()
-}
-
-func (rl *Instance) acceptLineAndDownHistory() {
-	rl.inferLine = true // The next loop will retrieve a line by histPos.
-	rl.acceptLine()
-}
-
-// 	"^[N": "history-search-forward",
-func (rl *Instance) historySearchForward() {
-}
-
-// 	"^[P": "history-search-backward",
-func (rl *Instance) historySearchSackward() {
-}
-
-func (rl *Instance) historyIncrementalSearchForward() {
-}
-
-func (rl *Instance) historyIncrementalSearchSackward() {
-}
-
-// "^[ ":  "expand-history",
-// "^[!":  "expand-history",
-func (rl *Instance) expandHistory() {
 }

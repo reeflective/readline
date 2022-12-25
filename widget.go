@@ -180,13 +180,13 @@ func (rl *Instance) getWidget(name string) widget {
 		return wg
 	}
 
-	// Completion
-	if wg, found := rl.completionWidgets()[name]; found && wg != nil {
+	// History control widgets
+	if wg, found := rl.historyWidgets()[name]; found && wg != nil {
 		return wg
 	}
 
-	// Incremental search
-	if wg, found := rl.isearchWidgets()[name]; found && wg != nil {
+	// Completion & incremental search
+	if wg, found := rl.completionWidgets()[name]; found && wg != nil {
 		return wg
 	}
 

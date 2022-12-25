@@ -70,12 +70,50 @@ func (rl *Instance) normalCompletions() {
 	rl.setCompletionPrefix(comps)
 }
 
-func (rl *Instance) historyCompletion() {
-	rl.tcGroups = make([]*comps, 0)
-	comps := rl.completeHistory()
-	comps = comps.DisplayList("*")
-	rl.groupCompletions(comps)
-	rl.setCompletionPrefix(comps)
+func (rl *Instance) historyCompletion(forward, filterLine bool) {
+	switch rl.local {
+	case menuselect, isearch:
+		// If we are currently completing the last
+		// history source, cancel history completion.
+		if rl.historySourcePos == len(rl.histories)-1 {
+			rl.histHint = []rune{}
+			rl.resetCompletion()
+			rl.local = ""
+			rl.resetHintText()
+			rl.completer = nil
+			return
+		}
+
+		// Else complete the next history source.
+		rl.nextHistorySource()
+		fallthrough
+
+	default:
+		// Notify if we don't have history sources at all.
+		if rl.currentHistory() == nil {
+			noHistory := fmt.Sprintf("%s%s%s %s", seqDim, seqFgRed, "No command history source", seqReset)
+			rl.histHint = []rune(noHistory)
+			return
+		}
+
+		// Generate the completions with specified behavior.
+		historyCompletion := func() {
+			rl.tcGroups = make([]*comps, 0)
+
+			// Either against the current line or not.
+			if filterLine {
+				rl.tcPrefix = string(rl.line)
+			}
+
+			comps := rl.completeHistory(forward)
+			comps = comps.DisplayList("*")
+			rl.groupCompletions(comps)
+			rl.setCompletionPrefix(comps)
+		}
+
+		// Else, generate the completions.
+		rl.startMenuComplete(historyCompletion)
+	}
 }
 
 func (rl *Instance) registerCompletion() {

@@ -207,7 +207,7 @@ func (rl *Instance) walkHistory(i int) {
 
 // completeHistory - Populates a CompletionGroup with history and returns it the shell
 // we populate only one group, so as to pass it to the main completion engine.
-func (rl *Instance) completeHistory() Completions {
+func (rl *Instance) completeHistory(forward bool) Completions {
 	if len(rl.histories) == 0 {
 		return Completions{}
 	}
@@ -223,25 +223,38 @@ func (rl *Instance) completeHistory() Completions {
 	rl.histHint = append([]rune(seqBold+seqFgCyanBright+string(rl.histHint)+seqReset), rl.tfLine...)
 	rl.histHint = append(rl.histHint, []rune(seqReset)...)
 
+	// Prepare completions
 	hist := &comps{
 		maxLength: 10,
 	}
-
 	compLines := make([]Completion, 0)
 
-	var (
-		line string
-		err  error
-	)
+	// Set up iteration clauses
+	var histPos int
+	var done func(i int) bool
+	var move func(inc int) int
 
+	if forward {
+		histPos = -1
+		done = func(i int) bool { return i < history.Len() }
+		move = func(pos int) int { return pos + 1 }
+	} else {
+		histPos = history.Len()
+		done = func(i int) bool { return i > 0 }
+		move = func(pos int) int { return pos - 1 }
+	}
+
+	// And generate the completions.
 NEXT_LINE:
-	for i := history.Len() - 1; i > -1; i-- {
-		line, err = history.GetLine(i)
+	for done(histPos) {
+		histPos = move(histPos)
+
+		line, err := history.GetLine(histPos)
 		if err != nil {
 			continue
 		}
 
-		if !strings.HasPrefix(line, string(rl.line)) || strings.TrimSpace(line) == "" {
+		if !strings.HasPrefix(line, rl.tcPrefix) || strings.TrimSpace(line) == "" {
 			continue
 		}
 
@@ -254,7 +267,7 @@ NEXT_LINE:
 		}
 
 		// Proper pad for indexes
-		indexStr := strconv.Itoa(i)
+		indexStr := strconv.Itoa(histPos)
 		pad := strings.Repeat(" ", len(strconv.Itoa(history.Len()))-len(indexStr))
 		display := fmt.Sprintf("%s%s %s%s", seqDim, indexStr+pad, seqDimReset, line)
 
@@ -264,6 +277,7 @@ NEXT_LINE:
 		}
 
 		compLines = append(compLines, value)
+
 	}
 
 	comps := CompleteRaw(compLines)
