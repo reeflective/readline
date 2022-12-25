@@ -66,10 +66,6 @@ type config struct {
 	// HistoryAutoWrite defines whether items automatically get written to history.
 	// Enabled by default. Set to false to disable.
 	HistoryAutoWrite bool `yaml:"historyAutoWrite"`
-	// HistoryAutoIsearch, if true, will automatically enter incremental-isearch mode
-	// when completing history. This in effect will mimick the default behavior of most
-	// Unix shells, where the first match in isearch mode is inserted in the line.
-	HistoryAutoIsearch bool `yaml:"historyAutoIsearch"`
 
 	//
 	// Completion settings
@@ -277,7 +273,6 @@ func (rl *Instance) loadDefaultConfig() {
 		// History
 		HistoryAutoWrite:   true,
 		HistoryAutosuggest: false,
-		HistoryAutoIsearch: false,
 
 		// Completions
 		MaxTabCompleterRows: 50,

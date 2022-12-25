@@ -54,6 +54,8 @@ type Instance struct {
 	// then readline will just use the current line.
 	GetMultiLine func([]rune) []rune
 
+	// EnableGetCursorPos will allow the shell to send a special sequence
+	// to the the terminal to get the current cursor X and Y coordinates.
 	EnableGetCursorPos bool
 
 	// SyntaxHighlight is a helper function to provide syntax highlighting.
@@ -90,10 +92,9 @@ type Instance struct {
 	//
 	// Completion ---------------------------------------------------------------------------------
 
-	// TabCompleter is a simple function that offers completion suggestions.
+	// Completer is a function that produces completions.
 	// It takes the readline line ([]rune) and cursor pos.
-	// Returns a prefix string, and several completion groups with their items and description
-	// Asynchronously add/refresh completions
+	// It return a type holding all completions and their associated settings.
 	Completer func([]rune, int) Completions
 
 	// SyntaxCompletion is used to autocomplete code syntax (like braces and

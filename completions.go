@@ -120,7 +120,7 @@ func (c Completions) NoSpace(suffixes ...rune) Completions {
 
 // Prefix adds a prefix to values (only the ones inserted, not the display values)
 //
-//	a := carapace.ActionValues("melon", "drop", "fall").Invoke(c)
+//	a := ActionValues("melon", "drop", "fall").Invoke(c)
 //	b := a.Prefix("water") // ["watermelon", "waterdrop", "waterfall"] but display still ["melon", "drop", "fall"]
 func (c Completions) Prefix(prefix string) Completions {
 	for index, val := range c.values {
@@ -131,7 +131,7 @@ func (c Completions) Prefix(prefix string) Completions {
 
 // Suffix adds a suffx to values (only the ones inserted, not the display values)
 //
-//	a := carapace.ActionValues("apple", "melon", "orange").Invoke(c)
+//	a := ActionValues("apple", "melon", "orange").Invoke(c)
 //	b := a.Suffix("juice") // ["applejuice", "melonjuice", "orangejuice"] but display still ["apple", "melon", "orange"]
 func (c Completions) Suffix(suffix string) Completions {
 	for index, val := range c.values {
@@ -155,10 +155,10 @@ func (c Completions) UsageF(f func() string) Completions {
 	return c
 }
 
-// Style sets the style.
+// Style sets the style, accepting cterm color codes, eg. 255, 30, etc.
 //
-//	ActionValues("yes").Style(style.Green)
-//	ActionValues("no").Style(style.Red)
+//	ActionValues("yes").Style("35")
+//	ActionValues("no").Style("255")
 func (c Completions) Style(style string) Completions {
 	return c.StyleF(func(s string) string {
 		return style
@@ -167,8 +167,8 @@ func (c Completions) Style(style string) Completions {
 
 // Style sets the style using a reference
 //
-//	ActionValues("value").StyleR(&style.Carapace.Value)
-//	ActionValues("description").StyleR(&style.Carapace.Value)
+//	ActionValues("value").StyleR(&style.Value)
+//	ActionValues("description").StyleR(&style.Value)
 func (c Completions) StyleR(style *string) Completions {
 	if style != nil {
 		return c.Style(*style)
@@ -178,8 +178,8 @@ func (c Completions) StyleR(style *string) Completions {
 
 // Style sets the style using a function
 //
-//	ActionValues("dir/", "test.txt").StyleF(style.ForPathExt)
-//	ActionValues("true", "false").StyleF(style.ForKeyword)
+//	ActionValues("dir/", "test.txt").StyleF(myStyleFunc)
+//	ActionValues("true", "false").StyleF(styleForKeyword)
 func (c Completions) StyleF(f func(s string) string) Completions {
 	for index, v := range c.values {
 		c.values[index].Style = f(v.Value)
@@ -244,7 +244,7 @@ func (c Completions) NoSort(tags ...string) Completions {
 
 // Filter filters given values (this should be done before any call to Prefix/Suffix as those alter the values being filtered)
 //
-//	a := carapace.ActionValues("A", "B", "C").Invoke(c)
+//	a := ActionValues("A", "B", "C").Invoke(c)
 //	b := a.Filter([]string{"B"}) // ["A", "C"]
 func (c Completions) Filter(values []string) Completions {
 	c.values = rawValues(c.values).Filter(values...)
@@ -253,8 +253,8 @@ func (c Completions) Filter(values []string) Completions {
 
 // Merge merges Completions (existing values are overwritten)
 //
-//	a := carapace.ActionValues("A", "B").Invoke(c)
-//	b := carapace.ActionValues("B", "C").Invoke(c)
+//	a := ActionValues("A", "B").Invoke(c)
+//	b := ActionValues("B", "C").Invoke(c)
 //	c := a.Merge(b) // ["A", "B", "C"]
 func (c Completions) Merge(others ...Completions) Completions {
 	uniqueRawValues := make(map[string]Completion)

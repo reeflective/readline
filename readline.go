@@ -5,11 +5,16 @@ import (
 )
 
 // Readline displays the readline prompt and reads for user input.
-// It can return on several things:
+// It can return from the call because of different several things:
+//
 // - When the user accepts the line (generally with Enter),
 //   in which case the input line is returned to the caller.
 // - If a particular keystroke mapping returns an error
-//   (like Ctrl-C, Ctrl-D, etc), and an empty string.
+//   (like Ctrl-C, Ctrl-D, etc).
+//
+// In all cases, the current input line is returned along with any
+// potential error, and it is up to the caller to decide what to do
+// with the line result.
 func (rl *Instance) Readline() (string, error) {
 	fd := int(os.Stdin.Fd())
 	state, err := MakeRaw(fd)
