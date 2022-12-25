@@ -15,6 +15,7 @@ func (rl *Instance) completionWidgets() lineWidgets {
 		"list-choices":              rl.listChoices,
 		"vi-registers-complete":     rl.viRegistersComplete,
 		"menu-incremental-search":   rl.menuIncrementalSearch,
+		"accept-completion-or-line": rl.acceptCompletionOrLine,
 	}
 }
 
@@ -243,5 +244,24 @@ func (rl *Instance) menuIncrementalSearch() {
 		// Then enter the isearch mode, which updates
 		// the hint line, and initializes other things.
 		rl.enterIsearchMode()
+	}
+}
+
+func (rl *Instance) acceptCompletionOrLine() {
+	switch rl.local {
+	case menuselect, isearch:
+		// If we have a completion, simply accept this candidate
+		comp := rl.currentCandidate()
+		if comp != "" {
+			rl.resetVirtualComp(false)
+			rl.resetCompletion()
+			return
+		}
+
+		// Or accept the line.
+		fallthrough
+	default:
+		rl.carriageReturn()
+		rl.accepted = true
 	}
 }

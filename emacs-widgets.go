@@ -119,55 +119,6 @@ func (rl *Instance) selfInsert() {
 
 // acceptLine returns the line to the readline caller for being executed/evaluated.
 func (rl *Instance) acceptLine() {
-	// TODO: Handle completions
-	// if rl.modeTabCompletion {
-	// 	cur := rl.getCurrentGroup()
-	//
-	// 	// Check that there is a group indeed, as we might have no completions.
-	// 	if cur == nil {
-	// 		rl.clearHelpers()
-	// 		rl.resetTabCompletion()
-	// 		rl.renderHelpers()
-	// 		read = true
-	//
-	// 		return
-	// 	}
-	//
-	// 	// IF we have a prefix and completions printed, but no candidate
-	// 	// (in which case the completion is ""), we immediately return.
-	// 	completion := cur.getCurrentCell(rl)
-	// 	prefix := len(rl.tcPrefix)
-	// 	if prefix > len(completion.Value) {
-	// 		rl.carriageReturn()
-	//
-	// 		val = string(rl.line)
-	// 		ret = true
-	//
-	// 		return
-	// 	}
-	//
-	// 	// Else, we insert the completion candidate in the real input line.
-	// 	rl.resetVirtualComp(false)
-	//
-	// 	// If we were in history completion, immediately execute the line.
-	// 	if rl.modeAutoFind && rl.searchMode == HistoryFind {
-	// 		rl.carriageReturn()
-	//
-	// 		val = string(rl.line)
-	// 		ret = true
-	//
-	// 		return
-	// 	}
-	//
-	// 	// Reset completions and update input line
-	// 	rl.clearHelpers()
-	// 	rl.resetTabCompletion()
-	// 	rl.renderHelpers()
-	//
-	// 	read = true
-	// 	return
-	// }
-
 	rl.carriageReturn()
 	rl.accepted = true
 }

@@ -203,7 +203,7 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	}
 
 	// Trim any suffix when found, except for a few cases.
-	completion = rl.removeSuffixCandidate(cur)
+	completion = rl.removeSuffixCandidate(cur, prefix)
 
 	// Insert the current candidate and keep the suffix matcher
 	// for this candidate in case a space is inserted after it.
@@ -211,8 +211,20 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	rl.clearVirtualComp()
 }
 
-func (rl *Instance) removeSuffixCandidate(cur *comps) (comp string) {
+func (rl *Instance) removeSuffixCandidate(cur *comps, prefix int) (comp string) {
 	comp = cur.selected().Value
+
+	// When the completion has a size of 1, don't remove anything:
+	// stacked flags, for example, will never be inserted otherwise.
+	if len(comp[prefix:]) == 1 {
+		return
+	}
+
+	// If we are to even consider removing a suffix, we keep the suffix
+	// matcher for later: whatever the decision we take here will be identical
+	// to the one we take while removing suffix in "non-virtual comp" mode.
+	rl.compSuffix = cur.noSpace
+	rl.compSuffix.pos = rl.pos - 1
 
 	// Add a space to suffix matcher when empty.
 	if cur.noSpace.string == "" {
