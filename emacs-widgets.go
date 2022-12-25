@@ -10,6 +10,7 @@ func (rl *Instance) standardWidgets() lineWidgets {
 		"clear-screen":            rl.clearScreen,
 		"self-insert":             rl.selfInsert,
 		"accept-line":             rl.acceptLine,
+		"accept-and-hold":         rl.acceptAndHold,
 		"beginning-of-line":       rl.beginningOfLine,
 		"end-of-line":             rl.endOfLine,
 		"kill-line":               rl.killLine,
@@ -169,6 +170,12 @@ func (rl *Instance) acceptLine() {
 
 	rl.carriageReturn()
 	rl.accepted = true
+}
+
+func (rl *Instance) acceptAndHold() {
+	rl.inferLine = true
+	rl.histPos = -1
+	rl.acceptLine()
 }
 
 func (rl *Instance) clearScreen() {

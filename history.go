@@ -115,6 +115,8 @@ func (rl *Instance) initHistoryLine() {
 	}
 
 	switch rl.histPos {
+	case -1:
+		rl.histPos = 0
 	case 0:
 		rl.inferNextHistory()
 	default:
