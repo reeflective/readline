@@ -11,5 +11,5 @@ var menuselectKeys = map[string]string{
 	"^[[D":    "reverse-menu-complete",
 	"^[[1;5A": "menu-complete-prev-tag",
 	"^[[1;5B": "menu-complete-next-tag",
-	"^M":      "accept-completion-or-line",
+	// "^M":      "accept-completion-or-line",
 }

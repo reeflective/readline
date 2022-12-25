@@ -19,7 +19,6 @@ var emacsKeys = keymap{
 	"^S":          "history-incremental-search-forward",
 	"^T":          "transpose-chars",
 	"^U":          "kill-whole-line",
-	"^V":          "quoted-insert", // TODO WHAT IS THIS ?
 	"^W":          "backward-kill-word",
 	"^Y":          "yank",
 	"^X^B":        "vi-match-bracket",

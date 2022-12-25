@@ -22,7 +22,6 @@ func (rl *Instance) initMultiline() (string, error) {
 	return string(rl.line), nil
 }
 
-// processMultiline handles line input/editing when the last entered key was a carriage return.
 func (rl *Instance) processMultiline(r []rune, b []byte, i int) (done, ret bool, val string, err error) {
 	rl.multilineBuffer = append(rl.multilineBuffer, b[:i]...)
 
@@ -105,3 +104,54 @@ func isMultiline(r []rune) bool {
 	}
 	return false
 }
+
+// processMultiline handles line input/editing when the last entered key was a carriage return.
+// func (rl *Instance) processMultiline(r []rune, b []byte, i int) (done, ret bool, val string, err error) {
+// 	rl.multilineBuffer = append(rl.multilineBuffer, b[:i]...)
+//
+// 	if i == len(b) {
+// 		done = true
+//
+// 		return
+// 	}
+//
+// 	if !rl.allowMultiline(rl.multilineBuffer) {
+// 		rl.multilineBuffer = []byte{}
+// 		done = true
+//
+// 		return
+// 	}
+//
+// 	s := string(rl.multilineBuffer)
+// 	rl.multilineSplit = rxMultiline.Split(s, -1)
+//
+// 	for _, line := range rl.multilineSplit {
+// 		rl.insert([]rune(line + "\n"))
+// 	}
+//
+// 	// r = []rune(rl.multilineSplit[0])
+// 	// rl.inputEditor(r)
+// 	// rl.carriageReturn()
+// 	// rl.multilineBuffer = []byte{}
+// 	// if len(rl.multilineSplit) > 1 {
+// 	// 	rl.multilineSplit = rl.multilineSplit[1:]
+// 	// } else {
+// 	// 	rl.multilineSplit = []string{}
+// 	// }
+//
+// 	// rl.keys = string(r)
+// 	// rl.line = r
+// 	// println()
+// 	// println()
+// 	// print(string(r))
+// 	// println()
+// 	// println()
+// 	// rl.insert(r)
+// 	// rl.line = r
+// 	rl.keys = ""
+// 	done = true
+// 	// ret = true
+// 	// val = string(rl.line)
+//
+// 	return
+// }
