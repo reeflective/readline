@@ -21,8 +21,7 @@ func (rl *Instance) completionWidgets() lineWidgets {
 
 func (rl *Instance) expandOrComplete() {
 	switch rl.local {
-	case isearch:
-	case menuselect:
+	case menuselect, isearch:
 		rl.menuComplete()
 	default:
 		if rl.completer != nil {
@@ -44,8 +43,7 @@ func (rl *Instance) expandOrCompletePrefix() {
 
 func (rl *Instance) completeWord() {
 	switch rl.local {
-	case isearch:
-	case menuselect:
+	case menuselect, isearch:
 		rl.menuComplete()
 	default:
 		rl.startMenuComplete(rl.normalCompletions)
@@ -189,8 +187,7 @@ func (rl *Instance) listChoices() {
 	rl.skipUndoAppend()
 
 	switch rl.local {
-	case isearch:
-	case menuselect:
+	case menuselect, isearch:
 		rl.resetVirtualComp(false)
 	}
 

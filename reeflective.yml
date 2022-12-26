@@ -6,6 +6,18 @@
 # - This configuration file supports different notations for the keys:
 #     * Caret notation (such as the default below)
 #     * Hex notation (as the shell reads the keys, eg. "\e", or '\x01')
+#     * Regular expressions, ONLY IF they are enclosed in square brackets or parenthesis.
+#       Example: "[!-~]" is a range matching any non-empty, non-modified character.
+#                "(\x1b[0-9])" matches all numbers entered with Alt modifier (eg. Alt+3)
+#
+# Cursors =========
+# - Block
+# - Beam
+# - Underline
+# - BlinkingBlock
+# - BlinkingBeam
+# - BlinkingUnderline
+# - Default (the system cursor)
 
 ## Input Mode: the main edition mode to use
 # - emacs
@@ -16,19 +28,11 @@ inputMode: emacs
 ## Vim global settings ##
 #
 vim:
-    # Cursors valid values:
-    # - Block
-    # - Beam
-    # - Underline
-    # - BlinkingBlock
-    # - BlinkingBeam
-    # - BlinkingUnderline
-    # - Default (the system cursor)
-    insertCursor: BlinkingBeam 
-    normalCursor: BlinkingBlock 
-    operatorPendingCursor: BlinkingUnderline 
+    insertCursor: BlinkingBeam
+    normalCursor: BlinkingBlock
+    operatorPendingCursor: BlinkingUnderline
     visualCursor: BlinkingBlock
-    replaceCursor: BlinkingUnderline 
+    replaceCursor: BlinkingUnderline
 #
 ## Emacs global settings ##
 #
@@ -98,7 +102,6 @@ keymaps:
         ^[c: capitalize-word
         ^[d: kill-word
         ^[f: forward-word
-        ^[l: ls^J
         ^[m: copy-prev-shell-word
         ^[n: history-search-forward
         ^[p: history-search-backward
@@ -158,7 +161,7 @@ keymaps:
         ^R: redo
         ^X: switch-keyword
         '|': vi-goto-column
-        ~": vi-swap-case
+        "~": vi-swap-case
         "0": vi-digit-or-beginning-of-line
         A: vi-add-eol
         B: vi-backward-blank-word
@@ -173,7 +176,7 @@ keymaps:
         V: visual-line-mode
         W: vi-forward-blank-word
         X: vi-backward-delete-char
-        Y: vi-yank-whole-line
+        "Y": vi-yank-whole-line
         a: vi-add-next
         b: vi-backward-word
         c: vi-change
@@ -197,8 +200,9 @@ keymaps:
         "y": vi-yank
     # Vim Insert mode key mappings
     viins:
+        ' ': space
+        '[!-~]': self-insert
         ^?: backward-delete-char
-        ^[: vi-cmd-mode
         ^[[1;5C: forward-word
         ^[[1;5D: backward-word
         ^[[3;5~: kill-word
@@ -225,7 +229,6 @@ keymaps:
         ^Y: yank
     # Vim Insert mode key mappings
     viopp:
-        ^[: vi-cmd-mode
         aW: select-a-blank-word
         aa: select-a-shell-word
         aw: select-a-word
@@ -236,7 +239,6 @@ keymaps:
         k: up-line
     # Vim Visual mode key mappings
     visual:
-        ^[: vi-cmd-mode
         "~": vi-swap-case
         S: vi-add-surround
         a: vi-select-surround
@@ -256,6 +258,20 @@ keymaps:
         v: vi-edit-command-line
         x: vi-delete
         "y": vi-yank
+
+    # Completion key mappings
+    menuselect:
+        ^@: accept-and-menu-complete
+        ^[[1;5A: menu-complete-prev-tag
+        ^[[1;5B: menu-complete-next-tag
+        ^[[A: reverse-menu-complete
+        ^[[B: menu-complete
+        ^[[C: menu-complete
+        ^[[D: reverse-menu-complete
+        ^[[Z: reverse-menu-complete
+        ^F: menu-incremental-search
+        ^I: menu-complete
+
 #
 # Other helpers settings ##
 #
@@ -267,6 +283,6 @@ historyAutosuggest: false
 historyAutoWrite: true
 
 # The maximum number of completion rows to print at any time.
-maxTabCompleterRows: 50
+maxTabCompleterRows: 50 
 # Autocomplete asynchrously generates completions as text is typed in the line.
 autoComplete: true
