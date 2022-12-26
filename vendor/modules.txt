@@ -1,20 +1,14 @@
 # github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 ## explicit
 github.com/acarl005/stripansi
-# github.com/jessevdk/go-flags v1.5.0
+# github.com/fsnotify/fsnotify v1.6.0
 ## explicit
-github.com/jessevdk/go-flags
+github.com/fsnotify/fsnotify
 # github.com/reiver/go-caret v0.0.0-20190726191135-0ad7aa63f55f
 ## explicit
 github.com/reiver/go-caret
 # github.com/reiver/go-utf8s v2.0.1+incompatible
 ## explicit
-# github.com/rsteube/carapace v0.28.1
-## explicit
-github.com/rsteube/carapace/internal/config
-github.com/rsteube/carapace/pkg/style
-github.com/rsteube/carapace/third_party/github.com/elves/elvish/pkg/cli/lscolors
-github.com/rsteube/carapace/third_party/github.com/elves/elvish/pkg/ui
 # golang.org/x/crypto v0.3.0
 ## explicit
 golang.org/x/crypto/ssh/terminal
