@@ -22,7 +22,7 @@
 ## Input Mode: the main edition mode to use
 # - emacs
 # - vim
-inputMode: vim 
+inputMode: emacs 
 
 #
 ## Vim global settings ##

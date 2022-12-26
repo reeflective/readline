@@ -293,8 +293,8 @@ func (rl *Instance) loadDefaultConfig() {
 
 	// First load the default configuration to preserve
 	// the comment, and then apply our default values onto it.
-	// yaml.Unmarshal([]byte(defaultConfig), config.node)
-	// config.node.Decode(config)
+	yaml.Unmarshal([]byte(defaultConfig), config.node)
+	config.node.Decode(config)
 
 	rl.config = config
 }
