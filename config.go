@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	configFileName = ".reeflective.yml"
+	configFileName = "readline.yml"
 )
 
-//go:embed reeflective.yml
+//go:embed readline.yml
 var defaultConfig string
 
 // ErrNoSystemConfig indicates that no readline configuration file
@@ -328,7 +328,7 @@ func (rl *Instance) watchConfig(path string) {
 				}
 				changeHint := fmt.Sprintf("Error reloading config: %s", err.Error())
 				rl.hint = []rune(changeHint)
-				rl.renderHelpers()
+				rl.redisplay()
 			}
 		}
 	}()
@@ -352,4 +352,10 @@ func (rl *Instance) reloadConfig(event fsnotify.Event) {
 		changeHint := fmt.Sprintf(seqFgGreen+"Config reloaded: %s", event.Name)
 		rl.hint = append([]rune{}, []rune(changeHint)...)
 	}
+
+	// Reload keymaps and widgets
+	rl.bindWidgets()
+	rl.loadInterruptHandlers()
+	rl.updateKeymaps()
+	rl.updateCursor()
 }

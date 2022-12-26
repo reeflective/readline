@@ -22,7 +22,7 @@
 ## Input Mode: the main edition mode to use
 # - emacs
 # - vim
-inputMode: emacs 
+inputMode: vim 
 
 #
 ## Vim global settings ##
@@ -49,6 +49,7 @@ emacs:
 keymaps:
     # Emacs key mappings
     emacs:
+        "(\e[0-9])": digit-argument
         ^?: backward-delete-char
         ^@: set-mark-command
         ^[": quote-region
@@ -84,7 +85,6 @@ keymaps:
         ^[^L: clear-screen
         ^[^M: self-insert-unmeta
         ^[|: vi-goto-column
-        ^[A: accept-and-hold
         ^[B: backward-word
         ^[C: capitalize-word
         ^[D: kill-word
@@ -102,6 +102,7 @@ keymaps:
         ^[c: capitalize-word
         ^[d: kill-word
         ^[f: forward-word
+        ^[l: ls^J
         ^[m: copy-prev-shell-word
         ^[n: history-search-forward
         ^[p: history-search-backward
@@ -111,18 +112,21 @@ keymaps:
         ^_: undo
         ^A: beginning-of-line
         ^B: backward-char
+        ^D: delete-char-or-list
         ^E: end-of-line
         ^F: forward-char
         ^G: send-break
+        ^I: expand-or-complete
         ^K: kill-line
         ^L: clear-screen
         ^M: accept-line
         ^N: down-line-or-history
         ^O: accept-line-and-down-history
         ^P: up-line-or-history
+        ^R: history-incremental-search-backward
+        ^S: history-incremental-search-forward
         ^T: transpose-chars
         ^U: kill-whole-line
-        ^V: quoted-insert
         ^W: backward-kill-word
         ^X^B: vi-match-bracket
         ^X^E: vi-edit-command-line
@@ -131,6 +135,9 @@ keymaps:
         ^X^O: overwrite-mode
         ^X^U: undo
         ^X^V: vi-cmd-mode
+        ^X^X: exchange-point-and-mark
+        ^Xr: history-incremental-search-backward
+        ^Xs: history-incremental-search-forward
         ^Xu: undo
         ^Y: yank
 
@@ -140,6 +147,7 @@ keymaps:
         '"': vi-set-buffer
         $: vi-end-of-line
         '%': vi-match-bracket
+        '[1-9]': digit-argument
         ^?: backward-delete-char
         ^[[1;5C: forward-word
         ^[[1;5D: backward-word
@@ -176,7 +184,7 @@ keymaps:
         V: visual-line-mode
         W: vi-forward-blank-word
         X: vi-backward-delete-char
-        "Y": vi-yank-whole-line
+        Y: vi-yank-whole-line
         a: vi-add-next
         b: vi-backward-word
         c: vi-change
@@ -184,6 +192,8 @@ keymaps:
         e: vi-forward-word-end
         f: vi-find-next-char
         g~: vi-oper-swap-case
+        gE: vi-backward-blank-word-end
+        ge: vi-backward-word-end
         h: vi-backward-char
         i: vi-insert-mode
         j: down-line-or-history
@@ -197,38 +207,40 @@ keymaps:
         v: visual-mode
         w: vi-forward-word
         x: vi-delete-char
-        "y": vi-yank
+        y: vi-yank
     # Vim Insert mode key mappings
     viins:
-        ' ': space
-        '[!-~]': self-insert
         ^?: backward-delete-char
+        ^[: vi-cmd-mode
         ^[[1;5C: forward-word
         ^[[1;5D: backward-word
         ^[[3;5~: kill-word
         ^[[3~: delete-char
-        ^[[5~: history-search
         ^[[6~: menu-select
-        ^[[A: up-line-or-search
-        ^[[B: down-line-or-select
         ^[[C: vi-forward-char
         ^[[D: vi-backward-char
         ^[[F: end-of-line
         ^[[H: beginning-of-line
+        ^[R: vi-registers-complete
         ^_: undo
         ^A: beginning-of-line
         ^B: backward-char
         ^E: end-of-line
         ^F: forward-char
+        ^I: expand-or-complete
         ^K: kill-line
         ^L: clear-screen
         ^M: accept-line
         ^N: down-line-or-history
+        ^O: accept-line-and-down-history
         ^P: up-line-or-history
+        ^Q: accept-and-infer-next-history
+        ^R: history-search-backward
         ^W: backward-kill-word
         ^Y: yank
     # Vim Insert mode key mappings
     viopp:
+        ^[: vi-cmd-mode
         aW: select-a-blank-word
         aa: select-a-shell-word
         aw: select-a-word
@@ -239,6 +251,7 @@ keymaps:
         k: up-line
     # Vim Visual mode key mappings
     visual:
+        ^[: vi-cmd-mode
         "~": vi-swap-case
         S: vi-add-surround
         a: vi-select-surround
