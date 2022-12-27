@@ -84,6 +84,7 @@ func CompleteStyledValuesDescribed(values ...string) Completions {
 	return Completions{values: vals}
 }
 
+// CompleteRaw directly accepts a list of prepared Completion values.
 func CompleteRaw(values []Completion) Completions {
 	return Completions{values: rawValues(values)}
 }

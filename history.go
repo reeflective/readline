@@ -45,6 +45,27 @@ func (rl *Instance) AddHistorySource(name string, history History) {
 	rl.histories[name] = history
 }
 
+// DeleteHistorySource deletes one or more history source by name.
+// If no arguments are passed, all currently bound sources are removed.
+func (rl *Instance) DeleteHistorySource(sources ...string) {
+	if len(sources) == 0 {
+		rl.histories = make(map[string]History)
+		rl.historyNames = make([]string, 0)
+
+		return
+	}
+
+	for _, name := range sources {
+		delete(rl.histories, name)
+		for i, hname := range rl.historyNames {
+			if hname == name {
+				rl.historyNames = append(rl.historyNames[:i], rl.historyNames[i+1:]...)
+				break
+			}
+		}
+	}
+}
+
 // defaultHistory is an example of a LineHistory interface:
 type defaultHistory struct {
 	items []string

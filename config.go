@@ -35,14 +35,9 @@ type config struct {
 	rl   *Instance
 	node *yaml.Node // Stores the configuration file bytes including comments.
 
-	//
-	// Input modes and keymaps
-	//
-
 	// InputMode - The shell can be used in Vim editing mode, or Emacs (classic).
 	InputMode InputMode `yaml:"inputMode"`
-
-	Vim struct {
+	Vim       struct {
 		// Cursors
 		InsertCursor          CursorStyle `yaml:"insertCursor"`
 		NormalCursor          CursorStyle `yaml:"normalCursor"`
@@ -53,12 +48,7 @@ type config struct {
 	Emacs struct {
 		Cursor CursorStyle
 	}
-
 	Keymaps map[keymapMode]keymap
-
-	//
-	// Line settings
-	//
 
 	// The shell displays fish-like autosuggestions (the first
 	// matching history line is displayed dimmed).
@@ -66,11 +56,6 @@ type config struct {
 	// HistoryAutoWrite defines whether items automatically get written to history.
 	// Enabled by default. Set to false to disable.
 	HistoryAutoWrite bool `yaml:"historyAutoWrite"`
-
-	//
-	// Completion settings
-	//
-
 	// The maximum number of completion rows to print at any time.
 	MaxTabCompleterRows int `yaml:"maxTabCompleterRows"`
 	// Autocomplete asynchrously generates completions as text is typed in the line.

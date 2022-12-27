@@ -1,5 +1,7 @@
 
-# Modern readline library 
+This library is a modern, pure Go readline implementation, enhanced with editing and user 
+interface features commonly found in modern shells, all in little more than 10K lines of code.
+It is used, between others, to power the [console](https://github.com/reeflective/console) library.
 
 ## Features
 
