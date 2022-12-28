@@ -1,5 +1,26 @@
 
-This library is a modern, pure Go readline implementation, enhanced with editing and user 
+<!-- Title -->
+<div align="center">
+  <a href="https://github.com/jeffreytse/zsh-vi-mode">
+    <img alt="vi-mode →~ zsh" src="https://user-images.githubusercontent.com/9413601/103399068-46bfcb80-4b7a-11eb-8741-86cff3d85a69.png" width="600">
+  </a>
+  <p>  Modern shell readline library  </p>
+
+  <br> <h1>  Readline </h1>
+
+</div>
+
+<!-- Badges -->
+<p align="center">
+![Github Actions (workflows)](https://github.com/reeflective/readline/workflows/:workflow-name/badge.svg?branch=:branch-name)
+[![Go module version](https://img.shields.io/github/go-mod/go-version/reeflective/readline.svg)](https://github.com/reeflective/readline)
+[![GoDoc reference](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/reeflective/go/readline)
+[![Go Report Card](https://goreportcard.com/badge/github.com/reeflective/readline)](https://goreportcard.com/report/github.com/reeflective/readline)
+[![codecov](https://codecov.io/gh/reeflective/readline/branch/master/graph/badge.svg)](https://codecov.io/gh/reeflective/readline)
+[![License: BSD-3](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+</p>
+
+This library offers a modern, pure Go readline implementation, enhanced with editing and user 
 interface features commonly found in modern shells, all in little more than 10K lines of code.
 It is used, between others, to power the [console](https://github.com/reeflective/console) library.
 
@@ -44,7 +65,8 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 - Prompts
 - Logging
 
-## License
+## Credits
 
-The `readline` library is distributed under the Apache License (Version 2.0, January 2004) (http://www.apache.org/licenses/). 
-All the example code and documentation in `/examples`, `/completers` is public domain.
+- While most of the code has been rewritten from scratch, the original library used is [lmorg/readline](https://github.com/lmorg/readline).
+  I would have never ventured myself doing this if he had not ventured writing a Vim mode core in the first place. 
+
