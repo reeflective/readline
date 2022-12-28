@@ -1,7 +1,7 @@
 
 <div align="center">
   <a href="https://github.com/reeflective/readline">
-    <img alt="vi-mode →~ zsh" src="https://user-images.githubusercontent.com/9413601/103399068-46bfcb80-4b7a-11eb-8741-86cff3d85a69.png" width="600">
+    <img alt="" src="" width="600">
   </a>
   <p>  Modern shell readline library  </p>
 
@@ -45,6 +45,7 @@
 
 This library is a modern, pure Go readline implementation, enhanced with editing and user 
 interface features commonly found in modern shells, all in little more than 10K lines of code.
+Its kemap-based model and completion engine is heavily inspired from the Z-Shell architecture.
 It is used, between others, to power the [console](https://github.com/reeflective/console) library.
 
 ## Features
@@ -92,4 +93,4 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 
 - While most of the code has been rewritten from scratch, the original library used is [lmorg/readline](https://github.com/lmorg/readline).
   I would have never ventured myself doing this if he had not ventured writing a Vim mode core in the first place. 
-
+- Some of the Vim code is inspired or translated from [zsh-vi-mode](https://github.com/jeffreytse/zsh-vi-mode).
