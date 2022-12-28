@@ -3,7 +3,6 @@
   <a href="https://github.com/reeflective/readline">
     <img alt="" src="" width="600">
   </a>
-  <p>  Modern shell readline library  </p>
 
   <br> <h1>  Readline </h1>
 
@@ -75,6 +74,9 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 - Support for syntax highlighting
 
 ## Showcases
+
+An example application using readline can be found [here]().
+
 - Emacs edition
 - Vim edition
 - Vim selection & movements
