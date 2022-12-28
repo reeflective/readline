@@ -13,5 +13,3 @@ const (
 	ioctlReadTermios  = unix.TCGETS
 	ioctlWriteTermios = unix.TCSETS
 )
-
-
