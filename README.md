@@ -1,7 +1,6 @@
 
-<!-- Title -->
 <div align="center">
-  <a href="https://github.com/jeffreytse/zsh-vi-mode">
+  <a href="https://github.com/reeflective/readline">
     <img alt="vi-mode →~ zsh" src="https://user-images.githubusercontent.com/9413601/103399068-46bfcb80-4b7a-11eb-8741-86cff3d85a69.png" width="600">
   </a>
   <p>  Modern shell readline library  </p>
@@ -10,17 +9,41 @@
 
 </div>
 
+
 <!-- Badges -->
 <p align="center">
-![Github Actions (workflows)](https://github.com/reeflective/readline/workflows/:workflow-name/badge.svg?branch=:branch-name)
-[![Go module version](https://img.shields.io/github/go-mod/go-version/reeflective/readline.svg)](https://github.com/reeflective/readline)
-[![GoDoc reference](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/reeflective/go/readline)
-[![Go Report Card](https://goreportcard.com/badge/github.com/reeflective/readline)](https://goreportcard.com/report/github.com/reeflective/readline)
-[![codecov](https://codecov.io/gh/reeflective/readline/branch/master/graph/badge.svg)](https://codecov.io/gh/reeflective/readline)
-[![License: BSD-3](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+  <a href="https://github.com/reeflective/readline/workflows/:workflow-name/badge.svg?branch=:branch-name">
+    <img src=""
+      alt="Github Actions (workflows)" />
+  </a>
+
+  <a href="https://github.com/reeflective/readline">
+    <img src="https://img.shields.io/github/go-mod/go-version/reeflective/readline.svg"
+      alt="Go module version" />
+  </a>
+
+  <a href="https://godoc.org/reeflective/go/readline">
+    <img src="https://img.shields.io/badge/godoc-reference-blue.svg"
+      alt="GoDoc reference" />
+  </a>
+
+  <a href="https://goreportcard.com/report/github.com/reeflective/readline">
+    <img src="https://goreportcard.com/badge/github.com/reeflective/readline"
+      alt="Go Report Card" />
+  </a>
+
+  <a href="https://codecov.io/gh/reeflective/readline">
+    <img src="https://codecov.io/gh/reeflective/readline/branch/master/graph/badge.svg"
+      alt="codecov" />
+  </a>
+
+  <a href="https://opensource.org/licenses/BSD-3-Clause">
+    <img src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg"
+      alt="License: BSD-3" />
+  </a>
 </p>
 
-This library offers a modern, pure Go readline implementation, enhanced with editing and user 
+This library is a modern, pure Go readline implementation, enhanced with editing and user 
 interface features commonly found in modern shells, all in little more than 10K lines of code.
 It is used, between others, to power the [console](https://github.com/reeflective/console) library.
 
