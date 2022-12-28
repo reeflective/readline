@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// CtrlC is returned when ctrl+c is pressed
+// CtrlC is returned when ctrl+c is pressed.
 var ErrCtrlC = errors.New("Ctrl+C")
 
 // loadInterruptHandlers maps all interrupt handlers to the shell.

@@ -11,14 +11,14 @@ type keymap map[string]string
 // These are the root keymaps used in the readline shell.
 // Their functioning is similar to how ZSH organizes keymaps.
 const (
-	// Editor
+	// Editor.
 	emacs  keymapMode = "emacs"
 	viins  keymapMode = "viins"
 	vicmd  keymapMode = "vicmd"
 	viopp  keymapMode = "viopp"
 	visual keymapMode = "visual"
 
-	// Completion and search
+	// Completion and search.
 	isearch    keymapMode = "isearch"
 	menuselect keymapMode = "menuselect"
 )

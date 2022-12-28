@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// Completion represents a completion candidate
+// Completion represents a completion candidate.
 type Completion struct {
 	Value       string // Value is the value of the completion as actually inserted in the line
 	Display     string // When display is not nil, this string is used to display the completion in the menu.
@@ -278,7 +278,7 @@ func (c Completions) Merge(others ...Completions) Completions {
 	return c
 }
 
-// rawValues is a list of completion candidates
+// rawValues is a list of completion candidates.
 type rawValues []Completion
 
 // Filter filters values.

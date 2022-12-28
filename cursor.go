@@ -10,7 +10,7 @@ import (
 // in a given input mode/submode.
 type CursorStyle string
 
-// String - Implements fmt.Stringer
+// String - Implements fmt.Stringer.
 func (c CursorStyle) String() string {
 	cursor, found := cursors[c]
 	if !found {

@@ -68,7 +68,7 @@ func (rl *Instance) bindWidgets() {
 }
 
 // run is in charge of executing the matched EventCallback, unwrapping its values and return behavior
-// parameters (errors/lines/read), and optionally to execute pending widgets (vi operator pending mode),
+// parameters (errors/lines/read), and optionally to execute pending widgets (vi operator pending mode),.
 func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) {
 	if cb == nil {
 		return

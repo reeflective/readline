@@ -67,7 +67,7 @@ func (rl *Instance) Readline() (string, error) {
 
 		// Read user key stroke(s) ---------------------------------------------
 		//
-		// Read the input from stdin if any, and upon successfull
+		// Read the input from stdin if any, and upon successful
 		// read, convert the input into runes for better scanning.
 		b, i, readErr := rl.readInput()
 		if readErr != nil {

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build darwin || dragonfly || freebsd || (linux && !appengine) || netbsd || openbsd
 // +build darwin dragonfly freebsd linux,!appengine netbsd openbsd
 
 package readline
@@ -35,7 +36,7 @@ func MakeRaw(fd int) (*State, error) {
 	// This attempts to replicate the behaviour documented for cfmakeraw in
 	// the termios(3) manpage.
 	termios.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
-	//termios.Oflag &^= unix.OPOST
+
 	//termios.Oflag &^= OXTABS
 	termios.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
 	termios.Cflag &^= unix.CSIZE | unix.PARENB
@@ -74,4 +75,3 @@ func GetSize(fd int) (width, height int, err error) {
 	}
 	return int(ws.Col), int(ws.Row), nil
 }
-

@@ -78,7 +78,7 @@ type Instance struct {
 	fullX     int    // X coordinate of the full input line, including the prompt if needed.
 	fullY     int    // Y offset to the end of input line.
 
-	// Buffer received from host programms
+	// Buffer received from host programs
 	multilineBuffer []byte
 	multilineSplit  []string
 	skipStdinRead   bool

@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// validRegisterKeys - All valid register IDs (keys) for read/write Vim registers
+// validRegisterKeys - All valid register IDs (keys) for read/write Vim registers.
 var validRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
 
 // registers - Contains all memory registers resulting from delete/paste/search

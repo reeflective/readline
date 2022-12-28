@@ -66,28 +66,28 @@ func (rl *Instance) DeleteHistorySource(sources ...string) {
 	}
 }
 
-// defaultHistory is an example of a LineHistory interface:
+// defaultHistory is an example of a LineHistory interface:.
 type defaultHistory struct {
 	items []string
 }
 
-// Write to history
+// Write to history.
 func (h *defaultHistory) Write(s string) (int, error) {
 	h.items = append(h.items, s)
 	return len(h.items), nil
 }
 
-// GetLine returns a line from history
+// GetLine returns a line from history.
 func (h *defaultHistory) GetLine(i int) (string, error) {
 	return h.items[i], nil
 }
 
-// Len returns the number of lines in history
+// Len returns the number of lines in history.
 func (h *defaultHistory) Len() int {
 	return len(h.items)
 }
 
-// Dump returns the entire history
+// Dump returns the entire history.
 func (h *defaultHistory) Dump() interface{} {
 	return h.items
 }
@@ -96,22 +96,22 @@ func (h *defaultHistory) Dump() interface{} {
 // entries remembered eg password input.
 type NullHistory struct{}
 
-// Write to history
+// Write to history.
 func (h *NullHistory) Write(s string) (int, error) {
 	return 0, nil
 }
 
-// GetLine returns a line from history
+// GetLine returns a line from history.
 func (h *NullHistory) GetLine(i int) (string, error) {
 	return "", nil
 }
 
-// Len returns the number of lines in history
+// Len returns the number of lines in history.
 func (h *NullHistory) Len() int {
 	return 0
 }
 
-// Dump returns the entire history
+// Dump returns the entire history.
 func (h *NullHistory) Dump() interface{} {
 	return []string{}
 }
@@ -173,7 +173,7 @@ func (rl *Instance) currentHistory() History {
 	return rl.histories[rl.historyNames[rl.historySourcePos]]
 }
 
-// walkHistory - Browse historic lines
+// walkHistory - Browse historic lines.
 func (rl *Instance) walkHistory(i int) {
 	var (
 		new string

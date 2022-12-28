@@ -312,7 +312,7 @@ func (rl *Instance) lineSlice(adjust int) (slice string) {
 }
 
 // wrapText - Wraps a text given a specified width, and returns the formatted
-// string as well the number of lines it will occupy
+// string as well the number of lines it will occupy.
 func wrapText(text string, lineWidth int) (wrapped string, lines int) {
 	words := strings.Fields(text)
 	if len(words) == 0 {

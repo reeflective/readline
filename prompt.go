@@ -36,12 +36,12 @@ type prompt struct {
 	inputAt int
 }
 
-// Primary uses a function returning the string to use as the primary prompt
+// Primary uses a function returning the string to use as the primary prompt.
 func (p *prompt) Primary(prompt func() string) {
 	p.primaryF = prompt
 }
 
-// Right uses a function returning the string to use as the right prompt
+// Right uses a function returning the string to use as the right prompt.
 func (p *prompt) Right(prompt func() string) {
 	p.rightF = prompt
 }
@@ -127,7 +127,7 @@ func (p *prompt) compute(rl *Instance) {
 }
 
 // update is called after each key/widget processing, and refreshes
-// the prompts that need to be at these intervals
+// the prompts that need to be at these intervals.
 func (p *prompt) update(rl *Instance) {
 	if rl.Prompt.tooltipF == nil {
 		return

@@ -69,7 +69,7 @@ func (rl *Instance) switchNumber(word string, increase bool) (done bool, new str
 // 0xfffF0 => 0xFFFEF
 // 0x0 => 0xffffffffffffffff
 // 0X0 => 0XFFFFFFFFFFFFFFFF
-// 0Xf => 0Xe
+// 0Xf => 0Xe.
 func (rl *Instance) switchHexa(word string, inc int) (done bool, new string, bpos, epos int) {
 	hexadecimal, _ := regexp.Compile(`[^0-9]?(0[xX][0-9a-fA-F]*)`)
 	match := hexadecimal.FindString(word)
@@ -142,7 +142,7 @@ func (rl *Instance) switchHexa(word string, inc int) (done bool, new string, bpo
 // 0b100 => 0b011
 // 0B010 => 0B001
 // 0b0 =>
-// 0x1111111111111111111111111111111111111111111111111111111111111111
+// 0x1111111111111111111111111111111111111111111111111111111111111111.
 func (rl *Instance) switchBinary(word string, inc int) (done bool, new string, bpos, epos int) {
 	binary, _ := regexp.Compile(`[^0-9]?(0[bB][01]*)`)
 	match := binary.FindString(word)
@@ -207,7 +207,7 @@ func (rl *Instance) switchBinary(word string, inc int) (done bool, new string, b
 // 10 => 9
 // aa1230xa => aa1231xa // NOT WORKING => MATCHED BY HEXA
 // aa1230bb => aa1231bb
-// aa123a0bb => aa124a0bb
+// aa123a0bb => aa124a0bb.
 func (rl *Instance) switchDecimal(word string, inc int) (done bool, new string, bpos, epos int) {
 	decimal, _ := regexp.Compile(`([-+]?[0-9]+)`)
 	match := decimal.FindString(word)

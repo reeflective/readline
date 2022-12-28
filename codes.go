@@ -4,7 +4,7 @@ import (
 	"os"
 )
 
-// Character codes
+// Character codes.
 const (
 	charCtrlA           = iota + 1 // "^A"
 	charCtrlB                      // "^B"
@@ -45,7 +45,7 @@ const (
 var (
 	seqCtrl = []string{"\x033", "\\e", "\x1b"}
 
-	// Sequences with modifiers
+	// Sequences with modifiers.
 	seqInsert     = string([]byte{27, 91, 50, 126}) // ^[[2~
 	seqDelete     = string([]byte{27, 91, 51, 126}) // ^[[3~
 	seqHome       = string([]byte{27, 91, 72})      // ^[[H
@@ -57,7 +57,7 @@ var (
 	seqArrowRight = string([]byte{27, 91, 67})      // ^[[C
 	seqArrowLeft  = string([]byte{27, 91, 68})      // ^[[D
 
-	// Modifier (Ctrl)
+	// Modifier (Ctrl).
 	seqCtrlInsert     = string([]byte{27, 91, 50, 59, 53, 126}) // ^[[2;5~
 	seqCtrlDelete     = string([]byte{27, 91, 51, 59, 53, 126}) // ^[[3;5~
 	seqCtrlHome       = string([]byte{27, 91, 49, 59, 53, 72})  // ^[[1;5H
@@ -69,7 +69,7 @@ var (
 	seqCtrlArrowRight = string([]byte{27, 91, 49, 59, 53, 67})  // ^[[1;5C
 	seqCtrlArrowLeft  = string([]byte{27, 91, 49, 59, 53, 68})  // ^[[1;5D
 
-	// Modifier (Alt)
+	// Modifier (Alt).
 	seqAltInsert     = string([]byte{27, 91, 50, 59, 51, 126}) // ^[[2;3~
 	seqAltDelete     = string([]byte{27, 91, 51, 59, 51, 126}) // ^[[3;3~
 	seqAltHome       = string([]byte{27, 91, 49, 59, 51, 72})  // ^[[1;3H
@@ -82,7 +82,7 @@ var (
 	seqAltArrowLeft  = string([]byte{27, 91, 49, 59, 51, 68})  // ^[[1;3D
 )
 
-// Other escape sequences
+// Other escape sequences.
 var (
 	seqHomeSc   = string([]byte{27, 91, 49, 126})
 	seqEndSc    = string([]byte{27, 91, 52, 126})
@@ -105,7 +105,7 @@ const (
 	seqGetCursorPos = "\x1b[6n" // response: "\x1b{Line};{Column}R"
 )
 
-// Text effects
+// Text effects.
 const (
 	sgrStart     = "\x1b["
 	fgColorStart = "38;05;"
@@ -120,14 +120,14 @@ var (
 	seqUnderscore = "\x1b[4m"
 	seqBlink      = "\x1b[5m"
 
-	// Effects reset
+	// Effects reset.
 	seqBoldReset       = "\x1b[21m"
 	seqDimReset        = "\x1b[22m"
 	seqUnderscoreReset = "\x1b[24m"
 	seqBlinkReset      = "\x1b[25m"
 )
 
-// Text colours
+// Text colours.
 var (
 	seqFgBlack   = "\x1b[30m"
 	seqFgRed     = "\x1b[31m"
@@ -152,7 +152,7 @@ var (
 	seqFgBlueDarkBright = "\x1b[1;25m"
 )
 
-// Background colours
+// Background colours.
 var (
 	seqBgBlack   = "\x1b[40m"
 	seqBgRed     = "\x1b[41m"
@@ -177,7 +177,7 @@ var (
 	seqBgBlueLight     = "\x1b[104m"
 )
 
-// Xterm 256 colors
+// Xterm 256 colors.
 const (
 	seqCtermFg255 = "\033[48;5;255m"
 )

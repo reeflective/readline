@@ -1,6 +1,6 @@
 package readline
 
-// viinsKeys are the default keymaps in Vim Insert mode
+// viinsKeys are the default keymaps in Vim Insert mode.
 var viinsKeys = keymap{
 	"^[":      "vi-cmd-mode",
 	"^M":      "accept-line",
@@ -34,7 +34,7 @@ var viinsKeys = keymap{
 	// "^[[B":    "down-line-or-select", // TODO
 }
 
-// viinsKeymaps are the default keymaps in Vim Command mode
+// viinsKeymaps are the default keymaps in Vim Command mode.
 var vicmdKeys = keymap{
 	"^A":      "switch-keyword",
 	"^L":      "clear-screen",
@@ -103,7 +103,7 @@ var vicmdKeys = keymap{
 	"[1-9]":   "digit-argument",
 }
 
-// viinsKeymaps are the default keymaps in Vim Operating Pending mode
+// viinsKeymaps are the default keymaps in Vim Operating Pending mode.
 var vioppKeys = keymap{
 	"^[": "vi-cmd-mode",
 	"aW": "select-a-blank-word",
@@ -116,7 +116,7 @@ var vioppKeys = keymap{
 	// "k":  "up-line",   // TODO
 }
 
-// viinsKeymaps are the default keymaps in Vim Visual mode
+// viinsKeymaps are the default keymaps in Vim Visual mode.
 var visualKeys = keymap{
 	"^[": "vi-cmd-mode",
 	"aW": "select-a-blank-word",
@@ -141,7 +141,7 @@ var visualKeys = keymap{
 }
 
 // changeMovements is used for some widgets that only
-// accept movement widgets as arguments (like vi-change)
+// accept movement widgets as arguments (like vi-change).
 var changeMovements = map[string]string{
 	"$": "vi-end-of-line",
 	"%": "vi-match-bracket",

@@ -1,6 +1,6 @@
 package readline
 
-// emacsKeys are the default keymaps in Emacs mode
+// emacsKeys are the default keymaps in Emacs mode.
 var emacsKeys = keymap{
 	"^M":          "accept-line",
 	"^A":          "beginning-of-line",

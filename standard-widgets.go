@@ -529,7 +529,7 @@ func (rl *Instance) killRegion() {
 // 2 + 2 => 2
 // 2 +2  => +2
 // 2 -2  => -2
-// 2 -a  => -a
+// 2 -a  => -a.
 func (rl *Instance) switchKeyword() {
 	rl.undoHistoryAppend()
 

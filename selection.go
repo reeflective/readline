@@ -14,7 +14,7 @@ func (rl *Instance) markSelection(mark int) {
 	rl.activeRegion = true
 }
 
-// Compute begin and end of region
+// Compute begin and end of region.
 func (rl *Instance) getSelectionPos() (bpos, epos, cpos int) {
 	if rl.mark < rl.pos {
 		bpos = rl.mark

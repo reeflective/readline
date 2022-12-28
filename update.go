@@ -10,7 +10,7 @@ func (rl *Instance) initHelpers() {
 
 // redisplay is a key part of the whole refresh process:
 // it should coordinate reprinting the input line, any hints and completions
-// and manage to get back to the current (computed) cursor coordinates
+// and manage to get back to the current (computed) cursor coordinates.
 func (rl *Instance) redisplay() {
 	rl.Prompt.update(rl)
 	rl.autoComplete()
@@ -19,10 +19,10 @@ func (rl *Instance) redisplay() {
 	rl.renderHelpers()
 }
 
-// Update reference should be called only once in a "loop" (not Readline(), but key control loop)
+// Update reference should be called only once in a "loop" (not Readline(), but key control loop).
 func (rl *Instance) updateReferences() {
 	// We always need to work with clean data,
-	// since we will have incrementers all around
+	// since we will have increments all around
 	rl.posX = 0
 	rl.fullX = 0
 	rl.posY = 0

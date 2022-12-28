@@ -314,7 +314,7 @@ func (rl *Instance) deleteVirtual() {
 }
 
 // We are done with the current virtual completion candidate.
-// Get ready for the next one
+// Get ready for the next one.
 func (rl *Instance) clearVirtualComp() {
 	rl.line = rl.compLine
 	rl.comp = []rune{}

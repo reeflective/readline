@@ -5,13 +5,13 @@ import (
 	"regexp"
 )
 
-// InputMode - The shell input mode
+// InputMode - The shell input mode.
 type InputMode string
 
 const (
-	// Vim - Vim editing mode
+	// Vim - Vim editing mode.
 	Vim InputMode = "vim"
-	// Emacs - Emacs (classic) editing mode
+	// Emacs - Emacs (classic) editing mode.
 	Emacs InputMode = "emacs"
 )
 

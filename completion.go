@@ -175,7 +175,7 @@ func (rl *Instance) setCompletionPrefix(comps Completions) {
 		}
 
 	default:
-		// When the prefix has been overriden, add it to all
+		// When the prefix has been overridden, add it to all
 		// completions AND as a line prefix, for correct candidate insertion.
 		rl.tcPrefix = comps.PREFIX
 	}
@@ -209,7 +209,7 @@ func (rl *Instance) updateSelector(x, y int) {
 	}
 }
 
-// printCompletions - Prints all completion groups and their items
+// printCompletions - Prints all completion groups and their items.
 func (rl *Instance) printCompletions() {
 	rl.tcUsedY = 0
 
@@ -222,7 +222,7 @@ func (rl *Instance) printCompletions() {
 	}
 
 	// In any case, we write the completions strings, trimmed for redundant
-	// newline occurences that have been put at the end of each group.
+	// newline occurrences that have been put at the end of each group.
 	for _, group := range rl.tcGroups {
 		completions += group.writeComps(rl)
 	}
@@ -364,7 +364,7 @@ func (rl *Instance) resetCompletion() {
 	}
 }
 
-// Check if we have a single completion candidate
+// Check if we have a single completion candidate.
 func (rl *Instance) hasUniqueCandidate() bool {
 	switch len(rl.tcGroups) {
 	case 0:

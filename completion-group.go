@@ -183,7 +183,7 @@ func (g *comps) computeCells(vals rawValues) {
 	}
 }
 
-// checkMaxLength - Based on the number of groups given to the shell, check/set MaxLength defaults
+// checkMaxLength - Based on the number of groups given to the shell, check/set MaxLength defaults.
 func (g *comps) checkMaxLength(rl *Instance) {
 	// This means the user forgot to set it
 	if g.maxLength == 0 {

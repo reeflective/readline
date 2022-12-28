@@ -76,7 +76,7 @@ func (rl *Instance) cycleNextGroup() {
 	}
 }
 
-// cyclePreviousGroup - Same as cycleNextGroup but reverse
+// cyclePreviousGroup - Same as cycleNextGroup but reverse.
 func (rl *Instance) cyclePreviousGroup() {
 	for i, g := range rl.tcGroups {
 		if g.isCurrent {

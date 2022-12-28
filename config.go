@@ -23,7 +23,7 @@ var defaultConfig string
 // could be found in  any of the default user system paths:
 //
 // $XDG_CONFIG_HOME/reeflective/.reeflective.yml
-// $HOME/.reeflective.yml
+// $HOME/.reeflective.yml.
 //
 var ErrNoSystemConfig = errors.New("no user configuration found in user directories")
 
@@ -116,7 +116,7 @@ func (c *config) LoadFromBytes(config []byte) (err error) {
 //
 // The shell looks for the following paths, in this order:
 // $XDG_CONFIG_HOME/reeflective/.reeflective.yml
-// $HOME/.reeflective.yml
+// $HOME/.reeflective.yml.
 //
 func (c *config) LoadSystem() (err error) {
 	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
@@ -167,7 +167,7 @@ func (c *config) Save(path string) (err error) {
 //
 // It checks paths in this order:
 // - If $XDG_CONFIG_HOME is defined, saves to $XDG_CONFIG_HOME/reeflective/.reeflective.yml
-// - Else, saves to $HOME/.reeflective.yml
+// - Else, saves to $HOME/.reeflective.yml.
 //
 func (c *config) SaveSystem() (err error) {
 	var path string
