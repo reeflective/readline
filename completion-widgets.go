@@ -71,7 +71,7 @@ func (rl *Instance) menuComplete() {
 		return
 	}
 
-	x, y := 1, 0
+	tabX, tabY := 1, 0
 
 	// Override the default move depending on the group
 	cur := rl.currentGroup()
@@ -80,20 +80,21 @@ func (rl *Instance) menuComplete() {
 	}
 
 	if cur.aliased && rl.keys != seqArrowRight && rl.keys != seqArrowDown {
-		x, y = 0, 1
+		tabX, tabY = 0, 1
 	} else if rl.keys == seqArrowDown {
-		x, y = 0, 1
+		tabX, tabY = 0, 1
 	}
 
 	// Else, select the next candidate.
 	switch rl.keys {
 	case seqArrowRight:
-		rl.updateSelector(x, y)
+		rl.updateSelector(tabX, tabY)
 	case seqArrowDown:
-		rl.updateSelector(x, y)
+		rl.updateSelector(tabX, tabY)
 	default:
-		rl.updateSelector(x, y)
+		rl.updateSelector(tabX, tabY)
 	}
+
 	rl.updateVirtualComp()
 }
 
@@ -108,25 +109,26 @@ func (rl *Instance) reverseMenuComplete() {
 		return
 	}
 
-	x, y := -1, 0
+	tabX, tabY := -1, 0
 
 	// Override the default move depending on the group
 	cur := rl.currentGroup()
 	if cur.aliased && rl.keys != seqArrowLeft && rl.keys != seqArrowUp {
-		x, y = 0, -1
+		tabX, tabY = 0, -1
 	} else if rl.keys == seqArrowUp {
-		x, y = 0, -1
+		tabX, tabY = 0, -1
 	}
 
 	// Else, select the previous candidate.
 	switch rl.keys {
 	case seqArrowLeft:
-		rl.updateSelector(x, y)
+		rl.updateSelector(tabX, tabY)
 	case seqArrowUp:
-		rl.updateSelector(x, y)
+		rl.updateSelector(tabX, tabY)
 	default:
-		rl.updateSelector(x, y)
+		rl.updateSelector(tabX, tabY)
 	}
+
 	rl.updateVirtualComp()
 }
 

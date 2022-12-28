@@ -92,6 +92,11 @@ var (
 )
 
 const (
+	caretMultiplier = 0x40
+)
+
+// Cursor and terminal control sequences.
+const (
 	seqPosSave    = "\x1b[s"
 	seqPosRestore = "\x1b[u"
 
@@ -190,6 +195,7 @@ func hasEffects() bool {
 	} else if term == "dumb" {
 		return false
 	}
+
 	return true
 }
 

@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -19,6 +20,7 @@ func (rl *Instance) standardWidgets() lineWidgets {
 		"kill-word":               rl.killWord,
 		"yank":                    rl.yank,
 		"backward-delete-char":    rl.backwardDeleteChar,
+		"delete-char-or-list":     rl.deleteCharOrList,
 		"delete-char":             rl.deleteChar,
 		"forward-char":            rl.forwardChar,
 		"backward-char":           rl.backwardChar,
@@ -43,7 +45,6 @@ func (rl *Instance) standardWidgets() lineWidgets {
 		"kill-region":             rl.killRegion,
 		"redo":                    rl.redo,
 		"switch-keyword":          rl.switchKeyword,
-		"space":                   rl.space,
 	}
 
 	return widgets
@@ -58,40 +59,41 @@ func (rl *Instance) selfInsert() {
 	// and forget the matcher.
 	rl.removeSuffixInserted()
 
-	r := []rune(rl.keys)
+	buf := []rune(rl.keys)
 
 	for {
 		// I don't really understand why `0` is creaping in at the end of the
 		// array but it only happens with unicode characters.
-		if len(r) > 1 && r[len(r)-1] == 0 {
-			r = r[:len(r)-1]
+		if len(buf) > 1 && buf[len(buf)-1] == 0 {
+			buf = buf[:len(buf)-1]
+
 			continue
 		}
 		break
 	}
 
 	// When the key is a control character, translate it to caret notation.
-	if len(r) == 1 && charCtrlA < byte(r[0]) && byte(r[0]) < charCtrlUnderscore {
-		caret := byte(r[0]) ^ 0x40
-		r = append([]rune{'^'}, rune(caret))
+	if len(buf) == 1 && charCtrlA < byte(buf[0]) && byte(buf[0]) < charCtrlUnderscore {
+		caret := byte(buf[0]) ^ caretMultiplier
+		buf = append([]rune{'^'}, rune(caret))
 	}
 
 	switch {
 	// The line is empty
 	case len(rl.line) == 0:
-		rl.line = r
+		rl.line = buf
 
 	// We are inserting somewhere in the middle
 	case rl.pos < len(rl.line):
-		forwardLine := append(r, rl.line[rl.pos:]...)
+		forwardLine := append(buf, rl.line[rl.pos:]...)
 		rl.line = append(rl.line[:rl.pos], forwardLine...)
 
 	// We are at the end of the input line
 	case rl.pos == len(rl.line):
-		rl.line = append(rl.line, r...)
+		rl.line = append(rl.line, buf...)
 	}
 
-	rl.pos += len(r)
+	rl.pos += len(buf)
 }
 
 func (rl *Instance) acceptLine() {
@@ -222,6 +224,15 @@ func (rl *Instance) deleteChar() {
 	}
 }
 
+func (rl *Instance) deleteCharOrList() {
+	switch {
+	case rl.pos < len(rl.line):
+		rl.deletex()
+	default:
+		rl.expandOrComplete()
+	}
+}
+
 func (rl *Instance) forwardChar() {
 	rl.skipUndoAppend()
 	if rl.pos < len(rl.line) {
@@ -273,7 +284,7 @@ func (rl *Instance) digitArgument() {
 
 	if len(rl.keys) > 1 {
 		// The first rune is the alt modifier.
-		rl.addIteration(string(rl.keys[1:]))
+		rl.addIteration(rl.keys[1:])
 	} else {
 		rl.addIteration(string(rl.keys[0]))
 	}
@@ -348,14 +359,14 @@ func (rl *Instance) quoteLine() {
 	newLine := make([]rune, 0)
 	newLine = append(newLine, '\'')
 
-	for _, r := range rl.line {
-		if r == '\n' {
+	for _, char := range rl.line {
+		if char == '\n' {
 			break
 		}
-		if r == '\'' {
+		if char == '\'' {
 			newLine = append(newLine, []rune("\\'")...)
 		} else {
-			newLine = append(newLine, r)
+			newLine = append(newLine, char)
 		}
 	}
 
@@ -534,13 +545,13 @@ func (rl *Instance) switchKeyword() {
 	rl.undoHistoryAppend()
 
 	cpos := rl.pos
-	increase := rl.keys == string(charCtrlA)
+	increase := rl.keys == fmt.Sprint(charCtrlA)
 
 	if match, _ := regexp.MatchString(`[+-][0-9]`, rl.lineSlice(2)); match {
 		// If cursor is on the `+` or `-`, we need to check if it is a
 		// number with a sign or an operator, only the number needs to
 		// forward the cursor.
-		digit, _ := regexp.Compile(`[^0-9]`)
+		digit := regexp.MustCompile(`[^0-9]`)
 		if cpos == 0 || digit.MatchString(string(rl.line[cpos-1])) {
 			cpos++
 		}
@@ -575,7 +586,7 @@ func (rl *Instance) switchKeyword() {
 
 		// We are only interested in the end position after all runs
 		epos = bpos + oepos
-		bpos = bpos + obpos
+		bpos = +obpos
 		if cpos < bpos || cpos >= epos {
 			continue
 		}
@@ -593,15 +604,6 @@ func (rl *Instance) switchKeyword() {
 	}
 }
 
-func (rl *Instance) deleteCharOrList() {
-	switch {
-	case rl.pos < len(rl.line):
-		rl.deletex()
-	default:
-		rl.expandOrComplete()
-	}
-}
-
 func (rl *Instance) exchangePointAndMark() {
 	rl.skipUndoAppend()
 	vii := rl.getIterations()
@@ -611,13 +613,9 @@ func (rl *Instance) exchangePointAndMark() {
 
 	switch {
 	case vii < 0:
-		pos := rl.pos
-		rl.pos = rl.mark
-		rl.mark = pos
+		rl.pos, rl.mark = rl.mark, rl.pos
 	case vii > 0:
-		pos := rl.pos
-		rl.pos = rl.mark
-		rl.mark = pos
+		rl.pos, rl.mark = rl.mark, rl.pos
 		rl.activeRegion = true
 	case vii == 0:
 		rl.activeRegion = true
@@ -627,6 +625,7 @@ func (rl *Instance) exchangePointAndMark() {
 func (rl *Instance) transposeChars() {
 	if rl.pos < 2 || len(rl.line) < 2 {
 		rl.skipUndoAppend()
+
 		return
 	}
 
@@ -641,18 +640,5 @@ func (rl *Instance) transposeChars() {
 		blast := rl.line[rl.pos-1]
 		rl.line[rl.pos-1] = last
 		rl.line[rl.pos] = blast
-	}
-}
-
-// space has different behavior depending on the modes we're currently in.
-func (rl *Instance) space() {
-	switch rl.local {
-	case isearch:
-		// Insert in the isearch buffer
-		rl.keys = " "
-		rl.selfInsert()
-	default:
-		rl.keys = " "
-		rl.selfInsert()
 	}
 }

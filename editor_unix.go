@@ -33,11 +33,11 @@ func (rl *Instance) StartEditorWithBuffer(multiline []rune, filename string) ([]
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	if err := cmd.Start(); err != nil {
+	if err = cmd.Start(); err != nil {
 		return multiline, err
 	}
 
-	if err := cmd.Wait(); err != nil {
+	if err = cmd.Wait(); err != nil {
 		return multiline, err
 	}
 

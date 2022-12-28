@@ -39,13 +39,13 @@ func (m *messages) Suppress(expr ...string) error {
 	m.init()
 
 	for _, e := range expr {
-		r, err := regexp.Compile(e)
+		char, err := regexp.Compile(e)
 		if err != nil {
 			return err
 		}
 
 		for key := range m.messages {
-			if r.MatchString(key) {
+			if char.MatchString(key) {
 				delete(m.messages, key)
 			}
 		}
@@ -71,6 +71,7 @@ type suffixMatcher struct {
 func (sm *suffixMatcher) Add(suffixes ...rune) {
 	if strings.Contains(sm.string, "*") || strings.Contains(string(suffixes), "*") {
 		sm.string = "*"
+
 		return
 	}
 
@@ -85,13 +86,13 @@ func (sm *suffixMatcher) Add(suffixes ...rune) {
 }
 
 func (sm *suffixMatcher) Merge(other suffixMatcher) {
-	for _, r := range []rune(other.string) {
+	for _, r := range other.string {
 		sm.Add(r)
 	}
 }
 
 func (sm suffixMatcher) Matches(s string) bool {
-	for _, r := range []rune(sm.string) {
+	for _, r := range sm.string {
 		if r == '*' || strings.HasSuffix(s, string(r)) {
 			return true
 		}
