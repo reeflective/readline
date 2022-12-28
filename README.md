@@ -11,7 +11,7 @@
 
 <!-- Badges -->
 <p align="center">
-  <a href="https://github.com/reeflective/readline/workflows/:workflow-name/badge.svg?branch=:branch-name">
+  <a href="https://github.com/reeflective/readline/actions/go.yml/badge.svg?branch=master">
     <img src=""
       alt="Github Actions (workflows)" />
   </a>
