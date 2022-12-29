@@ -16,6 +16,7 @@ func (rl *Instance) standardWidgets() lineWidgets {
 		"end-of-line":             rl.endOfLine,
 		"kill-line":               rl.killLine,
 		"kill-whole-line":         rl.killWholeLine,
+		"kill-buffer":             rl.killBuffer,
 		"backward-kill-word":      rl.backwardKillWord,
 		"kill-word":               rl.killWord,
 		"yank":                    rl.yank,
@@ -155,6 +156,16 @@ func (rl *Instance) killWholeLine() {
 	rl.clearLine()
 }
 
+func (rl *Instance) killBuffer() {
+	rl.undoHistoryAppend()
+
+	if len(rl.line) == 0 {
+		return
+	}
+	rl.saveBufToRegister(rl.line)
+	rl.clearLine()
+}
+
 func (rl *Instance) backwardKillWord() {
 	rl.undoHistoryAppend()
 	rl.skipUndoAppend()
@@ -288,16 +299,6 @@ func (rl *Instance) digitArgument() {
 	} else {
 		rl.addIteration(string(rl.keys[0]))
 	}
-}
-
-func (rl *Instance) killBuffer() {
-	rl.undoHistoryAppend()
-
-	if len(rl.line) == 0 {
-		return
-	}
-	rl.saveBufToRegister(rl.line)
-	rl.clearLine()
 }
 
 func (rl *Instance) overwriteMode() {
