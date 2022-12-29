@@ -10,15 +10,20 @@ var ErrCtrlC = errors.New("Ctrl+C")
 
 // loadInterruptHandlers maps all interrupt handlers to the shell.
 func (rl *Instance) loadInterruptHandlers() {
-	rl.interruptHandlers = map[string]func() error{
-		string(charCtrlC): rl.errorCtrlC,
-		string(charEOF):   rl.errorEOF,
+	rl.interruptHandlers = map[rune]func() error{
+		charCtrlC: rl.errorCtrlC,
+		charEOF:   rl.errorEOF,
 	}
 }
 
 // isInterrupt returns true if the input key is an interrupt key.
 func (rl *Instance) isInterrupt(keys string) (func() error, bool) {
-	handler, found := rl.interruptHandlers[keys]
+	if len(keys) > 1 {
+		return nil, false
+	}
+
+	key := rune(keys[0])
+	handler, found := rl.interruptHandlers[key]
 
 	return handler, found
 }
