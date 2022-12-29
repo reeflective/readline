@@ -71,13 +71,13 @@ func (rl *Instance) menuComplete() {
 		return
 	}
 
-	tabX, tabY := 1, 0
-
 	// Override the default move depending on the group
 	cur := rl.currentGroup()
 	if cur == nil {
 		return
 	}
+
+	tabX, tabY := 1, 0
 
 	if cur.aliased && rl.keys != seqArrowRight && rl.keys != seqArrowDown {
 		tabX, tabY = 0, 1

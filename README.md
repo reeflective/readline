@@ -5,14 +5,13 @@
   </a>
 
   <br> <h1>  Readline </h1>
-
 </div>
 
 
 <!-- Badges -->
 <p align="center">
   <a href="https://github.com/reeflective/readline/actions/workflows/go.yml">
-    <img src="https://github.com/reeflective/readline/actions/workflows/go.yml/badge.svg?branch=master"
+    <img src="https://github.com/reeflective/readline/actions/workflows/go.yml/badge.svg?branch=main"
       alt="Github Actions (workflows)" />
   </a>
 
@@ -32,7 +31,7 @@
   </a>
 
   <a href="https://codecov.io/gh/reeflective/readline">
-    <img src="https://codecov.io/gh/reeflective/readline/branch/master/graph/badge.svg"
+    <img src="https://codecov.io/gh/reeflective/readline/branch/main/graph/badge.svg"
       alt="codecov" />
   </a>
 
@@ -60,7 +59,7 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 - Extended surround select/change/add fonctionality, with highlighting.
 - Keywords switching (operators, booleans, hex/binary/digit) with iterations.
 - Undo/redo history.
-- Command-line edition in $EDITOR.
+- Command-line edition in `$EDITOR`.
 - Support for an arbitrary number of history sources.
 
 ### Interface

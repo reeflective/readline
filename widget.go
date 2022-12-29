@@ -33,8 +33,6 @@ type widgets map[*regexp.Regexp]EventCallback
 type action struct {
 	widget     string
 	iterations int
-	key        string
-	operator   string
 }
 
 // bindWidgets goes through all "key-sequence":"widget" pair in all keymaps,
@@ -69,39 +67,31 @@ func (rl *Instance) bindWidgets() {
 
 // run is in charge of executing the matched EventCallback, unwrapping its values and return behavior
 // parameters (errors/lines/read), and optionally to execute pending widgets (vi operator pending mode),.
-func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) {
+func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) (forwardKey bool) {
 	if cb == nil {
 		return
 	}
 
 	// Use the minibuffer if currently working in isearch mode.
+	// Order matters: defer is executed in inverse order.
 	if rl.isIsearchMode(mode) {
 		rl.useIsearchLine()
-		defer rl.updateIsearch() // Order matters: defer is executed in inverse order.
+		defer rl.updateIsearch()
 		defer rl.exitIsearchLine()
 	}
 
-	// Run the callback, and by default, use its behavior for return values
+	// Run the callback, and by default,
+	// use its behavior for return values
 	event := cb(keys, rl.line, rl.pos)
 	rl.accepted = event.CloseReadline
-	rl.line = append(event.NewLine, []rune{}...)
+	rl.line = event.NewLine
 	rl.pos = event.NewPos
+	rl.useEventHelpers(*event)
 
-	// Update/reset helpers
-	if event.ClearHelpers {
-		rl.resetHelpers()
-	}
-
-	if len(event.HintText) > 0 {
-		rl.hint = event.HintText
-	}
-
-	if len(event.ToolTip) > 0 {
-		rl.Prompt.tooltip = event.ToolTip
-	}
-
-	// If the callback has a widget, run it. Any instruction to return, or an error
-	// being raised has precedence over other callback read/return settings.
+	// If the callback has a widget, run it.
+	// Any instruction to return, or an error
+	// being raised has precedence over other
+	// callback read/return settings.
 	if event.Widget != "" {
 		rl.runWidget(event.Widget)
 		if rl.accepted || rl.err != nil {
@@ -109,7 +99,8 @@ func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) {
 		}
 	}
 
-	// If we are asked to close the readline, we don't care about pending operations.
+	// If we are asked to close the readline,
+	// we don't care about pending operations.
 	if event.CloseReadline {
 		rl.clearHelpers()
 		rl.accepted = true
@@ -117,17 +108,12 @@ func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) {
 		return
 	}
 
-	// If we don't have to dispatch the key to next keymaps
-	// (in the same loop), we are done with this callback.
-	// This is the default for all builtin widgets.
-	// TODO: What to do here
-	if !event.ForwardKey {
-	}
-
 	// Finally, we might have any pending widget to run.
 	if rl.isViopp {
 		rl.runPendingWidget()
 	}
+
+	return event.ForwardKey
 }
 
 // bindWidget wraps a widget into an EventCallback and binds it to the corresponding keymap.

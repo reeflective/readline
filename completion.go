@@ -23,6 +23,7 @@ func (rl *Instance) startMenuComplete(completer func()) {
 	if rl.noCompletions() {
 		rl.resetCompletion()
 		rl.completer = nil
+
 		return
 	}
 
@@ -65,11 +66,13 @@ func (rl *Instance) historyCompletion(forward, filterLine bool) {
 			rl.local = ""
 			rl.resetHintText()
 			rl.completer = nil
+
 			return
 		}
 
 		// Else complete the next history source.
 		rl.nextHistorySource()
+
 		fallthrough
 
 	default:
@@ -77,6 +80,7 @@ func (rl *Instance) historyCompletion(forward, filterLine bool) {
 		if rl.currentHistory() == nil {
 			noHistory := fmt.Sprintf("%s%s%s %s", seqDim, seqFgRed, "No command history source", seqReset)
 			rl.histHint = []rune(noHistory)
+
 			return
 		}
 
@@ -141,6 +145,7 @@ func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
 		// Grid completions
 		if val.Description == "" {
 			noDescVals = append(noDescVals, val)
+
 			continue
 		}
 
@@ -148,6 +153,7 @@ func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
 		if stringInSlice(val.Description, descriptions) {
 			aliased = true
 		}
+
 		descriptions = append(descriptions, val.Description)
 		vals = append(vals, val)
 	}
@@ -181,7 +187,7 @@ func (rl *Instance) setCompletionPrefix(comps Completions) {
 	}
 }
 
-func (rl *Instance) updateSelector(x, y int) {
+func (rl *Instance) updateSelector(tabX, tabY int) {
 	grp := rl.currentGroup()
 
 	// If there is no current group, we
@@ -190,7 +196,7 @@ func (rl *Instance) updateSelector(x, y int) {
 		return
 	}
 
-	done, next := grp.moveSelector(rl, x, y)
+	done, next := grp.moveSelector(rl, tabX, tabY)
 	if !done {
 		return
 	}
@@ -201,7 +207,6 @@ func (rl *Instance) updateSelector(x, y int) {
 		rl.cycleNextGroup()
 		newGrp = rl.currentGroup()
 		newGrp.firstCell()
-
 	} else {
 		rl.cyclePreviousGroup()
 		newGrp = rl.currentGroup()
@@ -246,77 +251,21 @@ func (rl *Instance) printCompletions() {
 func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 	maxRows := rl.getCompletionMaxRows()
 
-	// A function to generate the last string indicating what remains.
-	moreComps := func(cropped string, offset int) (hinted string, noHint bool) {
-		_, _, adjusted := rl.completionCount()
-		remain := adjusted - offset
-		if remain <= 0 || offset < maxRows {
-			return cropped, true
-		}
-		hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completion rows... (scroll down to show)"+seqReset+"\n", remain)
-		hinted = cropped + hint
-		return hinted, false
-	}
-
 	// Get the current absolute candidate position
 	absPos := rl.getAbsPos()
-
-	// Get absPos - MaxTabCompleterRows for having the number of lines to cut at the top
-	// If the number is negative, that means we don't need to cut anything at the top yet.
-	maxLines := absPos - maxRows
-	if maxLines < 0 {
-		maxLines = 0
-	}
 
 	// Scan the completions for cutting them at newlines
 	scanner := bufio.NewScanner(strings.NewReader(comps))
 
 	// If absPos < MaxTabCompleterRows, cut below MaxTabCompleterRows and return
 	if absPos < maxRows {
-		var count int
-
-		for scanner.Scan() {
-			line := scanner.Text()
-			if count < maxRows {
-				cropped += line + "\n"
-				count++
-			} else {
-				count++
-				break
-			}
-		}
-
-		cropped, _ = moreComps(cropped, count-1)
-		return cropped, count
+		return rl.cutCompletionsAbove(scanner, maxRows)
 	}
 
 	// If absolute > MaxTabCompleterRows, cut above and below and return
 	//      -> This includes de facto when we tabCompletionReverse
 	if absPos >= maxRows {
-		cutAbove := absPos - maxRows
-		var count int
-		var noRemain bool
-
-		for scanner.Scan() {
-			line := scanner.Text()
-			if count <= cutAbove {
-				count++
-				continue
-			}
-			if count > cutAbove && count <= absPos {
-				cropped += line + "\n"
-				count++
-			} else {
-				break
-			}
-		}
-
-		cropped, noRemain = moreComps(cropped, maxRows+cutAbove+1)
-		if noRemain {
-			count--
-		}
-
-		return cropped, count - cutAbove
+		return rl.cutCompletionsAboveBelow(scanner, maxRows, absPos)
 	}
 
 	return
@@ -335,6 +284,74 @@ func (rl *Instance) updateCompletion() {
 	}
 
 	rl.resetCompletion()
+}
+
+func (rl *Instance) cutCompletionsAbove(scanner *bufio.Scanner, maxRows int) (string, int) {
+	var count int
+	var cropped string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if count < maxRows {
+			cropped += line + "\n"
+			count++
+		} else {
+			count++
+
+			break
+		}
+	}
+
+	cropped, _ = rl.excessCompletionsHint(cropped, maxRows, count-1)
+
+	return cropped, count
+}
+
+func (rl *Instance) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, absPos int) (string, int) {
+	cutAbove := absPos - maxRows
+
+	var cropped string
+	var count int
+	var noRemain bool
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if count <= cutAbove {
+			count++
+
+			continue
+		}
+
+		if count > cutAbove && count <= absPos {
+			cropped += line + "\n"
+			count++
+		} else {
+			break
+		}
+	}
+
+	cropped, noRemain = rl.excessCompletionsHint(cropped, maxRows, maxRows+cutAbove+1)
+	if noRemain {
+		count--
+	}
+
+	return cropped, count - cutAbove
+}
+
+func (rl *Instance) excessCompletionsHint(cropped string, maxRows, offset int) (string, bool) {
+	_, _, adjusted := rl.completionCount()
+	remain := adjusted - offset
+
+	if remain <= 0 || offset < maxRows {
+		return cropped, true
+	}
+
+	hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completion rows... (scroll down to show)"+seqReset+"\n", remain)
+
+	hinted := cropped + hint
+
+	return hinted, false
 }
 
 func (rl *Instance) resetCompletion() {

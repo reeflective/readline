@@ -23,18 +23,9 @@ func (rl *Instance) Readline() (string, error) {
 	}
 	defer Restore(fd, state)
 
-	rl.initLine()        // Clear the line in most cases
-	rl.initHelpers()     // Prepare hints/completions
-	rl.initHistory()     // Reset undo/history indexes in most cases.
-	rl.initHistoryLine() // Retrieve a line from history when asked.
-	rl.initKeymap()      // Verify key mappings and widget binds
-
-	// The prompt reevaluates itself when its corresponding
-	// functions are bound. Some of its components (PS1/RPROMPT)
-	// are normally only computed here (until the next Readline loop),
-	// but other components (PS2/tips) are computed more than once.
-	// Also print the primary prompt (or most of it if multiline).
-	rl.Prompt.init(rl)
+	// Initialize all components for this new loop:
+	// line, prompts, helpers, history, keymaps, etc.
+	rl.init()
 
 	// If the prompt is set as transient, we will print it
 	// once our command line is returned to the caller.
@@ -68,26 +59,26 @@ func (rl *Instance) Readline() (string, error) {
 		// Read user key stroke(s) ---------------------------------------------
 		//
 		// Read the input from stdin if any, and upon successful
-		// read, convert the input into runes for better scanning.
-		b, i, readErr := rl.readInput()
+		// readLen, convert the input into runes for better scanning.
+		buf, readLen, readErr := rl.readInput()
 		if readErr != nil {
 			return "", err
 		}
 
 		// Only keep the portion that has been read.
-		r := []rune(string(b))[:i]
+		runesRead := []rune(string(buf))[:readLen]
 
 		// We store the key in our key stack. which is used
 		// when the key only matches some widgets as a prefix.
 		// We use a copy for the matches below, as some actions
 		// will reset/consume this stack.
-		rl.keys += string(r)
+		rl.keys += string(runesRead)
 		keys := rl.keys
 
 		// If the last input is a carriage return, process
 		// according to configured multiline behavior.
-		if isMultiline(r) || len(rl.multilineBuffer) > 0 {
-			done, ret, val, err := rl.processMultiline(r, b, i)
+		if isMultiline(runesRead) || len(rl.multilineBuffer) > 0 {
+			done, ret, val, err := rl.processMultiline(runesRead, buf, readLen)
 			if ret {
 				return val, err
 			} else if done {
@@ -117,11 +108,13 @@ func (rl *Instance) Readline() (string, error) {
 		// - When completing/searching, can be 'menuselect' or 'isearch'
 		widget, prefix := rl.matchKeymap(keys, rl.local)
 		if widget != nil {
-			rl.run(widget, keys, rl.local)
+			forward := rl.run(widget, keys, rl.local)
 			if rl.accepted || rl.err != nil {
 				return string(rl.line), rl.err
 			}
-			continue
+			if !forward {
+				continue
+			}
 		} else if prefix {
 			continue
 		}
@@ -137,11 +130,13 @@ func (rl *Instance) Readline() (string, error) {
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
 		widget, prefix = rl.matchKeymap(keys, rl.main)
 		if widget != nil {
-			rl.run(widget, keys, rl.main)
+			forward := rl.run(widget, keys, rl.main)
 			if rl.accepted || rl.err != nil {
 				return string(rl.line), rl.err
 			}
-			continue
+			if !forward {
+				continue
+			}
 		} else if prefix {
 			continue
 		}

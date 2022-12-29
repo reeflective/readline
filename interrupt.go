@@ -2,7 +2,6 @@ package readline
 
 import (
 	"errors"
-	"fmt"
 	"io"
 )
 
@@ -12,8 +11,8 @@ var ErrCtrlC = errors.New("Ctrl+C")
 // loadInterruptHandlers maps all interrupt handlers to the shell.
 func (rl *Instance) loadInterruptHandlers() {
 	rl.interruptHandlers = map[string]func() error{
-		fmt.Sprint(charCtrlC): rl.errorCtrlC,
-		fmt.Sprint(charEOF):   rl.errorEOF,
+		string(charCtrlC): rl.errorCtrlC,
+		string(charEOF):   rl.errorEOF,
 	}
 }
 

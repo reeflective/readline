@@ -53,27 +53,27 @@ func readTempFile(name string) ([]byte, error) {
 		return nil, err
 	}
 
-	b, err := ioutil.ReadAll(file)
+	buf, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(b) > 0 && b[len(b)-1] == '\n' {
-		b = b[:len(b)-1]
+	if len(buf) > 0 && buf[len(buf)-1] == '\n' {
+		buf = buf[:len(buf)-1]
 	}
 
-	if len(b) > 0 && b[len(b)-1] == '\r' {
-		b = b[:len(b)-1]
+	if len(buf) > 0 && buf[len(buf)-1] == '\r' {
+		buf = buf[:len(buf)-1]
 	}
 
-	if len(b) > 0 && b[len(b)-1] == '\n' {
-		b = b[:len(b)-1]
+	if len(buf) > 0 && buf[len(buf)-1] == '\n' {
+		buf = buf[:len(buf)-1]
 	}
 
-	if len(b) > 0 && b[len(b)-1] == '\r' {
-		b = b[:len(b)-1]
+	if len(buf) > 0 && buf[len(buf)-1] == '\r' {
+		buf = buf[:len(buf)-1]
 	}
 
 	err = os.Remove(name)
-	return b, err
+	return buf, err
 }

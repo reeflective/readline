@@ -1,5 +1,21 @@
 package readline
 
+// init gathers all steps to perform at the beginning of readline loop.
+func (rl *Instance) init() {
+	rl.initLine()        // Clear the line in most cases
+	rl.initHelpers()     // Prepare hints/completions
+	rl.initHistory()     // Reset undo/history indexes in most cases.
+	rl.initHistoryLine() // Retrieve a line from history when asked.
+	rl.initKeymap()      // Verify key mappings and widget binds
+
+	// The prompt reevaluates itself when its corresponding
+	// functions are bound. Some of its components (PS1/RPROMPT)
+	// are normally only computed here (until the next Readline loop),
+	// but other components (PS2/tips) are computed more than once.
+	// Also print the primary prompt (or most of it if multiline).
+	rl.Prompt.init(rl)
+}
+
 // initHelpers is called once at the very beginning of a readline start.
 func (rl *Instance) initHelpers() {
 	rl.resetHintText()
@@ -43,7 +59,7 @@ func (rl *Instance) updateReferences() {
 
 	// Adjust if we have an autosuggested history
 	if len(rl.histSuggested) > 0 {
-		fullLine = fullLine + len(rl.histSuggested)
+		fullLine = +len(rl.histSuggested)
 	}
 
 	// We need the X offset of the whole line
@@ -141,11 +157,10 @@ func (rl *Instance) renderHelpers() {
 	}
 
 	// Anyway, compensate for hint printout
-	if len(rl.hint) > 0 {
+	switch {
+	case len(rl.hint) > 0:
 		moveCursorUp(rl.hintY)
-	} else if !rl.compConfirmWait {
-		moveCursorUp(1)
-	} else if rl.compConfirmWait {
+	default:
 		moveCursorUp(1)
 	}
 

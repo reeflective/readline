@@ -65,13 +65,13 @@ func (rl *Instance) AddEvent(key string, callback EventCallback, keymaps ...keym
 	}
 
 	// Prepare the caret decoder to be used.
-	b := new(bytes.Buffer)
-	decoder := caret.Decoder{Writer: b}
+	buf := new(bytes.Buffer)
+	decoder := caret.Decoder{Writer: buf}
 
 	// Add the callback to all keymaps
 	for _, mode := range keymaps {
 		if widgets, found := rl.widgets[mode]; found {
-			rl.bindWidget(key, "", &widgets, decoder, b)
+			rl.bindWidget(key, "", &widgets, decoder, buf)
 		}
 	}
 }
@@ -89,14 +89,14 @@ func (rl *Instance) DelEvent(key string, keymaps ...keymapMode) {
 	}
 
 	// Decode the key
-	b := new(bytes.Buffer)
-	decoder := caret.Decoder{Writer: b}
+	buf := new(bytes.Buffer)
+	decoder := caret.Decoder{Writer: buf}
 
 	// Only decode the keys if the keybind is not a regexp expression
 	if !strings.HasPrefix(key, "[") || !strings.HasSuffix(key, "]") {
 		if _, err := decoder.Write([]byte(key)); err == nil {
-			key = b.String()
-			b.Reset()
+			key = buf.String()
+			buf.Reset()
 		}
 	}
 
@@ -110,5 +110,19 @@ func (rl *Instance) DelEvent(key string, keymaps ...keymapMode) {
 		if widgets, found := rl.widgets[mode]; found {
 			delete(widgets, reg)
 		}
+	}
+}
+
+func (rl *Instance) useEventHelpers(event EventReturn) {
+	if event.ClearHelpers {
+		rl.resetHelpers()
+	}
+
+	if len(event.HintText) > 0 {
+		rl.hint = event.HintText
+	}
+
+	if len(event.ToolTip) > 0 {
+		rl.Prompt.tooltip = event.ToolTip
 	}
 }
