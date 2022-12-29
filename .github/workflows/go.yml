@@ -10,7 +10,6 @@ on:
     branches: [ "master" ]
 
 jobs:
-
   build:
     strategy:
       matrix:
@@ -30,11 +29,16 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
-    # Coverage
+    runs-on: ${{ matrix.os }}
+
+    steps:
     - name: Run coverage
-      run: go test -v -race -coverprofile=coverage.txt
+      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
+
