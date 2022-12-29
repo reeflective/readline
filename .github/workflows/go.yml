@@ -21,6 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    # Build and test Go code
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
@@ -31,3 +32,7 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    # Coverage
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3

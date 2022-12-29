@@ -11,7 +11,7 @@
 <!-- Badges -->
 <p align="center">
   <a href="https://github.com/reeflective/readline/actions/workflows/go.yml">
-    <img src="https://github.com/reeflective/readline/actions/workflows/go.yml/badge.svg?branch=main"
+    <img src="https://github.com/reeflective/readline/actions/workflows/go.yml/badge.svg?branch=master"
       alt="Github Actions (workflows)" />
   </a>
 
@@ -51,13 +51,13 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 ### Editing
 - Near-native Emacs and Vim modes.
 - Configurable bind keymaps, with live reload and sane defaults.
-- Extended list of line edition/movement/control widgets (emacs and Vim).
-- Vim Insert and Replace (once/many).
-- Many Vim text objects.
-- Support for Vim Visual/Operator pending mode & cursor styles indications.
-- All Vim registers, with completion support.
+- Extended list of line edition/movement/control widgets (Emacs and Vim).
 - Extended surround select/change/add fonctionality, with highlighting.
 - Keywords switching (operators, booleans, hex/binary/digit) with iterations.
+- Support for Vim Visual/Operator pending mode & cursor styles indications.
+- Vim Insert and Replace (once/many).
+- Many Vim text objects.
+- All Vim registers, with completion support.
 - Undo/redo history.
 - Command-line edition in `$EDITOR`.
 - Support for an arbitrary number of history sources.
