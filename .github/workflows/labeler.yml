@@ -1,0 +1,53 @@
+# List of PR labels for readline
+
+main:
+- readline.go
+- instance.go
+- input.go
+- events.go
+- editor*
+vim:
+- vim-*.go
+- tokenise.go
+- register.go
+emacs:
+- standard-widgets.go
+- emacs-keymap.go
+completions:
+- completion*.go
+- message.go
+- hint.go
+prompt:
+- prompt.go
+- log.go
+cursor:
+- cursor.go
+'codes & keys':
+- codes.go
+line:
+- line.go
+- multiline.go
+- highlight.go
+- syntax.go
+- selection.go
+widgets:
+- keymap.go
+- widget.go
+- keyword.go
+interrupts:
+- interrupt.go
+history:
+- history*
+- autosuggestion.go
+- undo.go
+isearch:
+- isearch.go
+configuration:
+- config.go
+- readline.yml
+terminal:
+- raw/*
+- raw_*
+- term.go
+test:
+- '*_test.go'
