@@ -181,7 +181,7 @@ func (p *prompt) printLast(rl *Instance) {
 }
 
 func (p *prompt) printTransient(rl *Instance) {
-	if p.transient == "" {
+	if p.transientF == nil || !rl.config.PromptTransient {
 		return
 	}
 
@@ -195,7 +195,7 @@ func (p *prompt) printTransient(rl *Instance) {
 	print(seqClearScreenBelow)
 
 	// And print both the prompt and the input line.
-	print(p.transient)
+	print(p.transientF())
 	println(string(rl.line))
 }
 

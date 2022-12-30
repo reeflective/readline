@@ -48,6 +48,8 @@ func (rl *Instance) AddHistorySource(name string, history History) {
 // DeleteHistorySource deletes one or more history source by name.
 // If no arguments are passed, all currently bound sources are removed.
 func (rl *Instance) DeleteHistorySource(sources ...string) {
+	defer rl.initHistory()
+
 	if len(sources) == 0 {
 		rl.histories = make(map[string]History)
 		rl.historyNames = make([]string, 0)
@@ -66,29 +68,30 @@ func (rl *Instance) DeleteHistorySource(sources ...string) {
 	}
 }
 
-// defaultHistory is an example of a LineHistory interface:.
-type defaultHistory struct {
+// MemoryHistory is an in memory history.
+// One such history is bound to the readline shell by default.
+type MemoryHistory struct {
 	items []string
 }
 
 // Write to history.
-func (h *defaultHistory) Write(s string) (int, error) {
+func (h *MemoryHistory) Write(s string) (int, error) {
 	h.items = append(h.items, s)
 	return len(h.items), nil
 }
 
 // GetLine returns a line from history.
-func (h *defaultHistory) GetLine(i int) (string, error) {
+func (h *MemoryHistory) GetLine(i int) (string, error) {
 	return h.items[i], nil
 }
 
 // Len returns the number of lines in history.
-func (h *defaultHistory) Len() int {
+func (h *MemoryHistory) Len() int {
 	return len(h.items)
 }
 
 // Dump returns the entire history.
-func (h *defaultHistory) Dump() interface{} {
+func (h *MemoryHistory) Dump() interface{} {
 	return h.items
 }
 
@@ -170,6 +173,9 @@ func (rl *Instance) prevHistorySource() {
 }
 
 func (rl *Instance) currentHistory() History {
+	if len(rl.histories) == 0 {
+		return nil
+	}
 	return rl.histories[rl.historyNames[rl.historySourcePos]]
 }
 

@@ -186,7 +186,7 @@ func NewInstance() *Instance {
 	// History
 	rl.historyNames = append(rl.historyNames, "local history")
 	rl.histories = make(map[string]History)
-	rl.histories["local history"] = new(defaultHistory)
+	rl.histories["local history"] = new(MemoryHistory)
 
 	// Others
 	rl.TempDirectory = os.TempDir()

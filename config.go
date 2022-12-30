@@ -50,6 +50,8 @@ type config struct {
 	}
 	Keymaps map[keymapMode]keymap
 
+	// PromptTransient enables the use of transient prompt.
+	PromptTransient bool `yaml:"promptTransient"`
 	// The shell displays fish-like autosuggestions (the first
 	// matching history line is displayed dimmed).
 	HistoryAutosuggest bool `yaml:"historyAutosuggest"`
@@ -252,8 +254,10 @@ func (rl *Instance) loadDefaultConfig() {
 		}{
 			Cursor: CursorBlinkingBlock,
 		},
-
 		Keymaps: make(map[keymapMode]keymap),
+
+		// Prompt
+		PromptTransient: false,
 
 		// History
 		HistoryAutoWrite:   true,
