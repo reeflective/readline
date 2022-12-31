@@ -35,65 +35,6 @@ func (rl *Instance) redisplay() {
 	rl.renderHelpers()
 }
 
-// Update reference should be called only once in a "loop" (not Readline(), but key control loop).
-func (rl *Instance) updateReferences() {
-	// We always need to work with clean data,
-	// since we will have increments all around
-	rl.posX = 0
-	rl.fullX = 0
-	rl.posY = 0
-	rl.fullY = 0
-
-	if rl.pos < 0 {
-		rl.pos = 0
-	}
-
-	var fullLine, cPosLine int
-	if len(rl.comp) > 0 {
-		fullLine = len(rl.compLine)
-		cPosLine = len(rl.compLine[:rl.pos])
-	} else {
-		fullLine = len(rl.line)
-		cPosLine = len(rl.line[:rl.pos])
-	}
-
-	// Adjust if we have an autosuggested history
-	if len(rl.histSuggested) > 0 {
-		fullLine = +len(rl.histSuggested)
-	}
-
-	// We need the X offset of the whole line
-	toEndLine := rl.Prompt.inputAt + fullLine
-	fullOffset := toEndLine / GetTermWidth()
-	rl.fullY = fullOffset
-	fullRest := toEndLine % GetTermWidth()
-	rl.fullX = fullRest
-
-	// Use rl.pos value to get the offset to go TO/FROM the CURRENT POSITION
-	lineToCursorPos := rl.Prompt.inputAt + cPosLine
-	offsetToCursor := lineToCursorPos / GetTermWidth()
-	cPosRest := lineToCursorPos % GetTermWidth()
-
-	// If we are at the end of line
-	if fullLine == rl.pos {
-		rl.posY = fullOffset
-
-		if fullRest == 0 {
-			rl.posX = 0
-		} else if fullRest > 0 {
-			rl.posX = fullRest
-		}
-	} else if rl.pos < fullLine {
-		// If we are somewhere in the middle of the line
-		rl.posY = offsetToCursor
-
-		if cPosRest == 0 {
-		} else if cPosRest > 0 {
-			rl.posX = cPosRest
-		}
-	}
-}
-
 func (rl *Instance) resetHelpers() {
 	rl.resetHintText()
 	rl.resetCompletion()
@@ -164,7 +105,86 @@ func (rl *Instance) renderHelpers() {
 		moveCursorUp(1)
 	}
 
+	if rl.posX == 0 {
+		println("HERE")
+	}
+
 	// Go back to current cursor position
 	moveCursorUp(rl.fullY - rl.posY)
 	moveCursorForwards(rl.posX)
+}
+
+// Update reference should be called only once in a "loop" (not Readline(), but key control loop).
+func (rl *Instance) computeCoordinates() {
+	// We always need to work with clean data,
+	// since we will have increments all around
+	rl.posX = 0
+	rl.fullX = 0
+	rl.posY = 0
+	rl.fullY = 0
+
+	if rl.pos < 0 {
+		rl.pos = 0
+	}
+
+	// 1 - Get line lengths.
+	bufLen, cpos, suggLen := rl.computeCoordinatesBuffer()
+
+	// Y coordinates always consider the line with the history hint.
+	hinted := rl.Prompt.inputAt + suggLen
+	rl.fullY = hinted / GetTermWidth()
+
+	// We need the X offset of the whole line
+	endBuf := rl.Prompt.inputAt + bufLen
+	posY := endBuf / GetTermWidth()
+	restY := endBuf % GetTermWidth()
+	rl.fullX = restY
+
+	// Use rl.pos value to get the offset to go TO/FROM the CURRENT POSITION
+	endPos := rl.Prompt.inputAt + cpos
+	cposY := endPos / GetTermWidth()
+	restCposY := endPos % GetTermWidth()
+
+	// If we are at the end of line
+	if bufLen == rl.pos {
+		rl.posY = posY
+
+		if restY == 0 {
+			rl.posX = 0
+		} else if restY > 0 {
+			rl.posX = restY
+		}
+	} else if rl.pos < bufLen {
+		// If we are somewhere in the middle of the line
+		rl.posY = cposY
+
+		if restCposY == 0 {
+		} else if restCposY > 0 {
+			rl.posX = restCposY
+		}
+	}
+}
+
+// returns len of line, len of line including history hint, and len to cursor.
+func (rl *Instance) computeCoordinatesBuffer() (int, int, int) {
+	var bufLen, cpos, suggLen int
+
+	if len(rl.histSuggested) > 0 {
+		suggLen += len(rl.histSuggested)
+	}
+
+	if len(rl.comp) > 0 {
+		bufLen = len(rl.compLine)
+		cpos = len(rl.compLine[:rl.pos])
+	} else {
+		bufLen = len(rl.line)
+		cpos = len(rl.line[:rl.pos])
+	}
+
+	suggLen = bufLen
+	if len(rl.histSuggested) > 0 {
+		suggLen += len(rl.histSuggested)
+	}
+
+	return bufLen, cpos, suggLen
 }

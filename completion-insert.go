@@ -213,7 +213,7 @@ func (rl *Instance) removeSuffixCandidate(cur *comps, prefix int) (comp string) 
 	rl.compSuffix.pos = rl.pos - 1
 
 	// Add a space to suffix matcher when empty.
-	if cur.noSpace.string == "" {
+	if cur.noSpace.string == "" && !rl.config.AutoComplete {
 		cur.noSpace.Add([]rune{' '}...)
 	}
 

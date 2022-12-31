@@ -124,11 +124,11 @@ func (rl *Instance) printLine() {
 
 		// Assemble the line, taking virtual completions into account
 		line := rl.getLineVirtual()
-		highlighted := string(line) + " "
+		highlighted := string(line)
 
 		// Print the input line with optional syntax highlighting
 		if rl.SyntaxHighlighter != nil {
-			highlighted = rl.SyntaxHighlighter(line) + " "
+			highlighted = rl.SyntaxHighlighter(line)
 		}
 
 		// Adapt if there is a visual selection active
@@ -138,7 +138,6 @@ func (rl *Instance) printLine() {
 		print(highlighted)
 
 		if len(rl.histSuggested) > 0 {
-			moveCursorBackwards(1)
 			print(seqDim + string(rl.histSuggested) + seqReset)
 		}
 	}
@@ -147,7 +146,7 @@ func (rl *Instance) printLine() {
 
 	// Update references with new coordinates only now, because
 	// the new line may be longer/shorter than the previous one.
-	rl.updateReferences()
+	rl.computeCoordinates()
 
 	// Go back to the current cursor position, with new coordinates
 	moveCursorBackwards(GetTermWidth())
