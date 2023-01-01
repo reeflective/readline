@@ -1,7 +1,10 @@
 package readline
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -310,4 +313,75 @@ NEXT_LINE:
 	comps.PREFIX = string(rl.line)
 
 	return comps
+}
+
+// fileHistory provides a history source based on a file.
+type fileHistory struct {
+	filename string
+	list     []string
+}
+
+// New creates a new History populated from, and writing to
+// a file path passed as parameter.
+func NewHistoryFromFile(filename string) (History, error) {
+	h := new(fileHistory)
+	h.filename = filename
+	h.list, _ = openHist(filename)
+
+	return h, nil
+}
+
+func openHist(filename string) (list []string, err error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return list, err
+	}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		list = append(list, scanner.Text())
+	}
+
+	file.Close()
+	return list, nil
+}
+
+// Write item to history file. eg ~/.murex_history.
+func (h *fileHistory) Write(s string) (int, error) {
+	block := strings.TrimSpace(s)
+
+	if len(h.list) == 0 || h.list[len(h.list)-1] != block {
+		h.list = append(h.list, block)
+	}
+
+	f, err := os.OpenFile(h.filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = f.WriteString(block + "\n")
+	f.Close()
+
+	return h.Len(), err
+}
+
+// GetLine returns a specific line from the history file.
+func (h *fileHistory) GetLine(i int) (string, error) {
+	if i < 0 {
+		return "", errors.New("cannot use a negative index when requesting historic commands")
+	}
+	if i < len(h.list) {
+		return h.list[i], nil
+	}
+	return "", errors.New("index requested greater than number of items in history")
+}
+
+// Len returns the number of items in the history file.
+func (h *fileHistory) Len() int {
+	return len(h.list)
+}
+
+// Dump returns the entire history file.
+func (h *fileHistory) Dump() interface{} {
+	return h.list
 }
