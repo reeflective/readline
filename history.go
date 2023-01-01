@@ -256,8 +256,7 @@ func (rl *Instance) completeHistory(forward bool) Completions {
 	rl.histHint = []rune(rl.historyNames[rl.historySourcePos])
 
 	// Set the hint line with everything
-	rl.histHint = append([]rune(seqBold+seqFgCyanBright+string(rl.histHint)+seqReset), rl.tfLine...)
-	rl.histHint = append(rl.histHint, []rune(seqReset)...)
+	rl.histHint = []rune(seqBold + seqFgCyanBright + string(rl.histHint) + seqReset)
 
 	compLines := make([]Completion, 0)
 

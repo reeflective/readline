@@ -105,12 +105,20 @@ func (rl *Instance) updateIsearch() {
 }
 
 func (rl *Instance) isearchHint() {
-	rl.hint = []rune(seqBold + seqFgCyan + "isearch: " + seqReset + seqBgDarkGray)
+	// Append to the history hint when completing it.
+	currentMode := ""
+	if len(rl.histHint) > 0 {
+		currentMode = string(rl.histHint) + seqFgCyan + " (isearch): "
+	} else {
+		currentMode = "isearch: "
+	}
+
+	rl.hint = []rune(seqBold + seqFgCyan + currentMode + seqReset + seqBgDarkGray)
 	rl.hint = append(rl.hint, rl.tfLine...)
 
 	if rl.isearch == nil && len(rl.tfLine) > 0 {
 		rl.hint = append(rl.hint, []rune(seqFgRed+" ! failed to compile search regexp")...)
-	} else if rl.noCompletions() {
+	} else if rl.noCompletions() && len(rl.tfLine) > 0 {
 		rl.hint = append(rl.hint, []rune(seqFgRed+" ! no matches")...)
 	}
 
