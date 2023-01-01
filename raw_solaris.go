@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build solaris
+//go:build solaris || os400 || aix
+// +build solaris os400 aix
 
 package readline
 
@@ -36,7 +37,7 @@ func MakeRaw(fd int) (*State, error) {
 
 	newTermios := oldTermios
 	newTermios.Iflag &^= syscall.IGNBRK | syscall.BRKINT | syscall.PARMRK | syscall.ISTRIP | syscall.INLCR | syscall.IGNCR | syscall.ICRNL | syscall.IXON
-	//newTermios.Oflag &^= syscall.OPOST
+	// newTermios.Oflag &^= syscall.OPOST
 	newTermios.Lflag &^= syscall.ECHO | syscall.ECHONL | syscall.ICANON | syscall.ISIG | syscall.IEXTEN
 	newTermios.Cflag &^= syscall.CSIZE | syscall.PARENB
 	newTermios.Cflag |= syscall.CS8
@@ -79,4 +80,3 @@ func GetSize(fd int) (width, height int, err error) {
 	}
 	return int(ws.Col), int(ws.Row), nil
 }
-

@@ -3,7 +3,6 @@ package readline
 func (rl *Instance) completionWidgets() lineWidgets {
 	return map[string]widget{
 		"expand-or-complete":        rl.expandOrComplete,
-		"expand-or-complete-prefix": rl.expandOrCompletePrefix,
 		"menu-complete":             rl.menuComplete,
 		"complete-word":             rl.completeWord,
 		"menu-expand-or-complete":   rl.menuExpandOrComplete,
@@ -11,7 +10,6 @@ func (rl *Instance) completionWidgets() lineWidgets {
 		"menu-complete-next-tag":    rl.menuCompleteNextTag,
 		"menu-complete-prev-tag":    rl.menuCompletePrevTag,
 		"accept-and-menu-complete":  rl.acceptAndMenuComplete,
-		"expand-word":               rl.expandWord,
 		"list-choices":              rl.listChoices,
 		"vi-registers-complete":     rl.viRegistersComplete,
 		"menu-incremental-search":   rl.menuIncrementalSearch,
@@ -36,9 +34,6 @@ func (rl *Instance) expandOrComplete() {
 			rl.menuComplete()
 		}
 	}
-}
-
-func (rl *Instance) expandOrCompletePrefix() {
 }
 
 func (rl *Instance) completeWord() {
@@ -99,6 +94,22 @@ func (rl *Instance) menuComplete() {
 }
 
 func (rl *Instance) menuExpandOrComplete() {
+	switch rl.local {
+	case menuselect, isearch:
+		rl.menuComplete()
+	default:
+		if rl.completer != nil {
+			rl.startMenuComplete(rl.completer)
+		} else {
+			rl.startMenuComplete(rl.normalCompletions)
+		}
+
+		// In autocomplete mode, we already have completions
+		// printed, so we automatically move to the first comp.
+		if rl.isAutoCompleting() && rl.local == menuselect {
+			rl.menuComplete()
+		}
+	}
 }
 
 func (rl *Instance) reverseMenuComplete() {
@@ -182,9 +193,6 @@ func (rl *Instance) acceptAndMenuComplete() {
 	rl.updateVirtualComp()
 }
 
-func (rl *Instance) expandWord() {
-}
-
 func (rl *Instance) listChoices() {
 	rl.skipUndoAppend()
 
@@ -223,18 +231,18 @@ func (rl *Instance) menuIncrementalSearch() {
 
 	switch rl.local {
 	case isearch:
-	// case menuselect:
+		fallthrough
 	default:
 		// First initialize completions.
 		if rl.completer != nil {
 			rl.startMenuComplete(rl.completer)
-		} else {
-			// rl.startMenuComplete(rl.historyCompletion)
 		}
 
 		// Then enter the isearch mode, which updates
 		// the hint line, and initializes other things.
-		rl.enterIsearchMode()
+		if rl.local == menuselect {
+			rl.enterIsearchMode()
+		}
 	}
 }
 
@@ -246,6 +254,7 @@ func (rl *Instance) acceptCompletionOrLine() {
 		if comp != "" {
 			rl.resetVirtualComp(false)
 			rl.resetCompletion()
+
 			return
 		}
 
