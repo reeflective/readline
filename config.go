@@ -95,7 +95,17 @@ func (c *config) load(path string) (err error) {
 	}
 
 	// And then unmarshal the node onto the struct.
-	return c.node.Decode(c)
+	if err = c.node.Decode(c); err != nil {
+		return
+	}
+
+	// Rebind all widgets
+	c.rl.bindWidgets()
+	c.rl.loadInterruptHandlers()
+	c.rl.updateKeymaps()
+	c.rl.updateCursor()
+
+	return nil
 }
 
 // LoadFromBytes loads a configuration from a bytes array.
@@ -341,10 +351,4 @@ func (rl *Instance) reloadConfig(event fsnotify.Event) {
 		changeHint := fmt.Sprintf(seqFgGreen+"Config reloaded: %s", event.Name)
 		rl.hint = append([]rune{}, []rune(changeHint)...)
 	}
-
-	// Reload keymaps and widgets
-	rl.bindWidgets()
-	rl.loadInterruptHandlers()
-	rl.updateKeymaps()
-	rl.updateCursor()
 }
