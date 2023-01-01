@@ -105,10 +105,6 @@ func (rl *Instance) renderHelpers() {
 		moveCursorUp(1)
 	}
 
-	if rl.posX == 0 {
-		println("HERE")
-	}
-
 	// Go back to current cursor position
 	moveCursorUp(rl.fullY - rl.posY)
 	moveCursorForwards(rl.posX)

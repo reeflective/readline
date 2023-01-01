@@ -62,10 +62,11 @@ func (rl *Instance) historyCompletion(forward, filterLine bool) {
 		// history source, cancel history completion.
 		if rl.historySourcePos == len(rl.histories)-1 {
 			rl.histHint = []rune{}
+			rl.nextHistorySource()
 			rl.resetCompletion()
+			rl.completer = nil
 			rl.local = ""
 			rl.resetHintText()
-			rl.completer = nil
 
 			return
 		}
@@ -377,6 +378,7 @@ func (rl *Instance) resetCompletion() {
 		for _, g := range rl.tcGroups {
 			g.isCurrent = false
 		}
+
 		rl.tcGroups[0].isCurrent = true
 	}
 }

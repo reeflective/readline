@@ -5,8 +5,11 @@ package readline
 func (rl *Instance) autosuggestHistory(line []rune) {
 	rl.histSuggested = make([]rune, 0)
 
+	// Don't mess with completion history indexes
+	oldSourcePos := rl.historySourcePos
 	rl.historySourcePos = 0
 	history := rl.currentHistory()
+	rl.historySourcePos = oldSourcePos
 
 	// Nothing happens if the history is nil or empty.
 	if history == nil || history.Len() == 0 {

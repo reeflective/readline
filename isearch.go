@@ -81,7 +81,9 @@ func (rl *Instance) updateIsearch() {
 		rl.hint = append(rl.hint, []rune(seqFgRed+"Failed to compile search regexp")...)
 	}
 
-	rl.completer()
+	if rl.completer != nil {
+		rl.completer()
+	}
 
 	// And filter out the completions.
 	for _, g := range rl.tcGroups {

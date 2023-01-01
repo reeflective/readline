@@ -48,6 +48,16 @@ func (rl *Instance) AddHistorySource(name string, history History) {
 	rl.histories[name] = history
 }
 
+// New creates a new History populated from, and writing to
+// a file path passed as parameter.
+func NewHistoryFromFile(filename string) (History, error) {
+	h := new(fileHistory)
+	h.filename = filename
+	h.list, _ = openHist(filename)
+
+	return h, nil
+}
+
 // DeleteHistorySource deletes one or more history source by name.
 // If no arguments are passed, all currently bound sources are removed.
 func (rl *Instance) DeleteHistorySource(sources ...string) {
@@ -154,24 +164,18 @@ func (rl *Instance) initHistoryLine() {
 }
 
 func (rl *Instance) nextHistorySource() {
-	for i := range rl.historyNames {
-		if i == rl.historySourcePos+1 {
-			rl.historySourcePos = i
-			break
-		} else if i == len(rl.historyNames)-1 {
-			rl.historySourcePos = 0
-		}
+	rl.historySourcePos++
+
+	if rl.historySourcePos == len(rl.historyNames) {
+		rl.historySourcePos = 0
 	}
 }
 
 func (rl *Instance) prevHistorySource() {
-	for i := range rl.historyNames {
-		if i == rl.historySourcePos-1 {
-			rl.historySourcePos = i
-			break
-		} else if i == len(rl.historyNames)-1 {
-			rl.historySourcePos = len(rl.historyNames) - 1
-		}
+	rl.historySourcePos--
+
+	if rl.historySourcePos < 0 {
+		rl.historySourcePos = len(rl.historyNames) - 1
 	}
 }
 
@@ -183,10 +187,10 @@ func (rl *Instance) currentHistory() History {
 }
 
 // walkHistory - Browse historic lines.
-func (rl *Instance) walkHistory(i int) {
+func (rl *Instance) walkHistory(pos int) {
 	var (
-		new string
-		err error
+		next string
+		err  error
 	)
 
 	// Always use the main/first history.
@@ -199,11 +203,11 @@ func (rl *Instance) walkHistory(i int) {
 
 	// When we are exiting the current line buffer to move around
 	// the history, we make buffer the current line
-	if rl.histPos == 0 && (rl.histPos+i) == 1 {
+	if rl.histPos == 0 && (rl.histPos+pos) == 1 {
 		rl.lineBuf = string(rl.line)
 	}
 
-	rl.histPos += i
+	rl.histPos += pos
 
 	switch {
 	case rl.histPos > history.Len():
@@ -222,7 +226,7 @@ func (rl *Instance) walkHistory(i int) {
 	// We now have the correct history index. Use it to find the history line.
 	// If the history position is not zero, we need to use a history line.
 	if rl.histPos > 0 {
-		new, err = history.GetLine(history.Len() - rl.histPos)
+		next, err = history.GetLine(history.Len() - rl.histPos)
 		if err != nil {
 			rl.resetHelpers()
 			print("\r\n" + err.Error() + "\r\n")
@@ -232,7 +236,7 @@ func (rl *Instance) walkHistory(i int) {
 		}
 
 		rl.clearLine()
-		rl.line = []rune(new)
+		rl.line = []rune(next)
 		rl.pos = len(rl.line)
 	}
 }
@@ -319,16 +323,6 @@ NEXT_LINE:
 type fileHistory struct {
 	filename string
 	list     []string
-}
-
-// New creates a new History populated from, and writing to
-// a file path passed as parameter.
-func NewHistoryFromFile(filename string) (History, error) {
-	h := new(fileHistory)
-	h.filename = filename
-	h.list, _ = openHist(filename)
-
-	return h, nil
 }
 
 func openHist(filename string) (list []string, err error) {
