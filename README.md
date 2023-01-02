@@ -47,12 +47,13 @@ interface features commonly found in modern shells, all in little more than 10K 
 Its kemap-based model and completion engine is heavily inspired from the Z-Shell architecture.
 It is used, between others, to power the [console](https://github.com/reeflective/console) library.
 
+
 ## Features
 
 ### Editing
 - Near-native Emacs and Vim modes.
 - Configurable bind keymaps, with live reload and sane defaults.
-- Extended list of line edition/movement/control widgets (Emacs and Vim).
+- [Extended list](https://github.com/reeflective/readline/wiki/Widgets-List) of edition/movement/control widgets (Emacs and Vim).
 - Extended surround select/change/add fonctionality, with highlighting.
 - Keywords switching (operators, booleans, hex/binary/digit) with iterations.
 - Support for Vim Visual/Operator pending mode & cursor styles indications.
@@ -73,6 +74,24 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 - Usage/hint message display.
 - Support for syntax highlighting
 
+
+## Documentation
+
+Readline is used by the [console library](https://github.com/reeflective/console) and its [example binary](https://github.com/reeflective/console/tree/main/example). To get a grasp of the 
+functionality provided by readline and its default configuration, install and start the binary.
+
+* [Introduction & Features](https://github.com/reeflective/readline/wiki/Introduction-&-Features)
+* [Getting started](https://github.com/reeflective/readline/wiki/Getting-Started)
+* [Configuration file](https://github.com/reeflective/readline/wiki/Configuration-File)
+* [Keymaps & Widgets](https://github.com/reeflective/readline/wiki/Keymaps-&-Widgets)
+* [Prompts](https://github.com/reeflective/readline/wiki/Prompts)
+* [History Sources](https://github.com/reeflective/readline/wiki/History-Sources)
+* [Vim mode](https://github.com/reeflective/readline/wiki/Vim-Mode)
+* [Custom callbacks & handlers](https://github.com/reeflective/readline/wiki/Custom-Callbacks)
+* [Completions & Hints](https://github.com/reeflective/readline/wiki/Completions-&-Hints)
+* [Widgets list](https://github.com/reeflective/readline/wiki/Widgets-List)
+
+
 ## Showcases
 
 An example application using readline can be found [here]().
@@ -90,6 +109,7 @@ An example application using readline can be found [here]().
 - Suffix autoremoval
 - Prompts
 - Logging
+
 
 ## Credits
 
