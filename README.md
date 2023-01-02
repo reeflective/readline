@@ -5,6 +5,7 @@
   </a>
 
   <br> <h1>  Readline </h1>
+  <p>  Shell library with modern and simple UI features </p>
 </div>
 
 
