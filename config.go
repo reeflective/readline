@@ -1,7 +1,7 @@
 package readline
 
 import (
-	_ "embed"
+	_ "embed" // We embed the default configuration file
 	"errors"
 	"fmt"
 	"os"
@@ -127,8 +127,8 @@ func (c *config) LoadFromBytes(config []byte) (err error) {
 // fails to read it, or if its fails to unmarshal/load it.
 //
 // The shell looks for the following paths, in this order:
-// $XDG_CONFIG_HOME/reeflective/.reeflective.yml
-// $HOME/.reeflective.yml.
+// $XDG_CONFIG_HOME/reeflective/readline.yml
+// $HOME/.readline.yml.
 //
 func (c *config) LoadSystem() (err error) {
 	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
@@ -140,7 +140,7 @@ func (c *config) LoadSystem() (err error) {
 	}
 
 	userPath := os.Getenv("HOME")
-	configHomePath := filepath.Join(userPath, configFileName)
+	configHomePath := filepath.Join(userPath, "."+configFileName)
 	if _, err := os.Stat(configHomePath); err == nil {
 		return c.Load(configHomePath)
 	}
@@ -149,7 +149,7 @@ func (c *config) LoadSystem() (err error) {
 }
 
 // Save saves the current shell configuration to the specified path.
-// If the path is a directory, the configuration file is saved as '$path/.reeflective.yml'.
+// If the path is a directory, the configuration file is saved as '$path/.readline.yml'.
 // If any directory in the path does not exist, they are created (equivalent to mkdir -p).
 // It returns an error if the config cannot be written, or if the shell fails to marshal it.
 func (c *config) Save(path string) (err error) {
@@ -162,7 +162,7 @@ func (c *config) Save(path string) (err error) {
 
 	// If the path is a directory, append the default filename to it, and create it.
 	if file, ferr := os.Stat(path); ferr == nil && file.IsDir() {
-		path = filepath.Join(path, configFileName)
+		path = filepath.Join(path, "."+configFileName)
 	}
 
 	// We have a complete path, marshal and write the configuration.
@@ -178,15 +178,15 @@ func (c *config) Save(path string) (err error) {
 // locations (identical to to those looked up by LoadConfigUser()).
 //
 // It checks paths in this order:
-// - If $XDG_CONFIG_HOME is defined, saves to $XDG_CONFIG_HOME/reeflective/.reeflective.yml
-// - Else, saves to $HOME/.reeflective.yml.
+// - If $XDG_CONFIG_HOME is defined, saves to $XDG_CONFIG_HOME/reeflective/readline.yml
+// - Else, saves to $HOME/.readline.yml.
 //
 func (c *config) SaveSystem() (err error) {
 	var path string
 
 	// In home by default.
 	userPath := os.Getenv("HOME")
-	path = filepath.Join(userPath, configFileName)
+	path = filepath.Join(userPath, "."+configFileName)
 
 	// Or in configuration directory
 	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
@@ -198,10 +198,27 @@ func (c *config) SaveSystem() (err error) {
 }
 
 // SaveDefault writes the default configuration file to the specified path.
-// This function is mostly useful if you want to manually edit the configuration
-// and that you need comments to explain the various fields: the other Save() methods
-// will not preserve comments when writing the configuration.
+// If the path is empty, the file will save it to:
+//
+// - If $XDG_CONFIG_HOME is defined, saves to $XDG_CONFIG_HOME/reeflective/readline.yml
+// - Else, saves to $HOME/.readline.yml.
+//
+// This function is useful if you tried to load the system configuration, but
+// that you could not find any. This thus gives the user a new default config.
 func (c *config) SaveDefault(path string) (err error) {
+	// Use the default directory if the path is empty
+	if path == "" {
+		// In home by default.
+		userPath := os.Getenv("HOME")
+		path = filepath.Join(userPath, "."+configFileName)
+
+		// Or in configuration directory
+		xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		if xdgConfigHome != "" {
+			path = filepath.Join(xdgConfigHome, "reeflective/", configFileName)
+		}
+	}
+
 	// Create the complete path (including file) if it does not exist
 	if _, err = os.Stat(path); os.IsNotExist(err) {
 		if err = os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
