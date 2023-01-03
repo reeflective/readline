@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -311,6 +312,11 @@ func (rl *Instance) loadDefaultConfig() {
 	// the comment, and then apply our default values onto it.
 	yaml.Unmarshal([]byte(defaultConfig), config.node)
 	config.node.Decode(config)
+
+	// Override the main input mode based on $EDITOR
+	if hasVi, _ := regexp.MatchString("vi", os.Getenv("EDITOR")); hasVi {
+		config.InputMode = Vim
+	}
 
 	rl.config = config
 }
