@@ -69,7 +69,6 @@ func (rl *Instance) saveToRegisterTokenize(tokeniser tokeniser, jumper func(toke
 	beginPos := rl.pos
 
 	// Get the current cursor position and go the length specified.
-	begin := rl.pos
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(jumper(tokeniser))
 	}
@@ -83,10 +82,10 @@ func (rl *Instance) saveToRegisterTokenize(tokeniser tokeniser, jumper func(toke
 	}
 
 	var buffer []rune
-	if end < begin {
-		buffer = rl.line[end:begin]
+	if end < rl.pos {
+		buffer = rl.line[end:rl.pos]
 	} else {
-		buffer = rl.line[begin:end]
+		buffer = rl.line[rl.pos:end]
 	}
 
 	buf := string(buffer)
@@ -115,13 +114,13 @@ func (rl *Instance) saveBufToRegister(buffer []rune) {
 	if rl.registers.onRegister {
 		num, err := strconv.Atoi(string(rl.registers.currentRegister))
 		if err == nil && num < 10 {
-			rl.registers.writeNumberedRegister(num, []rune(buf), false)
+			rl.registers.writeNumberedRegister(num, []rune(buf))
 		} else if err != nil {
 			rl.registers.writeAlphaRegister([]rune(buf))
 		}
 	} else {
 		// Or, if no active register and if there is room on the numbered ones,
-		rl.registers.writeNumberedRegister(0, []rune(buf), true)
+		rl.registers.writeNumberedRegister(-1, []rune(buf))
 	}
 }
 
@@ -177,9 +176,9 @@ func (r *registers) setActiveRegister(reg rune) {
 		return
 	}
 	// Read-only
-	_, found := r.ro[string(reg)]
-	if found {
+	if _, found := r.ro[string(reg)]; found {
 		r.currentRegister = reg
+
 		return
 	}
 
@@ -189,7 +188,7 @@ func (r *registers) setActiveRegister(reg rune) {
 
 // writeNumberedRegister - Add a buffer to one of the numbered registers
 // Pass a number above 10 to indicate we just push it on the num stack.
-func (r *registers) writeNumberedRegister(idx int, buf []rune, push bool) {
+func (r *registers) writeNumberedRegisterAlt(idx int, buf []rune, push bool) {
 	// No numbered register above 10
 	if len(r.num) > 10 {
 		return
@@ -211,6 +210,32 @@ func (r *registers) writeNumberedRegister(idx int, buf []rune, push bool) {
 	}
 }
 
+// writeNumberedRegister - Add a buffer to one of the numbered registers
+// Pass a number above 10 to indicate we just push it on the num stack.
+func (r *registers) writeNumberedRegister(idx int, buf []rune) {
+	// No numbered register above 10
+	if idx > 9 {
+		return
+	}
+
+	// Add to the stack with the specified register
+	if idx != -1 {
+		r.num[idx] = buf
+
+		return
+	}
+
+	// No push to the stack if we are already using 9
+	for i := len(r.num); i > 0; i-- {
+		if i == 10 {
+			i--
+		}
+		r.num[i] = append([]rune{}, r.num[i-1]...)
+	}
+
+	r.num[0] = append([]rune{}, buf...)
+}
+
 // writeAlphaRegister - Either adds a buffer to a new/existing letterd register,
 // or appends to this new/existing register if the currently active register is
 // the uppercase letter for this register.
@@ -219,12 +244,12 @@ func (r *registers) writeAlphaRegister(buffer []rune) {
 	appended := false
 	for _, char := range appendRegs {
 		if char == r.currentRegister {
-			real := strings.ToLower(string(r.currentRegister))
-			_, exists := r.alpha[real]
+			reg := strings.ToLower(string(r.currentRegister))
+			_, exists := r.alpha[reg]
 			if exists {
-				r.alpha[real] = append(r.alpha[real], buffer...)
+				r.alpha[reg] = append(r.alpha[reg], buffer...)
 			} else {
-				r.alpha[real] = buffer
+				r.alpha[reg] = buffer
 			}
 			appended = true
 		}
