@@ -195,7 +195,7 @@ func (p *prompt) printTransient(rl *Instance) {
 	print(seqClearScreenBelow)
 
 	// And print both the prompt and the input line.
-	print(p.transientF())
+	print(p.transient)
 	println(string(rl.line))
 }
 

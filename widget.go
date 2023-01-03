@@ -83,10 +83,10 @@ func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) (forward
 	// Run the callback, and by default,
 	// use its behavior for return values
 	event := cb(keys, rl.line, rl.pos)
-	rl.accepted = event.CloseReadline
+	rl.accepted = event.AcceptLine
 	rl.line = event.NewLine
 	rl.pos = event.NewPos
-	rl.useEventHelpers(*event)
+	rl.useEventHelpers(event)
 
 	// If the callback has a widget, run it.
 	// Any instruction to return, or an error
@@ -101,7 +101,7 @@ func (rl *Instance) run(cb EventCallback, keys string, mode keymapMode) (forward
 
 	// If we are asked to close the readline,
 	// we don't care about pending operations.
-	if event.CloseReadline {
+	if event.AcceptLine {
 		rl.clearHelpers()
 		rl.accepted = true
 
@@ -138,8 +138,8 @@ func (rl *Instance) bindWidget(key, widget string, keymap *widgets, decoder care
 		return
 	}
 
-	callback := func(_ string, line []rune, pos int) *EventReturn {
-		event := &EventReturn{
+	callback := func(_ string, line []rune, pos int) EventReturn {
+		event := EventReturn{
 			Widget:  widget,
 			NewLine: line,
 			NewPos:  pos,
@@ -309,8 +309,8 @@ func isRegexCapturingGroup(key string) bool {
 
 // not used in the current scheme of things.
 func (rl *Instance) selfInsertWidget() EventCallback {
-	return func(_ string, line []rune, pos int) *EventReturn {
-		event := &EventReturn{
+	return func(_ string, line []rune, pos int) EventReturn {
+		event := EventReturn{
 			Widget:  "self-insert",
 			NewLine: line,
 			NewPos:  pos,

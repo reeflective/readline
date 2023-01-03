@@ -74,7 +74,7 @@ func (rl *Instance) isVimEscape(key string) (cb EventCallback, yes bool) {
 	}
 
 	// Make the callback even if not used
-	cb = func(_ string, _ []rune, _ int) *EventReturn {
+	cb = func(_ string, _ []rune, _ int) EventReturn {
 		// Reset any incremental search parameters
 		// if we were currently editing its buffer.
 		rl.resetIsearch()
@@ -86,7 +86,7 @@ func (rl *Instance) isVimEscape(key string) (cb EventCallback, yes bool) {
 		// do it here instead.
 		rl.updateCompletion()
 
-		event := &EventReturn{
+		event := EventReturn{
 			Widget:  "vi-cmd-mode",
 			NewLine: rl.line,
 			NewPos:  rl.pos,

@@ -65,7 +65,7 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 - Support for an arbitrary number of history sources.
 
 ### Interface
-- Support for most of `oh-my-posh` prompts (PS1/PS2/RPROMPT/transient/tooltip).
+- Support for most of [oh-my-posh](https://github.com/JanDeDobbeleer/oh-my-posh) prompts (PS1/PS2/RPROMPT/transient/tooltip).
 - Extended completion system, keymap-based and configurable, easy to populate & use.
 - Multiple completion display styles, with color support.
 - Completion & History incremental search system & highlighting (fuzzy-search).

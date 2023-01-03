@@ -201,7 +201,7 @@ func (c *config) SaveSystem() (err error) {
 // If the path is empty, the file will save it to:
 //
 // - If $XDG_CONFIG_HOME is defined, saves to $XDG_CONFIG_HOME/reeflective/readline.yml
-// - Else, saves to $HOME/.readline.yml.
+// - Else, saves to $HOME/.readline.yml
 //
 // This function is useful if you tried to load the system configuration, but
 // that you could not find any. This thus gives the user a new default config.

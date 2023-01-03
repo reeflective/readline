@@ -11,7 +11,7 @@ import (
 // EventCallback is a function that is called with a given key input (as typed by the user in the shell),
 // to which is passed the current line and the current cursor position on this line.
 // It returns an EventReturn, which specifies a target state (new line/cursor position, exit state, etc).
-type EventCallback func(key string, line []rune, cursor int) *EventReturn
+type EventCallback func(key string, line []rune, cursor int) EventReturn
 
 // EventReturn is a structure returned by the callback event function.
 // This is used by readline to determine what state the API should
@@ -36,9 +36,9 @@ type EventReturn struct {
 	//   the even return, but will not try to find another widget mapped to '^X^Y'.
 	ForwardKey bool
 
-	// CloseReadline indicates if the shell should return from its read loop,
+	// AcceptLine indicates if the shell should return from its read loop,
 	// eg. close itself. If true, it will return the input line given in NewLine.
-	CloseReadline bool
+	AcceptLine bool
 
 	// ClearHelpers indicates if completion and hint helpers should be cleared out of display.
 	ClearHelpers bool
