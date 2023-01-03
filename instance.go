@@ -43,7 +43,6 @@ type Instance struct {
 	registers         *registers // All memory text registers, can be consulted with Alt"
 	registersComplete bool       // When the completer is for registers, used to reset
 	isViopp           bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
-	iterationsViopp   string     // Iterations specific to viopp mode. (2y2w => "2"w)
 	pendingActions    []action   // Widgets that have registered themselves as waiting for another action to be ran.
 
 	// Input Line ---------------------------------------------------------------------------------
@@ -95,14 +94,14 @@ type Instance struct {
 	// Completer is a function that produces completions.
 	// It takes the readline line ([]rune) and cursor pos.
 	// It return a type holding all completions and their associated settings.
-	Completer func([]rune, int) Completions
+	Completer func(line []rune, cursor int) Completions
 
 	// SyntaxCompletion is used to autocomplete code syntax (like braces and
 	// quotation marks). If you want to complete words or phrases then you might
 	// be better off using the TabCompletion function.
 	// SyntaxCompletion takes the line ([]rune) and cursor position, and returns
 	// the new line and cursor position.
-	SyntaxCompleter func([]rune, int) ([]rune, int)
+	SyntaxCompleter func(line []rune, cursor int) ([]rune, int)
 
 	// Asynchronously highlight/process the input line
 	DelayedSyntaxWorker func([]rune) []rune
@@ -120,7 +119,6 @@ type Instance struct {
 	comp            []rune         // The currently selected item, not yet a real part of the input line.
 	compSuffix      suffixMatcher  // The suffix matcher is kept for removal after actually inserting the candidate.
 	compLine        []rune         // Same as rl.line, but with the currentComp inserted.
-	compLineRest    []rune         // When we complete in the middle of a line, we cut and keep the remain.
 	tfLine          []rune         // The current search pattern entered
 	tfPos           int            // Cursor position in the isearch buffer
 	isearch         *regexp.Regexp // Holds the current search regex match
@@ -129,11 +127,10 @@ type Instance struct {
 	// History -----------------------------------------------------------------------------------
 
 	// Current line undo/redo history.
-	undoHistory      []undoItem
-	undoPos          int
-	isUndoing        bool
-	undoSkipAppend   bool
-	forcedUndoAppend bool // A widget may force its operation to append to undo history (eg. dw).
+	undoHistory    []undoItem
+	undoPos        int
+	isUndoing      bool
+	undoSkipAppend bool
 
 	// Past history
 	histories        map[string]History // Sources of history lines
@@ -176,10 +173,12 @@ func NewInstance() *Instance {
 	}
 	rl.Prompt.compute(rl)
 
+	// Keymaps and configuration
 	rl.loadDefaultConfig()
 	rl.bindWidgets()
 	rl.loadInterruptHandlers()
 
+	// Line
 	rl.initLine()
 	rl.initRegisters()
 

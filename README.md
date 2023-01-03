@@ -86,7 +86,7 @@ functionality provided by readline and its default configuration, install and st
 * [Prompts](https://github.com/reeflective/readline/wiki/Prompts)
 * [History Sources](https://github.com/reeflective/readline/wiki/History-Sources)
 * [Vim mode](https://github.com/reeflective/readline/wiki/Vim-Mode)
-* [Custom callbacks & handlers](https://github.com/reeflective/readline/wiki/Custom-Callbacks)
+* [Custom callbacks](https://github.com/reeflective/readline/wiki/Custom-Callbacks)
 * [Completions & Hints](https://github.com/reeflective/readline/wiki/Completions-&-Hints)
 * [Other features](https://github.com/reeflective/readline/wiki/Other-Features)
 
@@ -113,6 +113,7 @@ functionality provided by readline and its default configuration, install and st
 
 ## Credits
 
-- While most of the code has been rewritten from scratch, the original library used is [lmorg/readline](https://github.com/lmorg/readline).
-  I would have never ventured myself doing this if he had not ventured writing a Vim mode core in the first place. 
+- While most of the code has been rewritten from scratch, the original library used 
+  is [lmorg/readline](https://github.com/lmorg/readline). I would have never ventured myself doing this if he had not 
+  ventured writing a Vim mode core in the first place. 
 - Some of the Vim code is inspired or translated from [zsh-vi-mode](https://github.com/jeffreytse/zsh-vi-mode).
