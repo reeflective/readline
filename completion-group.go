@@ -58,6 +58,15 @@ func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased 
 		grp.list = true
 	}
 
+	listSep, found := c.listSep[tag]
+	if !found {
+		if allSep, found := c.listSep["*"]; found {
+			grp.listSeparator = allSep
+		}
+	} else {
+		grp.listSeparator = listSep
+	}
+
 	// Override sorting or sort if needed
 	_, grp.noSort = c.noSort[tag]
 	if _, all := c.noSort["*"]; all && len(c.noSort) == 1 {

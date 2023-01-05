@@ -21,7 +21,7 @@
       alt="Go module version" />
   </a>
 
-  <a href="https://godoc.org/reeflective/go/readline">
+  <a href="https://pkg.go.dev/github.com/reeflective/readline">
     <img src="https://img.shields.io/badge/godoc-reference-blue.svg"
       alt="GoDoc reference" />
   </a>
