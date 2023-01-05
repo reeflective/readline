@@ -12,16 +12,7 @@ func (rl *Instance) getCompletionLine() (line []rune, pos int) {
 		pos = 0
 	}
 
-	switch {
-	case rl.pos == len(rl.line):
-		line = rl.line
-	case rl.pos < len(rl.line):
-		line = rl.line[:pos]
-	default:
-		line = rl.line
-	}
-
-	return
+	return rl.line, pos
 }
 
 // When the completions are either longer than:

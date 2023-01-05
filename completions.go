@@ -29,6 +29,7 @@ type Completions struct {
 	usage    string
 	listLong map[string]bool
 	noSort   map[string]bool
+	listSep  map[string]string
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor;
@@ -221,6 +222,38 @@ func (c Completions) DisplayList(tags ...string) Completions {
 	}
 	for _, tag := range tags {
 		c.listLong[tag] = true
+	}
+
+	return c
+}
+
+// ListSeparator accepts a custom separator to use between the candidates and their descriptions.
+// If more than one separator is given, the list is considered to be a map of tag:separators, in
+// which case it will fail if the list has an odd number of values.
+//
+// If one only one value is given, will apply to all completions (and their tags if any).
+// If no value is given, no modifications will be made.
+func (c Completions) ListSeparator(seps ...string) Completions {
+	if c.listSep == nil {
+		c.listSep = make(map[string]string)
+	}
+
+	if length := len(seps); len(seps) > 1 && length%2 != 0 {
+		return Message("invalid amount of arguments (ListSeparator): %v", length)
+	}
+
+	if len(seps) == 1 {
+		if len(c.listSep) == 0 {
+			c.listSep["*"] = seps[0]
+		} else {
+			for tag := range c.listSep {
+				c.listSep[tag] = seps[0]
+			}
+		}
+	} else {
+		for i := 0; i < len(seps); i += 2 {
+			c.listSep[seps[i]] = seps[i+1]
+		}
 	}
 
 	return c
