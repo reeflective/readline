@@ -341,6 +341,9 @@ func (rl *Instance) viReplace() {
 	// All replaced characters are stored, to be used with backspace
 	cache := make([]rune, 0)
 
+	// Don't use the delete cache past the end of the line
+	lineStart := len(rl.line)
+
 	// The replace mode is quite special in that it does escape back
 	// to the main readline loop: it keeps reading characters and inserts
 	// them as long as the escape key is not pressed.
@@ -355,12 +358,14 @@ func (rl *Instance) viReplace() {
 
 		// If the key is a backspace, we go back one character
 		if key == charBackspace || key == charBackspace2 {
-			if rl.pos > 0 {
+			if rl.pos > lineStart {
+				rl.backwardDeleteChar()
+			} else if rl.pos > 0 {
 				rl.pos--
 			}
 
 			// And recover the last replaced character
-			if len(cache) > 0 {
+			if len(cache) > 0 && rl.pos < lineStart {
 				key = cache[len(cache)-1]
 				cache = cache[:len(cache)-1]
 				rl.line[rl.pos] = key
@@ -368,8 +373,7 @@ func (rl *Instance) viReplace() {
 		} else {
 			// If the cursor is at the end of the line,
 			// we insert the character instead of replacing.
-			if len(rl.line)-1 < rl.pos {
-				cache = append(cache, rune(0))
+			if len(rl.line) == rl.pos {
 				rl.line = append(rl.line, key)
 			} else {
 				cache = append(cache, rl.line[rl.pos])
