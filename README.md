@@ -95,7 +95,7 @@ functionality provided by readline and its default configuration, install and st
 
 <details>
   <summary>- Emacs edition</summary>
-(This extract is quite a pity, because its author is not using Emacs and does not know many of its shortcuts)
+ <dd><em>(This extract is quite a pity, because its author is not using Emacs and does not know many of its shortcuts)</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/emacs.gif"/>
 </details>
 <details>
@@ -116,9 +116,9 @@ functionality provided by readline and its default configuration, install and st
 </details>
 <details>
   <summary>- Vim surround (selection and change) </summary>
-Basic surround selection changes/adds
+ <dd><em>Basic surround selection changes/adds</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/vim-surround.gif"/>
-Surround and change in shellwords, matching brackets, etc.
+ <dd><em>Surround and change in shellwords, matching brackets, etc.</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/vim-surround-2.gif"/>
 </details>
 <details>
@@ -127,16 +127,17 @@ Surround and change in shellwords, matching brackets, etc.
 </details>
 <details>
   <summary>- History movements/completion/use/search </summary>
+ <dd><em></em></dd>
 History movement, completion and some other other widgets
 <img src="https://github.com/reeflective/readline/blob/assets/history.gif"/>
-History cycling and search
+ <dd><em>History cycling and search</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/history-search.gif"/>
 </details>
 <details>
   <summary>- Completion </summary>
-Classic mode & incremental search mode
+ <dd><em>Classic mode & incremental search mode</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/completion.gif"/>
-Smart terminal estate management
+ <dd><em>Smart terminal estate management</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/completion-size.gif"/>
 </details>
 <details>
