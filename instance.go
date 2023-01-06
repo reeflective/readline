@@ -112,16 +112,15 @@ type Instance struct {
 	completer func()
 
 	// tab completion operating parameters
-	tcGroups        []*comps       // All of our suggestions tree is in here
-	tcPrefix        string         // The current tab completion prefix  against which to build candidates
-	compConfirmWait bool           // When too many completions, we ask the user to confirm with another Tab keypress.
-	tcUsedY         int            // Comprehensive offset of the currently built completions
-	comp            []rune         // The currently selected item, not yet a real part of the input line.
-	compSuffix      suffixMatcher  // The suffix matcher is kept for removal after actually inserting the candidate.
-	compLine        []rune         // Same as rl.line, but with the currentComp inserted.
-	tfLine          []rune         // The current search pattern entered
-	tfPos           int            // Cursor position in the isearch buffer
-	isearch         *regexp.Regexp // Holds the current search regex match
+	tcGroups   []*comps       // All of our suggestions tree is in here
+	tcPrefix   string         // The current tab completion prefix  against which to build candidates
+	tcUsedY    int            // Comprehensive offset of the currently built completions
+	comp       []rune         // The currently selected item, not yet a real part of the input line.
+	compSuffix suffixMatcher  // The suffix matcher is kept for removal after actually inserting the candidate.
+	compLine   []rune         // Same as rl.line, but with the currentComp inserted.
+	tfLine     []rune         // The current search pattern entered
+	tfPos      int            // Cursor position in the isearch buffer
+	isearch    *regexp.Regexp // Holds the current search regex match
 
 	//
 	// History -----------------------------------------------------------------------------------

@@ -21,10 +21,7 @@ func (rl *Instance) getCompletionLine() (line []rune, pos int) {
 // we use this function to prompt for confirmation before printing comps.
 func (rl *Instance) promptCompletionConfirm(sentence string) {
 	rl.hint = []rune(sentence)
-
-	rl.compConfirmWait = true
 	rl.undoSkipAppend = true
-
 	rl.renderHelpers()
 }
 

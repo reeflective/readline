@@ -125,7 +125,7 @@ Surround and change in shellwords, matching brackets, etc.
   <summary>- Vim registers (with completion) </summary>
 <img src="https://github.com/reeflective/readline/blob/assets/vim-registers.gif"/>
 </details>
-</details>
+<details>
   <summary>- History movements/completion/use/search </summary>
 History movement, completion and some other other widgets
 <img src="https://github.com/reeflective/readline/blob/assets/history.gif"/>

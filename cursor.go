@@ -164,7 +164,8 @@ func (rl *Instance) getCursorPos() (x int, y int) {
 	}
 
 	disable := func() (int, int) {
-		os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
+		// os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
+		rl.hint = []rune(seqFgRed + "getCursorPos() not supported by terminal emulator, disabling....")
 		rl.EnableGetCursorPos = false
 		return -1, -1
 	}

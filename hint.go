@@ -122,11 +122,12 @@ func (rl *Instance) writeHintText() {
 	wrapped, _ := wrapText(string(rl.hint), GetTermWidth())
 
 	offset += actual
-	rl.hintY = offset
+	rl.hintY = offset - 1
 
 	hintText := string(wrapped)
 
 	if len(hintText) > 0 {
+		print("\n")
 		print("\r" + string(hintText) + seqReset)
 	}
 }

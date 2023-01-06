@@ -202,7 +202,6 @@ func (rl *Instance) listChoices() {
 	}
 
 	rl.local = menuselect
-	rl.compConfirmWait = false
 
 	// Call the completer to produce
 	// all possible completions.
