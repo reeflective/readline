@@ -93,13 +93,38 @@ functionality provided by readline and its default configuration, install and st
 
 ## Showcases
 
-- Emacs edition
-- Vim edition
-- Vim selection & movements
-- Vim surround
-- Keyword swithing
-- Vim registers & completion
-- Undo/redo line history
+<details>
+  <summary>- Emacs edition</summary>
+![emacs](https://github.com/reeflective/readline/blob/assets/emacs.gif)
+</details>
+<details>
+  <summary>- Vim edition</summary>
+![vim](https://github.com/reeflective/readline/blob/assets/vim.gif)
+</details>
+<details>
+  <summary>- Undo/redo line history </summary>
+![undo](https://github.com/reeflective/readline/blob/assets/undo.gif)
+</details>
+<details>
+  <summary>- Keyword switching </summary>
+![switch-keywords](https://github.com/reeflective/readline/blob/assets/switch-keywords.gif)
+</details>
+<details>
+  <summary>- Vim selection & movements (basic) </summary>
+![vim-selection](https://github.com/reeflective/readline/blob/assets/vim-selection.gif)
+</details>
+<details>
+  <summary>- Vim surround (selection and change) </summary>
+Basic surround selection changes/adds
+![vim-surround](https://github.com/reeflective/readline/blob/assets/vim-surround.gif)
+Surround and change in shellwords, matching brackets, etc.
+![vim-surround-2](https://github.com/reeflective/readline/blob/assets/vim-surround-2.gif)
+</details>
+<details>
+  <summary>- Vim registers (with completion) </summary>
+![vim-registers](https://github.com/reeflective/readline/blob/assets/vim-registers.gif)
+</details>
+
 - History movements & completion
 - Completion classic
 - Completion isearch
