@@ -50,10 +50,8 @@ func (rl *Instance) removeSuffixInserted() {
 	// by a slash, only remove this slash if the inserted key is
 	// one of the suffix matchers, otherwise keep it.
 	if suffix == "/" && rl.keys != " " {
-		for _, s := range rl.compSuffix.string {
-			if s == '/' && keyIsNotMatcher(rl.keys, rl.compSuffix.string) {
-				return
-			}
+		if keyIsNotMatcher(rl.keys, rl.compSuffix.string) {
+			return
 		}
 	}
 
@@ -228,10 +226,8 @@ func (rl *Instance) removeSuffixCandidate(cur *comps, prefix int) (comp string) 
 	// by a slash, only remove this slash if the inserted key is
 	// one of the suffix matchers and not a space, otherwise keep it.
 	if strings.HasSuffix(comp, "/") && rl.keys != " " {
-		for _, s := range cur.noSpace.string {
-			if s == '/' && keyIsNotMatcher(rl.keys, cur.noSpace.string) {
-				return
-			}
+		if keyIsNotMatcher(rl.keys, cur.noSpace.string) {
+			return
 		}
 	}
 
