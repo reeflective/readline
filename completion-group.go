@@ -508,6 +508,9 @@ func (g *comps) padCandidate(row []Completion, val Completion, x int) (cell, pad
 
 	if !g.aliased {
 		padLen = g.tcMaxLength - valLen
+		if padLen < 0 {
+			padLen = 0
+		}
 		return "", strings.Repeat(" ", padLen)
 	}
 

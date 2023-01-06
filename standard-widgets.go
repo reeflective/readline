@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -546,7 +545,7 @@ func (rl *Instance) switchKeyword() {
 	rl.undoHistoryAppend()
 
 	cpos := rl.pos
-	increase := rl.keys == fmt.Sprint(charCtrlA)
+	increase := rl.keys[0] == charCtrlA
 
 	if match, _ := regexp.MatchString(`[+-][0-9]`, rl.lineSlice(2)); match {
 		// If cursor is on the `+` or `-`, we need to check if it is a
@@ -587,7 +586,7 @@ func (rl *Instance) switchKeyword() {
 
 		// We are only interested in the end position after all runs
 		epos = bpos + oepos
-		bpos = +obpos
+		bpos += obpos
 		if cpos < bpos || cpos >= epos {
 			continue
 		}
