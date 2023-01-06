@@ -107,7 +107,7 @@ func (rl *Instance) noCompletions() bool {
 func (rl *Instance) getCompletionMaxRows() (maxRows int) {
 	maxRows = rl.config.MaxTabCompleterRows
 
-	rl.EnableGetCursorPos = true
+	// rl.EnableGetCursorPos = true
 
 	_, cposY := rl.getCursorPos()
 	_, termHeight, err := GetSize(int(os.Stdin.Fd()))

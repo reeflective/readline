@@ -165,23 +165,23 @@ func (rl *Instance) getCursorPos() (x int, y int) {
 
 	disable := func() (int, int) {
 		// os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
-		rl.hint = []rune(seqFgRed + "getCursorPos() not supported by terminal emulator, disabling....")
+		rl.hint = []rune(seqFgRed + "getCursorPos() not supported by terminal emulator, disabling...")
 		rl.EnableGetCursorPos = false
 		return -1, -1
 	}
 
 	print(seqGetCursorPos)
 	b := make([]byte, 64)
-	i, err := os.Stdin.Read(b)
+	read, err := os.Stdin.Read(b)
 	if err != nil {
 		return disable()
 	}
 
-	if !rxRcvCursorPos.Match(b[:i]) {
+	if !rxRcvCursorPos.Match(b[:read]) {
 		return disable()
 	}
 
-	match := rxRcvCursorPos.FindAllStringSubmatch(string(b[:i]), 1)
+	match := rxRcvCursorPos.FindAllStringSubmatch(string(b[:read]), 1)
 	y, err = strconv.Atoi(match[0][1])
 	if err != nil {
 		return disable()

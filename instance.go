@@ -55,6 +55,7 @@ type Instance struct {
 
 	// EnableGetCursorPos will allow the shell to send a special sequence
 	// to the the terminal to get the current cursor X and Y coordinates.
+	// This is true by default, to enable smart completion estate use.
 	EnableGetCursorPos bool
 
 	// SyntaxHighlight is a helper function to provide syntax highlighting.
@@ -188,6 +189,7 @@ func NewInstance() *Instance {
 
 	// Others
 	rl.TempDirectory = os.TempDir()
+	rl.EnableGetCursorPos = true
 
 	return rl
 }

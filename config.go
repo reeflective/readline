@@ -363,7 +363,6 @@ func (rl *Instance) watchConfig(path string) {
 }
 
 func (rl *Instance) reloadConfig(event fsnotify.Event) {
-	defer rl.renderHelpers()
 	loadErr := rl.config.load(event.Name)
 
 	if loadErr != nil {
@@ -374,4 +373,11 @@ func (rl *Instance) reloadConfig(event fsnotify.Event) {
 		changeHint := fmt.Sprintf(seqFgGreen+"Config reloaded: %s", event.Name)
 		rl.hint = append([]rune{}, []rune(changeHint)...)
 	}
+
+	// Since the shell is currently waiting for input, it's going to hijack
+	// any cursor position query result in completions, disable it temporarily.
+	enabled := rl.EnableGetCursorPos
+	rl.EnableGetCursorPos = false
+	rl.renderHelpers()
+	rl.EnableGetCursorPos = enabled
 }

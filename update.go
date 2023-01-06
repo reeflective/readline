@@ -64,7 +64,6 @@ func (rl *Instance) renderHelpers() {
 	if rl.config.HistoryAutosuggest {
 		rl.autosuggestHistory(rl.getLineVirtual())
 	}
-
 	rl.printLine()
 
 	// Go at beginning of first line after input remainder

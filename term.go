@@ -7,7 +7,6 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/term"
-	// "golang.org/x/crypto/ssh/terminal".
 )
 
 // GetTermWidth returns the width of Stdout or 80 if the width cannot be established.
