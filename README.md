@@ -140,17 +140,28 @@ Smart terminal estate management
 <img src="https://github.com/reeflective/readline/blob/assets/completion-size.gif"/>
 </details>
 <details>
+  <summary>- Suffix autoremoval </summary>
+<img src="https://github.com/reeflective/readline/blob/assets/suffix-autoremoval.gif"/>
+</details>
+<details>
   <summary>- Prompts </summary>
 <img src="https://github.com/reeflective/readline/blob/assets/prompts.gif"/>
 </details>
-
-- Suffix autoremoval
-- Logging
-- Configuration reload
+<details>
+  <summary>- Logging </summary>
+<img src="https://github.com/reeflective/readline/blob/assets/logging.gif"/>
+</details>
+<details>
+  <summary>- Configuration hot-reload </summary>
+<img src="https://github.com/reeflective/readline/blob/assets/configuration-reload.gif"/>
+</details>
 
 
 ## Status
 
+This library is in a pre-release status, although pretending to be quite bug-free as compared to its feature set.
+Please open a PR or an issue if you wish to bring enhancements to it. 
+Other contributions, as well as bug fixes and reviews are also welcome.
 
 ## Credits
 
