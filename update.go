@@ -64,7 +64,6 @@ func (rl *Instance) renderHelpers() {
 	if rl.config.HistoryAutosuggest {
 		rl.autosuggestHistory(rl.getLineVirtual())
 	}
-
 	rl.printLine()
 
 	// Go at beginning of first line after input remainder
@@ -73,36 +72,19 @@ func (rl *Instance) renderHelpers() {
 
 	// Print hints, check for any confirmation hint current.
 	// (do not overwrite the confirmation question hint)
-	if !rl.compConfirmWait {
-		if len(rl.hint) > 0 {
-			print("\n")
-		}
-		rl.writeHintText()
-		moveCursorBackwards(GetTermWidth())
+	rl.writeHintText()
+	moveCursorBackwards(GetTermWidth())
 
-		// Print completions and go back
-		// to beginning of this line
-		print("\n")
-		rl.printCompletions()
-		moveCursorBackwards(GetTermWidth())
-		moveCursorUp(rl.tcUsedY)
-	}
+	// Print completions and go back
+	// to beginning of this line
+	rl.printCompletions()
+	moveCursorBackwards(GetTermWidth())
+	moveCursorUp(rl.tcUsedY)
 
-	// If we are still waiting for the user to confirm
-	// long completions, immediately refresh the hints.
-	if rl.compConfirmWait {
-		print("\n")
-		rl.writeHintText()
-		rl.getHintText()
-		moveCursorBackwards(GetTermWidth())
-	}
-
-	// Anyway, compensate for hint printout
+	// Compensate for hint printout
 	switch {
 	case len(rl.hint) > 0:
 		moveCursorUp(rl.hintY)
-	default:
-		moveCursorUp(1)
 	}
 
 	// Go back to current cursor position
@@ -129,6 +111,9 @@ func (rl *Instance) computeCoordinates() {
 	// Y coordinates always consider the line with the history hint.
 	hinted := rl.Prompt.inputAt + suggLen
 	rl.fullY = hinted / GetTermWidth()
+	if hinted%GetTermWidth() == 0 {
+		rl.fullY--
+	}
 
 	// We need the X offset of the whole line
 	endBuf := rl.Prompt.inputAt + bufLen
@@ -164,10 +149,6 @@ func (rl *Instance) computeCoordinates() {
 // returns len of line, len of line including history hint, and len to cursor.
 func (rl *Instance) computeCoordinatesBuffer() (int, int, int) {
 	var bufLen, cpos, suggLen int
-
-	if len(rl.histSuggested) > 0 {
-		suggLen += len(rl.histSuggested)
-	}
 
 	if len(rl.comp) > 0 {
 		bufLen = len(rl.compLine)

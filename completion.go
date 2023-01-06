@@ -10,7 +10,6 @@ import (
 // generated from a given completer, without selecting a candidate.
 func (rl *Instance) startMenuComplete(completer func()) {
 	rl.local = menuselect
-	rl.compConfirmWait = false
 	rl.skipUndoAppend()
 
 	// Call the completer function to produce completions,
@@ -233,14 +232,19 @@ func (rl *Instance) printCompletions() {
 		completions += group.writeComps(rl)
 	}
 
-	// Because some completion groups might have more suggestions
-	// than what their MaxLength allows them to, cycling sometimes occur,
-	// but does not fully clears itself: some descriptions are messed up with.
-	// We always clear the screen as a result, between writings.
-	print(seqClearScreenBelow)
-
 	// Crop the completions so that it fits within our MaxTabCompleterRows
 	completions, rl.tcUsedY = rl.cropCompletions(completions)
+
+	if completions != "" {
+		print("\n")
+		rl.tcUsedY++
+
+		// Because some completion groups might have more suggestions
+		// than what their MaxLength allows them to, cycling sometimes occur,
+		// but does not fully clears itself: some descriptions are messed up with.
+		// We always clear the screen as a result, between writings.
+		print(seqClearScreenBelow)
+	}
 
 	// Then we print all of them.
 	print(completions)
@@ -364,7 +368,6 @@ func (rl *Instance) resetCompletion() {
 	}
 
 	rl.tcPrefix = ""
-	rl.compConfirmWait = false
 	rl.tcUsedY = 0
 
 	// Don't persist registers completion.

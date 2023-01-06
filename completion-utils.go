@@ -21,10 +21,7 @@ func (rl *Instance) getCompletionLine() (line []rune, pos int) {
 // we use this function to prompt for confirmation before printing comps.
 func (rl *Instance) promptCompletionConfirm(sentence string) {
 	rl.hint = []rune(sentence)
-
-	rl.compConfirmWait = true
 	rl.undoSkipAppend = true
-
 	rl.renderHelpers()
 }
 
@@ -109,8 +106,6 @@ func (rl *Instance) noCompletions() bool {
 // or a reasonable amount of rows so as not to bother the user.
 func (rl *Instance) getCompletionMaxRows() (maxRows int) {
 	maxRows = rl.config.MaxTabCompleterRows
-
-	rl.EnableGetCursorPos = true
 
 	_, cposY := rl.getCursorPos()
 	_, termHeight, err := GetSize(int(os.Stdin.Fd()))
