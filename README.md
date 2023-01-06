@@ -95,7 +95,7 @@ functionality provided by readline and its default configuration, install and st
 
 <details>
   <summary>- Emacs edition</summary>
-![emacs](https://github.com/reeflective/readline/blob/assets/emacs.gif)
+<img src="https://github.com/reeflective/readline/blob/assets/emacs.gif"/>
 </details>
 <details>
   <summary>- Vim edition</summary>
