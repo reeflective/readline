@@ -29,7 +29,6 @@ type comps struct {
 	tcPosY        int
 	tcMaxX        int
 	tcMaxY        int
-	tcOffset      int
 }
 
 //
@@ -43,7 +42,6 @@ func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased 
 		listSeparator: "--",
 		tcPosX:        -1,
 		tcPosY:        -1,
-		tcOffset:      0,
 		aliased:       aliased,
 		columnsWidth:  []int{0},
 	}
@@ -166,7 +164,7 @@ func (g *comps) computeCells(vals rawValues) {
 	// Each value first computes the total amount of space
 	// it is going to take in a row (including the description)
 	for _, val := range vals {
-		candidate := g.displayTrimmed(val.Display)
+		candidate := g.displayTrimmed(ansi.Strip(val.Display))
 		pad := g.tcMaxLength - len(candidate)
 		desc := g.descriptionTrimmed(val.Description)
 		display := fmt.Sprintf("%s%s%s", candidate, strings.Repeat(" ", pad)+" ", desc)
@@ -176,7 +174,7 @@ func (g *comps) computeCells(vals rawValues) {
 		}
 	}
 
-	g.tcMaxX = GetTermWidth() / (g.maxCellLength + 2)
+	g.tcMaxX = GetTermWidth() / (g.maxCellLength)
 	if g.tcMaxX < 1 {
 		g.tcMaxX = 1 // avoid a divide by zero error
 	}
@@ -185,8 +183,14 @@ func (g *comps) computeCells(vals rawValues) {
 		g.tcMaxX = len(vals)
 	}
 
+	numColumns := GetTermWidth() / (g.maxCellLength)
+	if numColumns == 0 {
+		numColumns = 1
+	}
+
 	// We also have the width for each column
-	g.columnsWidth = make([]int, GetTermWidth()/(g.maxCellLength+2))
+	g.columnsWidth = make([]int, numColumns)
+	// g.columnsWidth = make([]int, GetTermWidth()/(g.maxCellLength+2))
 	for i := 0; i < g.tcMaxX; i++ {
 		g.columnsWidth[i] = g.maxCellLength
 	}
@@ -243,7 +247,6 @@ func (g *comps) updateIsearch(rl *Instance) {
 	g.values = make([][]Completion, 0)
 	g.tcPosX = -1
 	g.tcPosY = -1
-	g.tcOffset = 0
 	g.columnsWidth = []int{0}
 
 	// Assign the filtered values
@@ -267,13 +270,11 @@ func (g *comps) updateIsearch(rl *Instance) {
 func (g *comps) firstCell() {
 	g.tcPosX = 0
 	g.tcPosY = 0
-	g.tcOffset = 0
 }
 
 func (g *comps) lastCell() {
 	g.tcPosY = len(g.values) - 1
 	g.tcPosX = len(g.columnsWidth) - 1
-	g.tcOffset = 0
 
 	if g.aliased {
 		g.findFirstCandidate(0, -1)
@@ -329,7 +330,7 @@ func (g *comps) writeComps(rl *Instance) (comp string) {
 func (g *comps) moveSelector(rl *Instance, x, y int) (done, next bool) {
 	// When the group has not yet been used, adjust
 	if g.tcPosX == -1 && g.tcPosY == -1 {
-		if x > 0 {
+		if x != 0 {
 			g.tcPosY++
 		} else {
 			g.tcPosX++
@@ -468,7 +469,7 @@ func (g *comps) highlightCandidate(rl *Instance, val Completion, cell, pad strin
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case selected:
-		candidate = seqCtermFg255 + seqFgBlackBright + ansi.Strip(val.Display)
+		candidate = seqCtermFg255 + seqFgBlackBright + g.displayTrimmed(ansi.Strip(val.Display))
 		if g.aliased {
 			candidate += cell + seqReset
 		}
@@ -543,8 +544,8 @@ func (g *comps) padDescription(val Completion, valPad int) (pad int) {
 
 func (g *comps) displayTrimmed(val string) string {
 	termWidth := GetTermWidth()
-	if g.tcMaxLength > termWidth-9 {
-		g.tcMaxLength = termWidth - 9
+	if g.tcMaxLength > termWidth-1 {
+		g.tcMaxLength = termWidth - 1
 	}
 
 	if len(val) > g.tcMaxLength {
