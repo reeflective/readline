@@ -44,6 +44,7 @@ type Instance struct {
 	registersComplete bool       // When the completer is for registers, used to reset
 	isViopp           bool       // Keeps track of vi operator pending mode BEFORE trying to match the current key.
 	pendingActions    []action   // Widgets that have registered themselves as waiting for another action to be ran.
+	viinsEnterPos     int        // The index at which insert mode was entered
 
 	// Input Line ---------------------------------------------------------------------------------
 

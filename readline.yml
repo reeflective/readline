@@ -145,6 +145,7 @@ keymaps:
     vicmd:
         ' ': vi-forward-char
         '"': vi-set-buffer
+        '+': vi-down-line-or-history
         $: vi-end-of-line
         '%': vi-match-bracket
         '[1-9]': digit-argument
@@ -192,6 +193,7 @@ keymaps:
         e: vi-forward-word-end
         f: vi-find-next-char
         g~: vi-oper-swap-case
+        gg: beginning-of-buffer-or-history
         gE: vi-backward-blank-word-end
         ge: vi-backward-word-end
         h: vi-backward-char
@@ -221,6 +223,7 @@ keymaps:
         ^[[D: vi-backward-char
         ^[[F: end-of-line
         ^[[H: beginning-of-line
+        ^[A: up-line-or-history 
         ^[R: vi-registers-complete
         ^_: undo
         ^A: beginning-of-line
@@ -236,6 +239,7 @@ keymaps:
         ^P: up-line-or-history
         ^Q: accept-and-infer-next-history
         ^R: history-search-backward
+        ^U: vi-kill-line
         ^W: backward-kill-word
         ^Y: yank
     # Vim Insert mode key mappings
@@ -288,6 +292,9 @@ keymaps:
 #
 # Other helpers settings ##
 #
+# PromptTransient enables the use of transient prompt.
+promptTransient: false 
+
 # historyAutosuggest: If true, the shell will display fish-like
 # autosuggestions (the first matching history line is displayed dimmed).
 historyAutosuggest: false

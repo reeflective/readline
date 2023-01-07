@@ -29,6 +29,7 @@ func (rl *Instance) viWidgets() lineWidgets {
 		"vi-backward-word-end":          rl.viBackwardWordEnd,
 		"vi-backward-blank-word-end":    rl.viBackwardBlankWordEnd,
 		"vi-kill-eol":                   rl.viKillEol,
+		"vi-kill-line":                  rl.viKillLine,
 		"vi-change-eol":                 rl.viChangeEol,
 		"vi-edit-command-line":          rl.viEditCommandLine,
 		"vi-add-eol":                    rl.viAddEol,
@@ -72,6 +73,7 @@ func (rl *Instance) viInsertMode() {
 
 	rl.local = ""
 	rl.main = viins
+	rl.viinsEnterPos = rl.pos
 
 	rl.addIteration("")
 	rl.activeRegion = false
@@ -93,6 +95,7 @@ func (rl *Instance) viCommandMode() {
 
 	rl.local = ""
 	rl.main = vicmd
+	rl.viinsEnterPos = 0
 
 	rl.updateCursor()
 }
@@ -223,6 +226,19 @@ func (rl *Instance) viKillEol() {
 
 	rl.addIteration("")
 	rl.resetHelpers()
+}
+
+func (rl *Instance) viKillLine() {
+	if rl.pos <= rl.viinsEnterPos || rl.pos == 0 {
+		return
+	}
+
+	rl.undoHistoryAppend()
+	rl.skipUndoAppend()
+
+	rl.markSelection(rl.viinsEnterPos)
+	rl.pos--
+	rl.deleteSelection()
 }
 
 func (rl *Instance) viChangeEol() {

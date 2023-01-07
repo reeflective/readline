@@ -290,6 +290,10 @@ func (g *comps) selected() (comp Completion) {
 }
 
 func (g *comps) writeComps(rl *Instance) (comp string) {
+	if len(g.values) == 0 {
+		return
+	}
+
 	if g.tag != "" {
 		comp += fmt.Sprintf("%s%s%s %s\n", seqBold, seqFgYellow, g.tag, seqReset)
 		rl.tcUsedY++

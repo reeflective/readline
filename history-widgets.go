@@ -8,6 +8,8 @@ func (rl *Instance) historyWidgets() lineWidgets {
 		"up-history":                          rl.upHistory,
 		"infer-next-history":                  rl.inferNextHistory,
 		"beginning-of-buffer-or-history":      rl.beginningOfBufferOrHistory,
+		"beginning-history-search-forward":    rl.historySearchForward,
+		"beginning-history-search-backward":   rl.historySearchBackward,
 		"end-of-buffer-or-history":            rl.endOfBufferOrHistory,
 		"history-autosuggest-insert":          rl.historyAutosuggestInsert,
 		"beginning-of-line-hist":              rl.beginningOfLineHist,
@@ -249,4 +251,12 @@ func (rl *Instance) historyIncrementalSearchBackward() {
 	if rl.local == menuselect {
 		rl.enterIsearchMode()
 	}
+}
+
+func (rl *Instance) beginningHistorySearchBackward() {
+	rl.historySearchLine(false)
+}
+
+func (rl *Instance) beginningHistorySearchForward() {
+	rl.historySearchLine(true)
 }
