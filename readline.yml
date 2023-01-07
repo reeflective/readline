@@ -236,6 +236,7 @@ keymaps:
         ^P: up-line-or-history
         ^Q: accept-and-infer-next-history
         ^R: history-search-backward
+        ^U: vi-kill-line
         ^W: backward-kill-word
         ^Y: yank
     # Vim Insert mode key mappings

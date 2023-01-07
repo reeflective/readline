@@ -14,6 +14,7 @@ func (rl *Instance) standardWidgets() lineWidgets {
 		"beginning-of-line":       rl.beginningOfLine,
 		"end-of-line":             rl.endOfLine,
 		"kill-line":               rl.killLine,
+		"backward-kill-line":      rl.backwardKillLine,
 		"kill-whole-line":         rl.killWholeLine,
 		"kill-buffer":             rl.killBuffer,
 		"backward-kill-word":      rl.backwardKillWord,
@@ -22,6 +23,7 @@ func (rl *Instance) standardWidgets() lineWidgets {
 		"backward-delete-char":    rl.backwardDeleteChar,
 		"delete-char-or-list":     rl.deleteCharOrList,
 		"delete-char":             rl.deleteChar,
+		"delete-word":             rl.deleteWord,
 		"forward-char":            rl.forwardChar,
 		"backward-char":           rl.backwardChar,
 		"forward-word":            rl.forwardWord,
@@ -144,6 +146,15 @@ func (rl *Instance) killLine() {
 	rl.addIteration("")
 }
 
+func (rl *Instance) backwardKillLine() {
+	rl.undoHistoryAppend()
+
+	rl.saveBufToRegister(rl.line[:rl.pos])
+	rl.line = rl.line[rl.pos:]
+	rl.resetHelpers()
+	rl.addIteration("")
+}
+
 func (rl *Instance) killWholeLine() {
 	rl.undoHistoryAppend()
 
@@ -232,6 +243,14 @@ func (rl *Instance) deleteChar() {
 	for i := 1; i <= vii; i++ {
 		rl.deletex()
 	}
+}
+
+func (rl *Instance) deleteWord() {
+	rl.undoHistoryAppend()
+
+	rl.markSelection(rl.pos)
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	rl.deleteSelection()
 }
 
 func (rl *Instance) deleteCharOrList() {
