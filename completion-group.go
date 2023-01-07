@@ -164,7 +164,7 @@ func (g *comps) computeCells(vals rawValues) {
 	// Each value first computes the total amount of space
 	// it is going to take in a row (including the description)
 	for _, val := range vals {
-		candidate := g.displayTrimmed(val.Display)
+		candidate := g.displayTrimmed(ansi.Strip(val.Display))
 		pad := g.tcMaxLength - len(candidate)
 		desc := g.descriptionTrimmed(val.Description)
 		display := fmt.Sprintf("%s%s%s", candidate, strings.Repeat(" ", pad)+" ", desc)
@@ -174,7 +174,7 @@ func (g *comps) computeCells(vals rawValues) {
 		}
 	}
 
-	g.tcMaxX = GetTermWidth() / (g.maxCellLength + 2)
+	g.tcMaxX = GetTermWidth() / (g.maxCellLength)
 	if g.tcMaxX < 1 {
 		g.tcMaxX = 1 // avoid a divide by zero error
 	}
@@ -183,8 +183,14 @@ func (g *comps) computeCells(vals rawValues) {
 		g.tcMaxX = len(vals)
 	}
 
+	numColumns := GetTermWidth() / (g.maxCellLength)
+	if numColumns == 0 {
+		numColumns = 1
+	}
+
 	// We also have the width for each column
-	g.columnsWidth = make([]int, GetTermWidth()/(g.maxCellLength+2))
+	g.columnsWidth = make([]int, numColumns)
+	// g.columnsWidth = make([]int, GetTermWidth()/(g.maxCellLength+2))
 	for i := 0; i < g.tcMaxX; i++ {
 		g.columnsWidth[i] = g.maxCellLength
 	}
@@ -463,7 +469,7 @@ func (g *comps) highlightCandidate(rl *Instance, val Completion, cell, pad strin
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case selected:
-		candidate = seqCtermFg255 + seqFgBlackBright + ansi.Strip(val.Display)
+		candidate = seqCtermFg255 + seqFgBlackBright + g.displayTrimmed(ansi.Strip(val.Display))
 		if g.aliased {
 			candidate += cell + seqReset
 		}
@@ -538,8 +544,8 @@ func (g *comps) padDescription(val Completion, valPad int) (pad int) {
 
 func (g *comps) displayTrimmed(val string) string {
 	termWidth := GetTermWidth()
-	if g.tcMaxLength > termWidth-9 {
-		g.tcMaxLength = termWidth - 9
+	if g.tcMaxLength > termWidth-1 {
+		g.tcMaxLength = termWidth - 1
 	}
 
 	if len(val) > g.tcMaxLength {
