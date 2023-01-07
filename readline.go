@@ -36,7 +36,8 @@ func (rl *Instance) Readline() (string, error) {
 		return rl.initMultiline()
 	}
 
-	// Finally, print any hints or completions if needed.
+	// Finally, print any hints or completions
+	// before starting monitoring for keystrokes.
 	rl.renderHelpers()
 
 	// Start handling keystrokes.

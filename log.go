@@ -24,7 +24,10 @@ func (rl *Instance) Log(msg string, args ...interface{}) {
 
 	// Reprints the prompt, input line, and any active helpers.
 	rl.Prompt.init(rl)
+	enablePos := rl.EnableGetCursorPos
+	rl.EnableGetCursorPos = false
 	rl.renderHelpers()
+	rl.EnableGetCursorPos = enablePos
 }
 
 // LogTransient prints a formatted string in place of the current prompt and input
@@ -48,5 +51,8 @@ func (rl *Instance) LogTransient(msg string, args ...interface{}) {
 
 	// And redisplay the prompt, input line and any active helpers.
 	rl.Prompt.init(rl)
+	enablePos := rl.EnableGetCursorPos
+	rl.EnableGetCursorPos = false
 	rl.renderHelpers()
+	rl.EnableGetCursorPos = enablePos
 }
