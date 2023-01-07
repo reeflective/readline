@@ -264,7 +264,7 @@ func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
 
 	// If absPos < MaxTabCompleterRows, cut below MaxTabCompleterRows and return
 	if absPos < maxRows {
-		return rl.cutCompletionsAbove(scanner, maxRows)
+		return rl.cutCompletionsBelow(scanner, maxRows)
 	}
 
 	// If absolute > MaxTabCompleterRows, cut above and below and return
@@ -291,7 +291,7 @@ func (rl *Instance) updateCompletion() {
 	rl.resetCompletion()
 }
 
-func (rl *Instance) cutCompletionsAbove(scanner *bufio.Scanner, maxRows int) (string, int) {
+func (rl *Instance) cutCompletionsBelow(scanner *bufio.Scanner, maxRows int) (string, int) {
 	var count int
 	var cropped string
 
@@ -301,8 +301,6 @@ func (rl *Instance) cutCompletionsAbove(scanner *bufio.Scanner, maxRows int) (st
 			cropped += line + "\n"
 			count++
 		} else {
-			count++
-
 			break
 		}
 	}
@@ -313,7 +311,7 @@ func (rl *Instance) cutCompletionsAbove(scanner *bufio.Scanner, maxRows int) (st
 }
 
 func (rl *Instance) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, absPos int) (string, int) {
-	cutAbove := absPos - maxRows
+	cutAbove := absPos - maxRows + 1
 
 	var cropped string
 	var count int

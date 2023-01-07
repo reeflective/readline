@@ -329,7 +329,7 @@ func (g *comps) writeComps(rl *Instance) (comp string) {
 func (g *comps) moveSelector(rl *Instance, x, y int) (done, next bool) {
 	// When the group has not yet been used, adjust
 	if g.tcPosX == -1 && g.tcPosY == -1 {
-		if x > 0 {
+		if x != 0 {
 			g.tcPosY++
 		} else {
 			g.tcPosX++
