@@ -108,9 +108,12 @@ func (rl *Instance) getCompletionMaxRows() (maxRows int) {
 	maxRows = rl.config.MaxTabCompleterRows
 
 	_, cposY := rl.getCursorPos()
-	_, termHeight, err := GetSize(int(os.Stdin.Fd()))
-	if err != nil || cposY == -1 {
-		return
+	_, termHeight, _ := GetSize(int(os.Stdin.Fd()))
+	if cposY == -1 {
+		if termHeight != -1 {
+			return termHeight / 2
+		}
+		return maxRows
 	}
 
 	spaceBelow := (termHeight - cposY) - 1
