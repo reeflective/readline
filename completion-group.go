@@ -29,7 +29,6 @@ type comps struct {
 	tcPosY        int
 	tcMaxX        int
 	tcMaxY        int
-	tcOffset      int
 }
 
 //
@@ -43,7 +42,6 @@ func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased 
 		listSeparator: "--",
 		tcPosX:        -1,
 		tcPosY:        -1,
-		tcOffset:      0,
 		aliased:       aliased,
 		columnsWidth:  []int{0},
 	}
@@ -243,7 +241,6 @@ func (g *comps) updateIsearch(rl *Instance) {
 	g.values = make([][]Completion, 0)
 	g.tcPosX = -1
 	g.tcPosY = -1
-	g.tcOffset = 0
 	g.columnsWidth = []int{0}
 
 	// Assign the filtered values
@@ -267,13 +264,11 @@ func (g *comps) updateIsearch(rl *Instance) {
 func (g *comps) firstCell() {
 	g.tcPosX = 0
 	g.tcPosY = 0
-	g.tcOffset = 0
 }
 
 func (g *comps) lastCell() {
 	g.tcPosY = len(g.values) - 1
 	g.tcPosX = len(g.columnsWidth) - 1
-	g.tcOffset = 0
 
 	if g.aliased {
 		g.findFirstCandidate(0, -1)
