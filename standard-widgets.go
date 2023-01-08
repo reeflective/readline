@@ -80,6 +80,23 @@ func (rl *Instance) selfInsert() {
 		buf = append([]rune{'^'}, rune(caret))
 	}
 
+	// If the key is a bracket or quote, and that the next character
+	// in the line is not its matcher, insert the pair altogether.
+	// backOne := false
+	// if len(buf) == 1 {
+	// 	toInsert := buf[0]
+	// 	isSurround := isBracket(toInsert) || toInsert == '\'' || toInsert == '"'
+	// 	_, echar := rl.matchSurround(toInsert)
+	// 	matcher := false
+	// 	if len(rl.line) > rl.pos {
+	// 		matcher = rl.matches(toInsert, rl.line[rl.pos])
+	// 	}
+	// 	if isSurround && !matcher {
+	// 		buf = append(buf, echar)
+	// 		backOne = true
+	// 	}
+	// }
+
 	switch {
 	// The line is empty
 	case len(rl.line) == 0:
@@ -96,6 +113,9 @@ func (rl *Instance) selfInsert() {
 	}
 
 	rl.pos += len(buf)
+	// if backOne {
+	// 	rl.pos--
+	// }
 }
 
 func (rl *Instance) acceptLine() {
