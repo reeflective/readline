@@ -164,6 +164,12 @@ func (rl *Instance) matchSurround(r rune) (bchar, echar rune) {
 	case '>':
 		bchar = '<'
 		echar = '>'
+	case '"':
+		bchar = '"'
+		echar = '"'
+	case '\'':
+		bchar = '\''
+		echar = '\''
 	}
 
 	return
