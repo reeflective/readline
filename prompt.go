@@ -152,8 +152,15 @@ func (p *prompt) printLast(rl *Instance) {
 		rprompt = p.right
 	}
 
-	// Print the primary prompt in any case.
-	defer print(p.getPrimaryLastLine())
+	// We will print either the last line of the primary prompt,
+	// or the secondary prompt if currently in multiline mode.
+	defer func() {
+		if len(rl.multilineSplit) > 0 {
+			print(p.secondaryF())
+		} else {
+			print(p.getPrimaryLastLine())
+		}
+	}()
 
 	if rprompt == "" {
 		return

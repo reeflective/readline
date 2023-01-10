@@ -2,6 +2,13 @@ package readline
 
 import (
 	"os"
+	"strings"
+)
+
+var sanitizer = strings.NewReplacer(
+	"\n", ``,
+	"\r", ``,
+	"\t", ``,
 )
 
 // We pass a special subset of the current input line, so that

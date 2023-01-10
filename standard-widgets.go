@@ -119,8 +119,7 @@ func (rl *Instance) selfInsert() {
 }
 
 func (rl *Instance) acceptLine() {
-	rl.carriageReturn()
-	rl.accepted = true
+	rl.carriageReturnLine()
 }
 
 func (rl *Instance) acceptAndHold() {

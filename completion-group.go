@@ -552,6 +552,8 @@ func (g *comps) displayTrimmed(val string) string {
 		val = val[:g.tcMaxLength-3] + "..."
 	}
 
+	val = sanitizer.Replace(val)
+
 	return val
 }
 
@@ -569,6 +571,8 @@ func (g *comps) descriptionTrimmed(desc string) string {
 	if len(desc) > g.maxDescWidth {
 		desc = desc[:g.maxDescWidth-3] + "..."
 	}
+
+	desc = sanitizer.Replace(desc)
 
 	return desc
 }

@@ -410,10 +410,10 @@ func (rl *Instance) viReplace() {
 func (rl *Instance) viEditCommandLine() {
 	rl.clearHelpers()
 	var multiline []rune
-	if rl.GetMultiLine == nil {
-		multiline = rl.line
+	if len(rl.multilineSplit) > 0 {
+		multiline = append(multiline, rl.lineBuffer()...)
 	} else {
-		multiline = rl.GetMultiLine(rl.line)
+		multiline = rl.line
 	}
 
 	// Keep the previous cursor position
@@ -427,6 +427,8 @@ func (rl *Instance) viEditCommandLine() {
 	}
 
 	// Clean the shell and put the new buffer, with adjusted pos if needed.
+	// TODO: Not correct, now that we support multiline: this should not be
+	// like this.
 	rl.clearLine()
 	rl.line = new
 	if prev > len(rl.line) {

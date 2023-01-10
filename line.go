@@ -45,6 +45,19 @@ func (rl *Instance) getLineVirtual() []rune {
 	return rl.line
 }
 
+// lineBuffer returns the aggregate buffer of the current Readline loop:
+// this includes all previous lines (that were returned but not accepted
+// as is by the caller), separated by a newline, and the current one.
+func (rl *Instance) lineBuffer() (buf []rune) {
+	for _, line := range rl.multilineSplit {
+		buf = append(buf, []rune(line)...)
+		buf = append(buf, '\n')
+	}
+	buf = append(buf, rl.line...)
+
+	return
+}
+
 // computeLine computes the number of lines that the input line spans.
 func (rl *Instance) computeLine() {
 	var usedLines, usedX int
@@ -127,7 +140,10 @@ func (rl *Instance) printLine() {
 		highlighted = rl.highlightLine([]rune(highlighted))
 
 		// And print
-		print(highlighted)
+		preview := string(strings.ReplaceAll(highlighted, `\r\n`, "\r\n"))
+		preview = string(strings.ReplaceAll(preview, `\t`, "\t"))
+		print(preview)
+		// print(highlighted)
 
 		if len(rl.histSuggested) > 0 {
 			print(seqDim + string(rl.histSuggested) + seqReset)
@@ -326,4 +342,33 @@ func wrapText(text string, lineWidth int) (wrapped string, lines int) {
 		}
 	}
 	return
+}
+
+func (rl *Instance) carriageReturnLine() {
+	// Remove all helpers and line autosuggest,
+	// but keep the line and go just below it.
+	rl.histSuggested = []rune{}
+	rl.clearHelpers()
+	rl.printLine()
+	print("\r\n")
+
+	// Ask the caller if the line should be accepted as is: if yes, return it.
+	// Determine if the line is complete per the caller's standards.
+	// We always return the entire buffer, including previous multisplits.
+	if rl.IsMultiline(rl.lineBuffer()) {
+		rl.writeHistoryLine()
+		rl.accepted = true
+		return
+	}
+
+	// If not, we should start editing another line.
+	// Add the current line to the multiline buffer.
+	//
+	// Several adjusments should be made:
+
+	// 1) We append the current line to rl.multiline, so that any edition in EDITOR will use the entire buffer.
+	rl.multilineSplit = append(rl.multilineSplit, string(rl.line))
+
+	// Finally, we reset the current line, and keep readling.
+	rl.initLine()
 }

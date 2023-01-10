@@ -48,11 +48,15 @@ type Instance struct {
 
 	// Input Line ---------------------------------------------------------------------------------
 
-	// GetMultiLine is a callback to your host program. Since multiline support
-	// is handled by the application rather than readline itself, this callback
-	// is required when calling $EDITOR. However if this function is not set
-	// then readline will just use the current line.
-	GetMultiLine func([]rune) []rune
+	// IsMultiline enables the caller to decide if the shell should keep reading for user input
+	// on a new line (therefore, with the secondary prompt), or if it should return the current
+	// line at the end of the `rl.Readline()` call.
+	//
+	// The `line` parameter is the entire, compounded buffer: for example, if you already returned
+	// `false` with this function, the shell has 3 lines buffered, and one current. The `line` here
+	// is the aggregate of the tree buffered, and the current.
+	// As well, `Readline()` will return this same aggregate.
+	IsMultiline func(line []rune) (accept bool)
 
 	// EnableGetCursorPos will allow the shell to send a special sequence
 	// to the the terminal to get the current cursor X and Y coordinates.

@@ -184,6 +184,26 @@ func (rl *Instance) initHistoryLine() {
 	rl.inferLine = false
 }
 
+// writeHistoryLine writes the current buffer to all history sources.
+func (rl *Instance) writeHistoryLine() {
+	if !rl.config.HistoryAutoWrite || rl.inferLine {
+		return
+	}
+
+	var err error
+
+	for _, history := range rl.histories {
+		if history == nil {
+			continue
+		}
+
+		rl.histPos, err = history.Write(string(rl.lineBuffer()))
+		if err != nil {
+			print(err.Error() + "\r\n")
+		}
+	}
+}
+
 func (rl *Instance) nextHistorySource() {
 	rl.historySourcePos++
 
