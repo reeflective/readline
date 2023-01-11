@@ -136,14 +136,9 @@ func (rl *Instance) printLine() {
 			highlighted = rl.SyntaxHighlighter(line)
 		}
 
-		// Adapt if there is a visual selection active
+		// Highlight visual selection if any, and print
 		highlighted = rl.highlightLine([]rune(highlighted))
-
-		// And print
-		preview := string(strings.ReplaceAll(highlighted, `\r\n`, "\r\n"))
-		preview = string(strings.ReplaceAll(preview, `\t`, "\t"))
-		print(preview)
-		// print(highlighted)
+		print(highlighted)
 
 		if len(rl.histSuggested) > 0 {
 			print(seqDim + string(rl.histSuggested) + seqReset)
