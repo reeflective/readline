@@ -156,6 +156,22 @@ func leftMost() []byte {
 	return b
 }
 
+// substrPos gets the index pos of a char in the input line, starting
+// from cursor, either backward or forward. Returns -1 if not found.
+func (rl *Instance) substrPos(r rune, forward bool) (pos int) {
+	pos = -1
+	initPos := rl.pos
+
+	rl.findAndMoveCursor(string(r), 1, forward, false)
+
+	if rl.pos != initPos {
+		pos = rl.pos
+		rl.pos = initPos
+	}
+
+	return
+}
+
 var rxRcvCursorPos = regexp.MustCompile(`^\x1b\[([0-9]+);([0-9]+)R$`)
 
 func (rl *Instance) getCursorPos() (x int, y int) {

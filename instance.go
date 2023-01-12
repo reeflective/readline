@@ -184,7 +184,7 @@ func NewInstance() *Instance {
 	rl.loadInterruptHandlers()
 
 	// Line
-	rl.initLine()
+	rl.lineInit()
 	rl.initRegisters()
 
 	// History

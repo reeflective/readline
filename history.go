@@ -252,7 +252,7 @@ func (rl *Instance) walkHistory(pos int) {
 			return
 		}
 
-		rl.clearLine()
+		rl.lineClear()
 		rl.line = []rune(next)
 		rl.pos = len(rl.line)
 	}
@@ -358,7 +358,7 @@ nextLine:
 			continue
 		}
 
-		display := strings.ReplaceAll(line, "\n", ` `)
+		display := strings.ReplaceAll(line, "\n", ``)
 
 		for _, comp := range compLines {
 			if comp.Display == line {

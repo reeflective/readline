@@ -12,7 +12,7 @@ var rxMultiline = regexp.MustCompile(`[\r\n]+`)
 func (rl *Instance) initMultiline() (string, error) {
 	// r := []rune(rl.multilineSplit[0])
 	// rl.inputEditor(r)
-	rl.carriageReturn()
+	rl.lineCarriageReturn()
 	if len(rl.multilineSplit) > 1 {
 		rl.multilineSplit = rl.multilineSplit[1:]
 	} else {
@@ -43,7 +43,7 @@ func (rl *Instance) processMultiline(r []rune, b []byte, i int) (done, ret bool,
 
 	r = []rune(rl.multilineSplit[0])
 	// rl.inputEditor(r)
-	rl.carriageReturn()
+	rl.lineCarriageReturn()
 	rl.multilineBuffer = []byte{}
 	if len(rl.multilineSplit) > 1 {
 		rl.multilineSplit = rl.multilineSplit[1:]

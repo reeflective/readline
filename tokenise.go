@@ -24,7 +24,7 @@ func tokeniseLine(line []rune, linePos int) ([]string, int, int) {
 			split[len(split)-1] += string(r)
 			punc = true
 
-		case r == ' ' || r == '\t':
+		case r == ' ' || r == '\t' || r == '\n':
 			split[len(split)-1] += string(r)
 			punc = true
 
@@ -63,11 +63,11 @@ func tokeniseSplitSpaces(line []rune, linePos int) ([]string, int, int) {
 
 	for i, r := range line {
 		switch r {
-		case ' ', '\t':
+		case ' ', '\t', '\n':
 			split[len(split)-1] += string(r)
 
 		default:
-			if i > 0 && (line[i-1] == ' ' || line[i-1] == '\t') {
+			if i > 0 && (line[i-1] == ' ' || line[i-1] == '\t' || line[i-1] == '\n') {
 				split = append(split, "")
 			}
 			split[len(split)-1] += string(r)
@@ -167,7 +167,13 @@ func tokeniseBrackets(line []rune, linePos int) ([]string, int, int) {
 }
 
 func rTrimWhiteSpace(oldString string) (newString string) {
-	return strings.TrimRight(oldString, " ")
+	return strings.TrimRightFunc(oldString, func(r rune) bool {
+		if r == ' ' || r == '\t' || r == '\n' {
+			return true
+		}
+		return false
+	})
+	// return strings.TrimS(oldString, " ")
 }
 
 // isPunctuation returns true if the rune is non-blank word delimiter.

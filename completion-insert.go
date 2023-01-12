@@ -25,7 +25,7 @@ func (rl *Instance) insertCandidate() {
 
 	// Ensure no indexing error happens with prefix
 	if len(completion) >= prefix {
-		rl.insert([]rune(completion[prefix:]))
+		rl.lineInsert([]rune(completion[prefix:]))
 		rl.compSuffix = cur.noSpace
 		rl.compSuffix.pos = rl.pos - 1
 	}
@@ -56,7 +56,7 @@ func (rl *Instance) removeSuffixInserted() {
 	}
 
 	if rl.compSuffix.Matches(suffix) {
-		rl.deletex()
+		rl.deleteRune(false)
 
 		// Only remove the matcher if the key we inserted
 		// is not the same as the one we removed. This is

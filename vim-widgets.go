@@ -308,7 +308,7 @@ func (rl *Instance) viPutAfter() {
 	buffer := rl.pasteFromRegister()
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
-		rl.insert(buffer)
+		rl.lineInsert(buffer)
 	}
 	rl.pos--
 }
@@ -317,7 +317,7 @@ func (rl *Instance) viPutBefore() {
 	buffer := rl.pasteFromRegister()
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
-		rl.insert(buffer)
+		rl.lineInsert(buffer)
 	}
 }
 
@@ -344,8 +344,8 @@ func (rl *Instance) viReplaceChars() {
 	}
 
 	// Or simply the character under the cursor.
-	rl.deletex()
-	rl.insert([]rune(key))
+	rl.deleteRune(false)
+	rl.lineInsert([]rune(key))
 	rl.pos--
 }
 
@@ -429,7 +429,7 @@ func (rl *Instance) viEditCommandLine() {
 	// Clean the shell and put the new buffer, with adjusted pos if needed.
 	// TODO: Not correct, now that we support multiline: this should not be
 	// like this.
-	rl.clearLine()
+	rl.lineClear()
 	rl.line = new
 	if prev > len(rl.line) {
 		rl.pos = len(rl.line) - 1
@@ -482,7 +482,7 @@ func (rl *Instance) viDeleteChar() {
 
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
-		rl.deletex()
+		rl.deleteRune(false)
 	}
 }
 
@@ -498,7 +498,7 @@ func (rl *Instance) viBackwardDeleteChar() {
 
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
-		rl.deleteX()
+		rl.deleteRune(true)
 	}
 }
 
@@ -945,7 +945,7 @@ func (rl *Instance) viSubstitute() {
 		rl.saveToRegister(vii)
 
 		for i := 1; i <= vii; i++ {
-			rl.deletex()
+			rl.deleteRune(false)
 		}
 
 		rl.viInsertMode()

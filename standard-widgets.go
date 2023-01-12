@@ -119,7 +119,7 @@ func (rl *Instance) selfInsert() {
 }
 
 func (rl *Instance) acceptLine() {
-	rl.carriageReturnLine()
+	rl.lineCarriageReturn()
 }
 
 func (rl *Instance) acceptAndHold() {
@@ -182,7 +182,7 @@ func (rl *Instance) killWholeLine() {
 	}
 
 	rl.saveBufToRegister(rl.line)
-	rl.clearLine()
+	rl.lineClear()
 }
 
 func (rl *Instance) killBuffer() {
@@ -192,7 +192,7 @@ func (rl *Instance) killBuffer() {
 		return
 	}
 	rl.saveBufToRegister(rl.line)
-	rl.clearLine()
+	rl.lineClear()
 }
 
 func (rl *Instance) backwardKillWord() {
@@ -212,7 +212,7 @@ func (rl *Instance) killWord() {
 
 func (rl *Instance) yank() {
 	buffer := rl.pasteFromRegister()
-	rl.insert(buffer)
+	rl.lineInsert(buffer)
 }
 
 func (rl *Instance) backwardDeleteChar() {
@@ -235,13 +235,13 @@ func (rl *Instance) backwardDeleteChar() {
 		}
 
 		// Delete the character
-		rl.deleteX()
+		rl.deleteRune(true)
 
 		// When the next character was identified
 		// as a surround, delete as well.
 		if isSurround && matcher {
 			rl.pos++
-			rl.deleteX()
+			rl.deleteRune(true)
 		}
 	}
 
@@ -260,7 +260,7 @@ func (rl *Instance) deleteChar() {
 
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
-		rl.deletex()
+		rl.deleteRune(false)
 	}
 }
 
@@ -275,7 +275,7 @@ func (rl *Instance) deleteWord() {
 func (rl *Instance) deleteCharOrList() {
 	switch {
 	case rl.pos < len(rl.line):
-		rl.deletex()
+		rl.deleteRune(false)
 	default:
 		rl.expandOrComplete()
 	}

@@ -114,7 +114,7 @@ func (rl *Instance) beginningOfBufferOrHistory() {
 			return
 		}
 
-		rl.clearLine()
+		rl.lineClear()
 		rl.line = []rune(new)
 		rl.pos = len(rl.line)
 
@@ -142,7 +142,7 @@ func (rl *Instance) endOfBufferOrHistory() {
 			return
 		}
 
-		rl.clearLine()
+		rl.lineClear()
 		rl.line = []rune(new)
 		rl.pos = len(rl.line)
 		return
