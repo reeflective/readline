@@ -236,7 +236,7 @@ func (rl *Instance) viKillLine() {
 	rl.undoHistoryAppend()
 	rl.skipUndoAppend()
 
-	rl.markSelection(rl.viinsEnterPos)
+	rl.markSelectionRange("visual", rl.viinsEnterPos, len(rl.line))
 	rl.pos--
 	rl.deleteSelection()
 }
@@ -331,7 +331,7 @@ func (rl *Instance) viReplaceChars() {
 
 	// In visual mode, we replace all chars of the selection
 	if rl.activeRegion || rl.local == visual {
-		bpos, epos, _ := rl.getSelectionPos()
+		bpos, epos, _ := rl.calcSelection()
 		for i := bpos; i < epos; i++ {
 			rl.line[i] = []rune(key)[0]
 		}
@@ -409,18 +409,12 @@ func (rl *Instance) viReplace() {
 
 func (rl *Instance) viEditCommandLine() {
 	rl.clearHelpers()
-	var multiline []rune
-	if len(rl.multilineSplit) > 0 {
-		multiline = append(multiline, rl.lineBuffer()...)
-	} else {
-		multiline = rl.line
-	}
 
 	// Keep the previous cursor position
 	prev := rl.pos
 
-	new, err := rl.StartEditorWithBuffer(multiline, "")
-	if err != nil || len(new) == 0 {
+	edited, err := rl.StartEditorWithBuffer(rl.lineBuffer(), "")
+	if err != nil || len(edited) == 0 {
 		fmt.Println(err)
 		rl.skipUndoAppend()
 		return
@@ -430,7 +424,7 @@ func (rl *Instance) viEditCommandLine() {
 	// TODO: Not correct, now that we support multiline: this should not be
 	// like this.
 	rl.lineClear()
-	rl.line = new
+	rl.line = edited
 	if prev > len(rl.line) {
 		rl.pos = len(rl.line) - 1
 	} else {
@@ -506,7 +500,7 @@ func (rl *Instance) viYank() {
 	rl.skipUndoAppend()
 
 	switch {
-	case rl.local == visual, rl.activeRegion:
+	case rl.activeSelection():
 		// Most of the time we are in pending mode here,
 		// since we marked the region active in the default case,
 		rl.yankSelection()
@@ -529,7 +523,7 @@ func (rl *Instance) viYank() {
 		// Else if we are actually starting a yank action.
 		rl.enterVioppMode("vi-yank")
 		rl.updateCursor()
-		rl.markSelection(rl.pos)
+		rl.markSelectionAlt(rl.pos)
 	}
 }
 
@@ -662,7 +656,7 @@ func (rl *Instance) viFindPrevCharSkip() {
 
 func (rl *Instance) viDelete() {
 	switch {
-	case rl.local == visual, rl.activeRegion:
+	case rl.activeSelection():
 		// Most of the time we are in pending mode here,
 		// since we marked the region active in the default case,
 		rl.undoHistoryAppend()
@@ -690,7 +684,7 @@ func (rl *Instance) viDelete() {
 		rl.skipUndoAppend()
 		rl.enterVioppMode("vi-delete")
 		rl.updateCursor()
-		rl.markSelection(rl.pos)
+		rl.markSelectionAlt(rl.pos)
 	}
 }
 
@@ -714,21 +708,22 @@ func (rl *Instance) viSelectABlankWord() {
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
-	rl.markSelection(rl.pos)
+	bpos := rl.pos
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces) - 1)
+	epos := rl.pos
 
-	final := rl.pos - 1
+	// Adjust if we are at the end of the line.
 	if rl.pos == len(rl.line)-1 {
-		final++
+		rl.pos = bpos
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
+		bpos = rl.pos
+		rl.pos = epos
 	}
-	rl.pos = rl.mark
 
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	rl.markSelection(rl.pos + 1)
-	rl.pos = final
+	rl.markSelectionRange("visual", bpos, epos)
 }
 
 func (rl *Instance) viSelectAShellWord() {
@@ -748,49 +743,51 @@ func (rl *Instance) viSelectAShellWord() {
 
 	// Adjust for spaces preceding
 	rl.pos = mark
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	mark = rl.pos + 1
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
+	bpos := rl.pos
 
 	// Else set the region inside those quotes
-	rl.markSelection(mark)
 	rl.pos = cpos
+	rl.markSelectionRange("visual", bpos, rl.pos)
 }
 
 func (rl *Instance) viSelectAWord() {
 	rl.skipUndoAppend()
 
-	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	rl.markSelection(rl.pos)
+	bpos := rl.pos
 
-	// Then go to the end of the word
 	rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine) - 1)
+	epos := rl.pos
 
 	// When nothing after, or non-empty, use spaces before word.
-	final := rl.pos
 	if rl.pos == len(rl.line)-1 {
-		rl.pos = rl.mark
+		rl.pos = bpos
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-		rl.markSelection(rl.pos + 1)
-		rl.pos = final
+		bpos = rl.pos
+		rl.pos = epos
 	}
+
+	rl.markSelectionRange("visual", bpos, epos)
 }
 
 func (rl *Instance) viSelectInBlankWord() {
 	rl.skipUndoAppend()
+	var bpos int
 
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
 	if rl.local == visual || rl.local == viopp {
-		rl.markSelection(rl.pos)
+		bpos = rl.pos
 	}
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
+	rl.markSelectionRange("visual", bpos, rl.pos)
 }
 
 func (rl *Instance) viSelectInShellWord() {
@@ -809,22 +806,24 @@ func (rl *Instance) viSelectInShellWord() {
 	}
 
 	// Else set the region inside those quotes
-	rl.markSelection(mark + 1)
 	rl.pos = cpos - 1
+	rl.markSelectionRange("visual", mark+1, rl.pos)
 }
 
 func (rl *Instance) viSelectInWord() {
 	rl.skipUndoAppend()
+	var bpos int
 
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	if rl.local == visual || rl.local == viopp {
-		rl.markSelection(rl.pos)
+		bpos = rl.pos
 	}
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	rl.markSelectionRange("visual", bpos, rl.pos)
 }
 
 func (rl *Instance) viGotoColumn() {
@@ -847,7 +846,7 @@ func (rl *Instance) viSwapCase() {
 	case visual:
 		posInit := rl.pos
 
-		bpos, epos, _ := rl.getSelectionPos()
+		bpos, epos, _ := rl.calcSelection()
 		rl.resetSelection()
 		rl.pos = bpos
 
@@ -882,10 +881,10 @@ func (rl *Instance) viSwapCase() {
 
 func (rl *Instance) viOperSwapCase() {
 	switch {
-	case rl.local == visual, rl.activeRegion:
+	case rl.activeSelection():
 		posInit := rl.pos
 
-		bpos, epos, cpos := rl.getSelectionPos()
+		bpos, epos, cpos := rl.calcSelection()
 		rl.resetSelection()
 		rl.pos = bpos
 
@@ -905,7 +904,7 @@ func (rl *Instance) viOperSwapCase() {
 
 		rl.enterVioppMode("vi-oper-swap-case")
 		rl.updateCursor()
-		rl.markSelection(rl.pos)
+		rl.markSelectionAlt(rl.pos)
 	}
 }
 
@@ -926,10 +925,12 @@ func (rl *Instance) viAddSurround() {
 		return
 	}
 
+	bchar, echar := rl.matchSurround(rune(key[0]))
+
 	rl.undoHistoryAppend()
 
 	// Surround the selection
-	rl.insertSelection(key)
+	rl.insertSelection(string(bchar), string(echar))
 
 	// This only has an effect when we are in visual mode.
 	rl.exitVisualMode()
@@ -987,16 +988,23 @@ func (rl *Instance) viChange() {
 	rl.undoHistoryAppend()
 
 	// Update the pending keys, with an except for surround widgets.
+	// Those widgets also need to adjust their selection offsets
 	rl.keys = ""
-	if action == "vi-select-surround" {
+
+	isSurround := action == "vi-select-surround"
+	if isSurround {
 		rl.keys = key
 	}
 
 	// Before running the widget, set the mark
-	rl.markSelection(rl.pos)
+	rl.markSelectionAlt(rl.pos)
 
 	// Run the widget. We don't care about return values
 	widget()
+
+	if isSurround && rl.visualSelection() != nil {
+		rl.visualSelection().epos++
+	}
 
 	rl.deleteSelection()
 
@@ -1023,8 +1031,8 @@ func (rl *Instance) viChangeSurround() {
 	}
 
 	// Add those two positions to highlighting and update.
-	rl.addRegion("surround", bpos, bpos+1, "", seqBgRed)
-	rl.addRegion("surround", epos, epos+1, "", seqBgRed)
+	rl.markSelectionSurround(bpos, bpos+1)
+	rl.markSelectionSurround(epos, epos+1)
 	rl.redisplay()
 	defer func() { rl.resetRegions() }()
 
@@ -1076,12 +1084,11 @@ func (rl *Instance) viSelectSurround() {
 
 	if inside {
 		bpos++
-	} else {
-		epos++
+		epos--
 	}
 
-	rl.markSelection(bpos)
-	rl.pos = epos - 1
+	rl.markSelectionRange("visual", bpos, epos)
+	rl.pos = epos
 }
 
 func (rl *Instance) viSetMark() {

@@ -5,47 +5,84 @@ import (
 	"sort"
 )
 
-// region is a part of the input line for which to apply some highlighting.
-type region struct {
-	regionType string
-	bpos       int
-	epos       int
-	fg         string
-	bg         string
-}
+// highlightLine adds highlighting of the region if we are in a visual mode.
+func (rl *Instance) highlightLine(line []rune) string {
+	// Add an highlight region if we have visual or active region.
+	vhl := rl.addVisualHighlight(line)
 
-func (rl *Instance) addRegion(rtype string, bpos, epos int, fg, bg string) {
-	hl := region{
-		regionType: rtype,
-		bpos:       bpos,
-		epos:       epos,
-		fg:         fg,
-		bg:         bg,
+	// Sort the highlighted sections
+	sorted := rl.sortHighlights(vhl)
+
+	// Get the highlighting.
+	hl := rl.getHighlights(line, sorted)
+
+	var highlighted string
+
+	// And apply highlighting before each rune.
+	for i, r := range line {
+		if highlight, found := hl[i]; found {
+			highlighted += string(highlight)
+		}
+
+		highlighted += string(r)
 	}
 
-	rl.regions = append(rl.regions, hl)
+	highlighted += seqReset
+
+	return highlighted
 }
 
-func (rl *Instance) getHighlights(line []rune) map[int][]rune {
-	hl := make(map[int][]rune)
+func (rl *Instance) addVisualHighlight(line []rune) *selection {
+	bpos, epos, _ := rl.calcSelection()
 
+	visual := rl.visualSelection()
+	if visual == nil {
+		return nil
+	}
+
+	// Make a copy so that we don't overwrite any nil ending position.
+	vhl := &selection{
+		bpos:       bpos,
+		epos:       epos,
+		active:     visual.active,
+		regionType: visual.regionType,
+		fg:         visual.fg,
+		bg:         visual.bg,
+	}
+
+	return vhl
+}
+
+func (rl *Instance) sortHighlights(vhl *selection) []*selection {
 	// first sort out the regions by bpos
-	sorted := make([]*region, 0)
+	sorted := make([]*selection, 0)
 	bpos := make([]int, 0)
 
-	for _, reg := range rl.regions {
+	for _, reg := range rl.marks {
 		bpos = append(bpos, reg.bpos)
 	}
 	sort.Ints(bpos)
 
 	for _, pos := range bpos {
-		for _, reg := range rl.regions {
+		for _, reg := range rl.marks {
 			if reg.bpos == pos {
-				sorted = append(sorted, &reg)
+				if reg.regionType == "visual" {
+					if vhl != nil && rl.local == visual {
+						sorted = append(sorted, vhl)
+					}
+					break
+				}
+				sorted = append(sorted, reg)
 				break
 			}
 		}
 	}
+
+	return sorted
+}
+
+func (rl *Instance) getHighlights(line []rune, sorted []*selection) map[int][]rune {
+	hl := make(map[int][]rune)
 
 	// Find any highlighting already applied on the line,
 	// and keep the indexes so that we can skip those.
@@ -56,15 +93,15 @@ func (rl *Instance) getHighlights(line []rune) map[int][]rune {
 		colors = colorMatch.FindAllStringIndex(string(line), -1)
 	}
 
-	// regions that started highlighting, but not done yet.
-	pending := make([]*region, 0)
+	// marks that started highlighting, but not done yet.
+	pending := make([]*selection, 0)
 	lineIndex := -1
 	skip := 0
 
 	// Build the string.
 	for rawIndex := range line {
 		var posHl []rune
-		var newHl *region
+		var newHl *selection
 
 		// While in a color escape, keep reading runes.
 		if skip > 0 {
@@ -122,64 +159,5 @@ func (rl *Instance) getHighlights(line []rune) map[int][]rune {
 }
 
 func (rl *Instance) resetRegions() {
-	rl.regions = make([]region, 0)
-}
-
-// highlightLine adds highlighting of the region if we are in a visual mode.
-func (rl *Instance) highlightLine(line []rune) string {
-	// Add an highlight region if we have visual or active region.
-	rl.addVisualHighlight(line)
-
-	var highlighted string
-
-	// Get the highlighting.
-	hl := rl.getHighlights(line)
-
-	// Try to apply highlighting before each rune.
-	for i, r := range line {
-		if highlight, found := hl[i]; found {
-			highlighted += string(highlight)
-		}
-
-		highlighted += string(r)
-	}
-
-	highlighted += seqReset
-
-	return highlighted
-}
-
-func (rl *Instance) addVisualHighlight(line []rune) {
-	// Remove old visual region
-	for i, reg := range rl.regions {
-		if reg.regionType == "visual" {
-			if len(rl.regions) > i {
-				rl.regions = append(rl.regions[:i], rl.regions[i+1:]...)
-			}
-		}
-	}
-
-	// Either Vim visual, or emacs active region.
-	if rl.main == emacs && !rl.activeRegion ||
-		(rl.main == vicmd || rl.main == viins) && rl.local != visual {
-		return
-	}
-
-	// And create the new one.
-	var start, end int
-	if rl.mark < rl.pos {
-		start = rl.mark
-		end = rl.pos
-	} else {
-		start = rl.pos
-		end = rl.mark
-	}
-	end++
-
-	// Adjust if we are in visual line mode
-	if rl.local == visual && rl.visualLine {
-		end = len(line) - 1
-	}
-
-	rl.addRegion("visual", start, end, "", seqBgBlueDark)
+	rl.marks = make([]*selection, 0)
 }

@@ -134,12 +134,7 @@ func (rl *Instance) clearScreen() {
 	print(seqClearScreen)
 	print(seqCursorTopLeft)
 
-	// Print the prompt, all or part of it.
-	print(rl.Prompt.getPrimary())
-	print(seqClearScreenBelow)
-
-	rl.resetHintText()
-	rl.getHintText()
+	rl.Prompt.init(rl)
 	rl.renderHelpers()
 }
 
@@ -389,7 +384,7 @@ func (rl *Instance) setMarkCommand() {
 func (rl *Instance) quoteRegion() {
 	rl.undoHistoryAppend()
 
-	_, cpos := rl.insertSelection("'")
+	_, cpos := rl.insertSelection("'", "'")
 	rl.pos = cpos + 1
 }
 
@@ -522,7 +517,7 @@ func (rl *Instance) copyPrevWord() {
 	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	wlen, _ := rl.insertSelection("")
+	wlen, _ := rl.insertSelection("", "")
 	rl.pos = posInit + wlen
 }
 

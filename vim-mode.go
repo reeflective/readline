@@ -11,20 +11,34 @@ import (
 func (rl *Instance) enterVisualMode() {
 	rl.local = visual
 	rl.visualLine = false
-	rl.mark = rl.pos
+	// rl.mark = rl.pos
+	rl.markSelectionAlt(rl.pos)
+	rl.visualSelection().active = true
 }
 
 func (rl *Instance) enterVisualLineMode() {
 	rl.local = visual
 	rl.visualLine = true
-	rl.mark = 0 // start at the beginning of the line.
+
+	// Start at the previous newline, or start of buffer.
+	start := rl.substrPos('\n', false)
+	if start == rl.pos {
+		start = 0
+	}
+	epos := rl.substrPos('\n', true)
+	if epos == rl.pos {
+		epos = len(rl.line) - 1
+	}
+
+	// And end at the next newline
+	// rl.mark = 0 // start at the beginning of the line.
 }
 
 func (rl *Instance) exitVisualMode() {
-	for i, reg := range rl.regions {
+	for i, reg := range rl.marks {
 		if reg.regionType == "visual" {
-			if len(rl.regions) > i {
-				rl.regions = append(rl.regions[:i], rl.regions[i+1:]...)
+			if len(rl.marks) > i {
+				rl.marks = append(rl.marks[:i], rl.marks[i+1:]...)
 			}
 		}
 	}
@@ -37,6 +51,30 @@ func (rl *Instance) exitVisualMode() {
 	}
 
 	rl.local = ""
+}
+
+func (rl *Instance) activeSelection() bool {
+	if rl.local == visual {
+		return true
+	}
+
+	// We might have a visual selection used by another widget
+	// (generally in Vi operator pending mode), in which case
+	// the selection is deemed active if:
+	if selection := rl.visualSelection(); selection != nil {
+		// - there is not defined end, and that the beginning is not the cursor.
+		if selection.epos == -1 && rl.pos != selection.bpos {
+			return true
+		}
+		// - there is a defined range
+		if selection.epos != -1 {
+			return true
+		}
+
+		return false
+	}
+
+	return false
 }
 
 // enterVioppMode adds a widget to the list of widgets waiting for an operator/action,
