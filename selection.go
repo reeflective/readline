@@ -58,6 +58,30 @@ func (rl *Instance) markSelectionSurround(bpos, epos int) {
 	rl.marks = append(rl.marks, sel)
 }
 
+func (rl *Instance) activeSelection() bool {
+	if rl.local == visual {
+		return true
+	}
+
+	// We might have a visual selection used by another widget
+	// (generally in Vi operator pending mode), in which case
+	// the selection is deemed active if:
+	if selection := rl.visualSelection(); selection != nil {
+		// - there is not defined end, and that the beginning is not the cursor.
+		if selection.epos == -1 && rl.pos != selection.bpos {
+			return true
+		}
+		// - there is a defined range
+		if selection.epos != -1 {
+			return true
+		}
+
+		return false
+	}
+
+	return false
+}
+
 func (rl *Instance) visualSelection() *selection {
 	for _, sel := range rl.marks {
 		if sel.regionType == "visual" {

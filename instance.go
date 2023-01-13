@@ -71,17 +71,12 @@ type Instance struct {
 	// Once enabled, set to 0 (zero) to disable the mask again.
 	PasswordMask rune
 
-	// readline operating parameters
+	// Buffer & line
 	keys      string // Contains all keys (input by user) not yet consumed by the shell widgets.
 	line      []rune // This is the input line, with entered text: full line = mlnPrompt + line
 	accepted  bool   // Set by 'accept-line' widget, to notify return the line to the caller
 	err       error  // Errors returned by interrupt signal handlers
 	inferLine bool   // When a "accept-line-and-down-history" widget wants to immediately retrieve/use a line.
-	pos       int    // Cursor position in the entire line.
-	posX      int    // Cursor position X
-	posY      int    // Cursor position Y (if multiple lines span)
-	fullX     int    // X coordinate of the full input line, including the prompt if needed.
-	fullY     int    // Y offset to the end of input line.
 
 	// Buffer received from host programs
 	multilineBuffer []byte
@@ -91,6 +86,14 @@ type Instance struct {
 	// selection management
 	visualLine bool         // Is the visual mode VISUAL_LINE
 	marks      []*selection // Visual/surround selections areas, often highlighted.
+
+	// Cursor
+	pos   int // Cursor position in the entire line.
+	hpos  int // The line on which the cursor is (differs from posY, which accounts for wraps)
+	posX  int // Cursor position X
+	posY  int // Cursor position Y (if multiple lines span)
+	fullX int // X coordinate of the full input line, including the prompt if needed.
+	fullY int // Y offset to the end of input line.
 
 	//
 	// Completion ---------------------------------------------------------------------------------

@@ -116,6 +116,7 @@ func (rl *Instance) computeLinePos() {
 			// and that our cursor X coordinate has not been set yet.
 			rl.computeCursorPos(startLine, cpos, i)
 			cursorSet = true
+			rl.hpos = i
 		}
 
 		startLine = index[1]
@@ -320,4 +321,8 @@ func (rl *Instance) lineCarriageReturn() {
 
 	// Finally, we reset the current line, and keep readling.
 	rl.lineInit()
+}
+
+func (rl *Instance) numLines() int {
+	return len(strings.Split(string(rl.line), "\n"))
 }

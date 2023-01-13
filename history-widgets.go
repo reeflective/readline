@@ -2,8 +2,8 @@ package readline
 
 func (rl *Instance) historyWidgets() lineWidgets {
 	widgets := map[string]widget{
-		"down-line-or-history":                rl.downHistory,
-		"up-line-or-history":                  rl.upHistory,
+		"down-line-or-history":                rl.downLineOrHistory,
+		"up-line-or-history":                  rl.upLineOrHistory,
 		"down-history":                        rl.downHistory,
 		"up-history":                          rl.upHistory,
 		"infer-next-history":                  rl.inferNextHistory,
@@ -35,6 +35,26 @@ func (rl *Instance) downHistory() {
 func (rl *Instance) upHistory() {
 	rl.skipUndoAppend()
 	rl.walkHistory(1)
+}
+
+func (rl *Instance) downLineOrHistory() {
+	rl.skipUndoAppend()
+	switch {
+	case rl.hpos < rl.numLines()-1:
+		rl.cursorDownLine()
+	default:
+		rl.walkHistory(-1)
+	}
+}
+
+func (rl *Instance) upLineOrHistory() {
+	rl.skipUndoAppend()
+	switch {
+	case rl.hpos > 0:
+		rl.cursorUpLine()
+	default:
+		rl.walkHistory(1)
+	}
 }
 
 func (rl *Instance) inferNextHistory() {
