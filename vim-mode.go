@@ -11,7 +11,7 @@ import (
 func (rl *Instance) enterVisualMode() {
 	rl.local = visual
 	rl.visualLine = false
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 	rl.visualSelection().active = true
 }
 

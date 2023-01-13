@@ -18,7 +18,7 @@ type selection struct {
 }
 
 // markSelection starts a visual selection at the specified mark position.
-func (rl *Instance) markSelectionAlt(mark int) {
+func (rl *Instance) markSelection(mark int) {
 	rl.markSelectionRange("visual", mark, -1)
 }
 

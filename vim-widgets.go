@@ -133,12 +133,9 @@ func (rl *Instance) viVisualLineMode() {
 }
 
 func (rl *Instance) viInsertBol() {
-	rl.main = viins
-
 	rl.addIteration("")
-
-	rl.pos = 0
-	rl.updateCursor()
+	rl.beginningOfLine()
+	rl.viInsertMode()
 }
 
 func (rl *Instance) viAddNext() {
@@ -150,10 +147,11 @@ func (rl *Instance) viAddNext() {
 }
 
 func (rl *Instance) viAddEol() {
-	if len(rl.line) > 0 {
-		rl.pos = len(rl.line)
+	rl.addIteration("")
+	rl.endOfLine()
+	if rl.pos < len(rl.line)-1 {
+		rl.pos++
 	}
-
 	rl.viInsertMode()
 }
 
@@ -515,7 +513,7 @@ func (rl *Instance) viYank() {
 		// Else if we are actually starting a yank action.
 		rl.enterVioppMode("vi-yank")
 		rl.updateCursor()
-		rl.markSelectionAlt(rl.pos)
+		rl.markSelection(rl.pos)
 	}
 }
 
@@ -526,7 +524,13 @@ func (rl *Instance) viYankWholeLine() {
 
 func (rl *Instance) viEndOfLine() {
 	rl.skipUndoAppend()
-	rl.pos = len(rl.line)
+
+	switch {
+	case rl.numLines() > 1:
+		rl.findAndMoveCursor("\n", 1, true, true)
+	default:
+		rl.pos = len(rl.line)
+	}
 }
 
 func (rl *Instance) viMatchBracket() {
@@ -676,7 +680,7 @@ func (rl *Instance) viDelete() {
 		rl.skipUndoAppend()
 		rl.enterVioppMode("vi-delete")
 		rl.updateCursor()
-		rl.markSelectionAlt(rl.pos)
+		rl.markSelection(rl.pos)
 	}
 }
 
@@ -896,7 +900,7 @@ func (rl *Instance) viOperSwapCase() {
 
 		rl.enterVioppMode("vi-oper-swap-case")
 		rl.updateCursor()
-		rl.markSelectionAlt(rl.pos)
+		rl.markSelection(rl.pos)
 	}
 }
 
@@ -989,7 +993,7 @@ func (rl *Instance) viChange() {
 	}
 
 	// Before running the widget, set the mark
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 
 	// Run the widget. We don't care about return values
 	widget()
@@ -1085,5 +1089,5 @@ func (rl *Instance) viSelectSurround() {
 
 func (rl *Instance) viSetMark() {
 	rl.skipUndoAppend()
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 }

@@ -13,6 +13,8 @@ func (rl *Instance) standardWidgets() lineWidgets {
 		"accept-and-hold":         rl.acceptAndHold,
 		"beginning-of-line":       rl.beginningOfLine,
 		"end-of-line":             rl.endOfLine,
+		"up-line":                 rl.upLine,
+		"down-line":               rl.downLine,
 		"kill-line":               rl.killLine,
 		"backward-kill-line":      rl.backwardKillLine,
 		"kill-whole-line":         rl.killWholeLine,
@@ -140,15 +142,109 @@ func (rl *Instance) clearScreen() {
 
 func (rl *Instance) beginningOfLine() {
 	rl.skipUndoAppend()
-	rl.pos = 0
+	switch {
+	case rl.numLines() > 1:
+		rl.findAndMoveCursor("\n", 1, false, true)
+	default:
+		rl.pos = 0
+	}
 }
 
 func (rl *Instance) endOfLine() {
-	if len(rl.line) > 0 {
+	rl.skipUndoAppend()
+
+	switch {
+	case rl.numLines() > 1:
+		rl.findAndMoveCursor("\n", 1, true, true)
+	default:
 		rl.pos = len(rl.line)
 	}
+}
 
-	rl.skipUndoAppend()
+func (rl *Instance) upLine() {
+	var cpos int // The vertical position of the cursor on the current line.
+	var bpos int // The beginning of the current line.
+
+	// Get the index of each newline in the buffer.
+	line := append(rl.lineCompleted(), '\n')
+	nl := regexp.MustCompile("\n")
+	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
+
+	for line := len(newlinesIdx) - 1; line >= 0; line-- {
+		epos := newlinesIdx[line][0]
+		if line > rl.hpos {
+			continue
+		}
+
+		// Get the beginning of the previous line.
+		if line > 0 {
+			bpos = newlinesIdx[line-1][0]
+		} else {
+			bpos = 0
+		}
+
+		// If we are on the current line,
+		// go at the beginning of the previous one.
+		if line == rl.hpos {
+			cpos = rl.pos - bpos
+			if cpos == 1 && line == 1 {
+				cpos--
+			}
+			continue
+		}
+
+		// And either go at the end of the line
+		// or to the previous cursor X coordinate.
+		if epos-bpos > cpos {
+			rl.pos = bpos + cpos
+		} else {
+			rl.pos = bpos - 1
+		}
+
+		break
+	}
+}
+
+func (rl *Instance) downLine() {
+	var cpos int // The vertical position of the cursor on the current line.
+	var bpos int // The beginning of the next line.
+
+	// Get the index of each newline in the buffer.
+	line := append(rl.lineCompleted(), '\n')
+	nl := regexp.MustCompile("\n")
+	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
+
+	for line := 0; line < len(newlinesIdx); line++ {
+		epos := newlinesIdx[line][0]
+		if line < rl.hpos {
+			bpos = epos
+			continue
+		}
+
+		// If we are on the current line,
+		// go at the end of it
+		if line == rl.hpos {
+			cpos = rl.pos - bpos
+			bpos = epos
+			rl.pos = bpos + 1
+			continue
+		}
+
+		// Adjust for newline rounded.
+		if cpos == 0 {
+			cpos++
+		}
+
+		// And either go at the end of the line
+		// or to the previous cursor X coordinate.
+		if epos-bpos > cpos {
+			rl.pos = bpos + cpos
+		} else {
+			rl.pos = epos - 1
+		}
+
+		break
+	}
 }
 
 func (rl *Instance) killLine() {
@@ -262,7 +358,7 @@ func (rl *Instance) deleteChar() {
 func (rl *Instance) deleteWord() {
 	rl.undoHistoryAppend()
 
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 	rl.deleteSelection()
 }
@@ -377,7 +473,7 @@ func (rl *Instance) setMarkCommand() {
 		rl.resetSelection()
 		rl.visualLine = false
 	default:
-		rl.markSelectionAlt(rl.pos)
+		rl.markSelection(rl.pos)
 	}
 }
 
@@ -431,7 +527,7 @@ func (rl *Instance) downCaseWord() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 
 	word, bpos, epos, _ := rl.popSelection()
@@ -448,7 +544,7 @@ func (rl *Instance) upCaseWord() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 
 	word, bpos, epos, _ := rl.popSelection()
@@ -467,7 +563,7 @@ func (rl *Instance) transposeWords() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 
 	toTranspose, tbpos, tepos, _ := rl.popSelection()
@@ -479,7 +575,7 @@ func (rl *Instance) transposeWords() {
 	}
 
 	// Save the word to transpose with
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 
 	transposeWith, wbpos, wepos, _ := rl.popSelection()
@@ -514,7 +610,7 @@ func (rl *Instance) copyPrevWord() {
 
 	posInit := rl.pos
 
-	rl.markSelectionAlt(rl.pos)
+	rl.markSelection(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
 	wlen, _ := rl.insertSelection("", "")
@@ -535,10 +631,10 @@ func (rl *Instance) copyPrevShellWord() {
 
 	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
 	if mark == -1 && cpos == -1 {
-		rl.markSelectionAlt(rl.pos)
+		rl.markSelection(rl.pos)
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
 	} else {
-		rl.markSelectionAlt(mark)
+		rl.markSelection(mark)
 		rl.pos = cpos
 	}
 

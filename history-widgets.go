@@ -6,6 +6,8 @@ func (rl *Instance) historyWidgets() lineWidgets {
 		"up-line-or-history":                  rl.upLineOrHistory,
 		"down-history":                        rl.downHistory,
 		"up-history":                          rl.upHistory,
+		"up-line-or-search":                   rl.upLineOrSearch,
+		"down-line-or-search":                 rl.downLineOrSearch,
 		"infer-next-history":                  rl.inferNextHistory,
 		"beginning-of-buffer-or-history":      rl.beginningOfBufferOrHistory,
 		"beginning-history-search-forward":    rl.historySearchForward,
@@ -41,7 +43,7 @@ func (rl *Instance) downLineOrHistory() {
 	rl.skipUndoAppend()
 	switch {
 	case rl.hpos < rl.numLines()-1:
-		rl.cursorDownLine()
+		rl.downLine()
 	default:
 		rl.walkHistory(-1)
 	}
@@ -51,9 +53,29 @@ func (rl *Instance) upLineOrHistory() {
 	rl.skipUndoAppend()
 	switch {
 	case rl.hpos > 0:
-		rl.cursorUpLine()
+		rl.upLine()
 	default:
 		rl.walkHistory(1)
+	}
+}
+
+func (rl *Instance) upLineOrSearch() {
+	rl.skipUndoAppend()
+	switch {
+	case rl.hpos > 0:
+		rl.upLine()
+	default:
+		rl.historySearchBackward()
+	}
+}
+
+func (rl *Instance) downLineOrSearch() {
+	rl.skipUndoAppend()
+	switch {
+	case rl.hpos < rl.numLines()-1:
+		rl.upLine()
+	default:
+		rl.historySearchForward()
 	}
 }
 
@@ -119,29 +141,28 @@ func (rl *Instance) inferNextHistory() {
 func (rl *Instance) beginningOfBufferOrHistory() {
 	rl.skipUndoAppend()
 
-	if rl.pos == 0 {
-		rl.historySourcePos = 0
-		history := rl.currentHistory()
-
-		if history == nil {
-			return
-		}
-
-		new, err := history.GetLine(0)
-		if err != nil {
-			rl.resetHelpers()
-			print(rl.Prompt.primary)
-			return
-		}
-
-		rl.lineClear()
-		rl.line = []rune(new)
-		rl.pos = len(rl.line)
-
+	if rl.pos > 0 {
+		rl.pos = 0
 		return
 	}
 
-	rl.beginningOfLine()
+	rl.historySourcePos = 0
+	history := rl.currentHistory()
+
+	if history == nil {
+		return
+	}
+
+	new, err := history.GetLine(0)
+	if err != nil {
+		rl.resetHelpers()
+		print(rl.Prompt.primary)
+		return
+	}
+
+	rl.lineClear()
+	rl.line = []rune(new)
+	rl.pos = len(rl.line)
 }
 
 func (rl *Instance) endOfBufferOrHistory() {
