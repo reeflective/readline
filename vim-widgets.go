@@ -101,6 +101,7 @@ func (rl *Instance) viCommandMode() {
 func (rl *Instance) viVisualMode() {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
+	rl.visualLine = false
 
 	rl.addIteration("")
 	rl.skipUndoAppend()
@@ -118,11 +119,12 @@ func (rl *Instance) viVisualMode() {
 func (rl *Instance) viVisualLineMode() {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
+	rl.visualLine = true
 
 	rl.addIteration("")
 	rl.skipUndoAppend()
 
-	rl.enterVisualLineMode()
+	rl.enterVisualMode()
 
 	// We don't do anything else if the mode did not change.
 	if lastMode == rl.local && wasVisualLine == rl.visualLine {
@@ -297,24 +299,63 @@ func (rl *Instance) viBackwardChar() {
 }
 
 func (rl *Instance) viPutAfter() {
+	rl.undoHistoryAppend()
+
+	posStart := rl.pos
+	buffer := rl.pasteFromRegister()
+
+	if buffer[len(buffer)-1] == '\n' {
+
+		// Find the end of the current line.
+		for cpos := rl.pos; cpos < len(rl.line); cpos++ {
+			rl.pos = cpos
+			if rl.line[cpos] == '\n' {
+				break
+			}
+		}
+
+		// Special handling on empty lines and end of buffer
+		// TODO: EMPTY LINE
+		if rl.pos == len(rl.line)-1 {
+			buffer = append([]rune{'\n'}, buffer[:len(buffer)-2]...)
+		}
+	}
+
+	// Paste the buffer
 	if rl.pos < len(rl.line) {
 		rl.pos++
 	}
 
-	buffer := rl.pasteFromRegister()
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.lineInsert(buffer)
 	}
-	rl.pos--
+
+	rl.pos = posStart
 }
 
 func (rl *Instance) viPutBefore() {
+	rl.undoHistoryAppend()
+
+	posStart := rl.pos
 	buffer := rl.pasteFromRegister()
+
+	if buffer[len(buffer)-1] == '\n' {
+		// Find the end of the current line.
+		for cpos := rl.pos; cpos >= 0; cpos-- {
+			if rl.line[cpos] == '\n' {
+				break
+			}
+			rl.pos = cpos
+		}
+	}
+
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.lineInsert(buffer)
 	}
+
+	rl.pos = posStart
 }
 
 func (rl *Instance) viReplaceChars() {

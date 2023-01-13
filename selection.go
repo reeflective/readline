@@ -104,13 +104,51 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	// If the visual selection has one of its end
 	// as the cursor, actualize this value.
 	if sel.epos == -1 {
-		if sel.bpos <= rl.pos {
+		switch {
+		case rl.visualLine:
+			bpos = rl.substrPos('\n', false)
+			if bpos == rl.pos {
+				bpos = 0
+			} else {
+				bpos++
+			}
+
+			epos = rl.substrPos('\n', true)
+			if epos == rl.pos {
+				epos = len(rl.line) - 1
+			}
+
+			// The cursor position is the first preceding
+			// newline.
+			for cpos = rl.pos; cpos >= 0; cpos-- {
+				if rl.line[cpos] == '\n' {
+					break
+				}
+			}
+
+		case sel.bpos <= rl.pos:
 			bpos = sel.bpos
 			epos = rl.pos
-		} else {
+			if bpos < 0 {
+				bpos = 0
+			}
+			cpos = bpos
+
+		default:
 			bpos = rl.pos
 			epos = sel.bpos
+			if bpos < 0 {
+				bpos = 0
+			}
+			cpos = bpos
 		}
+		// if sel.bpos <= rl.pos {
+		// 	bpos = sel.bpos
+		// 	epos = rl.pos
+		// } else {
+		// 	bpos = rl.pos
+		// 	epos = sel.bpos
+		// }
 	}
 
 	// In visual mode, we include the cursor
@@ -125,8 +163,6 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	if bpos < 0 {
 		bpos = 0
 	}
-
-	cpos = bpos
 
 	return
 }
@@ -194,11 +230,6 @@ func (rl *Instance) yankSelection() {
 
 	bpos, epos, cpos := rl.calcSelection()
 	selection := string(rl.line[bpos:epos])
-
-	// The visual line mode always adds a newline
-	if rl.local == visual && rl.visualLine {
-		selection += "\n"
-	}
 
 	// And copy to active register
 	rl.saveBufToRegister([]rune(selection))
