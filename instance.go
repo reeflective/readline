@@ -89,11 +89,8 @@ type Instance struct {
 	skipStdinRead   bool
 
 	// selection management
-	visualLine   bool // Is the visual mode VISUAL_LINE
-	mark         int  // Visual selection mark. -1 when unactive
-	activeRegion bool // Is a current range region active ?
-	// regions      []region     // Regions are some parts of the input line with special highlighting.
-	marks []*selection // Regions are some parts of the input line with special highlighting.
+	visualLine bool         // Is the visual mode VISUAL_LINE
+	marks      []*selection // Visual/surround selections areas, often highlighted.
 
 	//
 	// Completion ---------------------------------------------------------------------------------

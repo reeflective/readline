@@ -262,7 +262,7 @@ func (rl *Instance) deleteChar() {
 func (rl *Instance) deleteWord() {
 	rl.undoHistoryAppend()
 
-	rl.markSelection(rl.pos)
+	rl.markSelectionAlt(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 	rl.deleteSelection()
 }
@@ -377,7 +377,7 @@ func (rl *Instance) setMarkCommand() {
 		rl.resetSelection()
 		rl.visualLine = false
 	default:
-		rl.mark = rl.pos
+		rl.markSelectionAlt(rl.pos)
 	}
 }
 
@@ -431,7 +431,7 @@ func (rl *Instance) downCaseWord() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.markSelection(rl.pos)
+	rl.markSelectionAlt(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 
 	word, bpos, epos, _ := rl.popSelection()
@@ -448,7 +448,7 @@ func (rl *Instance) upCaseWord() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.markSelection(rl.pos)
+	rl.markSelectionAlt(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 
 	word, bpos, epos, _ := rl.popSelection()
@@ -467,7 +467,7 @@ func (rl *Instance) transposeWords() {
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
-	rl.markSelection(rl.pos)
+	rl.markSelectionAlt(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 
 	toTranspose, tbpos, tepos, _ := rl.popSelection()
@@ -479,7 +479,7 @@ func (rl *Instance) transposeWords() {
 	}
 
 	// Save the word to transpose with
-	rl.markSelection(rl.pos)
+	rl.markSelectionAlt(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
 
 	transposeWith, wbpos, wepos, _ := rl.popSelection()
@@ -514,7 +514,7 @@ func (rl *Instance) copyPrevWord() {
 
 	posInit := rl.pos
 
-	rl.markSelection(rl.pos)
+	rl.markSelectionAlt(rl.pos)
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 
 	wlen, _ := rl.insertSelection("", "")
@@ -535,10 +535,10 @@ func (rl *Instance) copyPrevShellWord() {
 
 	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
 	if mark == -1 && cpos == -1 {
-		rl.markSelection(rl.pos)
+		rl.markSelectionAlt(rl.pos)
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
 	} else {
-		rl.markSelection(mark)
+		rl.markSelectionAlt(mark)
 		rl.pos = cpos
 	}
 
@@ -640,18 +640,20 @@ func (rl *Instance) switchKeyword() {
 func (rl *Instance) exchangePointAndMark() {
 	rl.skipUndoAppend()
 	vii := rl.getIterations()
-	if rl.mark == -1 {
+
+	visual := rl.visualSelection()
+	if visual == nil {
 		return
 	}
 
 	switch {
 	case vii < 0:
-		rl.pos, rl.mark = rl.mark, rl.pos
+		rl.pos, visual.bpos = visual.bpos, rl.pos
 	case vii > 0:
-		rl.pos, rl.mark = rl.mark, rl.pos
-		rl.activeRegion = true
+		rl.pos, visual.bpos = visual.bpos, rl.pos
+		visual.active = true
 	case vii == 0:
-		rl.activeRegion = true
+		visual.active = true
 	}
 }
 

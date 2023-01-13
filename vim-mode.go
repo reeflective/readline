@@ -29,9 +29,6 @@ func (rl *Instance) enterVisualLineMode() {
 	if epos == rl.pos {
 		epos = len(rl.line) - 1
 	}
-
-	// And end at the next newline
-	// rl.mark = 0 // start at the beginning of the line.
 }
 
 func (rl *Instance) exitVisualMode() {
@@ -44,7 +41,6 @@ func (rl *Instance) exitVisualMode() {
 	}
 
 	rl.visualLine = false
-	rl.mark = -1
 
 	if rl.local != visual {
 		return

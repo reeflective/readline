@@ -76,7 +76,6 @@ func (rl *Instance) viInsertMode() {
 	rl.viinsEnterPos = rl.pos
 
 	rl.addIteration("")
-	rl.activeRegion = false
 
 	rl.updateCursor()
 }
@@ -86,7 +85,6 @@ func (rl *Instance) viCommandMode() {
 
 	rl.addIteration("")
 	rl.skipUndoAppend()
-	rl.activeRegion = false
 
 	// Only go back if not in insert mode
 	if rl.main == viins && len(rl.line) > 0 && rl.pos > 0 {
@@ -330,7 +328,7 @@ func (rl *Instance) viReplaceChars() {
 	}
 
 	// In visual mode, we replace all chars of the selection
-	if rl.activeRegion || rl.local == visual {
+	if rl.activeSelection() {
 		bpos, epos, _ := rl.calcSelection()
 		for i := bpos; i < epos; i++ {
 			rl.line[i] = []rune(key)[0]
@@ -443,12 +441,6 @@ func (rl *Instance) viForwardWord() {
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
-	}
-
-	// We make an adjustment to the mark if we are currently
-	// yanking, and this widget is the argument action.
-	if rl.local == viopp && rl.activeRegion && rl.pos < len(rl.line)-1 {
-		rl.pos--
 	}
 }
 
@@ -1093,5 +1085,5 @@ func (rl *Instance) viSelectSurround() {
 
 func (rl *Instance) viSetMark() {
 	rl.skipUndoAppend()
-	rl.mark = rl.pos
+	rl.markSelectionAlt(rl.pos)
 }

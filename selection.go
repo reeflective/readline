@@ -67,12 +67,6 @@ func (rl *Instance) visualSelection() *selection {
 	return nil
 }
 
-// markSelection starts an active region at the specified mark position.
-func (rl *Instance) markSelection(mark int) {
-	rl.mark = mark
-	rl.activeRegion = true
-}
-
 // Compute begin and end of visual selection.
 func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	sel := rl.visualSelection()
