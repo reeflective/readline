@@ -271,9 +271,10 @@ func (r *registers) resetRegister() {
 func (rl *Instance) completeRegisters() Completions {
 	comps := Message(seqFgBlue + "-- registers --" + seqReset)
 
+	display := strings.ReplaceAll(string(rl.registers.unnamed), "\n", ``)
 	unnamed := Completion{
 		Value:   string(rl.registers.unnamed),
-		Display: seqDim + "\"\"" + seqDimReset + " " + string(rl.registers.unnamed),
+		Display: seqDim + "\"\"" + seqDimReset + " " + display,
 	}
 	comps.values = append(comps.values, unnamed)
 
@@ -297,10 +298,12 @@ func (rl *Instance) completeNumRegs() []Completion {
 
 	for _, reg := range nums {
 		buf := rl.registers.num[reg]
+		display := strings.ReplaceAll(string(buf), "\n", ``)
+
 		comp := Completion{
 			Tag:     tag,
 			Value:   string(buf),
-			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqDimReset, string(buf)),
+			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqDimReset, display),
 		}
 
 		regs = append(regs, comp)
@@ -321,10 +324,12 @@ func (rl *Instance) completeAlphaRegs() []Completion {
 
 	for _, reg := range lett {
 		buf := rl.registers.alpha[reg]
+		display := strings.ReplaceAll(string(buf), "\n", ``)
+
 		comp := Completion{
 			Tag:     tag,
 			Value:   string(buf),
-			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqDimReset, string(buf)),
+			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqDimReset, display),
 		}
 
 		regs = append(regs, comp)

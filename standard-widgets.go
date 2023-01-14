@@ -155,7 +155,7 @@ func (rl *Instance) endOfLine() {
 
 	switch {
 	case rl.numLines() > 1:
-		rl.findAndMoveCursor("\n", 1, true, true)
+		rl.findAndMoveCursor("\n", 1, true, false)
 	default:
 		rl.pos = len(rl.line)
 	}

@@ -142,13 +142,6 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 			}
 			cpos = bpos
 		}
-		// if sel.bpos <= rl.pos {
-		// 	bpos = sel.bpos
-		// 	epos = rl.pos
-		// } else {
-		// 	bpos = rl.pos
-		// 	epos = sel.bpos
-		// }
 	}
 
 	// In visual mode, we include the cursor
