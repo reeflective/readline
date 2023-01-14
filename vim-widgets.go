@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"unicode"
 )
 
@@ -31,7 +30,6 @@ func (rl *Instance) viWidgets() lineWidgets {
 		"vi-kill-eol":                   rl.viKillEol,
 		"vi-kill-line":                  rl.viKillLine,
 		"vi-change-eol":                 rl.viChangeEol,
-		"vi-edit-command-line":          rl.viEditCommandLine,
 		"vi-add-eol":                    rl.viAddEol,
 		"vi-add-next":                   rl.viAddNext,
 		"vi-put-after":                  rl.viPutAfter,
@@ -442,31 +440,6 @@ func (rl *Instance) viReplace() {
 
 	// When exiting the replace mode, move the cursor back
 	rl.pos--
-}
-
-func (rl *Instance) viEditCommandLine() {
-	rl.clearHelpers()
-
-	// Keep the previous cursor position
-	prev := rl.pos
-
-	edited, err := rl.StartEditorWithBuffer(rl.lineBuffer(), "")
-	if err != nil || len(edited) == 0 {
-		fmt.Println(err)
-		rl.skipUndoAppend()
-		return
-	}
-
-	// Clean the shell and put the new buffer, with adjusted pos if needed.
-	// TODO: Not correct, now that we support multiline: this should not be
-	// like this.
-	rl.lineClear()
-	rl.line = edited
-	if prev > len(rl.line) {
-		rl.pos = len(rl.line) - 1
-	} else {
-		rl.pos = prev
-	}
 }
 
 func (rl *Instance) viForwardWord() {

@@ -8,19 +8,19 @@ import (
 // highlightLine adds highlighting of the region if we are in a visual mode.
 func (rl *Instance) highlightLine(line []rune) string {
 	// Add an highlight region if we have visual or active region.
-	vhl := rl.addVisualHighlight(line)
+	vhl := rl.addVisualHighlight()
 
 	// Sort the highlighted sections
 	sorted := rl.sortHighlights(vhl)
 
 	// Get the highlighting.
-	hl := rl.getHighlights(line, sorted)
+	colors := rl.getHighlights(line, sorted)
 
 	var highlighted string
 
 	// And apply highlighting before each rune.
 	for i, r := range line {
-		if highlight, found := hl[i]; found {
+		if highlight, found := colors[i]; found {
 			highlighted += string(highlight)
 		}
 
@@ -32,7 +32,7 @@ func (rl *Instance) highlightLine(line []rune) string {
 	return highlighted
 }
 
-func (rl *Instance) addVisualHighlight(line []rune) *selection {
+func (rl *Instance) addVisualHighlight() *selection {
 	bpos, epos, _ := rl.calcSelection()
 
 	visual := rl.visualSelection()
@@ -88,10 +88,8 @@ func (rl *Instance) getHighlights(line []rune, sorted []*selection) map[int][]ru
 	// and keep the indexes so that we can skip those.
 	var colors [][]int
 
-	colorMatch, err := regexp.Compile(`\x1b\[[0-9;]+m`)
-	if err == nil {
-		colors = colorMatch.FindAllStringIndex(string(line), -1)
-	}
+	colorMatch := regexp.MustCompile(`\x1b\[[0-9;]+m`)
+	colors = colorMatch.FindAllStringIndex(string(line), -1)
 
 	// marks that started highlighting, but not done yet.
 	pending := make([]*selection, 0)
@@ -117,13 +115,13 @@ func (rl *Instance) getHighlights(line []rune, sorted []*selection) map[int][]ru
 		}
 
 		// Or we are reading a printed rune.
-		lineIndex += 1
+		lineIndex++
 
 		// First check if we have a new highlighter to apply
-		for _, reg := range sorted {
-			if reg.bpos == lineIndex {
-				newHl = reg
-				pending = append(pending, reg)
+		for _, hl := range sorted {
+			if hl.bpos == lineIndex {
+				newHl = hl
+				pending = append(pending, hl)
 			}
 		}
 
@@ -133,7 +131,12 @@ func (rl *Instance) getHighlights(line []rune, sorted []*selection) map[int][]ru
 			if reg.epos == lineIndex {
 				pending = append(pending[:i], pending[i+1:]...)
 				if !doneReset {
-					posHl = append(posHl, []rune(seqReset)...)
+					if reg.fg != "" {
+						posHl = append(posHl, []rune(seqFgDefault)...)
+					}
+					if reg.bg != "" {
+						posHl = append(posHl, []rune(seqBgDefault)...)
+					}
 				}
 			}
 		}

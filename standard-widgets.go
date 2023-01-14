@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -49,6 +50,7 @@ func (rl *Instance) standardWidgets() lineWidgets {
 		"kill-region":             rl.killRegion,
 		"redo":                    rl.redo,
 		"switch-keyword":          rl.switchKeyword,
+		"edit-command-line":       rl.editCommandLine,
 	}
 
 	return widgets
@@ -771,5 +773,38 @@ func (rl *Instance) transposeChars() {
 		blast := rl.line[rl.pos-1]
 		rl.line[rl.pos-1] = last
 		rl.line[rl.pos] = blast
+	}
+}
+
+func (rl *Instance) editCommandLine() {
+	rl.clearHelpers()
+
+	buffer := rl.lineBuffer()
+
+	edited, err := rl.StartEditorWithBuffer(buffer, "")
+	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
+		rl.skipUndoAppend()
+		errStr := strings.ReplaceAll(err.Error(), "\n", "")
+		changeHint := fmt.Sprintf(seqFgRed+"Editor error: %s", errStr)
+		rl.hint = append([]rune{}, []rune(changeHint)...)
+		return
+	}
+
+	// Since we might have edited a buffer including multiline splits,
+	// those splits are now part of the line itself. It's not a problem,
+	// but that means we must must reprint everything along with the first
+	// (primary) prompt itself.
+
+	// Clean the shell and put the new buffer, with adjusted pos if needed.
+	// TODO: Not correct, now that we support multiline: this should not be
+	// like this.
+	rl.lineClear()
+	rl.line = edited
+	if rl.pos > len(rl.line) {
+		rl.pos = len(rl.line) - 1
+	}
+
+	if (rl.main == vicmd || rl.main == viins) && rl.local == visual {
+		rl.exitVisualMode()
 	}
 }

@@ -142,6 +142,7 @@ var (
 	seqFgMagenta = "\x1b[35m"
 	seqFgCyan    = "\x1b[36m"
 	seqFgWhite   = "\x1b[37m"
+	seqFgDefault = "\x1b[39m"
 
 	seqFgBlueDark = "\x1b[25m"
 
@@ -167,6 +168,7 @@ var (
 	seqBgMagenta = "\x1b[45m"
 	seqBgCyan    = "\x1b[46m"
 	seqBgWhite   = "\x1b[47m"
+	seqBgDefault = "\x1b[49m"
 
 	seqBgBlueDark = "\x1b[48;5;25m"
 

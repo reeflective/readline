@@ -79,9 +79,8 @@ type Instance struct {
 	inferLine bool   // When a "accept-line-and-down-history" widget wants to immediately retrieve/use a line.
 
 	// Buffer received from host programs
-	multilineBuffer []byte
-	multilineSplit  []string
-	skipStdinRead   bool
+	multilineSplit []string
+	skipStdinRead  bool
 
 	// selection management
 	visualLine bool         // Is the visual mode VISUAL_LINE

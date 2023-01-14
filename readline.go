@@ -31,11 +31,6 @@ func (rl *Instance) Readline() (string, error) {
 	// once our command line is returned to the caller.
 	defer rl.Prompt.printTransient(rl)
 
-	// Multisplit
-	// if len(rl.multilineSplit) > 0 {
-	// 	return rl.initMultiline()
-	// }
-
 	// Finally, print any hints or completions
 	// before starting monitoring for keystrokes.
 	rl.renderHelpers()
@@ -75,17 +70,6 @@ func (rl *Instance) Readline() (string, error) {
 		// will reset/consume this stack.
 		rl.keys += string(runesRead)
 		keys := rl.keys
-
-		// If the last input is a carriage return, process
-		// according to configured multiline behavior.
-		// if isMultiline(runesRead) || len(rl.multilineBuffer) > 0 {
-		// 	done, ret, val, err := rl.processMultiline(runesRead, buf, readLen)
-		// 	if ret {
-		// 		return val, err
-		// 	} else if done {
-		// 		continue
-		// 	}
-		// }
 
 		// Interrupt keys (CtrlC/CtrlD, etc) are caught before any keymap:
 		// These handlers adapt their behavior on their own, depending on
