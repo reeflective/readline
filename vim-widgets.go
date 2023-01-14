@@ -87,7 +87,7 @@ func (rl *Instance) viCommandMode() {
 	rl.skipUndoAppend()
 
 	// Only go back if not in insert mode
-	if rl.main == viins && len(rl.line) > 0 && rl.pos > 0 {
+	if rl.main == viins && rl.pos > 0 && !rl.cursorAtBeginningOfLine() {
 		rl.pos--
 	}
 

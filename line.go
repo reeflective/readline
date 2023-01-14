@@ -302,6 +302,7 @@ func (rl *Instance) lineCarriageReturn() {
 	rl.histSuggested = []rune{}
 	rl.clearHelpers()
 	rl.linePrint()
+	moveCursorDown(rl.fullY - rl.posY)
 	print("\r\n")
 
 	// Ask the caller if the line should be accepted as is: if yes, return it.

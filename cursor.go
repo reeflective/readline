@@ -172,6 +172,21 @@ func (rl *Instance) substrPos(r rune, forward bool) (pos int) {
 	return
 }
 
+func (rl *Instance) cursorAtBeginningOfLine() bool {
+	line := append(rl.lineCompleted(), '\n')
+	nl := regexp.MustCompile("\n")
+	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
+
+	for line := 0; line < len(newlinesIdx); line++ {
+		epos := newlinesIdx[line][0]
+		if epos == rl.pos-1 {
+			return true
+		}
+	}
+
+	return false
+}
+
 var rxRcvCursorPos = regexp.MustCompile(`^\x1b\[([0-9]+);([0-9]+)R$`)
 
 func (rl *Instance) getCursorPos() (x int, y int) {
