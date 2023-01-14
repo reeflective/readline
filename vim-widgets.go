@@ -213,12 +213,25 @@ func (rl *Instance) viBackwardBlankWordEnd() {
 }
 
 func (rl *Instance) viKillEol() {
+	rl.undoHistoryAppend()
+	rl.skipUndoAppend()
+
 	pos := rl.pos
-	if pos < 0 {
-		pos--
+	rl.markSelection(rl.pos)
+
+	switch {
+	case rl.numLines() > 1:
+		rl.findAndMoveCursor("\n", 1, true, false)
+	default:
+		rl.pos = len(rl.line)
 	}
-	rl.saveBufToRegister(rl.line[pos:])
-	rl.line = rl.line[:rl.pos]
+
+	rl.deleteSelection()
+
+	rl.pos = pos
+	if rl.pos > 0 {
+		rl.pos--
+	}
 
 	rl.addIteration("")
 	rl.resetHelpers()
@@ -238,10 +251,24 @@ func (rl *Instance) viKillLine() {
 }
 
 func (rl *Instance) viChangeEol() {
-	rl.saveBufToRegister(rl.line[rl.pos-1:])
-	rl.line = rl.line[:rl.pos]
-	rl.addIteration("")
+	rl.undoHistoryAppend()
+	rl.skipUndoAppend()
 
+	pos := rl.pos
+	rl.markSelection(rl.pos)
+
+	switch {
+	case rl.numLines() > 1:
+		rl.findAndMoveCursor("\n", 1, true, false)
+	default:
+		rl.pos = len(rl.line)
+	}
+
+	rl.deleteSelection()
+
+	rl.pos = pos
+
+	rl.addIteration("")
 	rl.resetHelpers()
 
 	rl.viInsertMode()
@@ -502,11 +529,11 @@ func (rl *Instance) viBackwardDeleteChar() {
 
 func (rl *Instance) viYank() {
 	rl.skipUndoAppend()
+	self := "vi-yank"
 
 	switch {
 	case rl.activeSelection():
-		// Most of the time we are in pending mode here,
-		// since we marked the region active in the default case,
+		// In visual mode, or with a non-empty selection, just yank.
 		rl.yankSelection()
 		rl.resetSelection()
 
@@ -516,16 +543,19 @@ func (rl *Instance) viYank() {
 		}
 
 	case rl.local == viopp:
-		// When we still are in viopp mode, that means we have been
-		// called twice in a row: the second time, we matched the first
-		// case statement, but did not delete anything. But we then
-		// got called a third time, and this one we don't have an active
-		// region anymore: copy the whole line.
-		rl.saveBufToRegister(rl.line)
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `yy`), so copy the entire current line.
+		rl.releasePending(self)
+
+		rl.viVisualLineMode()
+		bpos, epos, _ := rl.calcSelection()
+		buffer := rl.line[bpos:epos]
+		rl.saveBufToRegister(buffer)
+		rl.exitVisualMode()
 
 	default:
 		// Else if we are actually starting a yank action.
-		rl.enterVioppMode("vi-yank")
+		rl.enterVioppMode(self)
 		rl.updateCursor()
 		rl.markSelection(rl.pos)
 	}
@@ -533,7 +563,22 @@ func (rl *Instance) viYank() {
 
 func (rl *Instance) viYankWholeLine() {
 	rl.skipUndoAppend()
-	rl.saveBufToRegister(rl.line)
+
+	// calculate line selection.
+	rl.viVisualLineMode()
+	bpos, epos, _ := rl.calcSelection()
+
+	// If selection has a new line, remove it.
+	if rl.line[epos-1] == '\n' {
+		epos--
+	}
+
+	// Pass the buffer to register.
+	buffer := rl.line[bpos:epos]
+	rl.saveBufToRegister(buffer)
+
+	// Done with any selection.
+	rl.exitVisualMode()
 }
 
 func (rl *Instance) viEndOfLine() {
@@ -665,10 +710,11 @@ func (rl *Instance) viFindPrevCharSkip() {
 }
 
 func (rl *Instance) viDelete() {
+	self := "vi-delete"
+
 	switch {
 	case rl.activeSelection():
-		// Most of the time we are in pending mode here,
-		// since we marked the region active in the default case,
+		// In visual mode, or with a non-empty selection, just cut it.
 		rl.undoHistoryAppend()
 		rl.skipUndoAppend()
 
@@ -680,19 +726,21 @@ func (rl *Instance) viDelete() {
 		}
 
 	case rl.local == viopp:
-		// When we still are in viopp mode, that means we have been
-		// called twice in a row: the second time, we matched the first
-		// case statement, but did not delete anything. But we then
-		// got called a third time, and this one we don't have an active
-		// region anymore: delete the whole line.
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `dd`), so delete the entire current line.
+		rl.releasePending(self)
+
 		rl.undoHistoryAppend()
 		rl.skipUndoAppend()
-		rl.killWholeLine()
+
+		rl.viVisualLineMode()
+		rl.deleteSelection()
+		rl.exitVisualMode()
 
 	default:
 		// Else if we are actually starting a delete action.
 		rl.skipUndoAppend()
-		rl.enterVioppMode("vi-delete")
+		rl.enterVioppMode(self)
 		rl.updateCursor()
 		rl.markSelection(rl.pos)
 	}

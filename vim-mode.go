@@ -24,11 +24,6 @@ func (rl *Instance) exitVisualMode() {
 	}
 
 	rl.visualLine = false
-
-	if rl.local != visual {
-		return
-	}
-
 	rl.local = ""
 }
 
@@ -53,9 +48,7 @@ func (rl *Instance) enterVioppMode(widget string) {
 }
 
 func (rl *Instance) exitVioppMode() {
-	if rl.local == viopp {
-		rl.local = ""
-	}
+	rl.local = ""
 	rl.isViopp = false
 }
 

@@ -297,6 +297,19 @@ func (rl *Instance) donePending() {
 	}
 }
 
+// When the same widget is called twice in a row (like `yy` or `dd`),
+// it will call this function to avoid running itself a third time.
+func (rl *Instance) releasePending(widget string) {
+	if len(rl.pendingActions) == 0 {
+		return
+	}
+
+	// Just pop the widget without using it.
+	if rl.pendingActions[0].widget == widget {
+		rl.getPendingWidget()
+	}
+}
+
 // regular expressions as keybinds are only allowed when expressed within a (global) capturing group.
 func isRegexCapturingGroup(key string) bool {
 	if (strings.HasPrefix(key, "[") && strings.HasSuffix(key, "]")) ||
