@@ -245,7 +245,7 @@ func (rl *Instance) viKillLine() {
 	rl.undoHistoryAppend()
 	rl.skipUndoAppend()
 
-	rl.markSelectionRange("visual", rl.viinsEnterPos, len(rl.line))
+	rl.markSelectionRange(rl.viinsEnterPos, len(rl.line))
 	rl.pos--
 	rl.deleteSelection()
 }
@@ -546,10 +546,14 @@ func (rl *Instance) viYank() {
 		rl.releasePending(self)
 
 		rl.viVisualLineMode()
+		defer rl.exitVisualMode()
+
 		bpos, epos, _ := rl.calcSelection()
+		if bpos == -1 || epos == -1 {
+			return
+		}
 		buffer := rl.line[bpos:epos]
 		rl.saveBufToRegister(buffer)
-		rl.exitVisualMode()
 
 	default:
 		// Else if we are actually starting a yank action.
@@ -732,8 +736,9 @@ func (rl *Instance) viDelete() {
 		rl.skipUndoAppend()
 
 		rl.viVisualLineMode()
+		defer rl.exitVisualMode()
+
 		rl.deleteSelection()
-		rl.exitVisualMode()
 
 	default:
 		// Else if we are actually starting a delete action.
@@ -779,7 +784,7 @@ func (rl *Instance) viSelectABlankWord() {
 		rl.pos = epos
 	}
 
-	rl.markSelectionRange("visual", bpos, epos)
+	rl.markSelectionRange(bpos, epos)
 }
 
 func (rl *Instance) viSelectAShellWord() {
@@ -805,7 +810,7 @@ func (rl *Instance) viSelectAShellWord() {
 
 	// Else set the region inside those quotes
 	rl.pos = cpos
-	rl.markSelectionRange("visual", bpos, rl.pos)
+	rl.markSelectionRange(bpos, rl.pos)
 }
 
 func (rl *Instance) viSelectAWord() {
@@ -827,7 +832,7 @@ func (rl *Instance) viSelectAWord() {
 		rl.pos = epos
 	}
 
-	rl.markSelectionRange("visual", bpos, epos)
+	rl.markSelectionRange(bpos, epos)
 }
 
 func (rl *Instance) viSelectInBlankWord() {
@@ -843,7 +848,7 @@ func (rl *Instance) viSelectInBlankWord() {
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
-	rl.markSelectionRange("visual", bpos, rl.pos)
+	rl.markSelectionRange(bpos, rl.pos)
 }
 
 func (rl *Instance) viSelectInShellWord() {
@@ -863,7 +868,7 @@ func (rl *Instance) viSelectInShellWord() {
 
 	// Else set the region inside those quotes
 	rl.pos = cpos - 1
-	rl.markSelectionRange("visual", mark+1, rl.pos)
+	rl.markSelectionRange(mark+1, rl.pos)
 }
 
 func (rl *Instance) viSelectInWord() {
@@ -879,7 +884,7 @@ func (rl *Instance) viSelectInWord() {
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	rl.markSelectionRange("visual", bpos, rl.pos)
+	rl.markSelectionRange(bpos, rl.pos)
 }
 
 func (rl *Instance) viGotoColumn() {
@@ -1143,7 +1148,7 @@ func (rl *Instance) viSelectSurround() {
 		epos--
 	}
 
-	rl.markSelectionRange("visual", bpos, epos)
+	rl.markSelectionRange(bpos, epos)
 	rl.pos = epos
 }
 

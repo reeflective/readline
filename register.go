@@ -188,30 +188,6 @@ func (r *registers) setActiveRegister(reg rune) {
 
 // writeNumberedRegister - Add a buffer to one of the numbered registers
 // Pass a number above 10 to indicate we just push it on the num stack.
-func (r *registers) writeNumberedRegisterAlt(idx int, buf []rune, push bool) {
-	// No numbered register above 10
-	if len(r.num) > 10 {
-		return
-	}
-	// No push to the stack if we are already using 9
-	var max int
-	if push {
-		for i := range r.num {
-			if i > max && string(r.num[i]) != string(buf) {
-				max = i
-			}
-		}
-		if max < 9 {
-			r.num[max+1] = buf
-		}
-	} else {
-		// Add to the stack with the specified register
-		r.num[idx] = buf
-	}
-}
-
-// writeNumberedRegister - Add a buffer to one of the numbered registers
-// Pass a number above 10 to indicate we just push it on the num stack.
 func (r *registers) writeNumberedRegister(idx int, buf []rune) {
 	// No numbered register above 10
 	if idx > 9 {

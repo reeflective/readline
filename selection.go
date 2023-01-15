@@ -19,13 +19,13 @@ type selection struct {
 
 // markSelection starts a visual selection at the specified mark position.
 func (rl *Instance) markSelection(mark int) {
-	rl.markSelectionRange("visual", mark, -1)
+	rl.markSelectionRange(mark, -1)
 }
 
-func (rl *Instance) markSelectionRange(rType string, bpos, epos int) {
-	visual := rl.visualSelection()
+func (rl *Instance) markSelectionRange(bpos, epos int) {
+	vsel := rl.visualSelection()
 
-	if rType == "visual" && visual != nil {
+	if vsel != nil {
 		sel := rl.visualSelection()
 		sel.bpos = bpos
 		sel.epos = epos
@@ -37,7 +37,7 @@ func (rl *Instance) markSelectionRange(rType string, bpos, epos int) {
 		bpos:       bpos,
 		epos:       epos,
 		active:     false,
-		regionType: rType,
+		regionType: "visual",
 		fg:         "",
 		bg:         seqBgBlueDark,
 	}
@@ -94,7 +94,7 @@ func (rl *Instance) visualSelection() *selection {
 // Compute begin and end of visual selection.
 func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	sel := rl.visualSelection()
-	if sel == nil {
+	if sel == nil || len(rl.line) == 0 {
 		return -1, -1, -1
 	}
 
@@ -104,33 +104,7 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	// If the visual selection has one of its end
 	// as the cursor, actualize this value.
 	if sel.epos == -1 {
-		switch {
-		case rl.visualLine:
-			for bpos--; bpos >= 0; bpos-- {
-				if rl.line[bpos] == '\n' {
-					break
-				}
-			}
-			for epos = rl.pos - 1; epos < len(rl.line); epos++ {
-				if rl.line[epos] == '\n' {
-					break
-				}
-			}
-
-		case sel.bpos <= rl.pos:
-			bpos = sel.bpos
-			epos = rl.pos
-			if bpos < 0 {
-				bpos = 0
-			}
-
-		default:
-			bpos = rl.pos
-			epos = sel.bpos
-			if bpos < 0 {
-				bpos = 0
-			}
-		}
+		bpos, epos = rl.selectionCursor(bpos)
 	}
 
 	// In visual mode, we include the cursor
@@ -149,7 +123,43 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	// Compute the desired cursor position.
 	cpos = rl.calcSelectionCursor(bpos, epos)
 
-	return
+	return bpos, epos, cpos
+}
+
+func (rl *Instance) selectionCursor(bpos int) (int, int) {
+	var epos int
+
+	switch {
+	case rl.visualLine:
+		for bpos--; bpos >= 0; bpos-- {
+			if rl.line[bpos] == '\n' {
+				break
+			}
+		}
+		for epos = rl.pos - 1; epos < len(rl.line); epos++ {
+			if epos == -1 {
+				epos = 0
+			}
+			if rl.line[epos] == '\n' {
+				break
+			}
+		}
+
+	case bpos <= rl.pos:
+		epos = rl.pos
+		if bpos < 0 {
+			bpos = 0
+		}
+
+	default:
+		bpos = rl.pos
+		epos = bpos
+		if bpos < 0 {
+			bpos = 0
+		}
+	}
+
+	return bpos, epos
 }
 
 func (rl *Instance) calcSelectionCursor(bpos, epos int) (cpos int) {
@@ -211,10 +221,14 @@ func (rl *Instance) popSelection() (s string, bpos, epos, cpos int) {
 		return
 	}
 
-	bpos, epos, cpos = rl.calcSelection()
-	s = string(rl.line[bpos:epos])
+	defer rl.resetSelection()
 
-	rl.resetSelection()
+	bpos, epos, cpos = rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
+
+	s = string(rl.line[bpos:epos])
 
 	return
 }
@@ -243,7 +257,12 @@ func (rl *Instance) insertSelection(bchar, echar string) (wlen, cpos int) {
 		return
 	}
 
+	defer rl.resetSelection()
+
 	bpos, epos, cpos := rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
 	selection := string(rl.line[bpos:epos])
 
 	selection = bchar + selection + echar
@@ -255,8 +274,6 @@ func (rl *Instance) insertSelection(bchar, echar string) (wlen, cpos int) {
 	newLine = append(newLine, []rune(end)...)
 	rl.line = newLine
 
-	rl.resetSelection()
-
 	return len(selection), cpos
 }
 
@@ -267,6 +284,9 @@ func (rl *Instance) yankSelection() {
 	}
 
 	bpos, epos, cpos := rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
 	selection := string(rl.line[bpos:epos])
 
 	// And copy to active register
@@ -283,11 +303,15 @@ func (rl *Instance) deleteSelection() {
 	if len(rl.marks) == 0 {
 		return
 	}
+	defer rl.resetSelection()
 
 	var newline []rune
 
 	// Get the selection.
 	bpos, epos, cpos := rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
 	selection := string(rl.line[bpos:epos])
 
 	// Save it and update the line
@@ -296,9 +320,6 @@ func (rl *Instance) deleteSelection() {
 	rl.line = newline
 
 	rl.pos = cpos
-
-	// Reset the selection since it does not exist anymore.
-	rl.resetSelection()
 }
 
 // resetSelection unmarks the mark position and deactivates the region.
