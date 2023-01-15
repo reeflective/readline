@@ -209,7 +209,7 @@ func (rl *Instance) linePrint() {
 		print(highlighted)
 
 		if len(rl.histSuggested) > 0 {
-			print(seqDim + string(rl.histSuggested) + seqReset)
+			print(seqFgBlackBright + string(rl.histSuggested) + seqReset)
 		}
 	}
 

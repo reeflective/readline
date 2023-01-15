@@ -92,8 +92,8 @@ func (rl *Instance) getHighlights(line []rune, sorted []*selection) map[int][]ru
 	colors = colorMatch.FindAllStringIndex(string(line), -1)
 
 	// marks that started highlighting, but not done yet.
-	pending := make([]*selection, 0)
-	lineIndex := -1
+	regions := make([]*selection, 0)
+	pos := -1
 	skip := 0
 
 	// Build the string.
@@ -115,41 +115,19 @@ func (rl *Instance) getHighlights(line []rune, sorted []*selection) map[int][]ru
 		}
 
 		// Or we are reading a printed rune.
-		lineIndex++
+		pos++
 
 		// First check if we have a new highlighter to apply
 		for _, hl := range sorted {
-			if hl.bpos == lineIndex {
+			if hl.bpos == pos {
 				newHl = hl
-				pending = append(pending, hl)
+				regions = append(regions, hl)
 			}
 		}
 
-		// If we have a region that is done highlighting, reset
-		doneReset := false
-		for i, reg := range pending {
-			if reg.epos == lineIndex {
-				pending = append(pending[:i], pending[i+1:]...)
-				if !doneReset {
-					if reg.fg != "" {
-						posHl = append(posHl, []rune(seqFgDefault)...)
-					}
-					if reg.bg != "" {
-						posHl = append(posHl, []rune(seqBgDefault)...)
-					}
-				}
-			}
-		}
-
-		// If we have a new higlighting, apply it.
-		if newHl != nil {
-			posHl = append(posHl, []rune(newHl.bg)...)
-			posHl = append(posHl, []rune(newHl.fg)...)
-		} else if len(pending) > 0 && doneReset {
-			backHl := pending[len(pending)-1]
-			posHl = append(posHl, []rune(backHl.bg)...)
-			posHl = append(posHl, []rune(backHl.fg)...)
-		}
+		// Add new colors if any, and reset if some are done.
+		regions, posHl = rl.hlAdd(regions, posHl, pos)
+		posHl = rl.hlReset(regions, newHl, posHl)
 
 		// Add to the line, with the raw index since
 		// we must take into account embedded colors.
@@ -159,6 +137,35 @@ func (rl *Instance) getHighlights(line []rune, sorted []*selection) map[int][]ru
 	}
 
 	return hl
+}
+
+func (rl *Instance) hlAdd(regions []*selection, line []rune, pos int) ([]*selection, []rune) {
+	for i, reg := range regions {
+		if reg.epos == pos {
+			regions = append(regions[:i], regions[i+1:]...)
+			if reg.fg != "" {
+				line = append(line, []rune(seqFgDefault)...)
+			}
+			if reg.bg != "" {
+				line = append(line, []rune(seqBgDefault)...)
+			}
+		}
+	}
+
+	return regions, line
+}
+
+func (rl *Instance) hlReset(regions []*selection, newHl *selection, line []rune) []rune {
+	if newHl != nil {
+		line = append(line, []rune(newHl.bg)...)
+		line = append(line, []rune(newHl.fg)...)
+	} else if len(regions) > 0 {
+		backHl := regions[len(regions)-1]
+		line = append(line, []rune(backHl.bg)...)
+		line = append(line, []rune(backHl.fg)...)
+	}
+
+	return line
 }
 
 func (rl *Instance) resetRegions() {
