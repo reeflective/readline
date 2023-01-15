@@ -13,6 +13,7 @@ func (rl *Instance) lineInit() {
 		rl.line = []rune{}
 		rl.pos = 0
 		rl.posY = 0
+		rl.hpos = 0
 	}
 
 	rl.comp = []rune{}     // No virtual completion yet
@@ -92,6 +93,7 @@ func (rl *Instance) computeLinePos() {
 	rl.posX = 0
 	rl.posY = 0
 	rl.fullY = 0
+	rl.hpos = 0
 	startLine := 0
 	cursorSet := false
 
@@ -351,6 +353,10 @@ func (rl *Instance) cursorLineLen() (lineLen int) {
 	lines := strings.Split(string(rl.lineCompleted()), "\n")
 	if len(lines) == 0 {
 		return 0
+	}
+
+	if len(rl.lineCompleted()) > 0 && rl.lineCompleted()[0] == '\n' {
+		panic("HERE")
 	}
 
 	if len(lines) == 1 {

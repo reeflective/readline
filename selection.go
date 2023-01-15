@@ -129,14 +129,22 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 func (rl *Instance) selectionCursor(bpos int) (int, int) {
 	var epos int
 
-	switch {
-	case rl.visualLine:
+	// The cursor might be now before its original mark,
+	// in which case we invert before doing any move.
+	if rl.pos < bpos {
+		bpos, epos = rl.pos, bpos
+	} else {
+		epos = rl.pos
+	}
+
+	if rl.visualLine {
 		for bpos--; bpos >= 0; bpos-- {
 			if rl.line[bpos] == '\n' {
+				bpos++
 				break
 			}
 		}
-		for epos = rl.pos - 1; epos < len(rl.line); epos++ {
+		for epos--; epos < len(rl.line); epos++ {
 			if epos == -1 {
 				epos = 0
 			}
@@ -144,19 +152,11 @@ func (rl *Instance) selectionCursor(bpos int) (int, int) {
 				break
 			}
 		}
+	}
 
-	case bpos <= rl.pos:
-		epos = rl.pos
-		if bpos < 0 {
-			bpos = 0
-		}
-
-	default:
-		bpos = rl.pos
-		epos = bpos
-		if bpos < 0 {
-			bpos = 0
-		}
+	// Check again in case the visual line inverted both.
+	if bpos > epos {
+		bpos, epos = epos, bpos
 	}
 
 	return bpos, epos

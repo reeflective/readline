@@ -69,8 +69,11 @@ func (rl *Instance) updateCursor() {
 }
 
 func (rl *Instance) checkCursorBounds() {
-	line := rl.lineCompleted()
+	if rl.pos < 0 {
+		rl.pos = 0
+	}
 
+	line := rl.lineCompleted()
 	switch rl.main {
 	case emacs, viins:
 		if rl.pos > len(line) {
@@ -79,13 +82,9 @@ func (rl *Instance) checkCursorBounds() {
 	case vicmd:
 		if rl.pos > len(line)-1 {
 			rl.pos = len(line) - 1
-		} else if rl.pos < len(rl.line) && rl.line[rl.pos] == '\n' {
+		} else if rl.pos > 0 && rl.pos < len(rl.line) && rl.line[rl.pos] == '\n' {
 			rl.pos--
 		}
-	}
-
-	if rl.pos < 0 {
-		rl.pos = 0
 	}
 }
 

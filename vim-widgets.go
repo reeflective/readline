@@ -213,15 +213,19 @@ func (rl *Instance) viBackwardBlankWordEnd() {
 }
 
 func (rl *Instance) viKillEol() {
-	rl.undoHistoryAppend()
 	rl.skipUndoAppend()
+	rl.undoHistoryAppendPos(rl.pos)
 
 	pos := rl.pos
 	rl.markSelection(rl.pos)
 
 	switch {
 	case rl.numLines() > 1:
-		rl.findAndMoveCursor("\n", 1, true, false)
+		for ; rl.pos < len(rl.line); rl.pos++ {
+			if rl.line[rl.pos] == '\n' {
+				break
+			}
+		}
 	default:
 		rl.pos = len(rl.line)
 	}
@@ -259,7 +263,11 @@ func (rl *Instance) viChangeEol() {
 
 	switch {
 	case rl.numLines() > 1:
-		rl.findAndMoveCursor("\n", 1, true, false)
+		for ; rl.pos < len(rl.line); rl.pos++ {
+			if rl.line[rl.pos] == '\n' {
+				break
+			}
+		}
 	default:
 		rl.pos = len(rl.line)
 	}
@@ -592,7 +600,11 @@ func (rl *Instance) viEndOfLine() {
 
 	switch {
 	case rl.numLines() > 1:
-		rl.findAndMoveCursor("\n", 1, true, false)
+		for ; rl.pos < len(rl.line); rl.pos++ {
+			if rl.line[rl.pos] == '\n' {
+				break
+			}
+		}
 	default:
 		rl.pos = len(rl.line)
 	}
@@ -721,7 +733,8 @@ func (rl *Instance) viDelete() {
 	switch {
 	case rl.activeSelection():
 		// In visual mode, or with a non-empty selection, just cut it.
-		rl.undoHistoryAppend()
+		bpos, _, _ := rl.calcSelection()
+		rl.undoHistoryAppendPos(bpos)
 		rl.skipUndoAppend()
 
 		rl.deleteSelection()
