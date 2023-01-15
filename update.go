@@ -48,7 +48,6 @@ func (rl *Instance) clearHelpers() {
 	moveCursorDown(rl.fullY - rl.posY)
 	moveCursorBackwards(rl.posX)
 	moveCursorDown(1)
-	// moveCursorForwards(rl.fullX)
 
 	// Clear everything below
 	print(seqClearScreenBelow)

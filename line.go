@@ -211,11 +211,15 @@ func (rl *Instance) linePrint() {
 		if len(rl.histSuggested) > 0 {
 			print(seqFgBlackBright + string(rl.histSuggested) + seqReset)
 		}
+
 	}
 
 	// Update references with new coordinates only now, because
 	// the new line may be longer/shorter than the previous one.
 	rl.computeLinePos()
+
+	// Finally, print any right or tooltip prompt.
+	rl.Prompt.printRprompt(rl)
 
 	// Go back to the current cursor position, with new coordinates
 	moveCursorBackwards(GetTermWidth())
@@ -316,6 +320,7 @@ func (rl *Instance) lineCarriageReturn() {
 	rl.clearHelpers()
 	rl.linePrint()
 	moveCursorDown(rl.fullY - rl.posY)
+	print(seqClearScreenBelow)
 	print("\r\n")
 
 	// Ask the caller if the line should be accepted as is: if yes, return it.
@@ -339,4 +344,32 @@ func (rl *Instance) lineCarriageReturn() {
 
 func (rl *Instance) numLines() int {
 	return len(strings.Split(string(rl.line), "\n"))
+}
+
+// Returns the real length of the line on which the cursor currently is.
+func (rl *Instance) cursorLineLen() (lineLen int) {
+	lines := strings.Split(string(rl.lineCompleted()), "\n")
+	if len(lines) == 0 {
+		return 0
+	}
+
+	if len(lines) == 1 {
+		lineLen += rl.Prompt.inputAt
+	}
+
+	lineLen += getRealLength(lines[rl.hpos])
+
+	termWidth := GetTermWidth()
+	if lineLen > termWidth {
+		lines := lineLen / termWidth
+		restLen := lineLen % termWidth
+
+		if lines > 0 && lineLen == 0 {
+			return termWidth
+		}
+
+		return restLen
+	}
+
+	return lineLen
 }

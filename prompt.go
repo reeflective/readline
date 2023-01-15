@@ -144,6 +144,14 @@ func (p *prompt) update(rl *Instance) {
 }
 
 func (p *prompt) printLast(rl *Instance) {
+	if len(rl.multilineSplit) > 0 {
+		print(p.secondaryF())
+	} else {
+		print(p.getPrimaryLastLine())
+	}
+}
+
+func (p *prompt) printRprompt(rl *Instance) {
 	// Either use RPROMPT or tooltip.
 	var rprompt string
 	if p.tooltip != "" {
@@ -152,39 +160,29 @@ func (p *prompt) printLast(rl *Instance) {
 		rprompt = p.right
 	}
 
-	// We will print either the last line of the primary prompt,
-	// or the secondary prompt if currently in multiline mode.
-	defer func() {
-		if len(rl.multilineSplit) > 0 {
-			print(p.secondaryF())
-		} else {
-			print(p.getPrimaryLastLine())
-		}
-	}()
-
 	if rprompt == "" {
 		return
 	}
 
-	// Only print the right prompt if the input line
-	// is shorter than the adjusted terminal width.
-	lineFits := (rl.Prompt.inputAt + len(rl.line) +
-		getRealLength(rprompt) + 1) < GetTermWidth()
+	rpromptLen := getRealLength(rprompt)
 
+	// Check that we have room for a right/tooltip prompt.
+	lineFits := rl.cursorLineLen()+rpromptLen+1 < GetTermWidth()
 	if !lineFits {
 		return
 	}
 
-	// First go back to beginning of line, and clear everything
-	moveCursorBackwards(GetTermWidth())
-	print(seqClearLine)
-	print(seqClearScreenBelow)
-
-	// Go to where we must print the right prompt, print and go back
-	forwardOffset := GetTermWidth() - getRealLength(rprompt) - 1
+	// We are at the very end of the line.
+	// Go back to the current cursor position.
+	moveCursorUp(rl.fullY - rl.posY)
+	termWidth := GetTermWidth()
+	moveCursorBackwards(termWidth)
+	forwardOffset := termWidth - rpromptLen - 1
 	moveCursorForwards(forwardOffset)
 	print(rprompt)
-	moveCursorBackwards(GetTermWidth())
+
+	// And go back to the end of the line.
+	moveCursorDown(rl.fullY - rl.posY)
 }
 
 func (p *prompt) printTransient(rl *Instance) {

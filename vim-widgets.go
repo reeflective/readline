@@ -292,7 +292,7 @@ func (rl *Instance) viForwardBlankWordEnd() {
 
 func (rl *Instance) viForwardChar() {
 	// Only exception where we actually don't forward a character.
-	if rl.config.HistoryAutosuggest && len(rl.histSuggested) > 0 {
+	if rl.config.HistoryAutosuggest && len(rl.histSuggested) > 0 && rl.pos == len(rl.line)-1 {
 		rl.historyAutosuggestInsert()
 		return
 	}
@@ -302,7 +302,9 @@ func (rl *Instance) viForwardChar() {
 	// In vi-cmd-mode, we don't go further than the
 	// last character in the line, hence rl.line-1
 	if rl.main != viins && rl.pos < len(rl.line)-1 {
-		rl.pos++
+		if rl.line[rl.pos+1] != '\n' {
+			rl.pos++
+		}
 
 		return
 	}
@@ -319,7 +321,9 @@ func (rl *Instance) viBackwardChar() {
 	rl.skipUndoAppend()
 
 	if rl.pos > 0 {
-		rl.pos--
+		if rl.line[rl.pos-1] != '\n' {
+			rl.pos--
+		}
 	}
 }
 
@@ -588,7 +592,7 @@ func (rl *Instance) viEndOfLine() {
 
 	switch {
 	case rl.numLines() > 1:
-		rl.findAndMoveCursor("\n", 1, true, true)
+		rl.findAndMoveCursor("\n", 1, true, false)
 	default:
 		rl.pos = len(rl.line)
 	}
