@@ -206,6 +206,20 @@ func (rl *Instance) cursorAtBeginningOfLine() bool {
 	return false
 }
 
+func (rl *Instance) isEmptyLine() bool {
+	if rl.pos <= 0 {
+		return false
+	}
+
+	if rl.line[rl.pos] == '\n' {
+		if rl.line[rl.pos-1] == '\n' {
+			return true
+		}
+	}
+
+	return false
+}
+
 var rxRcvCursorPos = regexp.MustCompile(`^\x1b\[([0-9]+);([0-9]+)R$`)
 
 func (rl *Instance) getCursorPos() (x int, y int) {

@@ -139,7 +139,12 @@ func (rl *Instance) clearScreen() {
 	print(seqCursorTopLeft)
 
 	rl.Prompt.init(rl)
-	rl.renderHelpers()
+
+	// Since the line and helpers are going to be redisplayed
+	// the cursor is going to be moved up before anything, so
+	// we compensate here so that the prompt that has just
+	// been printed is not cleared out.
+	moveCursorDown(rl.posY)
 }
 
 func (rl *Instance) beginningOfLine() {

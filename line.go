@@ -108,8 +108,9 @@ func (rl *Instance) computeLinePos() {
 			// If we are not on the cursor line yet.
 			rl.posY += lineY
 		case !cursorSet:
-			// We are on the cursor line, since we didn't catch the first case,
-			// and that our cursor X coordinate has not been set yet.
+			// We are on the cursor line, since we didn't catch
+			// the first case, and that our cursor X coordinate
+			// has not been set yet.
 			rl.computeCursorPos(startLine, cpos, i)
 			cursorSet = true
 			rl.hpos = i
@@ -163,6 +164,11 @@ func (rl *Instance) realLineLen(line []rune, idx int) (lineY int) {
 	}
 
 	if restY > 0 {
+		lineY++
+	}
+
+	// Empty lines are still considered a line.
+	if lineY == 0 && idx != 0 {
 		lineY++
 	}
 

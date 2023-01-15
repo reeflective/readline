@@ -106,16 +106,15 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	if sel.epos == -1 {
 		switch {
 		case rl.visualLine:
-			bpos = rl.substrPos('\n', false)
-			if bpos == rl.pos || bpos == -1 {
-				bpos = 0
-			} else {
-				bpos++
+			for bpos--; bpos >= 0; bpos-- {
+				if rl.line[bpos] == '\n' {
+					break
+				}
 			}
-
-			epos = rl.substrPos('\n', true)
-			if epos == rl.pos || epos == -1 {
-				epos = len(rl.line) - 1
+			for epos = rl.pos - 1; epos < len(rl.line); epos++ {
+				if rl.line[epos] == '\n' {
+					break
+				}
 			}
 
 		case sel.bpos <= rl.pos:

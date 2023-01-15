@@ -326,7 +326,7 @@ func (rl *Instance) viBackwardChar() {
 func (rl *Instance) viPutAfter() {
 	rl.undoHistoryAppend()
 
-	posStart := rl.pos
+	// posStart := rl.pos
 	buffer := rl.pasteFromRegister()
 
 	if buffer[len(buffer)-1] == '\n' {
@@ -339,15 +339,13 @@ func (rl *Instance) viPutAfter() {
 			}
 		}
 
-		// Special handling on empty lines and end of buffer
-		// TODO: EMPTY LINE
 		if rl.pos == len(rl.line)-1 {
 			buffer = append([]rune{'\n'}, buffer[:len(buffer)-2]...)
 		}
 	}
 
-	// Paste the buffer
-	if rl.pos < len(rl.line) {
+	// Special handling on empty lines and end of buffer
+	if !rl.isEmptyLine() && rl.pos < len(rl.line) {
 		rl.pos++
 	}
 
@@ -355,14 +353,11 @@ func (rl *Instance) viPutAfter() {
 	for i := 1; i <= vii; i++ {
 		rl.lineInsert(buffer)
 	}
-
-	rl.pos = posStart
 }
 
 func (rl *Instance) viPutBefore() {
 	rl.undoHistoryAppend()
 
-	posStart := rl.pos
 	buffer := rl.pasteFromRegister()
 
 	if buffer[len(buffer)-1] == '\n' {
@@ -373,14 +368,17 @@ func (rl *Instance) viPutBefore() {
 			}
 			rl.pos = cpos
 		}
+
+		if rl.isEmptyLine() {
+			buffer = append(buffer, '\n')
+			rl.pos--
+		}
 	}
 
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.lineInsert(buffer)
 	}
-
-	rl.pos = posStart
 }
 
 func (rl *Instance) viReplaceChars() {
