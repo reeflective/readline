@@ -68,6 +68,25 @@ func (rl *Instance) updateCursor() {
 	}
 }
 
+func (rl *Instance) checkCursorBounds() {
+	line := rl.lineCompleted()
+
+	switch rl.main {
+	case emacs, viins:
+		if rl.pos > len(line) {
+			rl.pos = len(line)
+		}
+	case vicmd:
+		if rl.pos > len(line)-1 {
+			rl.pos = len(line) - 1
+		}
+	}
+
+	if rl.pos < 0 {
+		rl.pos = 0
+	}
+}
+
 // findAndMoveCursor finds a specified character in the line, either forward
 // or backward, a specified number of times, and moves the cursor to it.
 func (rl *Instance) findAndMoveCursor(key string, count int, forward, skip bool) {

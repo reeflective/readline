@@ -107,23 +107,15 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 		switch {
 		case rl.visualLine:
 			bpos = rl.substrPos('\n', false)
-			if bpos == rl.pos {
+			if bpos == rl.pos || bpos == -1 {
 				bpos = 0
 			} else {
 				bpos++
 			}
 
 			epos = rl.substrPos('\n', true)
-			if epos == rl.pos {
+			if epos == rl.pos || epos == -1 {
 				epos = len(rl.line) - 1
-			}
-
-			// The cursor position is the first preceding
-			// newline.
-			for cpos = rl.pos; cpos >= 0; cpos-- {
-				if rl.line[cpos] == '\n' {
-					break
-				}
 			}
 
 		case sel.bpos <= rl.pos:
@@ -132,7 +124,6 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 			if bpos < 0 {
 				bpos = 0
 			}
-			cpos = bpos
 
 		default:
 			bpos = rl.pos
@@ -140,7 +131,6 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 			if bpos < 0 {
 				bpos = 0
 			}
-			cpos = bpos
 		}
 	}
 
@@ -155,6 +145,62 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	}
 	if bpos < 0 {
 		bpos = 0
+	}
+
+	// Compute the desired cursor position.
+	cpos = rl.calcSelectionCursor(bpos, epos)
+
+	return
+}
+
+func (rl *Instance) calcSelectionCursor(bpos, epos int) (cpos int) {
+	cpos = bpos
+	var indent int
+
+	if rl.local == visual && rl.visualLine {
+
+		// Get the indent of the cursor line.
+		for cpos = rl.pos - 1; cpos >= 0; cpos-- {
+			if rl.line[cpos] == '\n' {
+				break
+			}
+		}
+		indent = rl.pos - cpos - 1
+
+		// If the selection includes the last line,
+		// the cursor will move up the above line.
+		var hpos, rpos int
+
+		if epos < len(rl.line) {
+			hpos = epos + 1
+			rpos = bpos
+		} else {
+			for hpos = bpos - 2; hpos >= 0; hpos-- {
+				if rl.line[hpos] == '\n' {
+					break
+				}
+			}
+			if hpos < -1 {
+				hpos = -1
+			}
+			hpos++
+			rpos = hpos
+		}
+
+		// Now calculate the cursor position, the indent
+		// must be less than the line characters.
+		for cpos = hpos; cpos < len(rl.line); cpos++ {
+			if rl.line[cpos] == '\n' {
+				break
+			}
+			if hpos+indent <= cpos {
+				break
+			}
+		}
+
+		// That cursor position might be bigger than the line itself:
+		// it should be controlled when the line is redisplayed.
+		cpos = rpos + cpos - hpos
 	}
 
 	return

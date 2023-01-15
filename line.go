@@ -24,17 +24,6 @@ func (rl *Instance) lineInit() {
 	rl.resetRegions()
 }
 
-// When the DelayedSyntaxWorker gives us a new line, we need to check if there
-// is any processing to be made, that all lines match in terms of content.
-func (rl *Instance) lineUpdate(line []rune) {
-	if len(rl.comp) > 0 {
-	} else {
-		rl.line = line
-	}
-
-	rl.renderHelpers()
-}
-
 // lineCompleted - In many places we need the current line input. We either return the real line,
 // or the one that includes the current completion candidate, if there is any.
 func (rl *Instance) lineCompleted() []rune {
@@ -57,7 +46,9 @@ func (rl *Instance) lineBuffer() (buf []rune) {
 	return
 }
 
-func (rl *Instance) lineDisplay() (line []rune, cpos int) {
+func (rl *Instance) lineSuggested() (line []rune, cpos int) {
+	rl.checkCursorBounds()
+
 	if len(rl.comp) > 0 {
 		line = rl.compLine
 		cpos = len(rl.compLine[:rl.pos])
@@ -66,28 +57,33 @@ func (rl *Instance) lineDisplay() (line []rune, cpos int) {
 		cpos = len(rl.line[:rl.pos])
 	}
 
-	// Cursor cannot be after the line in vicmd mode.
-	if rl.main == vicmd && cpos == len(line) && cpos > 0 {
-		cpos--
-	}
-
 	if len(rl.histSuggested) > 0 {
 		line = append(line, rl.histSuggested...)
 	}
 
-	// Add a newline for correct split by newline
-	return append(line, '\n'), cpos
+	return line, cpos
+}
+
+func (rl *Instance) lineDisplay() (line []rune) {
+	line = rl.lineCompleted()
+
+	// Always remove a trailing newline if there is one.
+	if len(line) > 0 && line[len(line)-1] == '\n' {
+		line = line[:len(line)-1]
+	}
+
+	return
 }
 
 // computeLinePos determines the X and Y coordinates of the cursor.
 func (rl *Instance) computeLinePos() {
-	if rl.pos < 0 {
-		rl.pos = 0
-	}
-
 	// Use the line including any completion or line suggestion,
-	// and compute buffer/cursor length. This includes a last newline.
-	line, cpos := rl.lineDisplay()
+	// and compute buffer/cursor length. Only add a newline when
+	// the current buffer does not end with one.
+	line, cpos := rl.lineSuggested()
+	if len(line) > 0 && line[len(line)-1] != '\n' {
+		line = append(line, '\n')
+	}
 
 	// Get the index of each newline in the buffer.
 	nl, _ := regexp.Compile("\n")
@@ -195,7 +191,7 @@ func (rl *Instance) linePrint() {
 		rl.Prompt.printLast(rl)
 
 		// Print the input line with optional syntax highlighting
-		line := rl.lineCompleted()
+		line := rl.lineDisplay()
 		highlighted := string(line)
 
 		if rl.SyntaxHighlighter != nil {
@@ -246,6 +242,17 @@ func (rl *Instance) lineClear() {
 
 	// Completions are also reset
 	rl.clearVirtualComp()
+}
+
+// When the DelayedSyntaxWorker gives us a new line, we need to check if there
+// is any processing to be made, that all lines match in terms of content.
+func (rl *Instance) lineUpdate(line []rune) {
+	if len(rl.comp) > 0 {
+	} else {
+		rl.line = line
+	}
+
+	rl.renderHelpers()
 }
 
 func (rl *Instance) lineInsert(r []rune) {
