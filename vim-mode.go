@@ -102,7 +102,6 @@ const (
 )
 
 func (rl *Instance) refreshVimStatus() {
-	rl.Prompt.compute(rl)
 	rl.redisplay()
 }
 

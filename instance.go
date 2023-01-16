@@ -176,7 +176,6 @@ func NewInstance() *Instance {
 	rl.Prompt = &prompt{
 		primary: "$ ",
 	}
-	rl.Prompt.compute(rl)
 
 	// Keymaps and configuration
 	rl.loadDefaultConfig()

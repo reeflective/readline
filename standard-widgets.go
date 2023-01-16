@@ -194,9 +194,6 @@ func (rl *Instance) upLine() {
 		// go at the beginning of the previous one.
 		if line == rl.hpos {
 			cpos = rl.pos - bpos
-			// if cpos >= 1 && line == 1 {
-			// 	cpos--
-			// }
 			continue
 		}
 
@@ -795,20 +792,22 @@ func (rl *Instance) editCommandLine() {
 		return
 	}
 
-	// Since we might have edited a buffer including multiline splits,
-	// those splits are now part of the line itself. It's not a problem,
-	// but that means we must must reprint everything along with the first
-	// (primary) prompt itself.
-
-	// Clean the shell and put the new buffer, with adjusted pos if needed.
-	// TODO: Not correct, now that we support multiline: this should not be
-	// like this.
-	rl.lineClear()
+	// Update our line
 	rl.line = edited
-	if rl.pos > len(rl.line) {
-		rl.pos = len(rl.line) - 1
-	}
 
+	// Since we might have edited a buffer including multiline splits,
+	// those splits are now part of the line itself.
+	// Go back to the current line first, then up the multiline split.
+	// moveCursorUp(rl.posY)
+	moveCursorUp(rl.multilineSize())
+	print(seqClearScreenBelow)
+
+	// Clear our list of splits, and adjust the cursor to account for them.
+	multiLen := rl.multilineLen()
+	rl.pos += multiLen + 1
+	rl.multilineSplit = make([]string, 0)
+
+	// We're done with visual mode when we were in.
 	if (rl.main == vicmd || rl.main == viins) && rl.local == visual {
 		rl.exitVisualMode()
 	}

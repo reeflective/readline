@@ -87,7 +87,7 @@ func (rl *Instance) computeLinePos() {
 	}
 
 	// Get the index of each newline in the buffer.
-	nl, _ := regexp.Compile("\n")
+	nl := regexp.MustCompile("\n")
 	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
 
 	rl.posX = 0
@@ -138,7 +138,7 @@ func (rl *Instance) computeCursorPos(startLine, cpos, lineIdx int) {
 	switch {
 	case lineIdx == 0:
 		// The first line has a prompt to account for
-		cursorX += rl.Prompt.inputAt
+		cursorX += rl.Prompt.inputAt(rl)
 	case cursorY == 0:
 		// Even if empty, the line counts for 1.
 		// If rounded, the cursor should be on the next line.
@@ -155,7 +155,7 @@ func (rl *Instance) computeCursorPos(startLine, cpos, lineIdx int) {
 func (rl *Instance) realLineLen(line []rune, idx int) (lineY int) {
 	lineLen := getRealLength(string(line))
 	if idx == 0 {
-		lineLen += rl.Prompt.inputAt
+		lineLen += rl.Prompt.inputAt(rl)
 	}
 
 	lineY = lineLen / GetTermWidth()
@@ -238,7 +238,7 @@ func (rl *Instance) lineClear() {
 	// We need to go back to prompt
 	moveCursorUp(rl.posY)
 	moveCursorBackwards(GetTermWidth())
-	moveCursorForwards(rl.Prompt.inputAt)
+	moveCursorForwards(rl.Prompt.inputAt(rl))
 
 	// Clear everything after & below the cursor
 	print(seqClearScreenBelow)
@@ -355,12 +355,12 @@ func (rl *Instance) cursorLineLen() (lineLen int) {
 		return 0
 	}
 
-	if len(rl.lineCompleted()) > 0 && rl.lineCompleted()[0] == '\n' {
-		panic("HERE")
-	}
+	// if len(rl.lineCompleted()) > 0 && rl.lineCompleted()[0] == '\n' {
+	// 	panic("HERE")
+	// }
 
 	if len(lines) == 1 {
-		lineLen += rl.Prompt.inputAt
+		lineLen += rl.Prompt.inputAt(rl)
 	}
 
 	lineLen += getRealLength(lines[rl.hpos])
@@ -378,4 +378,26 @@ func (rl *Instance) cursorLineLen() (lineLen int) {
 	}
 
 	return lineLen
+}
+
+func (rl *Instance) multilineSize() (usedY int) {
+	for i, line := range rl.multilineSplit {
+		// Resplit each line per newline character.
+		lines := strings.Split(line, "\n")
+
+		for j, nline := range lines {
+			if i == 0 && j == 0 {
+				nline = rl.Prompt.getPrimaryLastLine() + nline
+			} else {
+				nline = rl.Prompt.secondary + nline
+			}
+			usedY += rl.realLineLen([]rune(nline), 1)
+		}
+	}
+
+	return
+}
+
+func (rl *Instance) multilineLen() int {
+	return len(strings.Join(rl.multilineSplit, "\n"))
 }

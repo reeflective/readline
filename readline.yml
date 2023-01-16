@@ -272,7 +272,7 @@ keymaps:
         k: up-line
         s: vi-substitute
         u: vi-down-case
-        v: vi-edit-command-line
+        v: edit-command-line
         x: vi-delete
         "y": vi-yank
 

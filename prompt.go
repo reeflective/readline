@@ -33,7 +33,7 @@ type prompt struct {
 	// The offset used on the first line, where either
 	// the full prompt (or the last line) is. Used for
 	// correctly replacing the cursor.
-	inputAt int
+	endX int
 }
 
 // Primary uses a function returning the string to use as the primary prompt.
@@ -77,9 +77,6 @@ func (p *prompt) init(rl *Instance) {
 		p.secondary = p.secondaryF()
 	}
 
-	// Compute some offsets needed by the last line.
-	rl.Prompt.compute(rl)
-
 	// Print the primary prompt, potentially excluding the last line.
 	print(p.getPrimary())
 	p.stillOnRefresh = false
@@ -113,17 +110,21 @@ func (p *prompt) getPrimaryLastLine() string {
 	return lastLine
 }
 
-// computePromptAlt computes the correct lengths and offsets
-// for all prompt components, but does not print any of them.
-func (p *prompt) compute(rl *Instance) {
+func (p *prompt) inputAt(rl *Instance) int {
 	prompt := p.primary
+
+	if len(rl.multilineSplit) > 0 {
+		prompt = p.secondary
+	}
 
 	lastLineIndex := strings.LastIndex(prompt, "\n")
 	if lastLineIndex != -1 {
-		rl.Prompt.inputAt = getRealLength(prompt[lastLineIndex+1:])
+		p.endX = getRealLength(prompt[lastLineIndex+1:])
 	} else {
-		rl.Prompt.inputAt = getRealLength(prompt)
+		p.endX = getRealLength(prompt)
 	}
+
+	return p.endX
 }
 
 // update is called after each key/widget processing, and refreshes
