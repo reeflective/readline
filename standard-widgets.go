@@ -185,7 +185,7 @@ func (rl *Instance) upLine() {
 
 		// Get the beginning of the previous line.
 		if line > 0 {
-			bpos = newlinesIdx[line-1][0]
+			bpos = newlinesIdx[line-1][0] + 1
 		} else {
 			bpos = 0
 		}
@@ -194,9 +194,9 @@ func (rl *Instance) upLine() {
 		// go at the beginning of the previous one.
 		if line == rl.hpos {
 			cpos = rl.pos - bpos
-			if cpos == 1 && line == 1 {
-				cpos--
-			}
+			// if cpos >= 1 && line == 1 {
+			// 	cpos--
+			// }
 			continue
 		}
 
@@ -222,7 +222,7 @@ func (rl *Instance) downLine() {
 	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
 
 	for line := 0; line < len(newlinesIdx); line++ {
-		epos := newlinesIdx[line][0]
+		epos := newlinesIdx[line][0] + 1
 		if line < rl.hpos {
 			bpos = epos
 			continue
@@ -233,7 +233,7 @@ func (rl *Instance) downLine() {
 		if line == rl.hpos {
 			cpos = rl.pos - bpos
 			bpos = epos
-			rl.pos = bpos + 1
+			rl.pos = bpos
 			continue
 		}
 
