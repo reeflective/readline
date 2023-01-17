@@ -149,22 +149,26 @@ func (rl *Instance) clearScreen() {
 
 func (rl *Instance) beginningOfLine() {
 	rl.skipUndoAppend()
-	switch {
-	case rl.numLines() > 1:
-		rl.findAndMoveCursor("\n", 1, false, true)
-	default:
-		rl.pos = 0
+	// switch {
+	// case rl.numLines() > 1:
+	for ; rl.pos >= 0; rl.pos-- {
+		if rl.line[rl.pos] == '\n' {
+			rl.pos++
+			break
+		}
 	}
+	// default:
+	// rl.pos = 0
+	// }
 }
 
 func (rl *Instance) endOfLine() {
 	rl.skipUndoAppend()
 
-	switch {
-	case rl.numLines() > 1:
-		rl.findAndMoveCursor("\n", 1, true, false)
-	default:
-		rl.pos = len(rl.line)
+	for ; rl.pos < len(rl.line); rl.pos++ {
+		if rl.line[rl.pos] == '\n' {
+			break
+		}
 	}
 }
 
@@ -197,12 +201,19 @@ func (rl *Instance) upLine() {
 			continue
 		}
 
+		// If the end position of the previous line
+		// is the same as the beginning position,
+		// then the line is empty: stay on its newline.
+		if bpos == epos {
+			bpos++
+		}
+
 		// And either go at the end of the line
 		// or to the previous cursor X coordinate.
 		if epos-bpos > cpos {
 			rl.pos = bpos + cpos
 		} else {
-			rl.pos = bpos - 1
+			rl.pos = epos
 		}
 
 		break
@@ -232,11 +243,6 @@ func (rl *Instance) downLine() {
 			bpos = epos
 			rl.pos = bpos
 			continue
-		}
-
-		// Adjust for newline rounded.
-		if cpos == 0 {
-			cpos++
 		}
 
 		// And either go at the end of the line

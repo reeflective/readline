@@ -65,7 +65,7 @@ func (rl *Instance) lineHighlighted() string {
 	highlighted = rl.highlightLine([]rune(highlighted))
 
 	if len(rl.histSuggested) > 0 {
-		highlighted += string(rl.histSuggested) + seqReset
+		highlighted += seqFgBlack + string(rl.histSuggested) + seqReset
 	}
 
 	return highlighted

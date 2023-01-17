@@ -219,16 +219,16 @@ func (rl *Instance) viKillEol() {
 	pos := rl.pos
 	rl.markSelection(rl.pos)
 
-	switch {
-	case rl.numLines() > 1:
-		for ; rl.pos < len(rl.line); rl.pos++ {
-			if rl.line[rl.pos] == '\n' {
-				break
-			}
+	// switch {
+	// case rl.numLines() > 1:
+	for ; rl.pos < len(rl.line); rl.pos++ {
+		if rl.line[rl.pos] == '\n' {
+			break
 		}
-	default:
-		rl.pos = len(rl.line)
 	}
+	// default:
+	// 	rl.pos = len(rl.line)
+	// }
 
 	rl.deleteSelection()
 
@@ -598,15 +598,10 @@ func (rl *Instance) viYankWholeLine() {
 func (rl *Instance) viEndOfLine() {
 	rl.skipUndoAppend()
 
-	switch {
-	case rl.numLines() > 1:
-		for ; rl.pos < len(rl.line); rl.pos++ {
-			if rl.line[rl.pos] == '\n' {
-				break
-			}
+	for ; rl.pos < len(rl.line); rl.pos++ {
+		if rl.line[rl.pos] == '\n' {
+			break
 		}
-	default:
-		rl.pos = len(rl.line)
 	}
 }
 

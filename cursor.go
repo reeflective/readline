@@ -86,7 +86,7 @@ func (rl *Instance) checkCursorBounds() {
 
 		if rl.pos > len(line)-1 {
 			rl.pos = len(line) - 1
-		} else if rl.pos < len(rl.line) && rl.line[rl.pos] == '\n' {
+		} else if rl.line[rl.pos] == '\n' && !rl.isEmptyLine() {
 			rl.pos--
 		}
 	}
