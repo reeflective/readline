@@ -186,7 +186,7 @@ var (
 
 // Xterm 256 colors.
 const (
-	seqCtermFg255 = "\033[48;5;255m"
+	seqCtermBg255 = "\033[48;5;255m"
 )
 
 // Effects returns true if colors and effects are supported

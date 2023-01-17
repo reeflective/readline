@@ -95,7 +95,7 @@ func (rl *Instance) Readline() (string, error) {
 		if widget != nil {
 			forward := rl.run(widget, keys, rl.local)
 			if rl.accepted || rl.err != nil {
-				return string(rl.lineBuffer()), rl.err
+				return string(rl.lineCompleted()), rl.err
 			}
 			if !forward {
 				continue
@@ -117,7 +117,7 @@ func (rl *Instance) Readline() (string, error) {
 		if widget != nil {
 			forward := rl.run(widget, keys, rl.main)
 			if rl.accepted || rl.err != nil {
-				return string(rl.lineBuffer()), rl.err
+				return string(rl.lineCompleted()), rl.err
 			}
 			if !forward {
 				continue

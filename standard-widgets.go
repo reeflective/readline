@@ -781,7 +781,7 @@ func (rl *Instance) transposeChars() {
 func (rl *Instance) editCommandLine() {
 	rl.clearHelpers()
 
-	buffer := rl.lineBuffer()
+	buffer := rl.line
 
 	edited, err := rl.StartEditorWithBuffer(buffer, "")
 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
@@ -794,18 +794,6 @@ func (rl *Instance) editCommandLine() {
 
 	// Update our line
 	rl.line = edited
-
-	// Since we might have edited a buffer including multiline splits,
-	// those splits are now part of the line itself.
-	// Go back to the current line first, then up the multiline split.
-	// moveCursorUp(rl.posY)
-	moveCursorUp(rl.multilineSize())
-	print(seqClearScreenBelow)
-
-	// Clear our list of splits, and adjust the cursor to account for them.
-	multiLen := rl.multilineLen()
-	rl.pos += multiLen + 1
-	rl.multilineSplit = make([]string, 0)
 
 	// We're done with visual mode when we were in.
 	if (rl.main == vicmd || rl.main == viins) && rl.local == visual {

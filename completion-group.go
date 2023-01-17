@@ -469,7 +469,7 @@ func (g *comps) highlightCandidate(rl *Instance, val Completion, cell, pad strin
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case selected:
-		candidate = seqCtermFg255 + seqFgBlackBright + g.displayTrimmed(ansi.Strip(val.Display))
+		candidate = seqCtermBg255 + seqFgBlackBright + g.displayTrimmed(ansi.Strip(val.Display))
 		if g.aliased {
 			candidate += cell + seqReset
 		}
@@ -499,7 +499,7 @@ func (g *comps) highlightDescription(rl *Instance, val Completion, y, x int) (de
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case y == g.tcPosY && x == g.tcPosX && g.isCurrent && !g.aliased:
-		desc = seqCtermFg255 + seqFgBlackBright + g.descriptionTrimmed(val.Description)
+		desc = seqCtermBg255 + seqFgBlackBright + g.descriptionTrimmed(val.Description)
 	}
 
 	desc = seqDim + g.listSeparator + " " + desc + seqReset

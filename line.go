@@ -34,19 +34,6 @@ func (rl *Instance) lineCompleted() []rune {
 	return rl.line
 }
 
-// lineBuffer returns the aggregate buffer of the current Readline loop:
-// this includes all previous lines (that were returned but not accepted
-// as is by the caller), separated by a newline, and the current one.
-func (rl *Instance) lineBuffer() (buf []rune) {
-	for _, line := range rl.multilineSplit {
-		buf = append(buf, []rune(line)...)
-		buf = append(buf, '\n')
-	}
-	buf = append(buf, rl.line...)
-
-	return
-}
-
 func (rl *Instance) lineSuggested() (line []rune, cpos int) {
 	rl.checkCursorBounds()
 
@@ -65,15 +52,23 @@ func (rl *Instance) lineSuggested() (line []rune, cpos int) {
 	return line, cpos
 }
 
-func (rl *Instance) lineDisplay() (line []rune) {
-	line = rl.lineCompleted()
+func (rl *Instance) lineHighlighted() string {
+	line := rl.lineCompleted()
+	highlighted := string(line)
 
-	// Always remove a trailing newline if there is one.
-	if len(line) > 0 && line[len(line)-1] == '\n' {
-		line = line[:len(line)-1]
+	// Use user-defined highlighting if any.
+	if rl.SyntaxHighlighter != nil {
+		highlighted = rl.SyntaxHighlighter(line)
 	}
 
-	return
+	// Add visual selection highlight if any, and print
+	highlighted = rl.highlightLine([]rune(highlighted))
+
+	if len(rl.histSuggested) > 0 {
+		highlighted += string(rl.histSuggested) + seqReset
+	}
+
+	return highlighted
 }
 
 // computeLinePos determines the X and Y coordinates of the cursor.
@@ -82,9 +77,7 @@ func (rl *Instance) computeLinePos() {
 	// and compute buffer/cursor length. Only add a newline when
 	// the current buffer does not end with one.
 	line, cpos := rl.lineSuggested()
-	if len(line) > 0 && line[len(line)-1] != '\n' {
-		line = append(line, '\n')
-	}
+	line = append(line, '\n')
 
 	// Get the index of each newline in the buffer.
 	nl := regexp.MustCompile("\n")
@@ -149,7 +142,10 @@ func (rl *Instance) computeCursorPos(startLine, cpos, lineIdx int) {
 	}
 
 	rl.posY += cursorY
-	rl.posX += cursorX
+	rl.posX = cursorX
+	if lineIdx > 0 {
+		rl.posX += rl.Prompt.inputAt(rl)
+	}
 }
 
 func (rl *Instance) realLineLen(line []rune, idx int) (lineY int) {
@@ -196,38 +192,23 @@ func (rl *Instance) linePrint() {
 		// We are the very beginning of the line ON WHICH we are
 		// going to write the input line, not higher, even if the
 		// entire primary+right prompt span several lines.
+		// Print the prompt or part of it, and the buffer right after.
 		rl.Prompt.printLast(rl)
+		rl.printBuffer()
 
-		// Print the input line with optional syntax highlighting
-		line := rl.lineDisplay()
-		highlighted := string(line)
+		// Now that we working with an entirely updated line,
+		// we must recompute all the offsets for it.
+		rl.computeLinePos()
 
-		if rl.SyntaxHighlighter != nil {
-			highlighted = rl.SyntaxHighlighter(line)
-		}
+		// Go back to the current cursor position, with new coordinates
+		moveCursorBackwards(GetTermWidth())
+		moveCursorUp(rl.fullY)
+		moveCursorDown(rl.posY)
+		moveCursorForwards(rl.posX)
 
-		// Highlight visual selection if any, and print
-		highlighted = rl.highlightLine([]rune(highlighted))
-		print(highlighted)
-
-		if len(rl.histSuggested) > 0 {
-			print(seqFgBlackBright + string(rl.histSuggested) + seqReset)
-		}
-
+		// Finally, print any right or tooltip prompt.
+		rl.Prompt.printRprompt(rl)
 	}
-
-	// Update references with new coordinates only now, because
-	// the new line may be longer/shorter than the previous one.
-	rl.computeLinePos()
-
-	// Finally, print any right or tooltip prompt.
-	rl.Prompt.printRprompt(rl)
-
-	// Go back to the current cursor position, with new coordinates
-	moveCursorBackwards(GetTermWidth())
-	moveCursorUp(rl.fullY)
-	moveCursorDown(rl.posY)
-	moveCursorForwards(rl.posX)
 }
 
 func (rl *Instance) lineClear() {
@@ -323,25 +304,26 @@ func (rl *Instance) lineCarriageReturn() {
 	rl.linePrint()
 	moveCursorDown(rl.fullY - rl.posY)
 	print(seqClearScreenBelow)
-	print("\r\n")
 
 	// Ask the caller if the line should be accepted as is: if yes, return it.
 	// Determine if the line is complete per the caller's standards.
 	// We always return the entire buffer, including previous multisplits.
-	if rl.IsMultiline(rl.lineBuffer()) {
+	if rl.IsMultiline(rl.lineCompleted()) {
+		print("\r\n")
 		rl.writeHistoryLine()
 		rl.accepted = true
 		return
 	}
 
-	// If not, we should start editing another line.
+	// If not, we should start editing another line,
+	// so get back to the cursor line (but don't move
+	// the cursor VALUE)
+	moveCursorUp(rl.fullY - rl.posY)
 
-	// We append the current line to rl.multiline, so that any
-	// edition in EDITOR will use the entire buffer.
-	rl.multilineSplit = append(rl.multilineSplit, string(rl.line))
-
-	// Finally, we reset the current line, and keep readling.
-	rl.lineInit()
+	// And insert a newline where our cursor value is.
+	// This has the nice advantage of being able to work
+	// in multiline mode even in the middle of the buffer.
+	rl.lineInsert([]rune{'\n'})
 }
 
 func (rl *Instance) numLines() int {
@@ -380,24 +362,26 @@ func (rl *Instance) cursorLineLen() (lineLen int) {
 	return lineLen
 }
 
-func (rl *Instance) multilineSize() (usedY int) {
-	for i, line := range rl.multilineSplit {
-		// Resplit each line per newline character.
-		lines := strings.Split(line, "\n")
+func (rl *Instance) printBuffer() {
+	// Generate the entire line as an highlighted line,
+	// and split it at each newline.
+	line := rl.lineHighlighted()
+	lines := strings.Split(line, "\n")
 
-		for j, nline := range lines {
-			if i == 0 && j == 0 {
-				nline = rl.Prompt.getPrimaryLastLine() + nline
-			} else {
-				nline = rl.Prompt.secondary + nline
-			}
-			usedY += rl.realLineLen([]rune(nline), 1)
-		}
+	if len(line) > 0 && line[len(line)-1] == '\n' {
+		lines = append(lines, "")
 	}
 
-	return
-}
+	for i, line := range lines {
+		// Indent according to the prompt.
+		if i > 0 {
+			moveCursorForwards(rl.Prompt.inputAt(rl))
+		}
 
-func (rl *Instance) multilineLen() int {
-	return len(strings.Join(rl.multilineSplit, "\n"))
+		if i < len(lines)-1 {
+			line += "\n"
+		}
+
+		print(line)
+	}
 }

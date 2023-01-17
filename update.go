@@ -2,12 +2,11 @@ package readline
 
 // init gathers all steps to perform at the beginning of readline loop.
 func (rl *Instance) init() {
-	rl.lineInit()                         // Clear the line in most cases
-	rl.multilineSplit = make([]string, 0) // Reset the entire multisplit buffer.
-	rl.initHelpers()                      // Prepare hints/completions
-	rl.initHistory()                      // Reset undo/history indexes in most cases.
-	rl.initHistoryLine()                  // Retrieve a line from history when asked.
-	rl.initKeymap()                       // Verify key mappings and widget binds
+	rl.lineInit()        // Clear the line in most cases
+	rl.initHelpers()     // Prepare hints/completions
+	rl.initHistory()     // Reset undo/history indexes in most cases.
+	rl.initHistoryLine() // Retrieve a line from history when asked.
+	rl.initKeymap()      // Verify key mappings and widget binds
 
 	// The prompt reevaluates itself when its corresponding
 	// functions are bound. Some of its components (PS1/RPROMPT)

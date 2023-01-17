@@ -113,7 +113,7 @@ func (p *prompt) getPrimaryLastLine() string {
 func (p *prompt) inputAt(rl *Instance) int {
 	prompt := p.primary
 
-	if len(rl.multilineSplit) > 0 {
+	if rl.numLines() > 1 {
 		prompt = p.secondary
 	}
 
@@ -145,11 +145,7 @@ func (p *prompt) update(rl *Instance) {
 }
 
 func (p *prompt) printLast(rl *Instance) {
-	if len(rl.multilineSplit) > 0 {
-		print(p.secondaryF())
-	} else {
-		print(p.getPrimaryLastLine())
-	}
+	print(p.getPrimaryLastLine())
 }
 
 func (p *prompt) printRprompt(rl *Instance) {

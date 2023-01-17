@@ -71,20 +71,15 @@ type Instance struct {
 	// Once enabled, set to 0 (zero) to disable the mask again.
 	PasswordMask rune
 
-	// Buffer & line
-	keys      string // Contains all keys (input by user) not yet consumed by the shell widgets.
-	line      []rune // This is the input line, with entered text: full line = mlnPrompt + line
-	accepted  bool   // Set by 'accept-line' widget, to notify return the line to the caller
-	err       error  // Errors returned by interrupt signal handlers
-	inferLine bool   // When a "accept-line-and-down-history" widget wants to immediately retrieve/use a line.
-
-	// Buffer received from host programs
-	multilineSplit []string
-	skipStdinRead  bool
-
-	// selection management
-	visualLine bool         // Is the visual mode VISUAL_LINE
-	marks      []*selection // Visual/surround selections areas, often highlighted.
+	// Buffer/line/selections
+	keys          string // Contains all keys (input by user) not yet consumed by the shell widgets.
+	line          []rune // This is the input line, with entered text: full line = mlnPrompt + line
+	accepted      bool   // Set by 'accept-line' widget, to notify return the line to the caller
+	err           error  // Errors returned by interrupt signal handlers
+	inferLine     bool   // When a "accept-line-and-down-history" widget wants to immediately retrieve/use a line.
+	skipStdinRead bool
+	visualLine    bool         // Is the visual mode VISUAL_LINE
+	marks         []*selection // Visual/surround selections areas, often highlighted.
 
 	// Cursor
 	pos   int // Cursor position in the entire line.

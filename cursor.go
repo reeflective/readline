@@ -80,9 +80,13 @@ func (rl *Instance) checkCursorBounds() {
 			rl.pos = len(line)
 		}
 	case vicmd:
+		if rl.pos == 0 {
+			return
+		}
+
 		if rl.pos > len(line)-1 {
 			rl.pos = len(line) - 1
-		} else if rl.pos > 0 && rl.pos < len(rl.line) && rl.line[rl.pos] == '\n' {
+		} else if rl.pos < len(rl.line) && rl.line[rl.pos] == '\n' {
 			rl.pos--
 		}
 	}

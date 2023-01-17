@@ -173,7 +173,7 @@ func (rl *Instance) writeHistoryLine() {
 			continue
 		}
 
-		rl.histPos, err = history.Write(string(rl.lineBuffer()))
+		rl.histPos, err = history.Write(string(rl.line))
 		if err != nil {
 			print(err.Error() + "\r\n")
 		}
