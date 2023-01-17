@@ -46,13 +46,13 @@ func (rl *Instance) clearHelpers() {
 	// Now go down to the last line of input
 	moveCursorDown(rl.fullY - rl.posY)
 	moveCursorBackwards(rl.posX)
-	moveCursorDown(1)
+	// moveCursorDown(1)
 
 	// Clear everything below
 	print(seqClearScreenBelow)
 
 	// Go back to current cursor position
-	moveCursorUp(1)
+	// moveCursorUp(1)
 	moveCursorBackwards(GetTermWidth())
 	moveCursorUp(rl.fullY - rl.posY)
 	moveCursorForwards(rl.posX)

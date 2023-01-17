@@ -83,79 +83,63 @@ func (rl *Instance) computeLinePos() {
 	nl := regexp.MustCompile("\n")
 	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
 
-	rl.posX = 0
 	rl.posY = 0
 	rl.fullY = 0
-	rl.hpos = 0
 	startLine := 0
 	cursorSet := false
 
-	for i, index := range newlinesIdx {
+	for pos, newline := range newlinesIdx {
 		// Compute any adjustment in case this line must be wrapped.
 		// Here, compute if line must be wrapped, to adjust posY.
-		lineY := rl.realLineLen(line[startLine:index[0]], i)
+		lineY := rl.realLineLen(line[startLine:newline[0]], pos)
 
 		// All lines add to the global offset.
 		rl.fullY += lineY
 
 		switch {
-		case index[0] < cpos:
+		case newline[0] < cpos:
 			// If we are not on the cursor line yet.
 			rl.posY += lineY
 		case !cursorSet:
 			// We are on the cursor line, since we didn't catch
 			// the first case, and that our cursor X coordinate
 			// has not been set yet.
-			rl.computeCursorPos(startLine, cpos, i)
+			rl.computeCursorPos(startLine, cpos, pos)
 			cursorSet = true
-			rl.hpos = i
+			rl.hpos = pos
 		}
 
-		startLine = index[1]
-	}
-
-	// When the X value of the cursor has not been set,
-	// it's because we are at the end of the line.
-	if rl.posX == 0 && rl.fullY == 0 {
-		rl.computeCursorPos(startLine, cpos, 0)
+		startLine = newline[1]
 	}
 }
 
 // computeCursorPos computes the X/Y coordinates of the cursor on a given line.
 func (rl *Instance) computeCursorPos(startLine, cpos, lineIdx int) {
+	termWidth := GetTermWidth()
 	cursorStart := cpos - startLine
-	cursorY := cursorStart / GetTermWidth()
-	cursorX := cursorStart % GetTermWidth()
+	cursorStart += rl.Prompt.inputAt(rl)
 
-	// Adjustments
-	switch {
-	case lineIdx == 0:
-		// The first line has a prompt to account for
-		cursorX += rl.Prompt.inputAt(rl)
-	case cursorY == 0:
-		// Even if empty, the line counts for 1.
-		// If rounded, the cursor should be on the next line.
-		cursorY++
-	case cursorX > 0:
-		// If we have a rest, that means we use one more line.
-		cursorY++
-	}
+	cursorY := cursorStart / termWidth
+	cursorX := cursorStart % termWidth
 
 	rl.posY += cursorY
 	rl.posX = cursorX
+
 	if lineIdx > 0 {
-		rl.posX += rl.Prompt.inputAt(rl)
+		rl.posY++
+	} else if rl.posX == termWidth {
+		rl.posY++
+		rl.posX = 0
 	}
 }
 
 func (rl *Instance) realLineLen(line []rune, idx int) (lineY int) {
 	lineLen := getRealLength(string(line))
-	if idx == 0 {
-		lineLen += rl.Prompt.inputAt(rl)
-	}
+	termWidth := GetTermWidth()
+	lineLen += rl.Prompt.inputAt(rl)
 
-	lineY = lineLen / GetTermWidth()
-	restY := lineLen % GetTermWidth()
+	lineY = lineLen / termWidth
+	restY := lineLen % termWidth
 
 	if idx == 0 {
 		lineY--
@@ -337,14 +321,7 @@ func (rl *Instance) cursorLineLen() (lineLen int) {
 		return 0
 	}
 
-	// if len(rl.lineCompleted()) > 0 && rl.lineCompleted()[0] == '\n' {
-	// 	panic("HERE")
-	// }
-
-	if len(lines) == 1 {
-		lineLen += rl.Prompt.inputAt(rl)
-	}
-
+	lineLen += rl.Prompt.inputAt(rl)
 	lineLen += getRealLength(lines[rl.hpos])
 
 	termWidth := GetTermWidth()

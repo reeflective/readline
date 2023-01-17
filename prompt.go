@@ -113,9 +113,9 @@ func (p *prompt) getPrimaryLastLine() string {
 func (p *prompt) inputAt(rl *Instance) int {
 	prompt := p.primary
 
-	if rl.numLines() > 1 {
-		prompt = p.secondary
-	}
+	// if rl.numLines() > 1 {
+	// 	prompt = p.secondary
+	// }
 
 	lastLineIndex := strings.LastIndex(prompt, "\n")
 	if lastLineIndex != -1 {
@@ -171,15 +171,17 @@ func (p *prompt) printRprompt(rl *Instance) {
 
 	// We are at the very end of the line.
 	// Go back to the current cursor position.
-	moveCursorUp(rl.fullY - rl.posY)
+	// moveCursorUp(rl.fullY - rl.posY)
 	termWidth := GetTermWidth()
 	moveCursorBackwards(termWidth)
 	forwardOffset := termWidth - rpromptLen - 1
 	moveCursorForwards(forwardOffset)
 	print(rprompt)
+	moveCursorBackwards(termWidth)
+	moveCursorForwards(rl.posX)
 
 	// And go back to the end of the line.
-	moveCursorDown(rl.fullY - rl.posY)
+	// moveCursorDown(rl.fullY - rl.posY)
 }
 
 func (p *prompt) printTransient(rl *Instance) {
