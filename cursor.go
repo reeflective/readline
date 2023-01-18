@@ -68,27 +68,31 @@ func (rl *Instance) updateCursor() {
 	}
 }
 
+// checkCursorBounds is called each time we refresh the display, and thus
+// pretty much each time an operation has been done. It ensures that the
+// the real cursor position is within the line bounds.
 func (rl *Instance) checkCursorBounds() {
 	if rl.pos < 0 {
 		rl.pos = 0
 	}
 
 	line := rl.lineCompleted()
+
 	switch rl.main {
 	case emacs, viins:
 		if rl.pos > len(line) {
 			rl.pos = len(line)
 		}
 	case vicmd:
-		if rl.pos == 0 {
-			return
-		}
-
 		if rl.pos > len(line)-1 {
 			rl.pos = len(line) - 1
 		} else if rl.line[rl.pos] == '\n' && !rl.isEmptyLine() {
 			rl.pos--
 		}
+	}
+
+	if rl.pos < 0 {
+		rl.pos = 0
 	}
 }
 
