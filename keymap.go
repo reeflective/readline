@@ -93,7 +93,6 @@ func (rl *Instance) matchKeymap(key string, mode keymapMode) (cb EventCallback, 
 	if cb == nil && len(prefixed) == 0 {
 		cb = rl.widgetPrefixMatched
 		rl.widgetPrefixMatched = nil
-
 		return
 	}
 

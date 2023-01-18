@@ -307,7 +307,13 @@ func (rl *Instance) yankSelection() {
 	if bpos == -1 || epos == -1 {
 		return
 	}
+
 	selection := string(rl.line[bpos:epos])
+
+	// Visual adjustmeents when we are on the last line.
+	if rl.local == visual && rl.visualLine && epos == len(rl.line) {
+		selection += "\n"
+	}
 
 	// And copy to active register
 	rl.saveBufToRegister([]rune(selection))
@@ -332,7 +338,13 @@ func (rl *Instance) deleteSelection() {
 	if bpos == -1 || epos == -1 {
 		return
 	}
+
 	selection := string(rl.line[bpos:epos])
+
+	// Visual adjustmeents when we are on the last line.
+	if rl.local == visual && rl.visualLine && epos == len(rl.line) {
+		selection += "\n"
+	}
 
 	// Save it and update the line
 	rl.saveBufToRegister([]rune(selection))

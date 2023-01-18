@@ -751,7 +751,7 @@ func (rl *Instance) viDelete() {
 		// twice in a row (eg. `dd`), so delete the entire current line.
 		rl.releasePending(self)
 
-		rl.undoHistoryAppend()
+		rl.undoHistoryAppendPos(rl.pos)
 		rl.skipUndoAppend()
 
 		rl.viVisualLineMode()
