@@ -81,6 +81,8 @@ var vicmdKeys = keymap{
 	"l":       "vi-forward-char",
 	"j":       "down-line-or-history",
 	"k":       "up-line-or-history",
+	"O":       "vi-open-line-above",
+	"o":       "vi-open-line-below",
 	"p":       "vi-put-after",
 	"P":       "vi-put-before",
 	"r":       "vi-replace-chars",

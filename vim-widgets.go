@@ -63,6 +63,8 @@ func (rl *Instance) viWidgets() lineWidgets {
 		"vi-change-surround":            rl.viChangeSurround,
 		"vi-select-surround":            rl.viSelectSurround,
 		"vi-set-mark":                   rl.viSetMark,
+		"vi-open-line-above":            rl.viOpenLineAbove,
+		"vi-open-line-below":            rl.viOpenLineBelow,
 	}
 }
 
@@ -219,16 +221,11 @@ func (rl *Instance) viKillEol() {
 	pos := rl.pos
 	rl.markSelection(rl.pos)
 
-	// switch {
-	// case rl.numLines() > 1:
 	for ; rl.pos < len(rl.line); rl.pos++ {
 		if rl.line[rl.pos] == '\n' {
 			break
 		}
 	}
-	// default:
-	// 	rl.pos = len(rl.line)
-	// }
 
 	rl.deleteSelection()
 
@@ -1167,4 +1164,21 @@ func (rl *Instance) viSelectSurround() {
 func (rl *Instance) viSetMark() {
 	rl.skipUndoAppend()
 	rl.markSelection(rl.pos)
+}
+
+func (rl *Instance) viOpenLineAbove() {
+	rl.undoHistoryAppend()
+	rl.beginningOfLine()
+	rl.lineInsert([]rune{'\n'})
+	rl.pos--
+	rl.viInsertMode()
+}
+
+func (rl *Instance) viOpenLineBelow() {
+	rl.undoHistoryAppend()
+	rl.endOfLine()
+	rl.pos++
+	rl.lineInsert([]rune{'\n'})
+	rl.pos--
+	rl.viInsertMode()
 }

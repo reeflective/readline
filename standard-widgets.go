@@ -149,17 +149,12 @@ func (rl *Instance) clearScreen() {
 
 func (rl *Instance) beginningOfLine() {
 	rl.skipUndoAppend()
-	// switch {
-	// case rl.numLines() > 1:
 	for ; rl.pos >= 0; rl.pos-- {
 		if rl.line[rl.pos] == '\n' {
 			rl.pos++
 			break
 		}
 	}
-	// default:
-	// rl.pos = 0
-	// }
 }
 
 func (rl *Instance) endOfLine() {

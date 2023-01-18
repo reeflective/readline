@@ -179,6 +179,7 @@ keymaps:
         F: vi-find-prev-char
         G: end-of-buffer-or-history
         I: vi-insert-bol
+        O: vi-open-line-above
         P: vi-put-before
         R: vi-replace
         T: vi-find-prev-char-skip
@@ -202,6 +203,7 @@ keymaps:
         k: up-line-or-history
         l: vi-forward-char
         p: vi-put-after
+        o: vi-open-line-below
         r: vi-replace-chars
         s: vi-substitute
         t: vi-find-next-char-skip
