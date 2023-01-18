@@ -292,7 +292,8 @@ func (rl *Instance) lineCarriageReturn() {
 	// Ask the caller if the line should be accepted as is: if yes, return it.
 	// Determine if the line is complete per the caller's standards.
 	// We always return the entire buffer, including previous multisplits.
-	if rl.IsMultiline(rl.lineCompleted()) {
+	if rl.AcceptMultiline(rl.lineCompleted()) {
+		moveCursorDown(rl.fullY - rl.posY)
 		print("\r\n")
 		rl.writeHistoryLine()
 		rl.accepted = true

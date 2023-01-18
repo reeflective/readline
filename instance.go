@@ -48,15 +48,12 @@ type Instance struct {
 
 	// Input Line ---------------------------------------------------------------------------------
 
-	// IsMultiline enables the caller to decide if the shell should keep reading for user input
+	// AcceptMultiline enables the caller to decide if the shell should keep reading for user input
 	// on a new line (therefore, with the secondary prompt), or if it should return the current
 	// line at the end of the `rl.Readline()` call.
-	//
-	// The `line` parameter is the entire, compounded buffer: for example, if you already returned
-	// `false` with this function, the shell has 3 lines buffered, and one current. The `line` here
-	// is the aggregate of the tree buffered, and the current.
-	// As well, `Readline()` will return this same aggregate.
-	IsMultiline func(line []rune) (accept bool)
+	// This function should return "true" if the line is deemed complete (thus asking the shell
+	// to return from its Readline() loop), or "false" if the shell should keep reading input.
+	AcceptMultiline func(line []rune) (accept bool)
 
 	// EnableGetCursorPos will allow the shell to send a special sequence
 	// to the the terminal to get the current cursor X and Y coordinates.
