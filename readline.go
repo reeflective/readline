@@ -115,13 +115,11 @@ func (rl *Instance) Readline() (string, error) {
 		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
 		widget, prefix = rl.matchKeymap(keys, rl.main)
 		if widget != nil {
-			forward := rl.run(widget, keys, rl.main)
+			rl.run(widget, keys, rl.main)
 			if rl.accepted || rl.err != nil {
 				return string(rl.lineCompleted()), rl.err
 			}
-			if !forward {
-				continue
-			}
+			continue
 		} else if prefix {
 			continue
 		}

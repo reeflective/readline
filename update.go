@@ -43,16 +43,14 @@ func (rl *Instance) resetHelpers() {
 // clearHelpers - Clears everything: prompt, input, hints & comps,
 // and comes back at the prompt.
 func (rl *Instance) clearHelpers() {
-	// Now go down to the last line of input
-	moveCursorDown(rl.fullY - rl.posY)
-	moveCursorBackwards(rl.posX)
+	// Go just below the last line of input
+	moveCursorDown(rl.fullY - rl.posY + 1)
 
-	// Clear everything below
 	print(seqClearScreenBelow)
 
 	// Go back to current cursor position
 	moveCursorBackwards(GetTermWidth())
-	moveCursorUp(rl.fullY - rl.posY)
+	moveCursorUp(rl.fullY - rl.posY + 1)
 	moveCursorForwards(rl.posX)
 }
 
