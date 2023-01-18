@@ -102,7 +102,6 @@ keymaps:
         ^[c: capitalize-word
         ^[d: kill-word
         ^[f: forward-word
-        ^[l: ls^J
         ^[m: copy-prev-shell-word
         ^[n: history-search-forward
         ^[p: history-search-backward
@@ -178,6 +177,7 @@ keymaps:
         D: vi-kill-eol
         E: vi-forward-blank-word-end
         F: vi-find-prev-char
+        G: end-of-buffer-or-history
         I: vi-insert-bol
         P: vi-put-before
         R: vi-replace
@@ -219,6 +219,8 @@ keymaps:
         ^[[3;5~: kill-word
         ^[[3~: delete-char
         ^[[6~: menu-select
+        ^[[A: up-line-or-search
+        ^[[B: down-line-or-search
         ^[[C: vi-forward-char
         ^[[D: vi-backward-char
         ^[[F: end-of-line

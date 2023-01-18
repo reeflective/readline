@@ -189,7 +189,7 @@ func (rl *Instance) endOfBufferOrHistory() {
 		return
 	}
 
-	rl.endOfLine()
+	rl.pos = len(rl.line) - 1
 }
 
 func (rl *Instance) beginningOfLineHist() {

@@ -24,7 +24,17 @@ func tokeniseLine(line []rune, linePos int) ([]string, int, int) {
 			split[len(split)-1] += string(r)
 			punc = true
 
-		case r == ' ' || r == '\t' || r == '\n':
+		case r == ' ' || r == '\t':
+			split[len(split)-1] += string(r)
+			punc = true
+
+		case r == '\n':
+			// Newlines are a word of their own only
+			// when the last rune of the previous word
+			// is one as well.
+			if i > 0 && line[i-1] == r {
+				split = append(split, "")
+			}
 			split[len(split)-1] += string(r)
 			punc = true
 
@@ -63,11 +73,20 @@ func tokeniseSplitSpaces(line []rune, linePos int) ([]string, int, int) {
 
 	for i, r := range line {
 		switch r {
-		case ' ', '\t', '\n':
+		case ' ', '\t':
+			split[len(split)-1] += string(r)
+
+		case '\n':
+			// Newlines are a word of their own only
+			// when the last rune of the previous word
+			// is one as well.
+			if i > 0 && line[i-1] == r {
+				split = append(split, "")
+			}
 			split[len(split)-1] += string(r)
 
 		default:
-			if i > 0 && (line[i-1] == ' ' || line[i-1] == '\t' || line[i-1] == '\n') {
+			if i > 0 && (line[i-1] == ' ' || line[i-1] == '\t') {
 				split = append(split, "")
 			}
 			split[len(split)-1] += string(r)

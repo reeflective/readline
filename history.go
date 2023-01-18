@@ -218,6 +218,12 @@ func (rl *Instance) walkHistory(pos int) {
 		return
 	}
 
+	// When we are on the last/first item, don't do anything, as it would change
+	// things like cursor positions.
+	if (pos < 0 && rl.histPos == 0) || (pos > 0 && rl.histPos == history.Len()) {
+		return
+	}
+
 	// When we are exiting the current line buffer to move around
 	// the history, we make buffer the current line
 	if rl.histPos == 0 && (rl.histPos+pos) == 1 {
