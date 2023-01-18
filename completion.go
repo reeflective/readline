@@ -142,6 +142,11 @@ func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
 	var descriptions []string
 
 	for _, val := range values {
+		// Ensure all values have a display string.
+		if val.Display == "" {
+			val.Display = val.Value
+		}
+
 		// Grid completions
 		if val.Description == "" {
 			noDescVals = append(noDescVals, val)

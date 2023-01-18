@@ -89,18 +89,12 @@ func (rl *Instance) newGroup(c Completions, tag string, vals rawValues, aliased 
 }
 
 func (g *comps) checkDisplays(vals rawValues) rawValues {
-	for index, val := range vals {
-		if val.Display == "" {
-			vals[index].Display = val.Value
-		}
+	if g.aliased {
+		return vals
+	}
 
-		// If we have aliases, the padding will be computed later.
-		// Don't concatenate the description to the value as display.
-		if g.aliased {
-			continue
-		}
-
-		// Otherwise update the size of the longest candidate
+	// Otherwise update the size of the longest candidate
+	for _, val := range vals {
 		valLen := utf8.RuneCountInString(val.Display)
 		if valLen > g.columnsWidth[0] {
 			g.columnsWidth[0] = valLen
@@ -108,49 +102,6 @@ func (g *comps) checkDisplays(vals rawValues) rawValues {
 	}
 
 	return vals
-}
-
-func (g *comps) makeMatrix(vals rawValues) {
-NEXT_VALUE:
-	for _, val := range vals {
-		valLen := utf8.RuneCountInString(val.Display)
-
-		// If we have an alias, and we must get the right
-		// column and the right padding for this column.
-		if g.aliased {
-			for i, row := range g.values {
-				if row[0].Description == val.Description {
-					g.values[i] = append(row, val)
-					g.columnsWidth = getColumnPad(g.columnsWidth, valLen, len(g.values[i]))
-
-					continue NEXT_VALUE
-				}
-			}
-		}
-
-		// Else, either add it to the current row if there is still room
-		// on it for this candidate, or add a new one. We only do that when
-		// we know we don't have aliases, or when we don't have to display list.
-		if !g.aliased && g.canFitInRow(val) && !g.list {
-			g.values[len(g.values)-1] = append(g.values[len(g.values)-1], val)
-		} else {
-			// Else create a new row, and update the row pad.
-			g.values = append(g.values, []Completion{val})
-			if g.columnsWidth[0] < valLen+1 {
-				g.columnsWidth[0] = valLen + 1
-			}
-		}
-	}
-
-	if g.aliased {
-		g.tcMaxX = len(g.columnsWidth)
-		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth)
-	}
-
-	g.tcMaxY = len(g.values)
-	if g.tcMaxY > g.maxLength && g.maxLength != 0 {
-		g.tcMaxY = g.maxLength
-	}
 }
 
 func (g *comps) computeCells(vals rawValues) {
@@ -190,27 +141,55 @@ func (g *comps) computeCells(vals rawValues) {
 
 	// We also have the width for each column
 	g.columnsWidth = make([]int, numColumns)
-	// g.columnsWidth = make([]int, GetTermWidth()/(g.maxCellLength+2))
 	for i := 0; i < g.tcMaxX; i++ {
 		g.columnsWidth[i] = g.maxCellLength
 	}
 }
 
-// checkMaxLength - Based on the number of groups given to the shell, check/set MaxLength defaults.
-func (g *comps) checkMaxLength(rl *Instance) {
-	// This means the user forgot to set it
-	if g.maxLength == 0 {
-		if len(rl.tcGroups) < 5 {
-			g.maxLength = 20
+func (g *comps) makeMatrix(vals rawValues) {
+nextValue:
+	for _, val := range vals {
+		valLen := utf8.RuneCountInString(val.Display)
+
+		// If we have an alias, and we must get the right
+		// column and the right padding for this column.
+		if g.aliased {
+			for i, row := range g.values {
+				if row[0].Description == val.Description {
+					g.values[i] = append(row, val)
+					g.columnsWidth = getColumnPad(g.columnsWidth, valLen, len(g.values[i]))
+
+					continue nextValue
+				}
+			}
 		}
 
-		if len(rl.tcGroups) >= 5 {
-			g.maxLength = 20
+		// Else, either add it to the current row if there is still room
+		// on it for this candidate, or add a new one. We only do that when
+		// we know we don't have aliases, or when we don't have to display list.
+		if !g.aliased && g.canFitInRow() && !g.list {
+			g.values[len(g.values)-1] = append(g.values[len(g.values)-1], val)
+		} else {
+			// Else create a new row, and update the row pad.
+			g.values = append(g.values, []Completion{val})
+			if g.columnsWidth[0] < valLen+1 {
+				g.columnsWidth[0] = valLen + 1
+			}
 		}
+	}
+
+	if g.aliased {
+		g.tcMaxX = len(g.columnsWidth)
+		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth)
+	}
+
+	g.tcMaxY = len(g.values)
+	if g.tcMaxY > g.maxLength && g.maxLength != 0 {
+		g.tcMaxY = g.maxLength
 	}
 }
 
-func (g *comps) canFitInRow(val Completion) bool {
+func (g *comps) canFitInRow() bool {
 	if len(g.values) == 0 {
 		return false
 	}
