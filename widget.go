@@ -208,6 +208,11 @@ func (rl *Instance) matchWidgets(key string, wids widgets) (cb EventCallback, al
 			continue
 		}
 
+		// If matching index is not 0, the match is not valid
+		if indexes := reg.FindAllStringIndex(key, 1); indexes[0][0] != 0 {
+			continue
+		}
+
 		// When we only match as a prefix, and that the key is not a lone caret.
 		if strings.HasPrefix(reg.String(), key) && len(key) < len(reg.String()) && key != "^" {
 			all[&reg] = widget

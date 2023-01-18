@@ -305,7 +305,7 @@ func (rl *Instance) cutCompletionsBelow(scanner *bufio.Scanner, maxRows int) (st
 		}
 	}
 
-	cropped, _ = rl.excessCompletionsHint(cropped, maxRows, count-1)
+	cropped = rl.excessCompletionsHint(cropped, maxRows, count)
 
 	return cropped, count
 }
@@ -315,7 +315,6 @@ func (rl *Instance) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, ab
 
 	var cropped string
 	var count int
-	var noRemain bool
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -334,27 +333,25 @@ func (rl *Instance) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, ab
 		}
 	}
 
-	cropped, noRemain = rl.excessCompletionsHint(cropped, maxRows, maxRows+cutAbove+1)
-	if noRemain {
-		count--
-	}
+	cropped = rl.excessCompletionsHint(cropped, maxRows, maxRows+cutAbove)
+	count--
 
 	return cropped, count - cutAbove
 }
 
-func (rl *Instance) excessCompletionsHint(cropped string, maxRows, offset int) (string, bool) {
+func (rl *Instance) excessCompletionsHint(cropped string, maxRows, offset int) string {
 	_, _, adjusted := rl.completionCount()
 	remain := adjusted - offset
 
 	if remain <= 0 || offset < maxRows {
-		return cropped, true
+		return cropped
 	}
 
-	hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completion rows... (scroll down to show)"+seqReset+"\n", remain)
+	hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completion rows... (scroll down to show)"+seqReset, remain)
 
 	hinted := cropped + hint
 
-	return hinted, false
+	return hinted
 }
 
 func (rl *Instance) resetCompletion() {
