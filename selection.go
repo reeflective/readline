@@ -277,6 +277,26 @@ func (rl *Instance) insertSelection(bchar, echar string) (wlen, cpos int) {
 	return len(selection), cpos
 }
 
+// replaceSelectionRune replaces all runes in the current visual selection.
+func (rl *Instance) replaceSelectionRune(replacer func(r rune) rune) {
+	bpos, epos, _ := rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
+	rl.resetSelection()
+	rl.pos = bpos
+
+	for range rl.line[bpos:epos] {
+		char := rl.line[rl.pos]
+		char = replacer(char)
+		rl.line[rl.pos] = char
+		rl.pos++
+	}
+
+	rl.viCommandMode()
+	rl.updateCursor()
+}
+
 // yankSelection copies the active selection in the active/default register.
 func (rl *Instance) yankSelection() {
 	if len(rl.marks) == 0 {

@@ -50,6 +50,9 @@ func (rl *Instance) undoHistoryAppendPos(cpos int) {
 }
 
 func (rl *Instance) undo() {
+	rl.exitVisualMode()
+	rl.updateCursor()
+
 	rl.undoSkipAppend = true
 	rl.isUndoing = true
 	if len(rl.undoHistory) == 0 {
@@ -86,6 +89,9 @@ func (rl *Instance) undo() {
 }
 
 func (rl *Instance) redo() {
+	rl.exitVisualMode()
+	rl.updateCursor()
+
 	rl.undoSkipAppend = true
 	rl.isUndoing = true
 	if len(rl.undoHistory) == 0 {

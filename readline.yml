@@ -197,6 +197,8 @@ keymaps:
         gg: beginning-of-buffer-or-history
         gE: vi-backward-blank-word-end
         ge: vi-backward-word-end
+        gu: vi-down-case
+        gU: vi-up-case
         h: vi-backward-char
         i: vi-insert-mode
         j: down-line-or-history
@@ -276,6 +278,7 @@ keymaps:
         k: up-line
         s: vi-substitute
         u: vi-down-case
+        U: vi-up-case
         v: edit-command-line
         x: vi-delete
         "y": vi-yank

@@ -55,6 +55,8 @@ func (rl *Instance) viWidgets() lineWidgets {
 		"vi-digit-or-beginning-of-line": rl.viDigitOrBeginningOfLine,
 		"vi-goto-column":                rl.viGotoColumn,
 		"vi-swap-case":                  rl.viSwapCase,
+		"vi-down-case":                  rl.viDownCase,
+		"vi-up-case":                    rl.viUpCase,
 		"vi-oper-swap-case":             rl.viOperSwapCase,
 		"vi-first-non-blank":            rl.viFirstNonBlank,
 		"vi-substitute":                 rl.viSubstitute,
@@ -973,6 +975,84 @@ func (rl *Instance) viOperSwapCase() {
 		rl.skipUndoAppend()
 
 		rl.enterVioppMode("vi-oper-swap-case")
+		rl.updateCursor()
+		rl.markSelection(rl.pos)
+	}
+}
+
+func (rl *Instance) viDownCase() {
+	rl.skipUndoAppend()
+	self := "vi-down-case"
+
+	switch {
+	case rl.activeSelection():
+		bpos, _, _ := rl.calcSelection()
+		rl.undoHistoryAppendPos(bpos)
+		rl.skipUndoAppend()
+
+		rl.replaceSelectionRune(unicode.ToLower)
+
+		rl.viCommandMode()
+		rl.updateCursor()
+
+	case rl.local == viopp:
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `uu`), so modify the entire current line.
+		rl.releasePending(self)
+
+		rl.undoHistoryAppend()
+		rl.skipUndoAppend()
+
+		rl.viVisualLineMode()
+		defer rl.exitVisualMode()
+
+		rl.replaceSelectionRune(unicode.ToLower)
+		rl.viCommandMode()
+		rl.updateCursor()
+
+	default:
+		// Else if we are actually starting a yank action.
+		rl.skipUndoAppend()
+		rl.enterVioppMode(self)
+		rl.updateCursor()
+		rl.markSelection(rl.pos)
+	}
+}
+
+func (rl *Instance) viUpCase() {
+	rl.skipUndoAppend()
+	self := "vi-up-case"
+
+	switch {
+	case rl.activeSelection():
+		bpos, _, _ := rl.calcSelection()
+		rl.undoHistoryAppendPos(bpos)
+		rl.skipUndoAppend()
+
+		rl.replaceSelectionRune(unicode.ToUpper)
+
+		rl.viCommandMode()
+		rl.updateCursor()
+
+	case rl.local == viopp:
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `uu`), so modify the entire current line.
+		rl.releasePending(self)
+
+		rl.undoHistoryAppend()
+		rl.skipUndoAppend()
+
+		rl.viVisualLineMode()
+		defer rl.exitVisualMode()
+
+		rl.replaceSelectionRune(unicode.ToUpper)
+		rl.viCommandMode()
+		rl.updateCursor()
+
+	default:
+		// Else if we are actually starting a yank action.
+		rl.skipUndoAppend()
+		rl.enterVioppMode(self)
 		rl.updateCursor()
 		rl.markSelection(rl.pos)
 	}

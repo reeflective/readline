@@ -19,12 +19,17 @@ func (rl *Instance) exitVisualMode() {
 		if reg.regionType == "visual" {
 			if len(rl.marks) > i {
 				rl.marks = append(rl.marks[:i], rl.marks[i+1:]...)
+			} else {
+				rl.marks = rl.marks[:i]
 			}
 		}
 	}
 
+	if rl.local == visual {
+		rl.local = ""
+	}
+
 	rl.visualLine = false
-	rl.local = ""
 }
 
 // enterVioppMode adds a widget to the list of widgets waiting for an operator/action,
