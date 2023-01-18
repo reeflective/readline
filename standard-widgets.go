@@ -150,6 +150,9 @@ func (rl *Instance) clearScreen() {
 func (rl *Instance) beginningOfLine() {
 	rl.skipUndoAppend()
 	for ; rl.pos >= 0; rl.pos-- {
+		for rl.pos > len(rl.line)-1 {
+			rl.pos--
+		}
 		if rl.line[rl.pos] == '\n' {
 			rl.pos++
 			break

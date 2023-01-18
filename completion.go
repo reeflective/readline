@@ -180,6 +180,14 @@ func (rl *Instance) setCompletionPrefix(comps Completions) {
 			}
 		}
 
+		// Newlines should not be accounted for, as they are
+		// not printable: whether or not the completions provider
+		// replaced them with spaces or not, we must not count them
+		// as part of the prefix length, so not as part of the prefix.
+		if strings.Contains(rl.tcPrefix, "\n") {
+			rl.tcPrefix = strings.ReplaceAll(rl.tcPrefix, "\n", "")
+		}
+
 	default:
 		// When the prefix has been overridden, add it to all
 		// completions AND as a line prefix, for correct candidate insertion.

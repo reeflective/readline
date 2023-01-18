@@ -34,7 +34,7 @@ func (rl *Instance) promptCompletionConfirm(sentence string) {
 
 func (rl *Instance) currentGroup() (group *comps) {
 	for _, g := range rl.tcGroups {
-		if g.isCurrent && len(g.values) > 0 {
+		if g.isCurrent {
 			return g
 		}
 	}

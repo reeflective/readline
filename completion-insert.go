@@ -19,7 +19,7 @@ func (rl *Instance) insertCandidate() {
 	// Special case for the only special escape, which
 	// if not handled, will make us insert the first
 	// character of our actual rl.tcPrefix in the candidate.
-	if strings.HasPrefix(string(rl.tcPrefix), "%") {
+	if strings.HasPrefix(rl.tcPrefix, "%") {
 		prefix++
 	}
 
@@ -177,7 +177,7 @@ func (rl *Instance) resetVirtualComp(drop bool) {
 	// Special case for the only special escape, which
 	// if not handled, will make us insert the first
 	// character of our actual rl.tcPrefix in the candidate.
-	if strings.HasPrefix(string(rl.tcPrefix), "%") {
+	if strings.HasPrefix(rl.tcPrefix, "%") {
 		prefix++
 	}
 

@@ -249,7 +249,9 @@ func (g *comps) updateIsearch(rl *Instance) {
 	g.tcPosY = -1
 	g.columnsWidth = []int{0}
 
-	// Assign the filtered values
+	// Assign the filtered values: we don't need to check
+	// for a separate set of non-described values, as the
+	// completions have already been triaged when generated.
 	vals, _, aliased := groupValues(suggs)
 	g.aliased = aliased
 
