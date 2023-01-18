@@ -121,7 +121,7 @@ func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
 	}
 
 	// Compute the desired cursor position.
-	cpos = rl.calcSelectionCursor(bpos, epos)
+	cpos = rl.selectionCursorPos(bpos, epos)
 
 	return bpos, epos, cpos
 }
@@ -144,7 +144,7 @@ func (rl *Instance) selectionCursor(bpos int) (int, int) {
 				break
 			}
 		}
-		for epos--; epos < len(rl.line); epos++ {
+		for ; epos < len(rl.line); epos++ {
 			if epos == -1 {
 				epos = 0
 			}
@@ -162,7 +162,7 @@ func (rl *Instance) selectionCursor(bpos int) (int, int) {
 	return bpos, epos
 }
 
-func (rl *Instance) calcSelectionCursor(bpos, epos int) (cpos int) {
+func (rl *Instance) selectionCursorPos(bpos, epos int) (cpos int) {
 	cpos = bpos
 	var indent int
 

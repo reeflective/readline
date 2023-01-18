@@ -360,10 +360,14 @@ func (rl *Instance) viPutAfter() {
 		rl.pos++
 	}
 
+	pos := rl.pos
+
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.lineInsert(buffer)
 	}
+
+	rl.pos = pos
 }
 
 func (rl *Instance) viPutBefore() {
@@ -386,10 +390,14 @@ func (rl *Instance) viPutBefore() {
 		}
 	}
 
+	pos := rl.pos
+
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.lineInsert(buffer)
 	}
+
+	rl.pos = pos
 }
 
 func (rl *Instance) viReplaceChars() {
