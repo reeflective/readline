@@ -11,4 +11,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/reiver/go-utf8s v2.0.1+incompatible // indirect
+require (
+	github.com/reiver/go-utf8s v2.0.1+incompatible // indirect
+	github.com/xo/inputrc v0.1.3 // indirect
+)
