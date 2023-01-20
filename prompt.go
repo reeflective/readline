@@ -80,21 +80,25 @@ func (p *prompt) init(rl *Instance) {
 	// Print the primary prompt, potentially excluding the last line.
 	print(p.getPrimary())
 	p.stillOnRefresh = false
+
+	// We save the position of the cursor, and will reuse
+	// the X coordinates for reusing them later.
+	p.endX, _ = rl.getCursorPos()
 }
 
 // getPromptPrimary returns either the entire prompt if
 // it's a single-line, or everything except the last line.
 func (p *prompt) getPrimary() string {
-	var primary string
+	// var primary string
 
-	lastLineIndex := strings.LastIndex(p.primary, "\n")
-	if lastLineIndex != -1 {
-		primary = p.primary[:lastLineIndex+1]
-	} else {
-		primary = p.primary
-	}
+	// lastLineIndex := strings.LastIndex(p.primary, "\n")
+	// if lastLineIndex != -1 {
+	// 	primary = p.primary[:lastLineIndex+1]
+	// } else {
+	// primary = p.primary
+	// }
 
-	return primary
+	return p.primary
 }
 
 // Get the last line of the prompt to be printed.
@@ -111,20 +115,20 @@ func (p *prompt) getPrimaryLastLine() string {
 }
 
 func (p *prompt) inputAt(rl *Instance) int {
-	prompt := p.primary
-
-	// if rl.numLines() > 1 {
-	// 	prompt = p.secondary
+	// prompt := p.primary
+	//
+	// // if rl.numLines() > 1 {
+	// // 	prompt = p.secondary
+	// // }
+	//
+	// lastLineIndex := strings.LastIndex(prompt, "\n")
+	// if lastLineIndex != -1 {
+	// 	p.endX = getRealLength(prompt[lastLineIndex+1:])
+	// } else {
+	// 	p.endX = getRealLength(prompt)
 	// }
 
-	lastLineIndex := strings.LastIndex(prompt, "\n")
-	if lastLineIndex != -1 {
-		p.endX = getRealLength(prompt[lastLineIndex+1:])
-	} else {
-		p.endX = getRealLength(prompt)
-	}
-
-	return p.endX
+	return p.endX - 1
 }
 
 // update is called after each key/widget processing, and refreshes
@@ -146,6 +150,7 @@ func (p *prompt) update(rl *Instance) {
 
 func (p *prompt) printLast(rl *Instance) {
 	print(p.getPrimaryLastLine())
+	print(seqClearScreenBelow)
 }
 
 func (p *prompt) printRprompt(rl *Instance) {
@@ -164,14 +169,13 @@ func (p *prompt) printRprompt(rl *Instance) {
 	rpromptLen := getRealLength(rprompt)
 
 	// Check that we have room for a right/tooltip prompt.
-	lineFits := rl.cursorLineLen()+rpromptLen+1 < GetTermWidth()
+	lineFits := rl.lineCursorLen()+rpromptLen < GetTermWidth()
 	if !lineFits {
 		return
 	}
 
 	// We are at the very end of the line.
 	// Go back to the current cursor position.
-	// moveCursorUp(rl.fullY - rl.posY)
 	termWidth := GetTermWidth()
 	moveCursorBackwards(termWidth)
 	forwardOffset := termWidth - rpromptLen - 1
@@ -179,9 +183,6 @@ func (p *prompt) printRprompt(rl *Instance) {
 	print(rprompt)
 	moveCursorBackwards(termWidth)
 	moveCursorForwards(rl.posX)
-
-	// And go back to the end of the line.
-	// moveCursorDown(rl.fullY - rl.posY)
 }
 
 func (p *prompt) printTransient(rl *Instance) {
@@ -203,11 +204,30 @@ func (p *prompt) printTransient(rl *Instance) {
 	println(string(rl.line))
 }
 
+// clearRprompt will clear the right-sided prompt depending on which type
+// of prompt it is, and if we asked to erase it regardless of what it is.
+func (p *prompt) clearRprompt(rl *Instance, force bool) {
+	if !force && p.tooltip == "" {
+		return
+	}
+
+	// If the right prompt is a tooltip, remove it anyway.
+	if p.tooltip != "" {
+		print(seqClearScreen)
+		return
+	}
+
+	// Or only remove the right prompt if asked to.
+	if force && p.right != "" {
+		print(seqClearScreen)
+	}
+}
+
 // getRealLength - Some strings will have ANSI escape codes, which might be wrongly
 // interpreted as legitimate parts of the strings. This will bother if some prompt
 // components depend on other's length, so we always pass the string in this for
 // getting its real-printed length.
-func getRealLength(s string) (l int) {
+func getRealLength(s string) int {
 	colorStripped := ansi.Strip(s)
 	return utf8.RuneCountInString(colorStripped)
 }

@@ -268,6 +268,43 @@ func (rl *Instance) getCursorPos() (x int, y int) {
 	return x, y
 }
 
+// Replacement --------------------------------------------------------
+//
+// These functions are used to replace the cursor directly to well-known
+// places of the current "line interface".
+
+func (rl *Instance) moveToLineStart() {
+	moveCursorBackwards(GetTermWidth())
+	moveCursorUp(rl.posY)
+	moveCursorForwards(rl.Prompt.inputAt(rl))
+}
+
+func (rl *Instance) moveToLineEnd() {
+	moveCursorDown(rl.fullY - rl.posY)
+	moveCursorBackwards(GetTermWidth())
+	moveCursorForwards(rl.endLineX())
+}
+
+func (rl *Instance) moveFromLineEndToCursor() {
+	moveCursorBackwards(GetTermWidth())
+	moveCursorUp(rl.fullY)
+	moveCursorDown(rl.posY)
+	moveCursorForwards(rl.posX)
+}
+
+func (rl *Instance) moveToHintStart() {
+	moveCursorDown(rl.fullY - rl.posY)
+	moveCursorBackwards(GetTermWidth())
+}
+
+func (rl *Instance) moveFromHelpersEndToHintStart() {
+	moveCursorBackwards(GetTermWidth())
+	moveCursorUp(rl.tcUsedY)
+	if len(rl.hint) > 0 {
+		moveCursorUp(rl.hintY)
+	}
+}
+
 // DISPLAY ------------------------------------------------------------
 // All cursorMoveFunctions move the cursor as it is seen by the user.
 // This means that they are not used to keep any reference point when

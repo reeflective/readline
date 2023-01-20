@@ -122,15 +122,19 @@ func (rl *Instance) computeCursorPos(startLine, cpos, lineIdx int) {
 	cursorY := cursorStart / termWidth
 	cursorX := cursorStart % termWidth
 
+	// The very first (unreal) line counts for nothing,
+	// so by opposition all others count for one more.
+	if lineIdx == 0 {
+		cursorY--
+	}
+
+	// Any excess wrap means a newline.
+	if cursorX > 0 {
+		cursorY++
+	}
+
 	rl.posY += cursorY
 	rl.posX = cursorX
-
-	if lineIdx > 0 {
-		rl.posY++
-	} else if rl.posX == termWidth {
-		rl.posY++
-		rl.posX = 0
-	}
 }
 
 func (rl *Instance) realLineLen(line []rune, idx int) (lineY int) {
@@ -141,10 +145,12 @@ func (rl *Instance) realLineLen(line []rune, idx int) (lineY int) {
 	lineY = lineLen / termWidth
 	restY := lineLen % termWidth
 
+	// The very first line counts for nothing.
 	if idx == 0 {
 		lineY--
 	}
 
+	// Any excess wrap means a newline.
 	if restY > 0 {
 		lineY++
 	}
@@ -171,7 +177,6 @@ func (rl *Instance) linePrint() {
 		// since we are still moving around the old line.
 		moveCursorBackwards(GetTermWidth())
 		moveCursorUp(rl.posY)
-		print(seqClearScreenBelow)
 
 		// We are the very beginning of the line ON WHICH we are
 		// going to write the input line, not higher, even if the
@@ -185,10 +190,7 @@ func (rl *Instance) linePrint() {
 		rl.computeLinePos()
 
 		// Go back to the current cursor position, with new coordinates
-		moveCursorBackwards(GetTermWidth())
-		moveCursorUp(rl.fullY)
-		moveCursorDown(rl.posY)
-		moveCursorForwards(rl.posX)
+		rl.moveFromLineEndToCursor()
 
 		// Finally, print any right or tooltip prompt.
 		rl.Prompt.printRprompt(rl)
@@ -281,31 +283,25 @@ func (rl *Instance) lineSlice(adjust int) (slice string) {
 }
 
 func (rl *Instance) lineCarriageReturn() {
-	// Remove all helpers and line autosuggest,
-	// but keep the line and go just below it.
 	rl.histSuggested = []rune{}
-	rl.clearHelpers()
-	rl.linePrint()
-	moveCursorDown(rl.fullY - rl.posY)
-	print(seqClearScreenBelow)
 
-	// Ask the caller if the line should be accepted as is: if yes, return it.
-	// Determine if the line is complete per the caller's standards.
-	// We always return the entire buffer, including previous multisplits.
+	// Ask the caller if the line should be accepted as is.
 	if rl.AcceptMultiline(rl.lineCompleted()) {
-		moveCursorDown(rl.fullY - rl.posY)
+		// Clear the tooltip prompt if any,
+		// then go down and clear hints/completions.
+		rl.moveToLineEnd()
+		rl.Prompt.clearRprompt(rl, false)
 		print("\r\n")
+		print(seqClearScreenBelow)
+
+		// Save the command line and accept it.
 		rl.writeHistoryLine()
 		rl.accepted = true
 		return
 	}
 
 	// If not, we should start editing another line,
-	// so get back to the cursor line (but don't move
-	// the cursor VALUE)
-	moveCursorUp(rl.fullY - rl.posY)
-
-	// And insert a newline where our cursor value is.
+	// and insert a newline where our cursor value is.
 	// This has the nice advantage of being able to work
 	// in multiline mode even in the middle of the buffer.
 	rl.lineInsert([]rune{'\n'})
@@ -316,7 +312,8 @@ func (rl *Instance) numLines() int {
 }
 
 // Returns the real length of the line on which the cursor currently is.
-func (rl *Instance) cursorLineLen() (lineLen int) {
+// If the lineIndex parameter is negative, we use the cursor line.
+func (rl *Instance) lineCursorLen() (lineLen int) {
 	lines := strings.Split(string(rl.lineCompleted()), "\n")
 	if len(lines) == 0 {
 		return 0
@@ -324,6 +321,31 @@ func (rl *Instance) cursorLineLen() (lineLen int) {
 
 	lineLen += rl.Prompt.inputAt(rl)
 	lineLen += getRealLength(lines[rl.hpos])
+
+	termWidth := GetTermWidth()
+	if lineLen > termWidth {
+		lines := lineLen / termWidth
+		restLen := lineLen % termWidth
+
+		if lines > 0 && lineLen == 0 {
+			return termWidth
+		}
+
+		return restLen
+	}
+
+	return lineLen
+}
+
+// endLineX returns the X coordinate of the last line of input.
+func (rl *Instance) endLineX() (lineLen int) {
+	lines := strings.Split(string(rl.lineCompleted()), "\n")
+	if len(lines) == 0 {
+		return 0
+	}
+
+	lineLen += rl.Prompt.inputAt(rl)
+	lineLen += getRealLength(lines[len(lines)-1])
 
 	termWidth := GetTermWidth()
 	if lineLen > termWidth {
@@ -358,6 +380,8 @@ func (rl *Instance) printBuffer() {
 
 		if i < len(lines)-1 {
 			line += "\n"
+		} else {
+			line += seqClearScreenBelow
 		}
 
 		print(line)

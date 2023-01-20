@@ -40,18 +40,15 @@ func (rl *Instance) resetHelpers() {
 	rl.resetCompletion()
 }
 
-// clearHelpers - Clears everything: prompt, input, hints & comps,
-// and comes back at the prompt.
+// clearHelpers will go the end of the input line, and remove:
+// - Any right prompt printed next to the last line of the buffer.
+// - The suggested history line if any.
+// - All hints.
+// - All completions.
 func (rl *Instance) clearHelpers() {
-	// Go just below the last line of input
-	moveCursorDown(rl.fullY - rl.posY + 1)
-
+	rl.moveToLineEnd()
 	print(seqClearScreenBelow)
-
-	// Go back to current cursor position
-	moveCursorBackwards(GetTermWidth())
-	moveCursorUp(rl.fullY - rl.posY + 1)
-	moveCursorForwards(rl.posX)
+	rl.moveFromLineEndToCursor()
 }
 
 // renderHelpers - prints all components (prompt, line, hints & comps)
@@ -63,9 +60,8 @@ func (rl *Instance) renderHelpers() {
 	}
 	rl.linePrint()
 
-	// Go at beginning of first line after input remainder
-	moveCursorDown(rl.fullY - rl.posY)
-	moveCursorBackwards(GetTermWidth())
+	// Go at beginning of the last line of input
+	rl.moveToHintStart()
 
 	// Print hints, check for any confirmation hint current.
 	// (do not overwrite the confirmation question hint)
@@ -75,16 +71,8 @@ func (rl *Instance) renderHelpers() {
 	// Print completions and go back
 	// to beginning of this line
 	rl.printCompletions()
-	moveCursorBackwards(GetTermWidth())
-	moveCursorUp(rl.tcUsedY)
 
-	// Compensate for hint printout
-	switch {
-	case len(rl.hint) > 0:
-		moveCursorUp(rl.hintY)
-	}
-
-	// Go back to current cursor position
-	moveCursorUp(rl.fullY - rl.posY)
-	moveCursorForwards(rl.posX)
+	// And move back to the last line of input, then to the cursor.
+	rl.moveFromHelpersEndToHintStart()
+	rl.moveFromLineEndToCursor()
 }
