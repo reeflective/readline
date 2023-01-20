@@ -213,13 +213,13 @@ func (p *prompt) clearRprompt(rl *Instance, force bool) {
 
 	// If the right prompt is a tooltip, remove it anyway.
 	if p.tooltip != "" {
-		print(seqClearScreen)
+		print(seqClearScreenBelow)
 		return
 	}
 
 	// Or only remove the right prompt if asked to.
 	if force && p.right != "" {
-		print(seqClearScreen)
+		print(seqClearScreenBelow)
 	}
 }
 
