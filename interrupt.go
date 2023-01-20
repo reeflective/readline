@@ -47,6 +47,7 @@ func (rl *Instance) errorCtrlC() error {
 
 	// Or return the current command line
 	rl.clearHelpers()
+	moveCursorDown(rl.fullY - rl.posY)
 	print("\r\n")
 
 	return ErrCtrlC
@@ -58,6 +59,7 @@ func (rl *Instance) errorEOF() error {
 	rl.keys = ""
 
 	rl.clearHelpers()
+	moveCursorDown(rl.fullY - rl.posY)
 	print("\r\n")
 
 	return io.EOF

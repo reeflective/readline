@@ -1,19 +1,19 @@
 package readline
 
 import (
+	"regexp"
 	"strings"
-
-	ansi "github.com/acarl005/stripansi"
 )
 
-// initLine is ran once at the beginning of an instance readline run.
-func (rl *Instance) initLine() {
+// lineInit is ran once at the beginning of an instance readline run.
+func (rl *Instance) lineInit() {
 	// We only reset the line when we don't need it
 	// to retrieve an matching one/ an history pos index.
 	if !rl.inferLine {
 		rl.line = []rune{}
 		rl.pos = 0
 		rl.posY = 0
+		rl.hpos = 0
 	}
 
 	rl.comp = []rune{}     // No virtual completion yet
@@ -25,129 +25,179 @@ func (rl *Instance) initLine() {
 	rl.resetRegions()
 }
 
-// When the DelayedSyntaxWorker gives us a new line, we need to check if there
-// is any processing to be made, that all lines match in terms of content.
-func (rl *Instance) updateLine(line []rune) {
-	if len(rl.comp) > 0 {
-	} else {
-		rl.line = line
-	}
-
-	rl.renderHelpers()
-}
-
-// getLineVirtual - In many places we need the current line input. We either return the real line,
+// lineCompleted - In many places we need the current line input. We either return the real line,
 // or the one that includes the current completion candidate, if there is any.
-func (rl *Instance) getLineVirtual() []rune {
+func (rl *Instance) lineCompleted() []rune {
 	if len(rl.comp) > 0 {
 		return rl.compLine
 	}
 	return rl.line
 }
 
-// computeLine computes the number of lines that the input line spans.
-func (rl *Instance) computeLine() {
-	var usedLines, usedX int
+func (rl *Instance) lineSuggested() (line []rune, cpos int) {
+	rl.checkCursorBounds()
 
-	var line string
 	if len(rl.comp) > 0 {
-		line = string(rl.compLine)
+		line = rl.compLine
+		cpos = len(rl.compLine[:rl.pos])
 	} else {
-		line = string(rl.line)
+		line = rl.line
+		cpos = len(rl.line[:rl.pos])
 	}
 
-	// We split the input line on every newline first
-	// We determine if each line alone spans more than one line.
-	for i, line := range strings.Split(line, "\n") {
-
-		lineLen := len(line)
-		usedX += lineLen
-
-		// Adjust for the first line that is printed after the prompt.
-		if i == 0 {
-			lineLen += rl.Prompt.inputAt
-		}
-
-		usedLines += lineLen / GetTermWidth()
-		remain := lineLen % GetTermWidth()
-		if remain != 0 {
-			usedLines++
-		}
-
-		// The last line gives us the full rest
-		if i == len(strings.Split(line, "\n"))-1 {
-			rl.fullX = remain
-		}
+	if len(rl.histSuggested) > 0 {
+		line = append(line, rl.histSuggested...)
 	}
 
-	rl.fullY = usedLines
+	return line, cpos
 }
 
-// computeCursorPos determines the X and Y coordinates of the cursor.
-func (rl *Instance) computeCursorPos() {
-	// Ensure cursor on the line
-	if rl.pos < 0 {
-		rl.pos = 0
+func (rl *Instance) lineHighlighted() string {
+	line := rl.lineCompleted()
+	highlighted := string(line)
+
+	// Use user-defined highlighting if any.
+	if rl.SyntaxHighlighter != nil {
+		highlighted = rl.SyntaxHighlighter(line)
+	}
+
+	// Add visual selection highlight if any, and print
+	highlighted = rl.highlightLine([]rune(highlighted))
+
+	if len(rl.histSuggested) > 0 {
+		highlighted += seqFgBlack + string(rl.histSuggested) + seqReset
+	}
+
+	return highlighted
+}
+
+// computeLinePos determines the X and Y coordinates of the cursor.
+func (rl *Instance) computeLinePos() {
+	// Use the line including any completion or line suggestion,
+	// and compute buffer/cursor length. Only add a newline when
+	// the current buffer does not end with one.
+	line, cpos := rl.lineSuggested()
+	line = append(line, '\n')
+
+	// Get the index of each newline in the buffer.
+	nl := regexp.MustCompile("\n")
+	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
+
+	rl.posY = 0
+	rl.fullY = 0
+	startLine := 0
+	cursorSet := false
+
+	for pos, newline := range newlinesIdx {
+		// Compute any adjustment in case this line must be wrapped.
+		// Here, compute if line must be wrapped, to adjust posY.
+		lineY := rl.realLineLen(line[startLine:newline[0]], pos)
+
+		// All lines add to the global offset.
+		rl.fullY += lineY
+
+		switch {
+		case newline[0] < cpos:
+			// If we are not on the cursor line yet.
+			rl.posY += lineY
+		case !cursorSet:
+			// We are on the cursor line, since we didn't catch
+			// the first case, and that our cursor X coordinate
+			// has not been set yet.
+			rl.computeCursorPos(startLine, cpos, pos)
+			cursorSet = true
+			rl.hpos = pos
+		}
+
+		startLine = newline[1]
 	}
 }
 
-// printLine - refresh the current input line, either virtually completed or not.
-// also renders the current completions and hints. To be noted, the updateReferences()
-// function is only ever called once, and after having moved back to prompt position
-// and having printed the line: this is so that at any moment, everyone has the good
-// values for moving around, synchronized with the update input line.
-func (rl *Instance) printLine() {
-	// Then we print the prompt, and the line,
+// computeCursorPos computes the X/Y coordinates of the cursor on a given line.
+func (rl *Instance) computeCursorPos(startLine, cpos, lineIdx int) {
+	termWidth := GetTermWidth()
+	cursorStart := cpos - startLine
+	cursorStart += rl.Prompt.inputAt(rl)
+
+	cursorY := cursorStart / termWidth
+	cursorX := cursorStart % termWidth
+
+	// The very first (unreal) line counts for nothing,
+	// so by opposition all others count for one more.
+	if lineIdx == 0 {
+		cursorY--
+	}
+
+	// Any excess wrap means a newline.
+	if cursorX > 0 {
+		cursorY++
+	}
+
+	rl.posY += cursorY
+	rl.posX = cursorX
+}
+
+func (rl *Instance) realLineLen(line []rune, idx int) (lineY int) {
+	lineLen := getRealLength(string(line))
+	termWidth := GetTermWidth()
+	lineLen += rl.Prompt.inputAt(rl)
+
+	lineY = lineLen / termWidth
+	restY := lineLen % termWidth
+
+	// The very first line counts for nothing.
+	if idx == 0 {
+		lineY--
+	}
+
+	// Any excess wrap means a newline.
+	if restY > 0 {
+		lineY++
+	}
+
+	// Empty lines are still considered a line.
+	if lineY == 0 && idx != 0 {
+		lineY++
+	}
+
+	return
+}
+
+// linePrint - refresh the current input line, either virtually completed or not.
+func (rl *Instance) linePrint() {
 	switch {
+	// Password prompts.
 	case rl.PasswordMask != 0:
 	case rl.PasswordMask > 0:
 		print(strings.Repeat(string(rl.PasswordMask), len(rl.line)) + " ")
 
 	default:
-		// Go back to prompt position, and clear everything below
+		// Go back to prompt position, and clear everything below.
+		// Note that we don't yet compute the line/cursor coordinates,
+		// since we are still moving around the old line.
 		moveCursorBackwards(GetTermWidth())
 		moveCursorUp(rl.posY)
-		print(seqClearScreenBelow)
 
 		// We are the very beginning of the line ON WHICH we are
 		// going to write the input line, not higher, even if the
 		// entire primary+right prompt span several lines.
+		// Print the prompt or part of it, and the buffer right after.
 		rl.Prompt.printLast(rl)
+		rl.printBuffer()
 
-		// Assemble the line, taking virtual completions into account
-		line := rl.getLineVirtual()
-		highlighted := string(line)
+		// Now that we working with an entirely updated line,
+		// we must recompute all the offsets for it.
+		rl.computeLinePos()
 
-		// Print the input line with optional syntax highlighting
-		if rl.SyntaxHighlighter != nil {
-			highlighted = rl.SyntaxHighlighter(line)
-		}
+		// Go back to the current cursor position, with new coordinates
+		rl.moveFromLineEndToCursor()
 
-		// Adapt if there is a visual selection active
-		highlighted = rl.highlightLine([]rune(highlighted))
-
-		// And print
-		print(highlighted)
-
-		if len(rl.histSuggested) > 0 {
-			print(seqDim + string(rl.histSuggested) + seqReset)
-		}
+		// Finally, print any right or tooltip prompt.
+		rl.Prompt.printRprompt(rl)
 	}
-
-	rl.computeCursorPos()
-
-	// Update references with new coordinates only now, because
-	// the new line may be longer/shorter than the previous one.
-	rl.computeCoordinates()
-
-	// Go back to the current cursor position, with new coordinates
-	moveCursorBackwards(GetTermWidth())
-	moveCursorUp(rl.fullY)
-	moveCursorDown(rl.posY)
-	moveCursorForwards(rl.posX)
 }
 
-func (rl *Instance) clearLine() {
+func (rl *Instance) lineClear() {
 	if len(rl.line) == 0 {
 		return
 	}
@@ -155,7 +205,7 @@ func (rl *Instance) clearLine() {
 	// We need to go back to prompt
 	moveCursorUp(rl.posY)
 	moveCursorBackwards(GetTermWidth())
-	moveCursorForwards(rl.Prompt.inputAt)
+	moveCursorForwards(rl.Prompt.inputAt(rl))
 
 	// Clear everything after & below the cursor
 	print(seqClearScreenBelow)
@@ -173,7 +223,18 @@ func (rl *Instance) clearLine() {
 	rl.clearVirtualComp()
 }
 
-func (rl *Instance) insert(r []rune) {
+// When the DelayedSyntaxWorker gives us a new line, we need to check if there
+// is any processing to be made, that all lines match in terms of content.
+func (rl *Instance) lineUpdate(line []rune) {
+	if len(rl.comp) > 0 {
+	} else {
+		rl.line = line
+	}
+
+	rl.renderHelpers()
+}
+
+func (rl *Instance) lineInsert(r []rune) {
 	for {
 		// I don't really understand why `0` is creaping in at the end of the
 		// array but it only happens with unicode characters.
@@ -203,87 +264,6 @@ func (rl *Instance) insert(r []rune) {
 	rl.pos += len(r)
 }
 
-func (rl *Instance) carriageReturn() {
-	// Remove all helpers and line autosuggest
-	rl.histSuggested = []rune{}
-	rl.clearHelpers()
-	rl.printLine()
-	print("\r\n")
-
-	if rl.config.HistoryAutoWrite && !rl.inferLine {
-		var err error
-
-		// Main history
-		for _, history := range rl.histories {
-			if history == nil {
-				continue
-			}
-
-			rl.histPos, err = history.Write(string(rl.line))
-			if err != nil {
-				print(err.Error() + "\r\n")
-			}
-
-		}
-	}
-}
-
-func (rl *Instance) deletex() {
-	switch {
-	case len(rl.line) == 0:
-		return
-	case rl.pos == 0:
-		rl.line = rl.line[1:]
-	case rl.pos > len(rl.line):
-		rl.pos = len(rl.line)
-	case rl.pos == len(rl.line):
-		rl.pos--
-		rl.line = rl.line[:rl.pos]
-	default:
-		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
-	}
-}
-
-func (rl *Instance) deleteX() {
-	switch {
-	case len(rl.line) == 0:
-		return
-	case rl.pos == 0:
-		return
-	case rl.pos > len(rl.line):
-		rl.pos = len(rl.line)
-	case rl.pos == len(rl.line):
-		rl.pos--
-		rl.line = rl.line[:rl.pos]
-	default:
-		rl.pos--
-		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
-	}
-}
-
-func (rl *Instance) deleteToBeginning() {
-	rl.resetVirtualComp(false)
-	// Keep the line length up until the cursor
-	rl.line = rl.line[rl.pos:]
-	rl.pos = 0
-}
-
-// substrPos gets the index pos of a char in the input line, starting
-// from cursor, either backward or forward. Returns -1 if not found.
-func (rl *Instance) substrPos(r rune, forward bool) (pos int) {
-	pos = -1
-	initPos := rl.pos
-
-	rl.findAndMoveCursor(string(r), 1, forward, false)
-
-	if rl.pos != initPos {
-		pos = rl.pos
-		rl.pos = initPos
-	}
-
-	return
-}
-
 // lineSlice returns a subset of the current input line.
 func (rl *Instance) lineSlice(adjust int) (slice string) {
 	switch {
@@ -302,28 +282,108 @@ func (rl *Instance) lineSlice(adjust int) (slice string) {
 	return
 }
 
-// wrapText - Wraps a text given a specified width, and returns the formatted
-// string as well the number of lines it will occupy.
-func wrapText(text string, lineWidth int) (wrapped string, lines int) {
-	words := strings.Fields(text)
-	if len(words) == 0 {
+func (rl *Instance) lineCarriageReturn() {
+	rl.histSuggested = []rune{}
+
+	// Ask the caller if the line should be accepted as is.
+	if rl.AcceptMultiline(rl.lineCompleted()) {
+		// Clear the tooltip prompt if any,
+		// then go down and clear hints/completions.
+		rl.moveToLineEnd()
+		rl.Prompt.clearRprompt(rl, false)
+		print("\r\n")
+		print(seqClearScreenBelow)
+
+		// Save the command line and accept it.
+		rl.writeHistoryLine()
+		rl.accepted = true
 		return
 	}
-	wrapped = words[0]
-	spaceLeft := lineWidth - len(wrapped)
-	// There must be at least a line
-	if text != "" {
-		lines++
+
+	// If not, we should start editing another line,
+	// and insert a newline where our cursor value is.
+	// This has the nice advantage of being able to work
+	// in multiline mode even in the middle of the buffer.
+	rl.lineInsert([]rune{'\n'})
+}
+
+func (rl *Instance) numLines() int {
+	return len(strings.Split(string(rl.line), "\n"))
+}
+
+// Returns the real length of the line on which the cursor currently is.
+// If the lineIndex parameter is negative, we use the cursor line.
+func (rl *Instance) lineCursorLen() (lineLen int) {
+	lines := strings.Split(string(rl.lineCompleted()), "\n")
+	if len(lines) == 0 {
+		return 0
 	}
-	for _, word := range words[1:] {
-		if len(ansi.Strip(word))+1 > spaceLeft {
-			lines++
-			wrapped += "\n" + word
-			spaceLeft = lineWidth - len(word)
-		} else {
-			wrapped += " " + word
-			spaceLeft -= 1 + len(word)
+
+	lineLen += rl.Prompt.inputAt(rl)
+	lineLen += getRealLength(lines[rl.hpos])
+
+	termWidth := GetTermWidth()
+	if lineLen > termWidth {
+		lines := lineLen / termWidth
+		restLen := lineLen % termWidth
+
+		if lines > 0 && lineLen == 0 {
+			return termWidth
 		}
+
+		return restLen
 	}
-	return
+
+	return lineLen
+}
+
+// endLineX returns the X coordinate of the last line of input.
+func (rl *Instance) endLineX() (lineLen int) {
+	lines := strings.Split(string(rl.lineCompleted()), "\n")
+	if len(lines) == 0 {
+		return 0
+	}
+
+	lineLen += rl.Prompt.inputAt(rl)
+	lineLen += getRealLength(lines[len(lines)-1])
+
+	termWidth := GetTermWidth()
+	if lineLen > termWidth {
+		lines := lineLen / termWidth
+		restLen := lineLen % termWidth
+
+		if lines > 0 && lineLen == 0 {
+			return termWidth
+		}
+
+		return restLen
+	}
+
+	return lineLen
+}
+
+func (rl *Instance) printBuffer() {
+	// Generate the entire line as an highlighted line,
+	// and split it at each newline.
+	line := rl.lineHighlighted()
+	lines := strings.Split(line, "\n")
+
+	if len(line) > 0 && line[len(line)-1] == '\n' {
+		lines = append(lines, "")
+	}
+
+	for i, line := range lines {
+		// Indent according to the prompt.
+		if i > 0 {
+			moveCursorForwards(rl.Prompt.inputAt(rl))
+		}
+
+		if i < len(lines)-1 {
+			line += "\n"
+		} else {
+			line += seqClearScreenBelow
+		}
+
+		print(line)
+	}
 }

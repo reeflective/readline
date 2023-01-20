@@ -188,30 +188,6 @@ func (r *registers) setActiveRegister(reg rune) {
 
 // writeNumberedRegister - Add a buffer to one of the numbered registers
 // Pass a number above 10 to indicate we just push it on the num stack.
-func (r *registers) writeNumberedRegisterAlt(idx int, buf []rune, push bool) {
-	// No numbered register above 10
-	if len(r.num) > 10 {
-		return
-	}
-	// No push to the stack if we are already using 9
-	var max int
-	if push {
-		for i := range r.num {
-			if i > max && string(r.num[i]) != string(buf) {
-				max = i
-			}
-		}
-		if max < 9 {
-			r.num[max+1] = buf
-		}
-	} else {
-		// Add to the stack with the specified register
-		r.num[idx] = buf
-	}
-}
-
-// writeNumberedRegister - Add a buffer to one of the numbered registers
-// Pass a number above 10 to indicate we just push it on the num stack.
 func (r *registers) writeNumberedRegister(idx int, buf []rune) {
 	// No numbered register above 10
 	if idx > 9 {
@@ -271,9 +247,10 @@ func (r *registers) resetRegister() {
 func (rl *Instance) completeRegisters() Completions {
 	comps := Message(seqFgBlue + "-- registers --" + seqReset)
 
+	display := strings.ReplaceAll(string(rl.registers.unnamed), "\n", ``)
 	unnamed := Completion{
 		Value:   string(rl.registers.unnamed),
-		Display: seqDim + "\"\"" + seqDimReset + " " + string(rl.registers.unnamed),
+		Display: seqDim + "\"\"" + seqDimReset + " " + display,
 	}
 	comps.values = append(comps.values, unnamed)
 
@@ -297,10 +274,12 @@ func (rl *Instance) completeNumRegs() []Completion {
 
 	for _, reg := range nums {
 		buf := rl.registers.num[reg]
+		display := strings.ReplaceAll(string(buf), "\n", ``)
+
 		comp := Completion{
 			Tag:     tag,
 			Value:   string(buf),
-			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqDimReset, string(buf)),
+			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqDimReset, display),
 		}
 
 		regs = append(regs, comp)
@@ -321,10 +300,12 @@ func (rl *Instance) completeAlphaRegs() []Completion {
 
 	for _, reg := range lett {
 		buf := rl.registers.alpha[reg]
+		display := strings.ReplaceAll(string(buf), "\n", ``)
+
 		comp := Completion{
 			Tag:     tag,
 			Value:   string(buf),
-			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqDimReset, string(buf)),
+			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqDimReset, display),
 		}
 
 		regs = append(regs, comp)

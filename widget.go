@@ -208,6 +208,11 @@ func (rl *Instance) matchWidgets(key string, wids widgets) (cb EventCallback, al
 			continue
 		}
 
+		// If matching index is not 0, the match is not valid
+		if indexes := reg.FindAllStringIndex(key, 1); indexes[0][0] != 0 {
+			continue
+		}
+
 		// When we only match as a prefix, and that the key is not a lone caret.
 		if strings.HasPrefix(reg.String(), key) && len(key) < len(reg.String()) && key != "^" {
 			all[&reg] = widget
@@ -294,6 +299,19 @@ func (rl *Instance) donePending() {
 	if len(rl.pendingActions) == 0 {
 		rl.exitVioppMode()
 		rl.updateCursor()
+	}
+}
+
+// When the same widget is called twice in a row (like `yy` or `dd`),
+// it will call this function to avoid running itself a third time.
+func (rl *Instance) releasePending(widget string) {
+	if len(rl.pendingActions) == 0 {
+		return
+	}
+
+	// Just pop the widget without using it.
+	if rl.pendingActions[0].widget == widget {
+		rl.getPendingWidget()
 	}
 }
 

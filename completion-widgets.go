@@ -260,7 +260,7 @@ func (rl *Instance) acceptCompletionOrLine() {
 		// Or accept the line.
 		fallthrough
 	default:
-		rl.carriageReturn()
+		rl.lineCarriageReturn()
 		rl.accepted = true
 	}
 }

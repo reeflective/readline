@@ -35,7 +35,24 @@ func (rl *Instance) undoHistoryAppend() {
 	})
 }
 
+func (rl *Instance) undoHistoryAppendPos(cpos int) {
+	rl.undoHistoryAppend()
+	if rl.undoSkipAppend {
+		return
+	}
+
+	if len(rl.undoHistory) == 0 {
+		return
+	}
+
+	// Update the cursor of the newly generated und item
+	rl.undoHistory[len(rl.undoHistory)-1].pos = cpos
+}
+
 func (rl *Instance) undo() {
+	rl.exitVisualMode()
+	rl.updateCursor()
+
 	rl.undoSkipAppend = true
 	rl.isUndoing = true
 	if len(rl.undoHistory) == 0 {
@@ -72,6 +89,9 @@ func (rl *Instance) undo() {
 }
 
 func (rl *Instance) redo() {
+	rl.exitVisualMode()
+	rl.updateCursor()
+
 	rl.undoSkipAppend = true
 	rl.isUndoing = true
 	if len(rl.undoHistory) == 0 {

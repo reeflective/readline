@@ -102,7 +102,6 @@ keymaps:
         ^[c: capitalize-word
         ^[d: kill-word
         ^[f: forward-word
-        ^[l: ls^J
         ^[m: copy-prev-shell-word
         ^[n: history-search-forward
         ^[p: history-search-backward
@@ -178,7 +177,9 @@ keymaps:
         D: vi-kill-eol
         E: vi-forward-blank-word-end
         F: vi-find-prev-char
+        G: end-of-buffer-or-history
         I: vi-insert-bol
+        O: vi-open-line-above
         P: vi-put-before
         R: vi-replace
         T: vi-find-prev-char-skip
@@ -196,12 +197,15 @@ keymaps:
         gg: beginning-of-buffer-or-history
         gE: vi-backward-blank-word-end
         ge: vi-backward-word-end
+        gu: vi-down-case
+        gU: vi-up-case
         h: vi-backward-char
         i: vi-insert-mode
         j: down-line-or-history
         k: up-line-or-history
         l: vi-forward-char
         p: vi-put-after
+        o: vi-open-line-below
         r: vi-replace-chars
         s: vi-substitute
         t: vi-find-next-char-skip
@@ -219,6 +223,8 @@ keymaps:
         ^[[3;5~: kill-word
         ^[[3~: delete-char
         ^[[6~: menu-select
+        ^[[A: up-line-or-search
+        ^[[B: down-line-or-search
         ^[[C: vi-forward-char
         ^[[D: vi-backward-char
         ^[[F: end-of-line
@@ -272,7 +278,8 @@ keymaps:
         k: up-line
         s: vi-substitute
         u: vi-down-case
-        v: vi-edit-command-line
+        U: vi-up-case
+        v: edit-command-line
         x: vi-delete
         "y": vi-yank
 
@@ -305,4 +312,4 @@ historyAutoWrite: true
 # The maximum number of completion rows to print at any time.
 maxTabCompleterRows: 50 
 # Autocomplete asynchrously generates completions as text is typed in the line.
-autoComplete: true
+autoComplete: false 

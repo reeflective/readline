@@ -8,54 +8,227 @@ import (
 // Main selection helpers ------------------------------------------------------ //
 //
 
-// markSelection starts an active region at the specified mark position.
-func (rl *Instance) markSelection(mark int) {
-	rl.mark = mark
-	rl.activeRegion = true
+type selection struct {
+	regionType string
+	active     bool
+	bpos       int
+	epos       int
+	fg         string // Highlighting foreground
+	bg         string // Highlighting background
 }
 
-// Compute begin and end of region.
-func (rl *Instance) getSelectionPos() (bpos, epos, cpos int) {
-	if rl.mark < rl.pos {
-		bpos = rl.mark
-		epos = rl.pos + 1
-	} else {
-		bpos = rl.pos
-		epos = rl.mark
+// markSelection starts a visual selection at the specified mark position.
+func (rl *Instance) markSelection(mark int) {
+	rl.markSelectionRange(mark, -1)
+}
+
+func (rl *Instance) markSelectionRange(bpos, epos int) {
+	vsel := rl.visualSelection()
+
+	if vsel != nil {
+		sel := rl.visualSelection()
+		sel.bpos = bpos
+		sel.epos = epos
+
+		return
 	}
 
-	// Here, compute for visual line mode if needed.
-	// We select the whole line.
-	if rl.visualLine {
-		bpos = 0
+	sel := &selection{
+		bpos:       bpos,
+		epos:       epos,
+		active:     false,
+		regionType: "visual",
+		fg:         "",
+		bg:         seqBgBlueDark,
+	}
 
-		for i, char := range rl.line[epos:] {
-			if string(char) == "\n" {
-				break
-			}
-			epos = epos + i
+	rl.marks = append(rl.marks, sel)
+}
+
+func (rl *Instance) markSelectionSurround(bpos, epos int) {
+	sel := &selection{
+		bpos:       bpos,
+		epos:       epos,
+		active:     false,
+		regionType: "surround",
+		fg:         "",
+		bg:         seqBgRed,
+	}
+
+	rl.marks = append(rl.marks, sel)
+}
+
+func (rl *Instance) activeSelection() bool {
+	if rl.local == visual {
+		return true
+	}
+
+	// We might have a visual selection used by another widget
+	// (generally in Vi operator pending mode), in which case
+	// the selection is deemed active if:
+	if selection := rl.visualSelection(); selection != nil {
+		// - there is not defined end, and that the beginning is not the cursor.
+		if selection.epos == -1 && rl.pos != selection.bpos {
+			return true
 		}
+		// - there is a defined range
+		if selection.epos != -1 {
+			return true
+		}
+
+		return false
+	}
+
+	return false
+}
+
+func (rl *Instance) visualSelection() *selection {
+	for _, sel := range rl.marks {
+		if sel.regionType == "visual" {
+			return sel
+		}
+	}
+	return nil
+}
+
+// Compute begin and end of visual selection.
+func (rl *Instance) calcSelection() (bpos, epos, cpos int) {
+	sel := rl.visualSelection()
+	if sel == nil || len(rl.line) == 0 {
+		return -1, -1, -1
+	}
+
+	bpos = sel.bpos
+	epos = sel.epos
+
+	// If the visual selection has one of its end
+	// as the cursor, actualize this value.
+	if sel.epos == -1 {
+		bpos, epos = rl.selectionCursor(bpos)
+	}
+
+	// In visual mode, we include the cursor
+	if rl.local == visual {
+		epos++
 	}
 
 	// Ensure nothing is out of bounds
-	if epos > len(rl.line)-1 {
+	if epos > len(rl.line) {
 		epos = len(rl.line)
 	}
 	if bpos < 0 {
 		bpos = 0
 	}
 
+	// Compute the desired cursor position.
+	cpos = rl.selectionCursorPos(bpos, epos)
+
+	return bpos, epos, cpos
+}
+
+func (rl *Instance) selectionCursor(bpos int) (int, int) {
+	var epos int
+
+	// The cursor might be now before its original mark,
+	// in which case we invert before doing any move.
+	if rl.pos < bpos {
+		bpos, epos = rl.pos, bpos
+	} else {
+		epos = rl.pos
+	}
+
+	if rl.visualLine {
+		for bpos--; bpos >= 0; bpos-- {
+			if rl.line[bpos] == '\n' {
+				bpos++
+				break
+			}
+		}
+		for ; epos < len(rl.line); epos++ {
+			if epos == -1 {
+				epos = 0
+			}
+			if rl.line[epos] == '\n' {
+				break
+			}
+		}
+	}
+
+	// Check again in case the visual line inverted both.
+	if bpos > epos {
+		bpos, epos = epos, bpos
+	}
+
+	return bpos, epos
+}
+
+func (rl *Instance) selectionCursorPos(bpos, epos int) (cpos int) {
 	cpos = bpos
+	var indent int
+
+	if rl.local == visual && rl.visualLine {
+
+		// Get the indent of the cursor line.
+		for cpos = rl.pos - 1; cpos >= 0; cpos-- {
+			if rl.line[cpos] == '\n' {
+				break
+			}
+		}
+		indent = rl.pos - cpos - 1
+
+		// If the selection includes the last line,
+		// the cursor will move up the above line.
+		var hpos, rpos int
+
+		if epos < len(rl.line) {
+			hpos = epos + 1
+			rpos = bpos
+		} else {
+			for hpos = bpos - 2; hpos >= 0; hpos-- {
+				if rl.line[hpos] == '\n' {
+					break
+				}
+			}
+			if hpos < -1 {
+				hpos = -1
+			}
+			hpos++
+			rpos = hpos
+		}
+
+		// Now calculate the cursor position, the indent
+		// must be less than the line characters.
+		for cpos = hpos; cpos < len(rl.line); cpos++ {
+			if rl.line[cpos] == '\n' {
+				break
+			}
+			if hpos+indent <= cpos {
+				break
+			}
+		}
+
+		// That cursor position might be bigger than the line itself:
+		// it should be controlled when the line is redisplayed.
+		cpos = rpos + cpos - hpos
+	}
 
 	return
 }
 
 // popSelection returns the active region and resets it.
 func (rl *Instance) popSelection() (s string, bpos, epos, cpos int) {
-	bpos, epos, cpos = rl.getSelectionPos()
-	s = string(rl.line[bpos:epos])
+	if len(rl.marks) == 0 {
+		return
+	}
 
-	rl.resetSelection()
+	defer rl.resetSelection()
+
+	bpos, epos, cpos = rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
+
+	s = string(rl.line[bpos:epos])
 
 	return
 }
@@ -79,13 +252,20 @@ func (rl *Instance) insertBlock(bpos, epos int, word, surround string) {
 // insertSelection works the same as insertBlock, but directly uses the
 // current active region as a block to insert. Resets the selection once done.
 // Returns the computed cursor position after insert.
-func (rl *Instance) insertSelection(surround string) (wlen, cpos int) {
-	bpos, epos, cpos := rl.getSelectionPos()
+func (rl *Instance) insertSelection(bchar, echar string) (wlen, cpos int) {
+	if len(rl.marks) == 0 {
+		return
+	}
+
+	defer rl.resetSelection()
+
+	bpos, epos, cpos := rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
 	selection := string(rl.line[bpos:epos])
 
-	if surround != "" {
-		selection = surround + selection + surround
-	}
+	selection = bchar + selection + echar
 
 	begin := string(rl.line[:bpos])
 	end := string(rl.line[epos:])
@@ -94,19 +274,44 @@ func (rl *Instance) insertSelection(surround string) (wlen, cpos int) {
 	newLine = append(newLine, []rune(end)...)
 	rl.line = newLine
 
-	rl.resetSelection()
-
 	return len(selection), cpos
+}
+
+// replaceSelectionRune replaces all runes in the current visual selection.
+func (rl *Instance) replaceSelectionRune(replacer func(r rune) rune) {
+	bpos, epos, _ := rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
+	rl.resetSelection()
+	rl.pos = bpos
+
+	for range rl.line[bpos:epos] {
+		char := rl.line[rl.pos]
+		char = replacer(char)
+		rl.line[rl.pos] = char
+		rl.pos++
+	}
+
+	rl.viCommandMode()
+	rl.updateCursor()
 }
 
 // yankSelection copies the active selection in the active/default register.
 func (rl *Instance) yankSelection() {
-	// Get the selection.
-	bpos, epos, cpos := rl.getSelectionPos()
+	if len(rl.marks) == 0 {
+		return
+	}
+
+	bpos, epos, cpos := rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
+
 	selection := string(rl.line[bpos:epos])
 
-	// The visual line mode always adds a newline
-	if rl.local == visual && rl.visualLine {
+	// Visual adjustmeents when we are on the last line.
+	if rl.local == visual && rl.visualLine && epos == len(rl.line) {
 		selection += "\n"
 	}
 
@@ -121,11 +326,25 @@ func (rl *Instance) yankSelection() {
 
 // yankSelection deletes the active selection.
 func (rl *Instance) deleteSelection() {
+	if len(rl.marks) == 0 {
+		return
+	}
+	defer rl.resetSelection()
+
 	var newline []rune
 
 	// Get the selection.
-	bpos, epos, cpos := rl.getSelectionPos()
+	bpos, epos, cpos := rl.calcSelection()
+	if bpos == -1 || epos == -1 {
+		return
+	}
+
 	selection := string(rl.line[bpos:epos])
+
+	// Visual adjustmeents when we are on the last line.
+	if rl.local == visual && rl.visualLine && epos == len(rl.line) {
+		selection += "\n"
+	}
 
 	// Save it and update the line
 	rl.saveBufToRegister([]rune(selection))
@@ -133,15 +352,17 @@ func (rl *Instance) deleteSelection() {
 	rl.line = newline
 
 	rl.pos = cpos
-
-	// Reset the selection since it does not exist anymore.
-	rl.resetSelection()
 }
 
 // resetSelection unmarks the mark position and deactivates the region.
 func (rl *Instance) resetSelection() {
-	rl.activeRegion = false
-	rl.mark = -1
+	for i, reg := range rl.marks {
+		if reg.regionType == "visual" {
+			if len(rl.marks) > i {
+				rl.marks = append(rl.marks[:i], rl.marks[i+1:]...)
+			}
+		}
+	}
 }
 
 //

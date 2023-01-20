@@ -2,7 +2,6 @@ package readline
 
 import (
 	"strconv"
-	"strings"
 )
 
 //
@@ -240,26 +239,45 @@ func (rl *Instance) viDeleteByAdjust(adjust int) {
 	}
 }
 
-func (rl *Instance) vimDeleteToken(r rune) bool {
-	tokens, _, _ := tokeniseSplitSpaces(rl.line, 0)
-	pos := int(r) - 48 // convert ASCII to integer
-	if pos > len(tokens) {
-		return false
+func (rl *Instance) deleteRune(backOne bool) {
+	switch {
+	case len(rl.line) == 0:
+		return
+	case rl.pos == 0:
+		rl.line = rl.line[1:]
+	case rl.pos > len(rl.line):
+		rl.pos = len(rl.line)
+	case rl.pos == len(rl.line):
+		rl.pos--
+		rl.line = rl.line[:rl.pos]
+	default:
+		if backOne {
+			rl.pos--
+		}
+		rl.line = append(rl.line[:rl.pos], rl.line[rl.pos+1:]...)
 	}
-
-	s := string(rl.line)
-	newLine := strings.ReplaceAll(s, tokens[pos-1], "")
-	if newLine == s {
-		return false
-	}
-
-	rl.line = []rune(newLine)
-
-	rl.redisplay()
-
-	if rl.pos > len(rl.line) {
-		rl.pos = len(rl.line) - 1
-	}
-
-	return true
 }
+
+// func (rl *Instance) vimDeleteToken(r rune) bool {
+// 	tokens, _, _ := tokeniseSplitSpaces(rl.line, 0)
+// 	pos := int(r) - 48 // convert ASCII to integer
+// 	if pos > len(tokens) {
+// 		return false
+// 	}
+//
+// 	s := string(rl.line)
+// 	newLine := strings.ReplaceAll(s, tokens[pos-1], "")
+// 	if newLine == s {
+// 		return false
+// 	}
+//
+// 	rl.line = []rune(newLine)
+//
+// 	rl.redisplay()
+//
+// 	if rl.pos > len(rl.line) {
+// 		rl.pos = len(rl.line) - 1
+// 	}
+//
+// 	return true
+// }

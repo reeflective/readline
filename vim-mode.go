@@ -10,33 +10,26 @@ import (
 
 func (rl *Instance) enterVisualMode() {
 	rl.local = visual
-	rl.visualLine = false
-	rl.mark = rl.pos
-}
-
-func (rl *Instance) enterVisualLineMode() {
-	rl.local = visual
-	rl.visualLine = true
-	rl.mark = 0 // start at the beginning of the line.
+	rl.markSelection(rl.pos)
+	rl.visualSelection().active = true
 }
 
 func (rl *Instance) exitVisualMode() {
-	for i, reg := range rl.regions {
+	for i, reg := range rl.marks {
 		if reg.regionType == "visual" {
-			if len(rl.regions) > i {
-				rl.regions = append(rl.regions[:i], rl.regions[i+1:]...)
+			if len(rl.marks) > i {
+				rl.marks = append(rl.marks[:i], rl.marks[i+1:]...)
+			} else {
+				rl.marks = rl.marks[:i]
 			}
 		}
 	}
 
-	rl.visualLine = false
-	rl.mark = -1
-
-	if rl.local != visual {
-		return
+	if rl.local == visual {
+		rl.local = ""
 	}
 
-	rl.local = ""
+	rl.visualLine = false
 }
 
 // enterVioppMode adds a widget to the list of widgets waiting for an operator/action,
@@ -60,9 +53,7 @@ func (rl *Instance) enterVioppMode(widget string) {
 }
 
 func (rl *Instance) exitVioppMode() {
-	if rl.local == viopp {
-		rl.local = ""
-	}
+	rl.local = ""
 	rl.isViopp = false
 }
 
@@ -116,7 +107,6 @@ const (
 )
 
 func (rl *Instance) refreshVimStatus() {
-	rl.Prompt.compute(rl)
 	rl.redisplay()
 }
 

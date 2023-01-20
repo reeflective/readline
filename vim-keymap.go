@@ -30,8 +30,8 @@ var viinsKeys = keymap{
 	"^[[3;5~": "kill-word",
 	"^[[1;5C": "forward-word",
 	"^[[1;5D": "backward-word",
-	// "^[[A":    "up-line-or-search",   // TODO
-	// "^[[B":    "down-line-or-select", // TODO
+	"^[[A":    "up-line-or-search",
+	"^[[B":    "down-line-or-search",
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode.
@@ -71,8 +71,11 @@ var vicmdKeys = keymap{
 	"D":       "vi-kill-eol",
 	"e":       "vi-forward-word-end",
 	"E":       "vi-forward-blank-word-end",
+	"gg":      "beginning-of-buffer-or-history",
 	"ge":      "vi-backward-word-end",
 	"gE":      "vi-backward-blank-word-end",
+	"gu":      "vi-down-case",
+	"gU":      "vi-up-case",
 	"f":       "vi-find-next-char",
 	"t":       "vi-find-next-char-skip",
 	"i":       "vi-insert-mode",
@@ -81,6 +84,8 @@ var vicmdKeys = keymap{
 	"l":       "vi-forward-char",
 	"j":       "down-line-or-history",
 	"k":       "up-line-or-history",
+	"O":       "vi-open-line-above",
+	"o":       "vi-open-line-below",
 	"p":       "vi-put-after",
 	"P":       "vi-put-before",
 	"r":       "vi-replace-chars",
@@ -112,8 +117,8 @@ var vioppKeys = keymap{
 	"iW": "select-in-blank-word",
 	"ia": "select-in-shell-word",
 	"iw": "select-in-word",
-	// "j":  "down-line", // TODO
-	// "k":  "up-line",   // TODO
+	"j":  "down-line",
+	"k":  "up-line",
 }
 
 // viinsKeymaps are the default keymaps in Vim Visual mode.
@@ -129,15 +134,15 @@ var visualKeys = keymap{
 	"c":  "vi-change",
 	"d":  "vi-delete",
 	"i":  "vi-select-surround",
-	// "j":  "down-line", // TODO
-	// "k":  "up-line",   // TODO
-	"s": "vi-substitute",
-	"S": "vi-add-surround",
-	"u": "vi-down-case",
-	"v": "vi-edit-command-line",
-	"x": "vi-delete",
-	"y": "vi-yank",
-	"~": "vi-swap-case",
+	"j":  "down-line",
+	"k":  "up-line",
+	"s":  "vi-substitute",
+	"S":  "vi-add-surround",
+	"u":  "vi-down-case",
+	"v":  "vi-edit-command-line",
+	"x":  "vi-delete",
+	"y":  "vi-yank",
+	"~":  "vi-swap-case",
 }
 
 // changeMovements is used for some widgets that only

@@ -1,7 +1,6 @@
 package readline
 
 import (
-	"fmt"
 	"unicode"
 )
 
@@ -31,7 +30,6 @@ func (rl *Instance) viWidgets() lineWidgets {
 		"vi-kill-eol":                   rl.viKillEol,
 		"vi-kill-line":                  rl.viKillLine,
 		"vi-change-eol":                 rl.viChangeEol,
-		"vi-edit-command-line":          rl.viEditCommandLine,
 		"vi-add-eol":                    rl.viAddEol,
 		"vi-add-next":                   rl.viAddNext,
 		"vi-put-after":                  rl.viPutAfter,
@@ -57,6 +55,8 @@ func (rl *Instance) viWidgets() lineWidgets {
 		"vi-digit-or-beginning-of-line": rl.viDigitOrBeginningOfLine,
 		"vi-goto-column":                rl.viGotoColumn,
 		"vi-swap-case":                  rl.viSwapCase,
+		"vi-down-case":                  rl.viDownCase,
+		"vi-up-case":                    rl.viUpCase,
 		"vi-oper-swap-case":             rl.viOperSwapCase,
 		"vi-first-non-blank":            rl.viFirstNonBlank,
 		"vi-substitute":                 rl.viSubstitute,
@@ -65,6 +65,8 @@ func (rl *Instance) viWidgets() lineWidgets {
 		"vi-change-surround":            rl.viChangeSurround,
 		"vi-select-surround":            rl.viSelectSurround,
 		"vi-set-mark":                   rl.viSetMark,
+		"vi-open-line-above":            rl.viOpenLineAbove,
+		"vi-open-line-below":            rl.viOpenLineBelow,
 	}
 }
 
@@ -76,7 +78,6 @@ func (rl *Instance) viInsertMode() {
 	rl.viinsEnterPos = rl.pos
 
 	rl.addIteration("")
-	rl.activeRegion = false
 
 	rl.updateCursor()
 }
@@ -86,10 +87,9 @@ func (rl *Instance) viCommandMode() {
 
 	rl.addIteration("")
 	rl.skipUndoAppend()
-	rl.activeRegion = false
 
 	// Only go back if not in insert mode
-	if rl.main == viins && len(rl.line) > 0 && rl.pos > 0 {
+	if rl.main == viins && rl.pos > 0 && !rl.cursorAtBeginningOfLine() {
 		rl.pos--
 	}
 
@@ -103,6 +103,7 @@ func (rl *Instance) viCommandMode() {
 func (rl *Instance) viVisualMode() {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
+	rl.visualLine = false
 
 	rl.addIteration("")
 	rl.skipUndoAppend()
@@ -120,11 +121,12 @@ func (rl *Instance) viVisualMode() {
 func (rl *Instance) viVisualLineMode() {
 	lastMode := rl.local
 	wasVisualLine := rl.visualLine
+	rl.visualLine = true
 
 	rl.addIteration("")
 	rl.skipUndoAppend()
 
-	rl.enterVisualLineMode()
+	rl.enterVisualMode()
 
 	// We don't do anything else if the mode did not change.
 	if lastMode == rl.local && wasVisualLine == rl.visualLine {
@@ -135,12 +137,9 @@ func (rl *Instance) viVisualLineMode() {
 }
 
 func (rl *Instance) viInsertBol() {
-	rl.main = viins
-
 	rl.addIteration("")
-
-	rl.pos = 0
-	rl.updateCursor()
+	rl.beginningOfLine()
+	rl.viInsertMode()
 }
 
 func (rl *Instance) viAddNext() {
@@ -152,10 +151,11 @@ func (rl *Instance) viAddNext() {
 }
 
 func (rl *Instance) viAddEol() {
-	if len(rl.line) > 0 {
-		rl.pos = len(rl.line)
+	rl.addIteration("")
+	rl.endOfLine()
+	if rl.pos < len(rl.line)-1 {
+		rl.pos++
 	}
-
 	rl.viInsertMode()
 }
 
@@ -217,12 +217,24 @@ func (rl *Instance) viBackwardBlankWordEnd() {
 }
 
 func (rl *Instance) viKillEol() {
+	rl.skipUndoAppend()
+	rl.undoHistoryAppendPos(rl.pos)
+
 	pos := rl.pos
-	if pos < 0 {
-		pos--
+	rl.markSelection(rl.pos)
+
+	for ; rl.pos < len(rl.line); rl.pos++ {
+		if rl.line[rl.pos] == '\n' {
+			break
+		}
 	}
-	rl.saveBufToRegister(rl.line[pos:])
-	rl.line = rl.line[:rl.pos]
+
+	rl.deleteSelection()
+
+	rl.pos = pos
+	if rl.pos > 0 {
+		rl.pos--
+	}
 
 	rl.addIteration("")
 	rl.resetHelpers()
@@ -236,16 +248,34 @@ func (rl *Instance) viKillLine() {
 	rl.undoHistoryAppend()
 	rl.skipUndoAppend()
 
-	rl.markSelection(rl.viinsEnterPos)
+	rl.markSelectionRange(rl.viinsEnterPos, len(rl.line))
 	rl.pos--
 	rl.deleteSelection()
 }
 
 func (rl *Instance) viChangeEol() {
-	rl.saveBufToRegister(rl.line[rl.pos-1:])
-	rl.line = rl.line[:rl.pos]
-	rl.addIteration("")
+	rl.undoHistoryAppend()
+	rl.skipUndoAppend()
 
+	pos := rl.pos
+	rl.markSelection(rl.pos)
+
+	switch {
+	case rl.numLines() > 1:
+		for ; rl.pos < len(rl.line); rl.pos++ {
+			if rl.line[rl.pos] == '\n' {
+				break
+			}
+		}
+	default:
+		rl.pos = len(rl.line)
+	}
+
+	rl.deleteSelection()
+
+	rl.pos = pos
+
+	rl.addIteration("")
 	rl.resetHelpers()
 
 	rl.viInsertMode()
@@ -269,7 +299,7 @@ func (rl *Instance) viForwardBlankWordEnd() {
 
 func (rl *Instance) viForwardChar() {
 	// Only exception where we actually don't forward a character.
-	if rl.config.HistoryAutosuggest && len(rl.histSuggested) > 0 {
+	if rl.config.HistoryAutosuggest && len(rl.histSuggested) > 0 && rl.pos == len(rl.line)-1 {
 		rl.historyAutosuggestInsert()
 		return
 	}
@@ -279,7 +309,9 @@ func (rl *Instance) viForwardChar() {
 	// In vi-cmd-mode, we don't go further than the
 	// last character in the line, hence rl.line-1
 	if rl.main != viins && rl.pos < len(rl.line)-1 {
-		rl.pos++
+		if rl.line[rl.pos+1] != '\n' {
+			rl.pos++
+		}
 
 		return
 	}
@@ -296,29 +328,76 @@ func (rl *Instance) viBackwardChar() {
 	rl.skipUndoAppend()
 
 	if rl.pos > 0 {
-		rl.pos--
+		if rl.line[rl.pos-1] != '\n' {
+			rl.pos--
+		}
 	}
 }
 
 func (rl *Instance) viPutAfter() {
-	if rl.pos < len(rl.line) {
+	rl.undoHistoryAppend()
+
+	// posStart := rl.pos
+	buffer := rl.pasteFromRegister()
+
+	if buffer[len(buffer)-1] == '\n' {
+
+		// Find the end of the current line.
+		for cpos := rl.pos; cpos < len(rl.line); cpos++ {
+			rl.pos = cpos
+			if rl.line[cpos] == '\n' {
+				break
+			}
+		}
+
+		if rl.pos == len(rl.line)-1 {
+			buffer = append([]rune{'\n'}, buffer[:len(buffer)-2]...)
+		}
+	}
+
+	// Special handling on empty lines and end of buffer
+	if !rl.isEmptyLine() && rl.pos < len(rl.line) {
 		rl.pos++
 	}
 
-	buffer := rl.pasteFromRegister()
+	pos := rl.pos
+
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
-		rl.insert(buffer)
+		rl.lineInsert(buffer)
 	}
-	rl.pos--
+
+	rl.pos = pos
 }
 
 func (rl *Instance) viPutBefore() {
+	rl.undoHistoryAppend()
+
 	buffer := rl.pasteFromRegister()
+
+	if buffer[len(buffer)-1] == '\n' {
+		// Find the end of the current line.
+		for cpos := rl.pos; cpos >= 0; cpos-- {
+			if rl.line[cpos] == '\n' {
+				break
+			}
+			rl.pos = cpos
+		}
+
+		if rl.isEmptyLine() {
+			buffer = append(buffer, '\n')
+			rl.pos--
+		}
+	}
+
+	pos := rl.pos
+
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
-		rl.insert(buffer)
+		rl.lineInsert(buffer)
 	}
+
+	rl.pos = pos
 }
 
 func (rl *Instance) viReplaceChars() {
@@ -330,8 +409,8 @@ func (rl *Instance) viReplaceChars() {
 	}
 
 	// In visual mode, we replace all chars of the selection
-	if rl.activeRegion || rl.local == visual {
-		bpos, epos, _ := rl.getSelectionPos()
+	if rl.activeSelection() {
+		bpos, epos, _ := rl.calcSelection()
 		for i := bpos; i < epos; i++ {
 			rl.line[i] = []rune(key)[0]
 		}
@@ -344,8 +423,8 @@ func (rl *Instance) viReplaceChars() {
 	}
 
 	// Or simply the character under the cursor.
-	rl.deletex()
-	rl.insert([]rune(key))
+	rl.deleteRune(false)
+	rl.lineInsert([]rune(key))
 	rl.pos--
 }
 
@@ -407,35 +486,6 @@ func (rl *Instance) viReplace() {
 	rl.pos--
 }
 
-func (rl *Instance) viEditCommandLine() {
-	rl.clearHelpers()
-	var multiline []rune
-	if rl.GetMultiLine == nil {
-		multiline = rl.line
-	} else {
-		multiline = rl.GetMultiLine(rl.line)
-	}
-
-	// Keep the previous cursor position
-	prev := rl.pos
-
-	new, err := rl.StartEditorWithBuffer(multiline, "")
-	if err != nil || len(new) == 0 {
-		fmt.Println(err)
-		rl.skipUndoAppend()
-		return
-	}
-
-	// Clean the shell and put the new buffer, with adjusted pos if needed.
-	rl.clearLine()
-	rl.line = new
-	if prev > len(rl.line) {
-		rl.pos = len(rl.line) - 1
-	} else {
-		rl.pos = prev
-	}
-}
-
 func (rl *Instance) viForwardWord() {
 	rl.skipUndoAppend()
 
@@ -447,12 +497,6 @@ func (rl *Instance) viForwardWord() {
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
 		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
-	}
-
-	// We make an adjustment to the mark if we are currently
-	// yanking, and this widget is the argument action.
-	if rl.local == viopp && rl.activeRegion && rl.pos < len(rl.line)-1 {
-		rl.pos--
 	}
 }
 
@@ -480,7 +524,7 @@ func (rl *Instance) viDeleteChar() {
 
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
-		rl.deletex()
+		rl.deleteRune(false)
 	}
 }
 
@@ -496,17 +540,17 @@ func (rl *Instance) viBackwardDeleteChar() {
 
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
-		rl.deleteX()
+		rl.deleteRune(true)
 	}
 }
 
 func (rl *Instance) viYank() {
 	rl.skipUndoAppend()
+	self := "vi-yank"
 
 	switch {
-	case rl.local == visual, rl.activeRegion:
-		// Most of the time we are in pending mode here,
-		// since we marked the region active in the default case,
+	case rl.activeSelection():
+		// In visual mode, or with a non-empty selection, just yank.
 		rl.yankSelection()
 		rl.resetSelection()
 
@@ -516,16 +560,23 @@ func (rl *Instance) viYank() {
 		}
 
 	case rl.local == viopp:
-		// When we still are in viopp mode, that means we have been
-		// called twice in a row: the second time, we matched the first
-		// case statement, but did not delete anything. But we then
-		// got called a third time, and this one we don't have an active
-		// region anymore: copy the whole line.
-		rl.saveBufToRegister(rl.line)
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `yy`), so copy the entire current line.
+		rl.releasePending(self)
+
+		rl.viVisualLineMode()
+		defer rl.exitVisualMode()
+
+		bpos, epos, _ := rl.calcSelection()
+		if bpos == -1 || epos == -1 {
+			return
+		}
+		buffer := rl.line[bpos:epos]
+		rl.saveBufToRegister(buffer)
 
 	default:
 		// Else if we are actually starting a yank action.
-		rl.enterVioppMode("vi-yank")
+		rl.enterVioppMode(self)
 		rl.updateCursor()
 		rl.markSelection(rl.pos)
 	}
@@ -533,12 +584,32 @@ func (rl *Instance) viYank() {
 
 func (rl *Instance) viYankWholeLine() {
 	rl.skipUndoAppend()
-	rl.saveBufToRegister(rl.line)
+
+	// calculate line selection.
+	rl.viVisualLineMode()
+	bpos, epos, _ := rl.calcSelection()
+
+	// If selection has a new line, remove it.
+	if rl.line[epos-1] == '\n' {
+		epos--
+	}
+
+	// Pass the buffer to register.
+	buffer := rl.line[bpos:epos]
+	rl.saveBufToRegister(buffer)
+
+	// Done with any selection.
+	rl.exitVisualMode()
 }
 
 func (rl *Instance) viEndOfLine() {
 	rl.skipUndoAppend()
-	rl.pos = len(rl.line)
+
+	for ; rl.pos < len(rl.line); rl.pos++ {
+		if rl.line[rl.pos] == '\n' {
+			break
+		}
+	}
 }
 
 func (rl *Instance) viMatchBracket() {
@@ -659,11 +730,13 @@ func (rl *Instance) viFindPrevCharSkip() {
 }
 
 func (rl *Instance) viDelete() {
+	self := "vi-delete"
+
 	switch {
-	case rl.local == visual, rl.activeRegion:
-		// Most of the time we are in pending mode here,
-		// since we marked the region active in the default case,
-		rl.undoHistoryAppend()
+	case rl.activeSelection():
+		// In visual mode, or with a non-empty selection, just cut it.
+		bpos, _, _ := rl.calcSelection()
+		rl.undoHistoryAppendPos(bpos)
 		rl.skipUndoAppend()
 
 		rl.deleteSelection()
@@ -674,19 +747,22 @@ func (rl *Instance) viDelete() {
 		}
 
 	case rl.local == viopp:
-		// When we still are in viopp mode, that means we have been
-		// called twice in a row: the second time, we matched the first
-		// case statement, but did not delete anything. But we then
-		// got called a third time, and this one we don't have an active
-		// region anymore: delete the whole line.
-		rl.undoHistoryAppend()
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `dd`), so delete the entire current line.
+		rl.releasePending(self)
+
+		rl.undoHistoryAppendPos(rl.pos)
 		rl.skipUndoAppend()
-		rl.killWholeLine()
+
+		rl.viVisualLineMode()
+		defer rl.exitVisualMode()
+
+		rl.deleteSelection()
 
 	default:
 		// Else if we are actually starting a delete action.
 		rl.skipUndoAppend()
-		rl.enterVioppMode("vi-delete")
+		rl.enterVioppMode(self)
 		rl.updateCursor()
 		rl.markSelection(rl.pos)
 	}
@@ -712,21 +788,22 @@ func (rl *Instance) viSelectABlankWord() {
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
-	rl.markSelection(rl.pos)
+	bpos := rl.pos
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpW(tokeniseSplitSpaces) - 1)
+	epos := rl.pos
 
-	final := rl.pos - 1
+	// Adjust if we are at the end of the line.
 	if rl.pos == len(rl.line)-1 {
-		final++
+		rl.pos = bpos
+		rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
+		bpos = rl.pos
+		rl.pos = epos
 	}
-	rl.pos = rl.mark
 
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	rl.markSelection(rl.pos + 1)
-	rl.pos = final
+	rl.markSelectionRange(bpos, epos)
 }
 
 func (rl *Instance) viSelectAShellWord() {
@@ -746,49 +823,51 @@ func (rl *Instance) viSelectAShellWord() {
 
 	// Adjust for spaces preceding
 	rl.pos = mark
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	mark = rl.pos + 1
+	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+	rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces) + 1)
+	bpos := rl.pos
 
 	// Else set the region inside those quotes
-	rl.markSelection(mark)
 	rl.pos = cpos
+	rl.markSelectionRange(bpos, rl.pos)
 }
 
 func (rl *Instance) viSelectAWord() {
 	rl.skipUndoAppend()
 
-	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	rl.markSelection(rl.pos)
+	bpos := rl.pos
 
-	// Then go to the end of the word
 	rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine) - 1)
+	epos := rl.pos
 
 	// When nothing after, or non-empty, use spaces before word.
-	final := rl.pos
 	if rl.pos == len(rl.line)-1 {
-		rl.pos = rl.mark
+		rl.pos = bpos
 		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-		rl.markSelection(rl.pos + 1)
-		rl.pos = final
+		bpos = rl.pos
+		rl.pos = epos
 	}
+
+	rl.markSelectionRange(bpos, epos)
 }
 
 func (rl *Instance) viSelectInBlankWord() {
 	rl.skipUndoAppend()
+	var bpos int
 
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
 	if rl.local == visual || rl.local == viopp {
-		rl.markSelection(rl.pos)
+		bpos = rl.pos
 	}
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
+	rl.markSelectionRange(bpos, rl.pos)
 }
 
 func (rl *Instance) viSelectInShellWord() {
@@ -807,22 +886,24 @@ func (rl *Instance) viSelectInShellWord() {
 	}
 
 	// Else set the region inside those quotes
-	rl.markSelection(mark + 1)
 	rl.pos = cpos - 1
+	rl.markSelectionRange(mark+1, rl.pos)
 }
 
 func (rl *Instance) viSelectInWord() {
 	rl.skipUndoAppend()
+	var bpos int
 
 	// Go the beginning of the word and start mark
 	rl.pos++
 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
 	if rl.local == visual || rl.local == viopp {
-		rl.markSelection(rl.pos)
+		bpos = rl.pos
 	}
 
 	// Then go to the end of the blank word
 	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
+	rl.markSelectionRange(bpos, rl.pos)
 }
 
 func (rl *Instance) viGotoColumn() {
@@ -845,7 +926,7 @@ func (rl *Instance) viSwapCase() {
 	case visual:
 		posInit := rl.pos
 
-		bpos, epos, _ := rl.getSelectionPos()
+		bpos, epos, _ := rl.calcSelection()
 		rl.resetSelection()
 		rl.pos = bpos
 
@@ -880,10 +961,10 @@ func (rl *Instance) viSwapCase() {
 
 func (rl *Instance) viOperSwapCase() {
 	switch {
-	case rl.local == visual, rl.activeRegion:
+	case rl.activeSelection():
 		posInit := rl.pos
 
-		bpos, epos, cpos := rl.getSelectionPos()
+		bpos, epos, cpos := rl.calcSelection()
 		rl.resetSelection()
 		rl.pos = bpos
 
@@ -907,6 +988,84 @@ func (rl *Instance) viOperSwapCase() {
 	}
 }
 
+func (rl *Instance) viDownCase() {
+	rl.skipUndoAppend()
+	self := "vi-down-case"
+
+	switch {
+	case rl.activeSelection():
+		bpos, _, _ := rl.calcSelection()
+		rl.undoHistoryAppendPos(bpos)
+		rl.skipUndoAppend()
+
+		rl.replaceSelectionRune(unicode.ToLower)
+
+		rl.viCommandMode()
+		rl.updateCursor()
+
+	case rl.local == viopp:
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `uu`), so modify the entire current line.
+		rl.releasePending(self)
+
+		rl.undoHistoryAppend()
+		rl.skipUndoAppend()
+
+		rl.viVisualLineMode()
+		defer rl.exitVisualMode()
+
+		rl.replaceSelectionRune(unicode.ToLower)
+		rl.viCommandMode()
+		rl.updateCursor()
+
+	default:
+		// Else if we are actually starting a yank action.
+		rl.skipUndoAppend()
+		rl.enterVioppMode(self)
+		rl.updateCursor()
+		rl.markSelection(rl.pos)
+	}
+}
+
+func (rl *Instance) viUpCase() {
+	rl.skipUndoAppend()
+	self := "vi-up-case"
+
+	switch {
+	case rl.activeSelection():
+		bpos, _, _ := rl.calcSelection()
+		rl.undoHistoryAppendPos(bpos)
+		rl.skipUndoAppend()
+
+		rl.replaceSelectionRune(unicode.ToUpper)
+
+		rl.viCommandMode()
+		rl.updateCursor()
+
+	case rl.local == viopp:
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `uu`), so modify the entire current line.
+		rl.releasePending(self)
+
+		rl.undoHistoryAppend()
+		rl.skipUndoAppend()
+
+		rl.viVisualLineMode()
+		defer rl.exitVisualMode()
+
+		rl.replaceSelectionRune(unicode.ToUpper)
+		rl.viCommandMode()
+		rl.updateCursor()
+
+	default:
+		// Else if we are actually starting a yank action.
+		rl.skipUndoAppend()
+		rl.enterVioppMode(self)
+		rl.updateCursor()
+		rl.markSelection(rl.pos)
+	}
+}
+
 func (rl *Instance) viFirstNonBlank() {
 	rl.skipUndoAppend()
 	for i := range rl.line {
@@ -924,10 +1083,12 @@ func (rl *Instance) viAddSurround() {
 		return
 	}
 
+	bchar, echar := rl.matchSurround(rune(key[0]))
+
 	rl.undoHistoryAppend()
 
 	// Surround the selection
-	rl.insertSelection(key)
+	rl.insertSelection(string(bchar), string(echar))
 
 	// This only has an effect when we are in visual mode.
 	rl.exitVisualMode()
@@ -943,7 +1104,7 @@ func (rl *Instance) viSubstitute() {
 		rl.saveToRegister(vii)
 
 		for i := 1; i <= vii; i++ {
-			rl.deletex()
+			rl.deleteRune(false)
 		}
 
 		rl.viInsertMode()
@@ -985,8 +1146,11 @@ func (rl *Instance) viChange() {
 	rl.undoHistoryAppend()
 
 	// Update the pending keys, with an except for surround widgets.
+	// Those widgets also need to adjust their selection offsets
 	rl.keys = ""
-	if action == "vi-select-surround" {
+
+	isSurround := action == "vi-select-surround"
+	if isSurround {
 		rl.keys = key
 	}
 
@@ -995,6 +1159,10 @@ func (rl *Instance) viChange() {
 
 	// Run the widget. We don't care about return values
 	widget()
+
+	if isSurround && rl.visualSelection() != nil {
+		rl.visualSelection().epos++
+	}
 
 	rl.deleteSelection()
 
@@ -1021,8 +1189,8 @@ func (rl *Instance) viChangeSurround() {
 	}
 
 	// Add those two positions to highlighting and update.
-	rl.addRegion("surround", bpos, bpos+1, "", seqBgRed)
-	rl.addRegion("surround", epos, epos+1, "", seqBgRed)
+	rl.markSelectionSurround(bpos, bpos+1)
+	rl.markSelectionSurround(epos, epos+1)
 	rl.redisplay()
 	defer func() { rl.resetRegions() }()
 
@@ -1074,15 +1242,31 @@ func (rl *Instance) viSelectSurround() {
 
 	if inside {
 		bpos++
-	} else {
-		epos++
+		epos--
 	}
 
-	rl.markSelection(bpos)
-	rl.pos = epos - 1
+	rl.markSelectionRange(bpos, epos)
+	rl.pos = epos
 }
 
 func (rl *Instance) viSetMark() {
 	rl.skipUndoAppend()
-	rl.mark = rl.pos
+	rl.markSelection(rl.pos)
+}
+
+func (rl *Instance) viOpenLineAbove() {
+	rl.undoHistoryAppend()
+	rl.beginningOfLine()
+	rl.lineInsert([]rune{'\n'})
+	rl.pos--
+	rl.viInsertMode()
+}
+
+func (rl *Instance) viOpenLineBelow() {
+	rl.undoHistoryAppend()
+	rl.endOfLine()
+	rl.pos++
+	rl.lineInsert([]rune{'\n'})
+	rl.pos--
+	rl.viInsertMode()
 }

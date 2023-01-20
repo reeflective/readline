@@ -2,6 +2,13 @@ package readline
 
 import (
 	"os"
+	"strings"
+)
+
+var sanitizer = strings.NewReplacer(
+	"\n", ``,
+	"\r", ``,
+	"\t", ``,
 )
 
 // We pass a special subset of the current input line, so that
@@ -27,7 +34,7 @@ func (rl *Instance) promptCompletionConfirm(sentence string) {
 
 func (rl *Instance) currentGroup() (group *comps) {
 	for _, g := range rl.tcGroups {
-		if g.isCurrent && len(g.values) > 0 {
+		if g.isCurrent {
 			return g
 		}
 	}

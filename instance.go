@@ -48,11 +48,12 @@ type Instance struct {
 
 	// Input Line ---------------------------------------------------------------------------------
 
-	// GetMultiLine is a callback to your host program. Since multiline support
-	// is handled by the application rather than readline itself, this callback
-	// is required when calling $EDITOR. However if this function is not set
-	// then readline will just use the current line.
-	GetMultiLine func([]rune) []rune
+	// AcceptMultiline enables the caller to decide if the shell should keep reading for user input
+	// on a new line (therefore, with the secondary prompt), or if it should return the current
+	// line at the end of the `rl.Readline()` call.
+	// This function should return "true" if the line is deemed complete (thus asking the shell
+	// to return from its Readline() loop), or "false" if the shell should keep reading input.
+	AcceptMultiline func(line []rune) (accept bool)
 
 	// EnableGetCursorPos will allow the shell to send a special sequence
 	// to the the terminal to get the current cursor X and Y coordinates.
@@ -67,28 +68,23 @@ type Instance struct {
 	// Once enabled, set to 0 (zero) to disable the mask again.
 	PasswordMask rune
 
-	// readline operating parameters
-	keys      string // Contains all keys (input by user) not yet consumed by the shell widgets.
-	line      []rune // This is the input line, with entered text: full line = mlnPrompt + line
-	accepted  bool   // Set by 'accept-line' widget, to notify return the line to the caller
-	err       error  // Errors returned by interrupt signal handlers
-	inferLine bool   // When a "accept-line-and-down-history" widget wants to immediately retrieve/use a line.
-	pos       int    // Cursor position in the entire line.
-	posX      int    // Cursor position X
-	posY      int    // Cursor position Y (if multiple lines span)
-	fullX     int    // X coordinate of the full input line, including the prompt if needed.
-	fullY     int    // Y offset to the end of input line.
+	// Buffer/line/selections
+	keys          string // Contains all keys (input by user) not yet consumed by the shell widgets.
+	line          []rune // This is the input line, with entered text: full line = mlnPrompt + line
+	accepted      bool   // Set by 'accept-line' widget, to notify return the line to the caller
+	err           error  // Errors returned by interrupt signal handlers
+	inferLine     bool   // When a "accept-line-and-down-history" widget wants to immediately retrieve/use a line.
+	skipStdinRead bool
+	visualLine    bool         // Is the visual mode VISUAL_LINE
+	marks         []*selection // Visual/surround selections areas, often highlighted.
 
-	// Buffer received from host programs
-	multilineBuffer []byte
-	multilineSplit  []string
-	skipStdinRead   bool
-
-	// selection management
-	visualLine   bool     // Is the visual mode VISUAL_LINE
-	mark         int      // Visual selection mark. -1 when unactive
-	activeRegion bool     // Is a current range region active ?
-	regions      []region // Regions are some parts of the input line with special highlighting.
+	// Cursor
+	pos   int // Cursor position in the entire line.
+	hpos  int // The line on which the cursor is (differs from posY, which accounts for wraps)
+	posX  int // Cursor position X
+	posY  int // Cursor position Y (if multiple lines span)
+	fullX int // X coordinate of the full input line, including the prompt if needed.
+	fullY int // Y offset to the end of input line.
 
 	//
 	// Completion ---------------------------------------------------------------------------------
@@ -172,7 +168,6 @@ func NewInstance() *Instance {
 	rl.Prompt = &prompt{
 		primary: "$ ",
 	}
-	rl.Prompt.compute(rl)
 
 	// Keymaps and configuration
 	rl.loadDefaultConfig()
@@ -180,7 +175,7 @@ func NewInstance() *Instance {
 	rl.loadInterruptHandlers()
 
 	// Line
-	rl.initLine()
+	rl.lineInit()
 	rl.initRegisters()
 
 	// History

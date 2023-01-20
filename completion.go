@@ -142,6 +142,11 @@ func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
 	var descriptions []string
 
 	for _, val := range values {
+		// Ensure all values have a display string.
+		if val.Display == "" {
+			val.Display = val.Value
+		}
+
 		// Grid completions
 		if val.Description == "" {
 			noDescVals = append(noDescVals, val)
@@ -178,6 +183,14 @@ func (rl *Instance) setCompletionPrefix(comps Completions) {
 			if last[len(last)-1] != ' ' {
 				rl.tcPrefix = lineWords[len(lineWords)-1]
 			}
+		}
+
+		// Newlines should not be accounted for, as they are
+		// not printable: whether or not the completions provider
+		// replaced them with spaces or not, we must not count them
+		// as part of the prefix length, so not as part of the prefix.
+		if strings.Contains(rl.tcPrefix, "\n") {
+			rl.tcPrefix = strings.ReplaceAll(rl.tcPrefix, "\n", "")
 		}
 
 	default:
@@ -305,7 +318,7 @@ func (rl *Instance) cutCompletionsBelow(scanner *bufio.Scanner, maxRows int) (st
 		}
 	}
 
-	cropped, _ = rl.excessCompletionsHint(cropped, maxRows, count-1)
+	cropped = rl.excessCompletionsHint(cropped, maxRows, count)
 
 	return cropped, count
 }
@@ -315,7 +328,6 @@ func (rl *Instance) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, ab
 
 	var cropped string
 	var count int
-	var noRemain bool
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -334,27 +346,25 @@ func (rl *Instance) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, ab
 		}
 	}
 
-	cropped, noRemain = rl.excessCompletionsHint(cropped, maxRows, maxRows+cutAbove+1)
-	if noRemain {
-		count--
-	}
+	cropped = rl.excessCompletionsHint(cropped, maxRows, maxRows+cutAbove)
+	count--
 
 	return cropped, count - cutAbove
 }
 
-func (rl *Instance) excessCompletionsHint(cropped string, maxRows, offset int) (string, bool) {
+func (rl *Instance) excessCompletionsHint(cropped string, maxRows, offset int) string {
 	_, _, adjusted := rl.completionCount()
 	remain := adjusted - offset
 
 	if remain <= 0 || offset < maxRows {
-		return cropped, true
+		return cropped
 	}
 
-	hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completion rows... (scroll down to show)"+seqReset+"\n", remain)
+	hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completion rows... (scroll down to show)"+seqReset, remain)
 
 	hinted := cropped + hint
 
-	return hinted, false
+	return hinted
 }
 
 func (rl *Instance) resetCompletion() {
