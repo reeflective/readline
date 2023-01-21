@@ -541,7 +541,7 @@ func TestCursor_OnEmptyLine(t *testing.T) {
 	}
 }
 
-func TestCursor_Check(t *testing.T) {
+func TestCursor_CheckAppend(t *testing.T) {
 	type fields struct {
 		pos  int
 		mark int
@@ -576,7 +576,7 @@ func TestCursor_Check(t *testing.T) {
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			c.Check()
+			c.CheckAppend()
 			if got := c.Pos(); got != test.want {
 				t.Errorf("Cursor.Pos() = %v, want %v", got, test.want)
 			}

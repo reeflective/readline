@@ -14,7 +14,7 @@ type Cursor struct {
 // If either negative or greater than the length of the line,
 // the cursor will be set to either 0, or the length of the line.
 func (c *Cursor) Set(pos int) {
-	defer c.Check()
+	defer c.CheckAppend()
 
 	switch {
 	case pos < 0:
@@ -30,7 +30,7 @@ func (c *Cursor) Set(pos int) {
 // This function cannot return an invalid cursor position: it cannot be negative, nor it
 // can be greater than the length of the line (note it still can be out of line by 1).
 func (c *Cursor) Pos() int {
-	c.Check()
+	c.CheckAppend()
 	return c.pos
 }
 
@@ -51,7 +51,7 @@ func (c *Cursor) Dec() {
 // Move moves the cursor position by a relative value. If the end result is negative,
 // the cursor is set to 0. If longer than the line, the cursor is set to length of line.
 func (c *Cursor) Move(offset int) {
-	defer c.Check()
+	defer c.CheckAppend()
 	c.pos += offset
 }
 
@@ -64,7 +64,7 @@ func (c *Cursor) BeginningOfLine() {
 // EndOfLine moves the cursor to the end of the current line, (marked by
 // a newline) or if no newline found, to the position of the last character.
 func (c *Cursor) EndOfLine() {
-	defer c.Check()
+	defer c.CheckAppend()
 
 	newlinePos := c.line.Find(inputrc.Newline, c.pos, true)
 
@@ -83,7 +83,7 @@ func (c *Cursor) EndOfLineAppend() {
 
 // SetMark sets the current cursor position as the mark.
 func (c *Cursor) SetMark() {
-	c.Check()
+	c.CheckAppend()
 	c.mark = c.pos
 }
 
@@ -94,7 +94,7 @@ func (c *Cursor) Mark() int { return c.mark }
 // A line is defined as a sequence of runes between one or two newline
 // characters, between end and/or beginning of buffer, or a mix of both.
 func (c *Cursor) Line() int {
-	c.Check()
+	c.CheckAppend()
 
 	newlines := c.line.newlines()
 
@@ -115,8 +115,8 @@ func (c *Cursor) Line() int {
 // or down (if positive). If greater than the length of possible lines above/below,
 // the cursor will be set to either the first, or the last line of the buffer.
 func (c *Cursor) LineMove(lines int) {
-	c.Check()
-	defer c.Check()
+	c.CheckAppend()
+	defer c.CheckAppend()
 
 	newlines := c.line.newlines()
 	if len(newlines) == 1 || lines == 0 {
@@ -146,10 +146,10 @@ func (c *Cursor) OnEmptyLine() bool {
 	return false
 }
 
-// Check verifies that the current cursor position is neither negative,
+// CheckAppend verifies that the current cursor position is neither negative,
 // nor greater than the length of the input line. If either is true, the
 // cursor will set its value as either 0, or the length of the line.
-func (c *Cursor) Check() {
+func (c *Cursor) CheckAppend() {
 	// Position
 	if c.pos < 0 {
 		c.pos = 0
@@ -169,12 +169,22 @@ func (c *Cursor) Check() {
 	}
 }
 
+// CheckCommand is like CheckAppend, but ensures the cursor position is never greater
+// than the length of the line minus 1, since in command mode, the cursor is on a char.
+func (c *Cursor) CheckCommand() {
+	c.CheckAppend()
+
+	if c.pos == c.line.Len() {
+		c.pos--
+	}
+}
+
 // Coordinates returns the number of real terminal lines above the cursor position
 // (y value), and the number of columns since the beginning of the current line (x value).
 // Params:
 // @indent -    Used to align all lines (except the first) together on a single column.
 func (c *Cursor) Coordinates(indent int) (x, y int) {
-	c.checkCommand()
+	c.CheckCommand()
 
 	newlines := c.line.newlines()
 	bpos := 0
@@ -201,14 +211,6 @@ func (c *Cursor) Coordinates(indent int) (x, y int) {
 	}
 
 	return
-}
-
-func (c *Cursor) checkCommand() {
-	c.Check()
-
-	if c.pos == c.line.Len() {
-		c.pos--
-	}
 }
 
 func (c *Cursor) moveLineDown(lines int) {
