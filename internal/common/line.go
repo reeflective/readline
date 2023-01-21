@@ -1,5 +1,13 @@
 package common
 
+import (
+	"regexp"
+	"unicode/utf8"
+
+	"github.com/reeflective/readline/internal/term"
+	"github.com/xo/inputrc"
+)
+
 // Tokenizer is a method used by a (line) type to split itself according to
 // different rules (split between spaces, punctuation, brackets, quotes, etc.).
 type Tokenizer func(cursorPos int) (split []string, index int, newPos int)
@@ -30,18 +38,37 @@ func (l *Line) Cut(bpos, epos int) {}
 func (l *Line) CutRune(pos int) {}
 
 // Len returns the length of the line.
-func (l *Line) Len() int { return 0 }
+func (l *Line) Len() int {
+	return utf8.RuneCountInString(string(*l))
+}
 
 // SelectWord returns the full non-blank word around the specified position.
 func (l *Line) SelectWord(pos int) (bpos, epos int) { return 0, 0 }
 
-// Next returns the offset to a rune, searching forward, relative to the pos passed as parameter.
-// If the target rune is not found, the adjust will be computed relatively to the end of the line.
-func (l *Line) Next(r rune, pos int) (adjust int) { return }
+// Find returns the index position of a target rune, or -1 if not found.
+func (l *Line) Find(r rune, pos int, forward bool) int {
+	for {
+		if forward {
+			pos++
+			if pos > l.Len()-1 {
+				break
+			}
+		} else {
+			pos--
+			if pos < 0 {
+				break
+			}
+		}
 
-// Prev returns the position to a rune, searching backward, relative to the pos passed as parameter.
-// If the target rune is not found, the adjust will be computed relatively to the beginning of the line.
-func (l *Line) Prev(r rune, pos int) (adjust int) { return }
+		// Check if character matches
+		if (*l)[pos] == r {
+			return pos
+		}
+	}
+
+	// The rune was not found.
+	return -1
+}
 
 // Forward returns the offset to the beginning of the next
 // (forward) token determined by the tokenizer function.
@@ -82,3 +109,35 @@ func (l *Line) Display(indent int, suggested string) {}
 // @x - The number of columns, starting from the terminal left, to the end of the last line.
 // @y - The number of actual lines on which the line spans.
 func (l *Line) Used(indent int, suggested string) (x, y int) { return 0, 0 }
+
+func (l *Line) newlines() [][]int {
+	line := string(*l)
+	line += string(inputrc.Newline)
+	nl := regexp.MustCompile(string(inputrc.Newline))
+
+	return nl.FindAllStringIndex(string(line), -1)
+}
+
+// lineCoordinates computes the X/Y coordinates of the cursor on a given line,
+// accounting for line wrap and removing.
+func lineCoordinates(bpos, cpos, line, indent int) (x, y int) {
+	termWidth := term.GetWidth()
+	cursorStart := cpos - bpos
+	cursorStart += indent
+
+	cursorY := cursorStart / termWidth
+	cursorX := cursorStart % termWidth
+
+	// The very first (unreal) line counts for nothing,
+	// so by opposition all others count for one more.
+	if line == 0 {
+		cursorY--
+	}
+
+	// Any excess wrap means a newline.
+	if cursorX > 0 {
+		cursorY++
+	}
+
+	return cursorX, cursorY
+}

@@ -292,15 +292,15 @@ func TestCursor_EndOfLine(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			c := &Cursor{
-				pos:  tt.fields.pos,
-				mark: tt.fields.mark,
-				line: tt.fields.line,
+				pos:  test.fields.pos,
+				mark: test.fields.mark,
+				line: test.fields.line,
 			}
 			c.EndOfLine()
-			require.Equalf(t, len(*tt.fields.line)-1, c.pos, "Cursor: %d, should be %d", c.pos, len(*tt.fields.line)-1)
+			require.Equalf(t, len(*test.fields.line)-1, c.pos, "Cursor: %d, should be %d", c.pos, len(*test.fields.line)-1)
 		})
 	}
 }
@@ -466,18 +466,18 @@ func TestCursor_LineMove(t *testing.T) {
 			fields:   fields{line: &cursorMultiline, pos: 0},
 			args:     args{1},
 			wantLine: 1,
-			wantPos:  16,
+			wantPos:  15,
 		},
 		{
 			name:     "Single line up (lands on empty line)",
 			fields:   fields{line: &cursorMultiline, pos: len(cursorMultiline) - 1}, // end of last line
 			args:     args{-1},
 			wantLine: len(strings.Split(string(cursorMultiline), "\n")) - 2,
-			wantPos:  63,
+			wantPos:  60,
 		},
 		{
 			name:     "Out of range line up",
-			fields:   fields{line: &cursorMultiline, pos: 63}, // beginning of last line
+			fields:   fields{line: &cursorMultiline, pos: 61}, // beginning of last line
 			args:     args{-5},
 			wantLine: 0,
 			wantPos:  0,
@@ -487,7 +487,7 @@ func TestCursor_LineMove(t *testing.T) {
 			fields:   fields{line: &cursorMultiline, pos: 15}, // end of first line
 			args:     args{5},
 			wantLine: 3,
-			wantPos:  len(cursorMultiline) - 1,
+			wantPos:  len(cursorMultiline),
 		},
 	}
 
@@ -517,12 +517,12 @@ func TestCursor_OnEmptyLine(t *testing.T) {
 	}{
 		{
 			name:   "On empty line",
-			fields: fields{line: &cursorMultiline, pos: 63},
+			fields: fields{line: &cursorMultiline, pos: 60},
 			want:   true,
 		},
 		{
 			name:   "On non-empty line",
-			fields: fields{line: &cursorMultiline, pos: 62},
+			fields: fields{line: &cursorMultiline, pos: 61},
 			want:   false,
 		},
 	}
@@ -584,7 +584,9 @@ func TestCursor_Check(t *testing.T) {
 	}
 }
 
-func TestCursor_Used(t *testing.T) {
+func TestCursor_Coordinates(t *testing.T) {
+	indent := 2 // Assumes the prompt strings uses two columns
+
 	type fields struct {
 		pos  int
 		mark int
@@ -596,21 +598,45 @@ func TestCursor_Used(t *testing.T) {
 		wantX  int
 		wantY  int
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "Cursor at end of buffer",
+			fields: fields{line: &cursorMultiline, pos: len(cursorMultiline) - 1},
+			wantX:  indent + 20,
+			wantY:  len(strings.Split(string(cursorMultiline), "\n")) - 1,
+		},
+		{
+			name:   "Cursor at beginning of buffer",
+			fields: fields{line: &cursorMultiline, pos: 0},
+			wantX:  indent,
+			wantY:  0,
+		},
+		{
+			name:   "Cursor on empty line",
+			fields: fields{line: &cursorMultiline, pos: 60},
+			wantX:  indent + 1,
+			wantY:  len(strings.Split(string(cursorMultiline), "\n")) - 2,
+		},
+		{
+			name:   "Cursor at end of line",
+			fields: fields{line: &cursorMultiline, pos: 58},
+			wantX:  indent + 43,
+			wantY:  1,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			c := &Cursor{
-				pos:  tt.fields.pos,
-				mark: tt.fields.mark,
-				line: tt.fields.line,
+				pos:  test.fields.pos,
+				mark: test.fields.mark,
+				line: test.fields.line,
 			}
-			gotX, gotY := c.Used()
-			if gotX != tt.wantX {
-				t.Errorf("Cursor.Used() gotX = %v, want %v", gotX, tt.wantX)
+			gotX, gotY := c.Coordinates(indent)
+			if gotX != test.wantX {
+				t.Errorf("Cursor.Coordinates() gotX = %v, want %v", gotX, test.wantX)
 			}
-			if gotY != tt.wantY {
-				t.Errorf("Cursor.Used() gotY = %v, want %v", gotY, tt.wantY)
+			if gotY != test.wantY {
+				t.Errorf("Cursor.Coordinates() gotY = %v, want %v", gotY, test.wantY)
 			}
 		})
 	}
