@@ -587,6 +587,9 @@ func TestCursor_CheckAppend(t *testing.T) {
 func TestCursor_Coordinates(t *testing.T) {
 	indent := 2 // Assumes the prompt strings uses two columns
 
+	// Reassign the function for getting the terminal width to a fixed value
+	getTermWidth = func() int { return 80 }
+
 	type fields struct {
 		pos  int
 		mark int
