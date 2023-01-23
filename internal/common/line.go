@@ -449,7 +449,7 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 // @suggested - An optional string to append to the line, for things like command autosuggestion.
 func (l *Line) Display(indent int, suggested string) {
 	// We use a temporary line for displaying ourselves.
-	line := Line(*l)
+	line := Line([]rune(string(*l)))
 	line.Insert(line.Len(), []rune(suggested)...)
 }
 
@@ -464,7 +464,7 @@ func (l *Line) Display(indent int, suggested string) {
 // @y - The number of actual lines on which the line spans.
 func (l *Line) Coordinates(indent int, suggested string) (x, y int) {
 	// We use a temporary line for displaying ourselves.
-	line := Line(*l)
+	line := Line([]rune(string(*l)))
 	line.Insert(line.Len(), []rune(suggested)...)
 
 	newlines := line.newlines()
@@ -488,7 +488,7 @@ func (l *Line) newlines() [][]int {
 	line += string(inputrc.Newline)
 	nl := regexp.MustCompile(string(inputrc.Newline))
 
-	return nl.FindAllStringIndex(string(line), -1)
+	return nl.FindAllStringIndex(line, -1)
 }
 
 // returns bpos, epos ordered and true if either is valid.
@@ -506,6 +506,7 @@ func (l *Line) checkRange(bpos, epos int) (int, int, bool) {
 		bpos = 0
 	}
 
+	// Order begin and end pos
 	if epos > -1 && epos < bpos {
 		bpos, epos = epos, bpos
 	}
