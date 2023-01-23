@@ -16,6 +16,11 @@ type Tokenizer func(cursorPos int) (split []string, index int, newPos int)
 // split itself with tokenizers, and displaying itself.
 type Line []rune
 
+// Set replaces the line contents altogether with a new slice of characters.
+func (l *Line) Set(chars ...rune) {
+	*l = chars
+}
+
 // Insert inserts one or more runes at the given position.
 // If the position is either negative or greater than the
 // length of the line, nothing is inserted.
@@ -461,7 +466,7 @@ func (l *Line) Display(indent int, suggested string) {
 // @suggested - An optional string to append to the line, for things like command autosuggestion.
 // Returns:
 // @x - The number of columns, starting from the terminal left, to the end of the last line.
-// @y - The number of actual lines on which the line spans.
+// @y - The number of actual lines on which the line spans, accounting for line wrap.
 func (l *Line) Coordinates(indent int, suggested string) (x, y int) {
 	// We use a temporary line for displaying ourselves.
 	line := Line([]rune(string(*l)))
