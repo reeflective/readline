@@ -10,6 +10,16 @@ type Cursor struct {
 	line *Line
 }
 
+// NewCursor is a required constructor for the line cursor,
+// because some default numeric values must be negative.
+func NewCursor(line *Line) *Cursor {
+	return &Cursor{
+		pos:  0,
+		mark: -1,
+		line: line,
+	}
+}
+
 // Set sets the position of the cursor to an absolute value.
 // If either negative or greater than the length of the line,
 // the cursor will be set to either 0, or the length of the line.
@@ -64,7 +74,7 @@ func (c *Cursor) BeginningOfLine() {
 // EndOfLine moves the cursor to the end of the current line, (marked by
 // a newline) or if no newline found, to the position of the last character.
 func (c *Cursor) EndOfLine() {
-	defer c.CheckAppend()
+	defer c.CheckCommand()
 
 	newlinePos := c.line.Find(inputrc.Newline, c.pos, true)
 
@@ -177,6 +187,12 @@ func (c *Cursor) CheckCommand() {
 	if c.pos == c.line.Len() {
 		c.pos--
 	}
+
+	// The cursor can also not be on a newline sign,
+	// as it will induce the line rendering into an error.
+	if c.line.Len() > 0 && (*c.line)[c.pos] == '\n' && !c.OnEmptyLine() {
+		c.Dec()
+	}
 }
 
 // Coordinates returns the number of real terminal lines above the cursor position
@@ -184,26 +200,26 @@ func (c *Cursor) CheckCommand() {
 // Params:
 // @indent -    Used to align all lines (except the first) together on a single column.
 func (c *Cursor) Coordinates(indent int) (x, y int) {
-	c.CheckCommand()
+	c.CheckAppend()
 
 	newlines := c.line.newlines()
 	bpos := 0
 	usedY := 0
 
-	for i, newline := range newlines {
+	for pos, newline := range newlines {
 		switch {
 		case newline[0] < c.pos:
 			// Until we didn't reach the cursor line,
 			// simply care about the line count.
 			line := (*c.line)[bpos:newline[0]]
-			bpos = newline[0]
-			_, y := lineSpan(line, i, indent)
+			bpos = newline[0] + 1
+			_, y := lineSpan(line, pos, indent)
 			usedY += y
 
 		default:
 			// On the cursor line, use both line and column count.
 			line := (*c.line)[bpos:c.pos]
-			usedX, y := lineSpan(line, i, indent)
+			usedX, y := lineSpan(line, pos, indent)
 			usedY += y
 
 			return usedX, usedY

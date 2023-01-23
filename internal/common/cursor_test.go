@@ -604,7 +604,7 @@ func TestCursor_Coordinates(t *testing.T) {
 		{
 			name:   "Cursor at end of buffer",
 			fields: fields{line: &cursorMultiline, pos: len(cursorMultiline) - 1},
-			wantX:  indent + 20,
+			wantX:  indent + 19,
 			wantY:  len(strings.Split(string(cursorMultiline), "\n")) - 1,
 		},
 		{
@@ -616,13 +616,13 @@ func TestCursor_Coordinates(t *testing.T) {
 		{
 			name:   "Cursor on empty line",
 			fields: fields{line: &cursorMultiline, pos: 60},
-			wantX:  indent + 1,
+			wantX:  indent,
 			wantY:  len(strings.Split(string(cursorMultiline), "\n")) - 2,
 		},
 		{
 			name:   "Cursor at end of line",
 			fields: fields{line: &cursorMultiline, pos: 58},
-			wantX:  indent + 43,
+			wantX:  indent + 42,
 			wantY:  1,
 		},
 	}
