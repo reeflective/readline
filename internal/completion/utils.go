@@ -1,0 +1,261 @@
+package completion
+
+import (
+	"os"
+	"strings"
+
+	"github.com/reeflective/readline/internal/term"
+)
+
+var (
+	maxValuesAreaRatio = 0.5 // Maximum ratio of the screen that described values can have.
+	maxRowsRatio       = 2   // Maximu ratio of the screen rows that we can use by default.
+	minRowsSpaceBelow  = 15  // Minimum acceptable space below cursor to use.
+)
+
+var sanitizer = strings.NewReplacer(
+	"\n", ``,
+	"\r", ``,
+	"\t", ``,
+)
+
+func (rl *Engine) clearVirtualComp() {
+	// Merge lines.
+	rl.line.Set(*rl.completed...)
+	rl.cursor.Set(rl.compCursor.Pos())
+
+	// And no virtual candidate anymore.
+	rl.comp = make([]rune, 0)
+}
+
+func (e *Engine) currentGroup() (grp *group) {
+	for _, g := range e.groups {
+		if g.isCurrent {
+			return g
+		}
+	}
+	// We might, for whatever reason, not find one.
+	// If there are groups but no current, make first one the king.
+	if len(e.groups) > 0 {
+		for _, g := range e.groups {
+			if len(g.values) > 0 {
+				g.isCurrent = true
+				return g
+			}
+		}
+	}
+
+	return
+}
+
+// cycleNextGroup - Finds either the first non-empty group,
+// or the next non-empty group after the current one.
+func (e *Engine) cycleNextGroup() {
+	for pos, g := range e.groups {
+		if g.isCurrent {
+			g.isCurrent = false
+
+			if pos == len(e.groups)-1 {
+				e.groups[0].isCurrent = true
+			} else {
+				e.groups[pos+1].isCurrent = true
+				next := e.currentGroup()
+				if len(next.values) == 0 {
+					e.cycleNextGroup()
+				}
+			}
+
+			break
+		}
+	}
+}
+
+// cyclePreviousGroup - Same as cycleNextGroup but reverse.
+func (e *Engine) cyclePreviousGroup() {
+	for pos, g := range e.groups {
+		if g.isCurrent {
+			g.isCurrent = false
+
+			if pos == 0 {
+				e.groups[len(e.groups)-1].isCurrent = true
+			} else {
+				e.groups[pos-1].isCurrent = true
+				prev := e.currentGroup()
+				if len(prev.values) == 0 {
+					e.cyclePreviousGroup()
+				}
+			}
+
+			break
+		}
+	}
+}
+
+func (e *Engine) currentCandidate() (comp string) {
+	cur := e.currentGroup()
+	if cur == nil {
+		return
+	}
+
+	return cur.selected().Value
+}
+
+func (e *Engine) completionCount() (comps int, used int) {
+	for _, group := range e.groups {
+		for _, row := range group.values {
+			comps += len(row)
+		}
+
+		used++
+
+		if group.tcMaxY > len(group.values) {
+			used += len(group.values)
+		} else {
+			used += group.tcMaxY
+		}
+	}
+
+	return
+}
+
+func (e *Engine) hasUniqueCandidate() bool {
+	switch len(e.groups) {
+	case 0:
+		return false
+
+	case 1:
+		cur := e.currentGroup()
+		if cur == nil {
+			return false
+		}
+
+		if len(cur.values) == 1 {
+			return len(cur.values[0]) == 1
+		}
+
+		return len(cur.values) == 1
+
+	default:
+		var count int
+
+	GROUPS:
+		for _, group := range e.groups {
+			for _, row := range group.values {
+				count++
+				for range row {
+					count++
+				}
+				if count > 1 {
+					break GROUPS
+				}
+			}
+		}
+
+		return count == 1
+	}
+}
+
+func (e *Engine) noCompletions() bool {
+	for _, group := range e.groups {
+		if len(group.values) > 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+// returns either the max number of completion rows configured
+// or a reasonable amount of rows so as not to bother the user.
+func (e *Engine) getCompletionMaxRows() (maxRows int) {
+	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
+
+	// Pause the key reading routine and query the terminal
+	done := e.keys.Pause()
+	defer close(done)
+
+	_, cposY := term.GetCursorPos()
+	if cposY == -1 {
+		if termHeight != -1 {
+			return termHeight / maxRowsRatio
+		}
+
+		return maxRows
+	}
+
+	spaceBelow := (termHeight - cposY) - 1
+
+	// Only return the space below if it's reasonably large.
+	if spaceBelow >= minRowsSpaceBelow {
+		return spaceBelow
+	}
+
+	// Otherwise return half the terminal.
+	return termHeight / maxRowsRatio
+}
+
+func (e *Engine) getAbsPos() int {
+	var prev int
+	var foundCurrent bool
+
+	for _, grp := range e.groups {
+		if grp.tag != "" {
+			prev++
+		}
+
+		if grp.isCurrent {
+			prev += grp.tcPosY
+			foundCurrent = true
+
+			break
+		}
+
+		prev += grp.tcMaxY
+	}
+
+	// If there was no current group, it means
+	// we showed completions but there is no
+	// candidate selected yet, return 0
+	if !foundCurrent {
+		return 0
+	}
+
+	return prev
+}
+
+// getColumnPad either updates or adds a new column for an alias.
+func getColumnPad(columns []int, valLen int, numAliases int) []int {
+	switch {
+	case (float64(sum(columns) + valLen)) >
+		(float64(term.GetWidth()) * maxValuesAreaRatio):
+		columnX := numAliases % len(columns)
+
+		if columns[columnX] < valLen {
+			columns[columnX] = valLen
+		}
+	case numAliases > len(columns):
+		columns = append(columns, valLen)
+	case columns[numAliases-1] < valLen:
+		columns[numAliases-1] = valLen
+	}
+
+	return columns
+}
+
+func stringInSlice(s string, sl []string) bool {
+	for _, str := range sl {
+		if s == str {
+			return true
+		}
+	}
+
+	return false
+}
+
+func sum(vals []int) (sum int) {
+	for _, val := range vals {
+		sum += val
+	}
+
+	return
+}
