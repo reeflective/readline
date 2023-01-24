@@ -25,8 +25,8 @@ type Selection struct {
 
 // NewSelection is a required constructor to use for initializing
 // a selection, as some numeric values must be negative by default.
-func NewSelection(line *Line, cursor *Cursor) Selection {
-	return Selection{
+func NewSelection(line *Line, cursor *Cursor) *Selection {
+	return &Selection{
 		bpos:   -1,
 		epos:   -1,
 		line:   line,
