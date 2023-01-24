@@ -21,7 +21,6 @@ func GetCursorPos() (x int, y int) {
 	disable := func() (int, int) {
 		os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
 		// rl.hint = []rune(seqFgRed + "getCursorPos() not supported by terminal emulator, disabling...")
-		// rl.EnableGetCursorPos = false
 		return -1, -1
 	}
 
@@ -51,4 +50,36 @@ func GetCursorPos() (x int, y int) {
 	}
 
 	return x, y
+}
+
+func MoveCursorUp(i int) {
+	if i < 1 {
+		return
+	}
+
+	printf("\x1b[%dA", i)
+}
+
+func MoveCursorDown(i int) {
+	if i < 1 {
+		return
+	}
+
+	printf("\x1b[%dB", i)
+}
+
+func MoveCursorForwards(i int) {
+	if i < 1 {
+		return
+	}
+
+	printf("\x1b[%dC", i)
+}
+
+func MoveCursorBackwards(i int) {
+	if i < 1 {
+		return
+	}
+
+	printf("\x1b[%dD", i)
 }

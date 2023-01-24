@@ -94,7 +94,7 @@ func (k *Keys) Peek() (key rune, empty bool) {
 		return rune(0), true
 	}
 
-	return k.stack[len(k.stack)-1], false
+	return k.stack[0], false
 }
 
 // Flush returns all keys stored in the stack and clears it.
