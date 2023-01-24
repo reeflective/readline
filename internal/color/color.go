@@ -1,6 +1,9 @@
 package color
 
-import "os"
+import (
+	"os"
+	"regexp"
+)
 
 // Base text effects.
 var (
@@ -72,6 +75,15 @@ const (
 	sgrEnd       = "m"
 )
 
+// SGR formats a color code as an ANSI escaped color sequence.
+func SGR(color string, fg bool) string {
+	if fg {
+		return sgrStart + fgColorStart + color + sgrEnd
+	}
+
+	return sgrStart + bgColorStart + color + sgrEnd
+}
+
 // HasEffects returns true if colors and effects are supported
 // on the current terminal.
 func HasEffects() bool {
@@ -139,4 +151,12 @@ func DisableEffects() {
 	BgMagentaBright = ""
 	BgCyanBright = ""
 	BgWhiteBright = ""
+}
+
+const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+
+var re = regexp.MustCompile(ansi)
+
+func Strip(str string) string {
+	return re.ReplaceAllString(str, "")
 }

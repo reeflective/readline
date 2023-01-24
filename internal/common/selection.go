@@ -97,6 +97,11 @@ func (s *Selection) Visual(line bool) {
 	s.visualLine = line
 }
 
+// IsVisual indicates whether the selection should be highlighted.
+func (s *Selection) IsVisual() bool {
+	return s.visual
+}
+
 // Pos returns the begin and end positions of the selection.
 // If any of these is not set, it is set to the cursor position.
 // This is generally the case with "pending" visual selections.
