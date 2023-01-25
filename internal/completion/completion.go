@@ -22,15 +22,25 @@ type Candidate struct {
 // Values is used internally to hold all completion candidates and their associated data.
 type Values struct {
 	values   rawValues
-	messages messages
-	noSpace  suffixMatcher
-	usage    string
-	listLong map[string]bool
-	noSort   map[string]bool
-	listSep  map[string]string
+	Messages messages
+	NoSpace  suffixMatcher
+	Usage    string
+	ListLong map[string]bool
+	NoSort   map[string]bool
+	ListSep  map[string]string
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor;
 	// it may be altered to give a common prefix for all matches.
 	PREFIX string
+}
+
+// AddRaw adds completion values in bulk.
+func AddRaw(values []Candidate) Values {
+	return Values{
+        values: rawValues(values)
+        ListLong: make(map[string]bool),
+        NoSort: make(map[string]bool),
+        ListSep: make(map[string]string),
+    }
 }
