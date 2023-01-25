@@ -13,11 +13,11 @@ func (e *Engine) hintCompletions(comps Values) {
 	// First add the command/flag usage string if any,
 	// and only if we don't have completions.
 	if len(comps.values) == 0 {
-		hint += color.Dim + comps.usage
+		hint += color.Dim + comps.Usage
 	}
 
 	// And all further messages
-	for _, message := range comps.messages.Get() {
+	for _, message := range comps.Messages.Get() {
 		if message == "" {
 			continue
 		}

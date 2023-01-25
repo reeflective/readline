@@ -22,16 +22,16 @@ func (c rawValues) Filter(values ...string) rawValues {
 }
 
 func (c *Values) merge(other Values) {
-	if other.usage != "" {
-		c.usage = other.usage
+	if other.Usage != "" {
+		c.Usage = other.Usage
 	}
 
-	c.noSpace.Merge(other.noSpace)
-	c.messages.Merge(other.messages)
+	c.NoSpace.Merge(other.NoSpace)
+	c.Messages.Merge(other.Messages)
 
-	for tag := range other.listLong {
-		if _, found := c.listLong[tag]; !found {
-			c.listLong[tag] = true
+	for tag := range other.ListLong {
+		if _, found := c.ListLong[tag]; !found {
+			c.ListLong[tag] = true
 		}
 	}
 }

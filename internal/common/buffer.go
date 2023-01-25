@@ -205,3 +205,74 @@ func (reg *Buffers) writeAlpha(register rune, buf []rune) {
 		reg.alpha[register] = buf
 	}
 }
+
+// The user can show registers completions and insert, no matter the cursor position.
+// func (rl *Instance) completeRegisters() Completions {
+// 	comps := Message(seqFgBlue + "-- registers --" + seqReset)
+//
+// 	display := strings.ReplaceAll(string(rl.registers.kill), "\n", ``)
+// 	unnamed := Completion{
+// 		Value:   string(rl.registers.kill),
+// 		Display: seqDim + "\"\"" + seqDimReset + " " + display,
+// 	}
+// 	comps.values = append(comps.values, unnamed)
+//
+// 	comps.values = append(comps.values, rawValues(rl.completeNumRegs())...)
+// 	comps.values = append(comps.values, rawValues(rl.completeAlphaRegs())...)
+// 	comps = comps.NoSort()
+//
+// 	return comps
+// }
+//
+// func (rl *Instance) completeNumRegs() []Completion {
+// 	regs := make([]Completion, 0)
+// 	tag := seqDim + "num ([0-9])" + seqReset
+//
+// 	var nums []int
+// 	for reg := range rl.registers.num {
+// 		nums = append(nums, reg)
+// 	}
+//
+// 	sort.Ints(nums)
+//
+// 	for _, reg := range nums {
+// 		buf := rl.registers.num[reg]
+// 		display := strings.ReplaceAll(string(buf), "\n", ``)
+//
+// 		comp := Completion{
+// 			Tag:     tag,
+// 			Value:   string(buf),
+// 			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqDimReset, display),
+// 		}
+//
+// 		regs = append(regs, comp)
+// 	}
+//
+// 	return regs
+// }
+//
+// func (rl *Instance) completeAlphaRegs() []Completion {
+// 	regs := make([]Completion, 0)
+// 	tag := seqDim + "alpha ([a-z], [A-Z])" + seqReset
+//
+// 	var lett []string
+// 	for reg := range rl.registers.alpha {
+// 		lett = append(lett, reg)
+// 	}
+// 	sort.Strings(lett)
+//
+// 	for _, reg := range lett {
+// 		buf := rl.registers.alpha[reg]
+// 		display := strings.ReplaceAll(string(buf), "\n", ``)
+//
+// 		comp := Completion{
+// 			Tag:     tag,
+// 			Value:   string(buf),
+// 			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqDimReset, display),
+// 		}
+//
+// 		regs = append(regs, comp)
+// 	}
+//
+// 	return regs
+// }

@@ -3,10 +3,9 @@ package ui
 import (
 	"fmt"
 	"strings"
-	"unicode/utf8"
 
-	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/common"
+	"github.com/reeflective/readline/internal/common/strutil"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/xo/inputrc"
 )
@@ -152,7 +151,7 @@ func (p *Prompt) RightPrint() {
 
 	// Check that we have room for a right/tooltip prompt.
 	termWidth := term.GetWidth()
-	promptLen := getRealLength(rprompt)
+	promptLen := strutil.RealLength(rprompt)
 	lineLen := 0
 	cursorX := 0
 	padLen := termWidth - lineLen - promptLen + 1
@@ -205,13 +204,4 @@ func (p *Prompt) TransientPrint() {
 	// And print the prompt and the accepted input line.
 	print(p.transientF())
 	println(string(*p.line))
-}
-
-// getRealLength - Some strings will have ANSI escape codes, which might be wrongly
-// interpreted as legitimate parts of the strings. This will bother if some prompt
-// components depend on other's length, so we always pass the string in this for
-// getting its real-printed length.
-func getRealLength(s string) int {
-	colorStripped := color.Strip(s)
-	return utf8.RuneCountInString(colorStripped)
 }

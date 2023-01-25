@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"unicode/utf8"
 
+	"github.com/reeflective/readline/internal/common/strutil"
 	"github.com/xo/inputrc"
 )
 
@@ -210,7 +211,7 @@ func (l *Line) ForwardEnd(tokenizer Tokenizer, pos int) (adjust int) {
 		return
 	}
 
-	word := rTrimWhiteSpace(split[index])
+	word := strutil.TrimWhiteSpaceRight(split[index])
 
 	switch {
 	case len(split) == 0:
@@ -218,7 +219,7 @@ func (l *Line) ForwardEnd(tokenizer Tokenizer, pos int) (adjust int) {
 	case index == len(split)-1 && pos >= len(word)-1:
 		return
 	case pos >= len(word)-1:
-		word = rTrimWhiteSpace(split[index+1])
+		word = strutil.TrimWhiteSpaceRight(split[index+1])
 		adjust = len(split[index]) - pos
 		adjust += len(word) - 1
 	default:
@@ -264,7 +265,7 @@ func (l *Line) Tokenize(cpos int) ([]string, int, int) {
 
 	for i, char := range line {
 		switch {
-		case isPunctuation(char):
+		case strutil.IsPunctuation(char):
 			if i > 0 && line[i-1] != char {
 				split = append(split, "")
 			}
@@ -390,7 +391,7 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 
 	switch line[cpos] {
 	case '(', ')', '{', '[', '}', ']':
-		bpos, epos = matchSurround(line[cpos])
+		bpos, epos = strutil.MatchSurround(line[cpos])
 
 	default:
 		return nil, 0, 0
@@ -479,7 +480,7 @@ func (l *Line) Coordinates(indent int, suggested string) (x, y int) {
 	for i, newline := range newlines {
 		bline := line[bpos:newline[0]]
 		bpos = newline[0]
-		x, y := lineSpan(bline, i, indent)
+		x, y := strutil.LineSpan(bline, i, indent)
 		usedY += y
 		usedX = x
 	}

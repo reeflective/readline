@@ -95,7 +95,7 @@ func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
 func (e *Engine) newGroup(c Values, tag string, vals rawValues, aliased bool) {
 	grp := &group{
 		tag:           tag,
-		noSpace:       c.noSpace,
+		noSpace:       c.NoSpace,
 		listSeparator: "--",
 		tcPosX:        -1,
 		tcPosY:        -1,
@@ -108,14 +108,14 @@ func (e *Engine) newGroup(c Values, tag string, vals rawValues, aliased bool) {
 	vals = grp.checkDisplays(vals)
 
 	// Override grid/list displays
-	_, grp.list = c.listLong[tag]
-	if _, all := c.listLong["*"]; all && len(c.listLong) == 1 {
+	_, grp.list = c.ListLong[tag]
+	if _, all := c.ListLong["*"]; all && len(c.ListLong) == 1 {
 		grp.list = true
 	}
 
-	listSep, found := c.listSep[tag]
+	listSep, found := c.ListSep[tag]
 	if !found {
-		if allSep, found := c.listSep["*"]; found {
+		if allSep, found := c.ListSep["*"]; found {
 			grp.listSeparator = allSep
 		}
 	} else {
@@ -123,8 +123,8 @@ func (e *Engine) newGroup(c Values, tag string, vals rawValues, aliased bool) {
 	}
 
 	// Override sorting or sort if needed
-	_, grp.noSort = c.noSort[tag]
-	if _, all := c.noSort["*"]; all && len(c.noSort) == 1 {
+	_, grp.noSort = c.NoSort[tag]
+	if _, all := c.NoSort["*"]; all && len(c.NoSort) == 1 {
 		grp.noSort = true
 	}
 

@@ -1,6 +1,9 @@
 package common
 
-import "github.com/xo/inputrc"
+import (
+	"github.com/reeflective/readline/internal/common/strutil"
+	"github.com/xo/inputrc"
+)
 
 // Cursor is the cursor position in the current line buffer.
 // Contains methods to set, move, describe and check itself.
@@ -213,13 +216,13 @@ func (c *Cursor) Coordinates(indent int) (x, y int) {
 			// simply care about the line count.
 			line := (*c.line)[bpos:newline[0]]
 			bpos = newline[0] + 1
-			_, y := lineSpan(line, pos, indent)
+			_, y := strutil.LineSpan(line, pos, indent)
 			usedY += y
 
 		default:
 			// On the cursor line, use both line and column count.
 			line := (*c.line)[bpos:c.pos]
-			usedX, y := lineSpan(line, pos, indent)
+			usedX, y := strutil.LineSpan(line, pos, indent)
 			usedY += y
 
 			return usedX, usedY

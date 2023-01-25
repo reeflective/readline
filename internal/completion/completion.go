@@ -38,9 +38,39 @@ type Values struct {
 // AddRaw adds completion values in bulk.
 func AddRaw(values []Candidate) Values {
 	return Values{
-        values: rawValues(values)
-        ListLong: make(map[string]bool),
-        NoSort: make(map[string]bool),
-        ListSep: make(map[string]string),
-    }
+		values:   rawValues(values),
+		ListLong: make(map[string]bool),
+		NoSort:   make(map[string]bool),
+		ListSep:  make(map[string]string),
+	}
 }
+
+// updateVirtualComp - Either insert the current completion
+// candidate virtually, or on the real line.
+// func (rl *Instance) updateVirtualComp() {
+// 	cur := rl.currentGroup()
+// 	if cur == nil {
+// 		return
+// 	}
+//
+// 	completion := cur.selected().Value
+// 	prefix := len(rl.tcPrefix)
+//
+// 	if rl.hasUniqueCandidate() {
+// 		rl.insertCandidate()
+// 		rl.undoSkipAppend = true
+// 		rl.resetCompletion()
+// 	} else {
+// 		// Special case for the only special escape, which
+// 		// if not handled, will make us insert the first
+// 		// character of our actual rl.tcPrefix in the candidate.
+// 		// TODO: This should be changed.
+// 		if strings.HasPrefix(string(rl.tcPrefix), "%") {
+// 			prefix++
+// 		}
+//
+// 		if len(completion) >= prefix {
+// 			rl.insertCandidateVirtual([]rune(completion[prefix:]))
+// 		}
+// 	}
+// }

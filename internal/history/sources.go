@@ -13,14 +13,12 @@ import (
 
 // Sources manages and serves all history sources for the current shell.
 type Sources struct {
-	histories        map[string]Source // Sources of history lines
-	historyNames     []string          // Names of histories stored in rl.histories
-	historySourcePos int               // The index of the currently used history
-	lineBuf          string            // The current line saved when we are on another history line
-	histPos          int               // Index used for navigating the history lines with arrows/j/k
-	histHint         []rune            // We store a hist hint, for dual history sources
-	histSuggested    []rune            // The last matching history line matching the current input.
-	infer            bool              // If the last command ran needs to infer the history line.
+	list      map[string]Source // Sources of history lines
+	names     []string          // Names of histories stored in rl.histories
+	sourcePos int               // The index of the currently used history
+	buf       string            // The current line saved when we are on another history line
+	pos       int               // Index used for navigating the history lines with arrows/j/k
+	infer     bool              // If the last command ran needs to infer the history line.
 
 	// Shell parameters
 	line   *common.Line
@@ -31,14 +29,14 @@ type Sources struct {
 // NewSources is a required constructor for the history sources manager type.
 func NewSources(line *common.Line, cur *common.Cursor, hint *ui.Hint) *Sources {
 	sources := &Sources{
-		histories: make(map[string]Source),
-		line:      line,
-		cursor:    cur,
-		hint:      hint,
+		list:   make(map[string]Source),
+		line:   line,
+		cursor: cur,
+		hint:   hint,
 	}
 
-	sources.historyNames = append(sources.historyNames, defaultSourceName)
-	sources.histories[defaultSourceName] = new(memory)
+	sources.names = append(sources.names, defaultSourceName)
+	sources.list[defaultSourceName] = new(memory)
 
 	return sources
 }
@@ -47,16 +45,16 @@ func NewSources(line *common.Line, cur *common.Cursor, hint *ui.Hint) *Sources {
 // at the start of each readline loop. If the last command asked
 // to infer a command line from the history, it is performed now.
 func (h *Sources) Init() {
-	h.historySourcePos = 0
+	h.sourcePos = 0
 
 	if !h.infer {
-		h.histPos = 0
+		h.pos = 0
 		return
 	}
 
-	switch h.histPos {
+	switch h.pos {
 	case -1:
-		h.histPos = 0
+		h.pos = 0
 	case 0:
 		h.InferNext()
 	default:
@@ -70,13 +68,13 @@ func (h *Sources) Init() {
 // this source when used). When only the default in-memory history is bound,
 // it's replaced with the provided source. Following ones are added to the list.
 func (h *Sources) Add(name string, hist Source) {
-	if len(h.histories) == 1 && h.historyNames[0] == defaultSourceName {
-		delete(h.histories, defaultSourceName)
-		h.historyNames = make([]string, 0)
+	if len(h.list) == 1 && h.names[0] == defaultSourceName {
+		delete(h.list, defaultSourceName)
+		h.names = make([]string, 0)
 	}
 
-	h.historyNames = append(h.historyNames, name)
-	h.histories[name] = hist
+	h.names = append(h.names, name)
+	h.list[name] = hist
 }
 
 // New creates a new History populated from, and writing to a file.
@@ -90,26 +88,26 @@ func (h *Sources) AddFromFile(name, file string) {
 // If no arguments are passed, all currently bound sources are removed.
 func (h *Sources) Delete(sources ...string) {
 	if len(sources) == 0 {
-		h.histories = make(map[string]Source)
-		h.historyNames = make([]string, 0)
+		h.list = make(map[string]Source)
+		h.names = make([]string, 0)
 
 		return
 	}
 
 	for _, name := range sources {
-		delete(h.histories, name)
+		delete(h.list, name)
 
-		for i, hname := range h.historyNames {
+		for i, hname := range h.names {
 			if hname == name {
-				h.historyNames = append(h.historyNames[:i], h.historyNames[i+1:]...)
+				h.names = append(h.names[:i], h.names[i+1:]...)
 				break
 			}
 		}
 	}
 
-	h.historySourcePos = 0
+	h.sourcePos = 0
 	if !h.infer {
-		h.histPos = 0
+		h.pos = 0
 	}
 }
 
@@ -127,33 +125,33 @@ func (h *Sources) Walk(pos int) {
 
 	// When we are on the last/first item, don't do anything,
 	// as it would change things like cursor positions.
-	if (pos < 0 && h.histPos == 0) || (pos > 0 && h.histPos == history.Len()) {
+	if (pos < 0 && h.pos == 0) || (pos > 0 && h.pos == history.Len()) {
 		return
 	}
 
 	// Save the current line buffer if we are leaving it.
-	if h.histPos == 0 && (h.histPos+pos) == 1 {
-		h.lineBuf = string(*h.line)
+	if h.pos == 0 && (h.pos+pos) == 1 {
+		h.buf = string(*h.line)
 	}
 
-	h.histPos += pos
+	h.pos += pos
 
 	switch {
-	case h.histPos > history.Len():
-		h.histPos = history.Len()
-	case h.histPos < 0:
-		h.histPos = 0
-	case h.histPos == 0:
-		h.line.Set([]rune(h.lineBuf)...)
+	case h.pos > history.Len():
+		h.pos = history.Len()
+	case h.pos < 0:
+		h.pos = 0
+	case h.pos == 0:
+		h.line.Set([]rune(h.buf)...)
 		h.cursor.Set(h.line.Len())
 	}
 
-	if h.histPos == 0 {
+	if h.pos == 0 {
 		return
 	}
 
 	// We now have the correct history index, fetch the line.
-	next, err := history.GetLine(history.Len() - h.histPos)
+	next, err := history.GetLine(history.Len() - h.pos)
 	if err != nil {
 		h.hint.Set(color.FgRed + "history error: " + err.Error())
 		return
@@ -168,27 +166,27 @@ func (h *Sources) Walk(pos int) {
 func (h *Sources) Cycle(next bool) {
 	switch next {
 	case true:
-		h.historySourcePos++
+		h.sourcePos++
 
-		if h.historySourcePos == len(h.historyNames) {
-			h.historySourcePos = 0
+		if h.sourcePos == len(h.names) {
+			h.sourcePos = 0
 		}
 	case false:
-		h.historySourcePos--
+		h.sourcePos--
 
-		if h.historySourcePos < 0 {
-			h.historySourcePos = len(h.historyNames) - 1
+		if h.sourcePos < 0 {
+			h.sourcePos = len(h.names) - 1
 		}
 	}
 }
 
 // Current returns the current/active history source.
 func (h *Sources) Current() Source {
-	if len(h.histories) == 0 {
+	if len(h.list) == 0 {
 		return nil
 	}
 
-	return h.histories[h.historyNames[h.historySourcePos]]
+	return h.list[h.names[h.sourcePos]]
 }
 
 // Write writes the accepted input line to all available sources.
@@ -203,7 +201,7 @@ func (h *Sources) Write(infer bool) {
 
 	line := string(*h.line)
 
-	for _, history := range h.histories {
+	for _, history := range h.list {
 		if history == nil {
 			continue
 		}
@@ -217,7 +215,7 @@ func (h *Sources) Write(infer bool) {
 		}
 
 		// Save the line and notify through hints if an error raised.
-		h.histPos, err = history.Write(line)
+		h.pos, err = history.Write(line)
 		if err != nil {
 			h.hint.Set(color.FgRed + err.Error())
 		}
@@ -227,7 +225,7 @@ func (h *Sources) Write(infer bool) {
 // InsertMatch replaces the line buffer with the first history line
 // in the active source that matches the input line as a prefix.
 func (h *Sources) InsertMatch(forward bool) {
-	if len(h.histories) == 0 {
+	if len(h.list) == 0 {
 		return
 	}
 
@@ -241,8 +239,8 @@ func (h *Sources) InsertMatch(forward bool) {
 		return
 	}
 
-	h.histPos = pos
-	h.lineBuf = string(*h.line)
+	h.pos = pos
+	h.buf = string(*h.line)
 	h.line.Set([]rune(line)...)
 	h.cursor.Set(h.line.Len())
 }
@@ -250,7 +248,7 @@ func (h *Sources) InsertMatch(forward bool) {
 // InferNext finds a line matching the current line in the history,
 // finds the next line after it and, if any, inserts it.
 func (h *Sources) InferNext() {
-	if len(h.histories) == 0 {
+	if len(h.list) == 0 {
 		return
 	}
 
@@ -283,7 +281,7 @@ func (h *Sources) InferNext() {
 // so that caller can use for things like history autosuggestion.
 // If no line matches the current line, it will return the latter.
 func (h *Sources) Suggest() common.Line {
-	if len(h.histories) == 0 {
+	if len(h.list) == 0 {
 		return *h.line
 	}
 
@@ -305,7 +303,7 @@ func (h *Sources) Suggest() common.Line {
 // line in the history source to the most recent. If filter is true,
 // only lines that match the current input line as a prefix are given.
 func (h *Sources) Complete(forward, filter bool) completion.Values {
-	if len(h.histories) == 0 {
+	if len(h.list) == 0 {
 		return completion.Values{}
 	}
 
@@ -314,7 +312,7 @@ func (h *Sources) Complete(forward, filter bool) completion.Values {
 		return completion.Values{}
 	}
 
-	h.hint.Set(color.Bold + color.FgCyanBright + h.historyNames[h.historySourcePos] + color.Reset)
+	h.hint.Set(color.Bold + color.FgCyanBright + h.names[h.sourcePos] + color.Reset)
 
 	compLines := make([]completion.Candidate, 0)
 
@@ -380,7 +378,7 @@ nextLine:
 }
 
 func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
-	if len(h.histories) == 0 {
+	if len(h.list) == 0 {
 		return
 	}
 
