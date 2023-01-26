@@ -101,7 +101,14 @@ func (c *Cursor) SetMark() {
 }
 
 // Mark returns the current mark value of the cursor, or -1 if not set.
-func (c *Cursor) Mark() int { return c.mark }
+func (c *Cursor) Mark() int {
+	return c.mark
+}
+
+// ResetMark resets the insertion point mark.
+func (c *Cursor) ResetMark() {
+	c.mark = -1
+}
 
 // Line returns the index of the current line on which the cursor is.
 // A line is defined as a sequence of runes between one or two newline
@@ -152,6 +159,25 @@ func (c *Cursor) OnEmptyLine() bool {
 
 	if (*c.line)[c.pos] == inputrc.Newline {
 		if (*c.line)[c.pos-1] == inputrc.Newline {
+			return true
+		}
+	}
+
+	return false
+}
+
+// AtBeginningOfLine returns true if the cursor is either at the beginning
+// of the line buffer, or on the first character after the previous newline.
+func (c *Cursor) AtBeginningOfLine() bool {
+	if c.pos == 0 {
+		return false
+	}
+
+	newlines := c.line.newlines()
+
+	for line := 0; line < len(newlines); line++ {
+		epos := newlines[line][0]
+		if epos == c.pos-1 {
 			return true
 		}
 	}

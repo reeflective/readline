@@ -590,8 +590,7 @@ func TestLine_TokenizeBlock(t *testing.T) {
 
 func TestLine_Display(t *testing.T) {
 	type args struct {
-		indent    int
-		suggested string
+		indent int
 	}
 	tests := []struct {
 		name string
@@ -603,7 +602,7 @@ func TestLine_Display(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.l.Display(tt.args.indent, tt.args.suggested)
+			tt.l.Display(tt.args.indent)
 		})
 	}
 }

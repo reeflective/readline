@@ -2,9 +2,11 @@ package common
 
 import (
 	"regexp"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/reeflective/readline/internal/common/strutil"
+	"github.com/reeflective/readline/internal/term"
 	"github.com/xo/inputrc"
 )
 
@@ -160,7 +162,7 @@ func (l *Line) SelectWord(pos int) (bpos, epos int) {
 		epos--
 	}
 
-	return
+	return bpos, epos
 }
 
 // Find returns the index position of a target rune, or -1 if not found.
@@ -192,6 +194,7 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 // (forward) token determined by the tokenizer function.
 func (l *Line) Forward(tokenizer Tokenizer, pos int) (adjust int) {
 	split, index, pos := tokenizer(pos)
+
 	switch {
 	case len(split) == 0:
 		return
@@ -200,6 +203,7 @@ func (l *Line) Forward(tokenizer Tokenizer, pos int) (adjust int) {
 	default:
 		adjust = len(split[index]) - pos
 	}
+
 	return
 }
 
@@ -225,6 +229,7 @@ func (l *Line) ForwardEnd(tokenizer Tokenizer, pos int) (adjust int) {
 	default:
 		adjust = len(word) - pos - 1
 	}
+
 	return
 }
 
@@ -232,6 +237,7 @@ func (l *Line) ForwardEnd(tokenizer Tokenizer, pos int) (adjust int) {
 // (backward) token determined by the tokenizer function.
 func (l *Line) Backward(tokenizer Tokenizer, pos int) (adjust int) {
 	split, index, pos := tokenizer(pos)
+
 	switch {
 	case len(split) == 0:
 		return
@@ -242,6 +248,7 @@ func (l *Line) Backward(tokenizer Tokenizer, pos int) (adjust int) {
 	default:
 		adjust = pos
 	}
+
 	return adjust * -1
 }
 
@@ -452,11 +459,26 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 // cursor position, assuming it is at the end of the shell prompt string.
 // Params:
 // @indent -    Used to align all lines (except the first) together on a single column.
-// @suggested - An optional string to append to the line, for things like command autosuggestion.
-func (l *Line) Display(indent int, suggested string) {
-	// We use a temporary line for displaying ourselves.
-	line := Line([]rune(string(*l)))
-	line.Insert(line.Len(), []rune(suggested)...)
+func (l *Line) Display(indent int) {
+	lines := strings.Split(string(*l), "\n")
+
+	if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
+		lines = append(lines, "")
+	}
+
+	for i, line := range lines {
+		if i > 0 {
+			term.MoveCursorForwards(indent)
+		}
+
+		if i < len(lines)-1 {
+			line += "\n"
+		} else {
+			line += term.ClearScreenBelow
+		}
+
+		print(line)
+	}
 }
 
 // Coordinates returns the number of real terminal lines on which the input line spans, considering
@@ -468,17 +490,13 @@ func (l *Line) Display(indent int, suggested string) {
 // Returns:
 // @x - The number of columns, starting from the terminal left, to the end of the last line.
 // @y - The number of actual lines on which the line spans, accounting for line wrap.
-func (l *Line) Coordinates(indent int, suggested string) (x, y int) {
-	// We use a temporary line for displaying ourselves.
-	line := Line([]rune(string(*l)))
-	line.Insert(line.Len(), []rune(suggested)...)
-
-	newlines := line.newlines()
+func (l *Line) Coordinates(indent int) (x, y int) {
+	newlines := l.newlines()
 	bpos := 0
 	usedY, usedX := 0, 0
 
 	for i, newline := range newlines {
-		bline := line[bpos:newline[0]]
+		bline := (*l)[bpos:newline[0]]
 		bpos = newline[0]
 		x, y := strutil.LineSpan(bline, i, indent)
 		usedY += y

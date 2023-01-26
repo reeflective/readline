@@ -229,8 +229,7 @@ func (h *Sources) InsertMatch(forward bool) {
 		return
 	}
 
-	history := h.Current()
-	if history == nil {
+	if h.Current() == nil {
 		return
 	}
 
@@ -280,22 +279,21 @@ func (h *Sources) InferNext() {
 // Suggest returns the first line matching the current line buffer,
 // so that caller can use for things like history autosuggestion.
 // If no line matches the current line, it will return the latter.
-func (h *Sources) Suggest() common.Line {
+func (h *Sources) Suggest(line *common.Line) common.Line {
 	if len(h.list) == 0 {
-		return *h.line
+		return *line
 	}
 
-	history := h.Current()
-	if history == nil {
-		return *h.line
+	if h.Current() == nil {
+		return *line
 	}
 
-	line, _, found := h.matchFirst(false)
+	suggested, _, found := h.matchFirst(false)
 	if !found {
-		return *h.line
+		return *line
 	}
 
-	return common.Line([]rune(line))
+	return common.Line([]rune(suggested))
 }
 
 // Complete returns completions with the current history source values.
@@ -424,5 +422,6 @@ func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
 		return histline, histPos, true
 	}
 
-	return
+	// We should have returned a match from the loop.
+	return "", 0, false
 }
