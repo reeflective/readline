@@ -2,30 +2,21 @@ package readline
 
 import (
 	"fmt"
+
+	"github.com/reeflective/readline/internal/completion"
 )
 
 // Completion represents a completion candidate.
-type Completion struct {
-	Value       string // Value is the value of the completion as actually inserted in the line
-	Display     string // When display is not nil, this string is used to display the completion in the menu.
-	Description string // A description to display next to the completion candidate.
-	Style       string // An arbitrary string of color/text effects to use when displaying the completion.
-	Tag         string // All completions with the same tag are grouped together and displayed under the tag heading.
-
-	// A list of runes that are automatically trimmed when a space or a non-nil character is
-	// inserted immediately after the completion. This is used for slash-autoremoval in path
-	// completions, comma-separated completions, etc.
-	noSpace suffixMatcher
-}
+type Completion = completion.Candidate
 
 // Completions holds all completions candidates and their associated data,
 // including usage strings, messages, and suffix matchers for autoremoval.
 // Some of those additional settings will apply to all contained candidates,
 // except when these candidates have their own corresponding settings.
 type Completions struct {
-	values   rawValues
-	messages messages
-	noSpace  suffixMatcher
+	values   completion.RawValues
+	messages completion.Messages
+	noSpace  completion.SuffixMatcher
 	usage    string
 	listLong map[string]bool
 	noSort   map[string]bool
@@ -43,6 +34,7 @@ func CompleteValues(values ...string) Completions {
 	for _, val := range values {
 		vals = append(vals, Completion{Value: val, Display: val, Description: ""})
 	}
+
 	return Completions{values: vals}
 }
 
@@ -56,6 +48,7 @@ func CompleteStyledValues(values ...string) Completions {
 	for i := 0; i < len(values); i += 2 {
 		vals = append(vals, Completion{Value: values[i], Display: values[i], Description: "", Style: values[i+1]})
 	}
+
 	return Completions{values: vals}
 }
 
@@ -69,6 +62,7 @@ func CompleteValuesDescribed(values ...string) Completions {
 	for i := 0; i < len(values); i += 2 {
 		vals = append(vals, Completion{Value: values[i], Display: values[i], Description: values[i+1]})
 	}
+
 	return Completions{values: vals}
 }
 
@@ -82,22 +76,26 @@ func CompleteStyledValuesDescribed(values ...string) Completions {
 	for i := 0; i < len(values); i += 3 {
 		vals = append(vals, Completion{Value: values[i], Display: values[i], Description: values[i+1], Style: values[i+2]})
 	}
+
 	return Completions{values: vals}
 }
 
 // CompleteRaw directly accepts a list of prepared Completion values.
 func CompleteRaw(values []Completion) Completions {
-	return Completions{values: rawValues(values)}
+	return Completions{values: completion.RawValues(values)}
 }
 
 // Message displays a help messages in places where no completions can be generated.
 func Message(msg string, args ...interface{}) Completions {
-	c := Completions{}
+	comps := Completions{}
+
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}
-	c.messages.Add(msg)
-	return c
+
+	comps.messages.Add(msg)
+
+	return comps
 }
 
 // Suppress suppresses specific error messages using regular expressions.
@@ -105,6 +103,7 @@ func (c Completions) Suppress(expr ...string) Completions {
 	if err := c.messages.Suppress(expr...); err != nil {
 		return Message(err.Error())
 	}
+
 	return c
 }
 
@@ -116,7 +115,9 @@ func (c Completions) NoSpace(suffixes ...rune) Completions {
 	if len(suffixes) == 0 {
 		c.noSpace.Add('*')
 	}
+
 	c.noSpace.Add(suffixes...)
+
 	return c
 }
 
@@ -128,6 +129,7 @@ func (c Completions) Prefix(prefix string) Completions {
 	for index, val := range c.values {
 		c.values[index].Value = prefix + val.Value
 	}
+
 	return c
 }
 
@@ -139,6 +141,7 @@ func (c Completions) Suffix(suffix string) Completions {
 	for index, val := range c.values {
 		c.values[index].Value = val.Value + suffix
 	}
+
 	return c
 }
 
@@ -154,6 +157,7 @@ func (c Completions) UsageF(f func() string) Completions {
 	if usage := f(); usage != "" {
 		c.usage = usage
 	}
+
 	return c
 }
 
@@ -175,6 +179,7 @@ func (c Completions) StyleR(style *string) Completions {
 	if style != nil {
 		return c.Style(*style)
 	}
+
 	return c
 }
 
@@ -186,6 +191,7 @@ func (c Completions) StyleF(f func(s string) string) Completions {
 	for index, v := range c.values {
 		c.values[index].Style = f(v.Value)
 	}
+
 	return c
 }
 
@@ -207,6 +213,7 @@ func (c Completions) TagF(f func(value string) string) Completions {
 	for index, v := range c.values {
 		c.values[index].Tag = f(v.Value)
 	}
+
 	return c
 }
 
@@ -217,9 +224,11 @@ func (c Completions) DisplayList(tags ...string) Completions {
 	if c.listLong == nil {
 		c.listLong = make(map[string]bool)
 	}
+
 	if len(tags) == 0 {
 		c.listLong["*"] = true
 	}
+
 	for _, tag := range tags {
 		c.listLong[tag] = true
 	}
@@ -266,9 +275,11 @@ func (c Completions) NoSort(tags ...string) Completions {
 	if c.noSort == nil {
 		c.noSort = make(map[string]bool)
 	}
+
 	if len(tags) == 0 {
 		c.noSort["*"] = true
 	}
+
 	for _, tag := range tags {
 		c.noSort[tag] = true
 	}
@@ -276,12 +287,13 @@ func (c Completions) NoSort(tags ...string) Completions {
 	return c
 }
 
-// Filter filters given values (this should be done before any call to Prefix/Suffix as those alter the values being filtered)
+// Filter filters given values (this should be done before any call
+// to Prefix/Suffix as those alter the values being filtered)
 //
 //	a := ActionValues("A", "B", "C").Invoke(c)
 //	b := a.Filter([]string{"B"}) // ["A", "C"]
 func (c Completions) Filter(values []string) Completions {
-	c.values = rawValues(c.values).Filter(values...)
+	c.values = c.values.Filter(values...)
 	return c
 }
 
@@ -292,6 +304,7 @@ func (c Completions) Filter(values []string) Completions {
 //	c := a.Merge(b) // ["A", "B", "C"]
 func (c Completions) Merge(others ...Completions) Completions {
 	uniqueRawValues := make(map[string]Completion)
+
 	for _, other := range append([]Completions{c}, others...) {
 		for _, c := range other.values {
 			uniqueRawValues[c.Value] = c
@@ -308,31 +321,15 @@ func (c Completions) Merge(others ...Completions) Completions {
 	}
 
 	c.values = rawValues
+
 	return c
-}
-
-// rawValues is a list of completion candidates.
-type rawValues []Completion
-
-// Filter filters values.
-func (c rawValues) Filter(values ...string) rawValues {
-	toremove := make(map[string]bool)
-	for _, v := range values {
-		toremove[v] = true
-	}
-	filtered := make([]Completion, 0)
-	for _, rawValue := range c {
-		if _, ok := toremove[rawValue.Value]; !ok {
-			filtered = append(filtered, rawValue)
-		}
-	}
-	return filtered
 }
 
 func (c *Completions) merge(other Completions) {
 	if other.usage != "" {
 		c.usage = other.usage
 	}
+
 	c.noSpace.Merge(other.noSpace)
 	c.messages.Merge(other.messages)
 
@@ -343,18 +340,15 @@ func (c *Completions) merge(other Completions) {
 	}
 }
 
-func (c rawValues) eachTag(f func(tag string, values rawValues)) {
-	tags := make([]string, 0)
-	tagGroups := make(map[string]rawValues)
-	for _, val := range c {
-		if _, exists := tagGroups[val.Tag]; !exists {
-			tagGroups[val.Tag] = make(rawValues, 0)
-			tags = append(tags, val.Tag)
-		}
-		tagGroups[val.Tag] = append(tagGroups[val.Tag], val)
-	}
+func (c *Completions) convert() completion.Values {
+	comps := completion.AddRaw(c.values)
 
-	for _, tag := range tags {
-		f(tag, tagGroups[tag])
-	}
+	comps.Messages = c.messages
+	comps.NoSpace = c.noSpace
+	comps.Usage = c.usage
+	comps.ListLong = c.listLong
+	comps.NoSort = c.noSort
+	comps.ListSep = c.listSep
+
+	return comps
 }

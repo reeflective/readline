@@ -16,14 +16,14 @@ type Candidate struct {
 	// A list of runes that are automatically trimmed when a space or a non-nil character is
 	// inserted immediately after the completion. This is used for slash-autoremoval in path
 	// completions, comma-separated completions, etc.
-	noSpace suffixMatcher
+	noSpace SuffixMatcher
 }
 
 // Values is used internally to hold all completion candidates and their associated data.
 type Values struct {
-	values   rawValues
-	Messages messages
-	NoSpace  suffixMatcher
+	values   RawValues
+	Messages Messages
+	NoSpace  SuffixMatcher
 	Usage    string
 	ListLong map[string]bool
 	NoSort   map[string]bool
@@ -38,7 +38,7 @@ type Values struct {
 // AddRaw adds completion values in bulk.
 func AddRaw(values []Candidate) Values {
 	return Values{
-		values:   rawValues(values),
+		values:   RawValues(values),
 		ListLong: make(map[string]bool),
 		NoSort:   make(map[string]bool),
 		ListSep:  make(map[string]string),

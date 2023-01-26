@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-type suffixMatcher struct {
+type SuffixMatcher struct {
 	string
 	pos int // Used to know if the saved suffix matcher is deprecated
 }
 
-func (sm *suffixMatcher) Add(suffixes ...rune) {
+func (sm *SuffixMatcher) Add(suffixes ...rune) {
 	if strings.Contains(sm.string, "*") || strings.Contains(string(suffixes), "*") {
 		sm.string = "*"
 
@@ -29,13 +29,13 @@ func (sm *suffixMatcher) Add(suffixes ...rune) {
 	sm.string = string(unique)
 }
 
-func (sm *suffixMatcher) Merge(other suffixMatcher) {
+func (sm *SuffixMatcher) Merge(other SuffixMatcher) {
 	for _, r := range other.string {
 		sm.Add(r)
 	}
 }
 
-func (sm suffixMatcher) Matches(s string) bool {
+func (sm SuffixMatcher) Matches(s string) bool {
 	for _, r := range sm.string {
 		if r == '*' || strings.HasSuffix(s, string(r)) {
 			return true

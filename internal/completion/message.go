@@ -5,27 +5,27 @@ import (
 	"sort"
 )
 
-type messages struct {
+type Messages struct {
 	messages map[string]bool
 }
 
-func (m *messages) init() {
+func (m *Messages) init() {
 	if m.messages == nil {
 		m.messages = make(map[string]bool)
 	}
 }
 
-func (m messages) IsEmpty() bool {
+func (m Messages) IsEmpty() bool {
 	// TODO replacement for Action.skipCache - does this need to consider suppressed messages or is this fine?
 	return len(m.messages) == 0
 }
 
-func (m *messages) Add(s string) {
+func (m *Messages) Add(s string) {
 	m.init()
 	m.messages[s] = true
 }
 
-func (m messages) Get() []string {
+func (m Messages) Get() []string {
 	messages := make([]string, 0)
 	for message := range m.messages {
 		messages = append(messages, message)
@@ -36,7 +36,7 @@ func (m messages) Get() []string {
 	return messages
 }
 
-func (m *messages) Suppress(expr ...string) error {
+func (m *Messages) Suppress(expr ...string) error {
 	m.init()
 
 	for _, e := range expr {
@@ -55,7 +55,7 @@ func (m *messages) Suppress(expr ...string) error {
 	return nil
 }
 
-func (m *messages) Merge(other messages) {
+func (m *Messages) Merge(other Messages) {
 	if other.messages == nil {
 		return
 	}

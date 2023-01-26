@@ -16,7 +16,7 @@ import (
 type group struct {
 	tag           string        // Printed on top of the group's completions
 	values        [][]Candidate // Values are grouped by aliases/rows, with computed paddings.
-	noSpace       suffixMatcher // Suffixes to remove if a space or non-nil character is entered after the completion.
+	noSpace       SuffixMatcher // Suffixes to remove if a space or non-nil character is entered after the completion.
 	columnsWidth  []int         // Computed width for each column of completions, when aliases
 	listSeparator string        // This is used to separate completion candidates from their descriptions.
 	list          bool          // Force completions to be listed instead of grided
@@ -41,7 +41,7 @@ func (e *Engine) groupCompletions(comps Values) {
 		return
 	}
 
-	comps.values.eachTag(func(tag string, values rawValues) {
+	comps.values.eachTag(func(tag string, values RawValues) {
 		// Separate the completions that have a description and
 		// those which don't, and devise if there are aliases.
 		vals, noDescVals, aliased := groupValues(values)
@@ -58,7 +58,7 @@ func (e *Engine) groupCompletions(comps Values) {
 }
 
 // groupValues separates values based on whether they have descriptions, or are aliases of each other.
-func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
+func groupValues(values RawValues) (vals, noDescVals RawValues, aliased bool) {
 	var descriptions []string
 
 	for _, val := range values {
@@ -86,13 +86,13 @@ func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
 	// if no candidates have a description, swap
 	if len(vals) == 0 {
 		vals = noDescVals
-		noDescVals = make(rawValues, 0)
+		noDescVals = make(RawValues, 0)
 	}
 
 	return vals, noDescVals, aliased
 }
 
-func (e *Engine) newGroup(c Values, tag string, vals rawValues, aliased bool) {
+func (e *Engine) newGroup(c Values, tag string, vals RawValues, aliased bool) {
 	grp := &group{
 		tag:           tag,
 		noSpace:       c.NoSpace,
@@ -145,7 +145,7 @@ func (e *Engine) newGroup(c Values, tag string, vals rawValues, aliased bool) {
 	e.groups = append(e.groups, grp)
 }
 
-func (g *group) checkDisplays(vals rawValues) rawValues {
+func (g *group) checkDisplays(vals RawValues) RawValues {
 	if g.aliased {
 		return vals
 	}
@@ -161,7 +161,7 @@ func (g *group) checkDisplays(vals rawValues) rawValues {
 	return vals
 }
 
-func (g *group) computeCells(vals rawValues) {
+func (g *group) computeCells(vals RawValues) {
 	// Aliases will compute themselves individually, later.
 	if g.aliased {
 		return
@@ -205,7 +205,7 @@ func (g *group) computeCells(vals rawValues) {
 	}
 }
 
-func (g *group) makeMatrix(vals rawValues) {
+func (g *group) makeMatrix(vals RawValues) {
 nextValue:
 	for _, val := range vals {
 		valLen := utf8.RuneCountInString(val.Display)

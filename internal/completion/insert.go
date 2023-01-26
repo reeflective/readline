@@ -34,7 +34,7 @@ func (e *Engine) removeSuffixAccepted() {
 	// If our suffix matcher was registered at a different
 	// place in our line, then it's an orphan.
 	if e.suffix.pos != e.cursor.Pos()-1 {
-		e.suffix = suffixMatcher{}
+		e.suffix = SuffixMatcher{}
 		return
 	}
 
@@ -58,7 +58,7 @@ func (e *Engine) removeSuffixAccepted() {
 		e.line.CutRune(e.cursor.Pos())
 
 		if key != suf {
-			e.suffix = suffixMatcher{}
+			e.suffix = SuffixMatcher{}
 		}
 	}
 }

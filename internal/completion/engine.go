@@ -21,7 +21,7 @@ type Engine struct {
 	prefix string        // The current tab completion prefix  against which to build candidates
 	usedY  int           // Comprehensive offset of the currently built completions
 	comp   []rune        // The currently selected item, not yet a real part of the input line.
-	suffix suffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
+	suffix SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
 
 	// Line parameters
 	keys       *common.Keys   // The input keys reader

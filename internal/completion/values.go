@@ -1,10 +1,10 @@
 package completion
 
-// rawValues is a list of completion candidates.
-type rawValues []Candidate
+// RawValues is a list of completion candidates.
+type RawValues []Candidate
 
 // Filter filters values.
-func (c rawValues) Filter(values ...string) rawValues {
+func (c RawValues) Filter(values ...string) RawValues {
 	toremove := make(map[string]bool)
 	for _, v := range values {
 		toremove[v] = true
@@ -21,7 +21,7 @@ func (c rawValues) Filter(values ...string) rawValues {
 	return filtered
 }
 
-func (c *Values) merge(other Values) {
+func (c *Values) Merge(other Values) {
 	if other.Usage != "" {
 		c.Usage = other.Usage
 	}
@@ -36,13 +36,13 @@ func (c *Values) merge(other Values) {
 	}
 }
 
-func (c rawValues) eachTag(f func(tag string, values rawValues)) {
+func (c RawValues) eachTag(f func(tag string, values RawValues)) {
 	tags := make([]string, 0)
-	tagGroups := make(map[string]rawValues)
+	tagGroups := make(map[string]RawValues)
 
 	for _, val := range c {
 		if _, exists := tagGroups[val.Tag]; !exists {
-			tagGroups[val.Tag] = make(rawValues, 0)
+			tagGroups[val.Tag] = make(RawValues, 0)
 
 			tags = append(tags, val.Tag)
 		}
