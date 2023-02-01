@@ -16,11 +16,11 @@ const (
 )
 
 // KeywordSwitcher is a function modifying a given word, returning:
-// @done => If true, the handler performed a change.
-// @new  => The updated word.
-// @bpos => Offset to begin position.
-// @epos => Offset to end position.
-type KeywordSwitcher func(word string, increase bool, times int) (done bool, new string, bpos, epos int)
+// @done     => If true, the handler performed a change.
+// @switched => The updated word.
+// @bpos     => Offset to begin position.
+// @epos     => Offset to end position.
+type KeywordSwitcher func(word string, increase bool, times int) (done bool, switched string, bpos, epos int)
 
 // keywordSwitchers returns all keywordSwitchers of the shell.
 func KeywordSwitchers() []KeywordSwitcher {
@@ -32,16 +32,58 @@ func KeywordSwitchers() []KeywordSwitcher {
 	}
 }
 
-func switchNumber(word string, increase bool, times int) (done bool, new string, bpos, epos int) {
-	if done, new, bpos, epos = switchHexa(word, times); done {
+// AdjustNumberOperatorPos returns an adjusted cursor position when
+// the word around the cursor is an expression with an operator.
+func AdjustNumberOperatorPos(cpos int, line []rune) int {
+	word := lineSlice(line, cpos, 2)
+
+	if match, _ := regexp.MatchString(`[+-][0-9]`, word); match {
+		// If cursor is on the `+` or `-`, we need to check if it is a
+		// number with a sign or an operator, only the number needs to
+		// forward the cursor.
+		digit := regexp.MustCompile(`[^0-9]`)
+		if cpos == 0 || digit.MatchString(string(line[cpos-1])) {
+			cpos++
+		}
+	} else if match, _ := regexp.MatchString(`[+-][a-zA-Z]`, word); match {
+		// If cursor is on the `+` or `-`, we need to check if it is a
+		// short option, only the short option needs to forward the cursor.
+		if cpos == 0 || line[cpos-1] == ' ' {
+			cpos++
+		}
+	}
+
+	return cpos
+}
+
+// lineSlice returns a subset of the current input line.
+func lineSlice(line []rune, cpos, adjust int) (slice string) {
+	switch {
+	case cpos+adjust > len(line):
+		slice = string(line[cpos:])
+	case adjust < 0:
+		if cpos+adjust < 0 {
+			slice = string(line[:cpos])
+		} else {
+			slice = string(line[cpos+adjust : cpos])
+		}
+	default:
+		slice = string(line[cpos : cpos+adjust])
+	}
+
+	return
+}
+
+func switchNumber(word string, increase bool, times int) (done bool, switched string, bpos, epos int) {
+	if done, switched, bpos, epos = switchHexa(word, times); done {
 		return
 	}
 
-	if done, new, bpos, epos = switchBinary(word, times); done {
+	if done, switched, bpos, epos = switchBinary(word, times); done {
 		return
 	}
 
-	if done, new, bpos, epos = switchDecimal(word, times); done {
+	if done, switched, bpos, epos = switchDecimal(word, times); done {
 		return
 	}
 
@@ -65,9 +107,10 @@ func switchNumber(word string, increase bool, times int) (done bool, new string,
 // 0x0 => 0xffffffffffffffff
 // 0X0 => 0XFFFFFFFFFFFFFFFF
 // 0Xf => 0Xe.
-func switchHexa(word string, inc int) (done bool, new string, bpos, epos int) {
-	hexadecimal, _ := regexp.Compile(`[^0-9]?(0[xX][0-9a-fA-F]*)`)
+func switchHexa(word string, inc int) (done bool, switched string, bpos, epos int) {
+	hexadecimal := regexp.MustCompile(`[^0-9]?(0[xX][0-9a-fA-F]*)`)
 	match := hexadecimal.FindString(word)
+
 	if match == "" {
 		return
 	}
@@ -81,7 +124,6 @@ func switchHexa(word string, inc int) (done bool, new string, bpos, epos int) {
 	mbegin, mend := indexes[0], indexes[1]
 	bpos, epos = mbegin, mend
 
-	// lower := true
 	if match, _ := regexp.MatchString(`[A-Z][0-9]*$`, number); !match {
 		hexVal = strings.ToUpper(hexVal)
 	}
@@ -96,30 +138,30 @@ func switchHexa(word string, inc int) (done bool, new string, bpos, epos int) {
 	bigNum := big.NewInt(num)
 	bigInc := big.NewInt(int64(inc))
 	sum := bigNum.Add(bigNum, bigInc)
-	zero := big.NewInt(0)
 
 	numBefore := num
 
-	if sum.Cmp(zero) < 0 {
+	switch {
+	case sum.Cmp(big.NewInt(0)) < 0:
 		offset := bigInc.Sub(max64Bit, sum.Abs(sum))
 		if offset.IsInt64() {
 			num = offset.Int64()
 		} else {
 			num = math.MaxInt64
 		}
-	} else if sum.CmpAbs(max64Bit) >= 0 {
+	case sum.CmpAbs(max64Bit) >= 0:
 		offset := bigInc.Sub(sum, max64Bit)
 		if offset.IsInt64() {
 			num = offset.Int64()
 		} else {
 			num = int64(inc) - (num - numBefore)
 		}
-	} else {
+	default:
 		num = sum.Int64()
 	}
 
 	hexVal = fmt.Sprintf("%x", num)
-	new = prefix + hexVal
+	switched = prefix + hexVal
 
 	return
 }
@@ -138,7 +180,7 @@ func switchHexa(word string, inc int) (done bool, new string, bpos, epos int) {
 // 0B010 => 0B001
 // 0b0 =>
 // 0x1111111111111111111111111111111111111111111111111111111111111111.
-func switchBinary(word string, inc int) (done bool, new string, bpos, epos int) {
+func switchBinary(word string, inc int) (done bool, switched string, bpos, epos int) {
 	binary, _ := regexp.Compile(`[^0-9]?(0[bB][01]*)`)
 	match := binary.FindString(word)
 	if match == "" {
@@ -187,7 +229,7 @@ func switchBinary(word string, inc int) (done bool, new string, bpos, epos int) 
 	}
 
 	binVal = fmt.Sprintf("%b", num)
-	new = prefix + binVal
+	switched = prefix + binVal
 	return
 }
 
@@ -203,9 +245,10 @@ func switchBinary(word string, inc int) (done bool, new string, bpos, epos int) 
 // aa1230xa => aa1231xa // NOT WORKING => MATCHED BY HEXA
 // aa1230bb => aa1231bb
 // aa123a0bb => aa124a0bb.
-func switchDecimal(word string, inc int) (done bool, new string, bpos, epos int) {
-	decimal, _ := regexp.Compile(`([-+]?[0-9]+)`)
+func switchDecimal(word string, inc int) (done bool, switched string, bpos, epos int) {
+	decimal := regexp.MustCompile(`([-+]?[0-9]+)`)
 	match := decimal.FindString(word)
+
 	if match == "" {
 		return
 	}
@@ -219,25 +262,25 @@ func switchDecimal(word string, inc int) (done bool, new string, bpos, epos int)
 	num, _ := strconv.Atoi(match)
 	num += inc
 
-	new = strconv.Itoa(num)
+	switched = strconv.Itoa(num)
 
 	// Add prefix if needed
 	if word[0] == '+' {
-		new = "+" + new
+		switched = "+" + switched
 	}
 
 	// Don't consider anything done if result is empty.
-	if new == "" {
+	if switched == "" {
 		done = false
 	}
 
 	return
 }
 
-func switchBoolean(word string, increase bool, _ int) (done bool, new string, bpos, epos int) {
+func switchBoolean(word string, _ bool, _ int) (done bool, switched string, bpos, epos int) {
 	epos = len(word)
 
-	option, _ := regexp.Compile(`(^[+-]{0,2})`)
+	option := regexp.MustCompile(`(^[+-]{0,2})`)
 	if match := option.FindString(word); match != "" {
 		indexes := option.FindStringIndex(word)
 		bpos = indexes[1]
@@ -257,7 +300,7 @@ func switchBoolean(word string, increase bool, _ int) (done bool, new string, bp
 		"off":   "on",
 	}
 
-	new, done = booleans[strings.ToLower(word)]
+	switched, done = booleans[strings.ToLower(word)]
 	if !done {
 		return
 	}
@@ -266,21 +309,21 @@ func switchBoolean(word string, increase bool, _ int) (done bool, new string, bp
 
 	// Transform case
 	if match, _ := regexp.MatchString(`^[A-Z]+$`, word); match {
-		new = strings.ToLower(new)
+		switched = strings.ToLower(switched)
 	} else if match, _ := regexp.MatchString(`^[A-Z]`, word); match {
-		letter := new[0]
+		letter := switched[0]
 		upper := unicode.ToUpper(rune(letter))
-		new = string(upper) + new[1:]
+		switched = string(upper) + switched[1:]
 	}
 
 	return
 }
 
-func switchWeekday(word string, increase bool, _ int) (done bool, new string, bpos, epos int) {
+func switchWeekday(word string, inc bool, _ int) (done bool, switched string, bpos, epos int) {
 	return
 }
 
-func switchOperator(word string, increase bool, _ int) (done bool, new string, bpos, epos int) {
+func switchOperator(word string, _ bool, _ int) (done bool, switched string, bpos, epos int) {
 	epos = len(word)
 
 	operators := map[string]string{
@@ -300,7 +343,7 @@ func switchOperator(word string, increase bool, _ int) (done bool, new string, b
 		"or":  "and",
 	}
 
-	new, done = operators[strings.ToLower(word)]
+	switched, done = operators[strings.ToLower(word)]
 	if !done {
 		return
 	}
@@ -309,11 +352,11 @@ func switchOperator(word string, increase bool, _ int) (done bool, new string, b
 
 	// Transform case
 	if match, _ := regexp.MatchString(`^[A-Z]+$`, word); match {
-		new = strings.ToLower(new)
+		switched = strings.ToLower(switched)
 	} else if match, _ := regexp.MatchString(`^[A-Z]`, word); match {
-		letter := new[0]
+		letter := switched[0]
 		upper := unicode.ToUpper(rune(letter))
-		new = string(upper) + new[1:]
+		switched = string(upper) + switched[1:]
 	}
 
 	return

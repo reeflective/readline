@@ -13,7 +13,13 @@ const (
 // Keys is used read, manage and use keys input by the shell user.
 type Keys struct {
 	stack  []rune
-	paused chan bool
+	paused chan struct{}
+}
+
+func NewKeys() *Keys {
+	return &Keys{
+		paused: make(chan struct{}, 1),
+	}
 }
 
 // Read reads user input from stdin and stores the result in the key stack.
@@ -27,7 +33,7 @@ func (k *Keys) Read() {
 // indication on whether this key is an escape/abort one.
 func (k *Keys) ReadArgument() (keys []rune, isAbort bool) {
 	if k.paused == nil {
-		k.paused = make(chan bool)
+		k.paused = make(chan struct{}, 1)
 	}
 
 read:
@@ -35,24 +41,27 @@ read:
 		// Start reading from os.Stdin in the background.
 		read, done := k.readInput()
 
-		select {
-		case keys = <-read:
-			// We have read user input keys.
-			if len(keys) == 1 && keys[0] == inputrc.Esc {
-				isAbort = true
+		for {
+			select {
+			case keys = <-read:
+				// We have read user input keys.
+				if len(keys) == 1 && keys[0] == inputrc.Esc {
+					isAbort = true
+				}
+
+				break read
+
+			case <-k.paused:
+				// We are asked to stop reading our keys for some time.
+				// Close the reading goroutine, and wait for the caller
+				// to notify us that we can start a new one.
+				close(done)
+
+				<-k.paused
+				k.paused = make(chan struct{}, 1)
+
+				continue
 			}
-
-			break read
-
-		case <-k.paused:
-			// We are asked to stop reading our keys for some time.
-			// Close the reading goroutine, and wait for the caller
-			// to notify us that we can start a new one.
-			close(done)
-			<-k.paused
-			k.paused = make(chan bool)
-
-			continue
 		}
 	}
 
@@ -63,15 +72,16 @@ read:
 // This is used when the shell needs to query the terminal for its current state,
 // which is output to stdout. Once done with your operation, close the channel to
 // resume normal key input scan.
-func (k *Keys) Pause() chan bool {
+func (k *Keys) Pause() {
+	// k.paused <- struct{}{}
 	if k.paused == nil {
-		k.paused = make(chan bool)
+		k.paused = make(chan struct{}, 1)
 	}
+	// close(k.paused)
+}
 
-	// Notify our main read routine we want to pause it.
-	k.paused <- true
-
-	return k.paused
+func (k *Keys) Resume() {
+	// close(k.paused)
 }
 
 // Pop pops (removes) the first key in the stack (last read) and returns it.
@@ -95,6 +105,15 @@ func (k *Keys) Peek() (key rune, empty bool) {
 	}
 
 	return k.stack[0], false
+}
+
+// PeekAll returns all the keys from the stack, without deleting them.
+func (k *Keys) PeekAll() (keys []rune, empty bool) {
+	if len(k.stack) == 0 {
+		return k.stack, true
+	}
+
+	return k.stack, false
 }
 
 // Flush returns all keys stored in the stack and clears it.

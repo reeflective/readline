@@ -68,6 +68,42 @@ func (c *Cursor) Move(offset int) {
 	c.pos += offset
 }
 
+// ToFirstNonSpace moves the cursor either backward or forward to
+// the first character in the line that is not a space, a tab or
+// a newline. If the current is not one, the cursor doesn't move.
+// If the cursor is at the end of the line, the move is performed
+// backward, regardless of the forward parameter value.
+func (c *Cursor) ToFirstNonSpace(forward bool) {
+	if c.line.Len() == 0 {
+		return
+	}
+
+	defer c.CheckAppend()
+
+	if c.pos == c.line.Len() {
+		forward = false
+	}
+
+	// At line bounds
+	if forward && c.pos >= c.line.Len()-1 {
+		return
+	} else if !forward && c.pos == 0 {
+		return
+	}
+
+	for {
+		if !c.onSpace() {
+			return
+		}
+
+		if forward {
+			c.pos++
+		} else {
+			c.pos--
+		}
+	}
+}
+
 // BeginningOfLine moves the cursor to the beginning of the current line,
 // (marked by a newline) or if no newline found, to the beginning of the buffer.
 func (c *Cursor) BeginningOfLine() {
@@ -340,5 +376,20 @@ func (c *Cursor) moveLineUp(lines int) {
 		if lines == 0 {
 			return
 		}
+	}
+}
+
+func (c *Cursor) onSpace() bool {
+	if c.pos == c.line.Len() {
+		return false
+	} else if c.pos <= 0 {
+		return false
+	}
+
+	switch (*c.line)[c.pos] {
+	case inputrc.Space, inputrc.Newline, inputrc.Tab:
+		return true
+	default:
+		return false
 	}
 }

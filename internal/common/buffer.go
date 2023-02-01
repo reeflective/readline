@@ -89,9 +89,9 @@ func (reg *Buffers) Get(register rune) []rune {
 	return nil
 }
 
-// Pop returns the contents of the active buffer/register (or the kill
+// Active returns the contents of the active buffer/register (or the kill
 // buffer if no active register is active), and resets the active register.
-func (reg *Buffers) Pop() []rune {
+func (reg *Buffers) Active() []rune {
 	defer reg.Reset()
 
 	if !reg.waiting && !reg.selected {
@@ -99,6 +99,25 @@ func (reg *Buffers) Pop() []rune {
 	}
 
 	return reg.Get(reg.active)
+}
+
+// Pop rotates the kill ring and returns the new top.
+func (reg *Buffers) Pop() []rune {
+	if len(reg.num) == 0 {
+		return reg.kill
+	}
+
+	// Reassign the kill buffer and
+	// pop the first numbered register.
+	reg.kill = []rune(reg.num[0])
+	delete(reg.num, 0)
+
+	return reg.kill
+}
+
+// GetKill returns the contents of the kill buffer.
+func (reg *Buffers) GetKill() []rune {
+	return reg.kill
 }
 
 // Write writes a slice to the currently active buffer, and/or to the kill one.

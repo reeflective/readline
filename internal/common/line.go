@@ -171,13 +171,22 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 		if forward {
 			pos++
 			if pos > l.Len()-1 {
+				pos--
 				break
 			}
 		} else {
 			pos--
 			if pos < 0 {
+				pos++
 				break
 			}
+		}
+
+		// Check positions
+		if pos < 0 {
+			pos = 0
+		} else if pos > l.Len()-1 {
+			pos = l.Len() - 1
 		}
 
 		// Check if character matches
@@ -188,6 +197,31 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 
 	// The rune was not found.
 	return -1
+}
+
+// FindSurround returns the beginning and end positions of an enclosing rune (either
+// matching signs -brackets- or the rune itself -quotes/letters-) and the enclosing chars.
+func (l *Line) FindSurround(char rune, pos int) (bpos, epos int, bchar, echar rune) {
+	bchar, echar = strutil.MatchSurround(char)
+
+	bpos = l.Find(bchar, pos+1, false)
+	epos = l.Find(echar, pos-1, true)
+
+	if bpos == epos {
+		pos++
+		epos = l.Find(echar, pos, true)
+
+		if epos == -1 {
+			pos--
+			epos = l.Find(echar, pos, false)
+
+			if epos != -1 {
+				bpos, epos = epos, bpos
+			}
+		}
+	}
+
+	return
 }
 
 // Forward returns the offset to the beginning of the next
@@ -474,7 +508,7 @@ func (l *Line) Display(indent int) {
 		if i < len(lines)-1 {
 			line += "\n"
 		} else {
-			line += term.ClearScreenBelow
+			line += term.ClearLineAfter
 		}
 
 		print(line)
@@ -541,8 +575,6 @@ func (l *Line) checkRange(bpos, epos int) (int, int, bool) {
 func (l *Line) checkPos(pos int) (int, bool) {
 	if pos < 0 || pos > l.Len() || l.Len() == 0 {
 		return -1, false
-	} else if pos == l.Len() {
-		pos--
 	}
 
 	return pos, true

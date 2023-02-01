@@ -38,7 +38,7 @@ func NewSelection(line *Line, cursor *Cursor) *Selection {
 // If the position is out of the line bounds, no selection is started.
 // If this function is called on a surround selection, nothing happens.
 func (s *Selection) Mark(pos int) {
-	if pos < 0 || pos > s.line.Len()-1 {
+	if pos < 0 || pos > s.line.Len() {
 		return
 	}
 
