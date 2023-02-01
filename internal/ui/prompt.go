@@ -100,13 +100,14 @@ func (p *Prompt) PrimaryPrint() {
 	prompt := p.primaryF()
 	print(prompt)
 
-	// Save the number of lines used.
+	// Save the number of lines used,
+	// and last line for line redisplay.
 	lines := strings.Split(prompt, "\n")
 	p.primaryRows = len(lines) - 1
 
 	// And save the current cursor X position.
-	done := p.keys.Pause()
-	defer close(done)
+	p.keys.Pause()
+	defer p.keys.Resume()
 
 	p.primaryCols, _ = term.GetCursorPos()
 	if p.primaryCols == -1 {
@@ -125,6 +126,30 @@ func (p *Prompt) PrimaryUsed() int {
 // spans on several lines. If not, this function will actually print
 // the entire primary prompt, and PrimaryPrint() will not print anything.
 func (p *Prompt) LastPrint() {
+	if p.primaryF == nil {
+		return
+	}
+
+	// Only display the last line, but overwrite the number of
+	// rows used since any redisplay of all lines but the last
+	// will trigger their  own recomputation.
+	lines := strings.Split(p.primaryF(), "\n")
+	p.primaryRows = 0
+
+	// Print the prompt and compute columns.
+	if len(lines) == 0 {
+		return
+	}
+
+	print(lines[len(lines)-1])
+
+	p.keys.Pause()
+	defer p.keys.Resume()
+
+	p.primaryCols, _ = term.GetCursorPos()
+	if p.primaryCols == -1 {
+		p.primaryCols = len(lines[len(lines)-1])
+	}
 }
 
 // LastUsed returns the number of terminal columns used by the last
@@ -132,16 +157,18 @@ func (p *Prompt) LastPrint() {
 // This, in effect, returns the X coordinate at which the input line
 // should be printed, and indentation for subsequent lines if several.
 func (p *Prompt) LastUsed() int {
-	return p.primaryCols
+	return p.primaryCols - 1
 }
 
 // RightPrint prints the right-sided prompt strings, which might be either
 // a traditional RPROMPT string, or a tooltip prompt if any must be rendered.
-func (p *Prompt) RightPrint() {
+func (p *Prompt) RightPrint(line *common.Line, cursor *common.Cursor) {
 	var rprompt string
 	if p.tooltipF != nil {
 		rprompt = p.tooltipF()
-	} else {
+	}
+
+	if rprompt == "" && p.rightF != nil {
 		rprompt = p.rightF()
 	}
 
@@ -149,19 +176,26 @@ func (p *Prompt) RightPrint() {
 		return
 	}
 
-	// Check that we have room for a right/tooltip prompt.
+	// Get all dimensions we need
 	termWidth := term.GetWidth()
 	promptLen := strutil.RealLength(rprompt)
-	lineLen := 0
-	cursorX := 0
-	padLen := termWidth - lineLen - promptLen + 1
-	prompt := fmt.Sprintf("%*s", padLen, rprompt)
+	lineLen := p.cursorLineLen(line, cursor)
+	cursorX, _ := cursor.Coordinates(p.primaryCols)
+	padLen := termWidth - lineLen - promptLen
 
 	// Go at the end of the line, and pad prompt with spaces.
-	term.MoveCursorForwards(lineLen)
-	print(prompt)
 	term.MoveCursorBackwards(termWidth)
-	term.MoveCursorForwards(cursorX)
+	term.MoveCursorForwards(lineLen - 1)
+
+	defer term.MoveCursorBackwards(termWidth - cursorX)
+
+	// Check that we have room for a right/tooltip prompt.
+	lineFits := lineLen+promptLen < termWidth
+	if lineFits {
+		prompt := fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt)
+		print(prompt)
+	} else {
+	}
 }
 
 // RightClear clears the right-sided prompt strings from the screen.
@@ -204,4 +238,29 @@ func (p *Prompt) TransientPrint() {
 	// And print the prompt and the accepted input line.
 	print(p.transientF())
 	println(string(*p.line))
+}
+
+func (p *Prompt) cursorLineLen(line *common.Line, cursor *common.Cursor) int {
+	lineLen := p.primaryCols
+
+	lines := strings.Split(string(*line), "\n")
+	if len(lines) == 0 {
+		return lineLen
+	}
+
+	lineLen += strutil.RealLength(lines[cursor.Line()])
+
+	termWidth := term.GetWidth()
+	if lineLen > termWidth {
+		lines := lineLen / termWidth
+		restLen := lineLen % termWidth
+
+		if lines > 0 && lineLen == 0 {
+			return termWidth
+		}
+
+		return restLen
+	}
+
+	return lineLen
 }

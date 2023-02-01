@@ -171,8 +171,8 @@ func (e *Engine) getCompletionMaxRows() (maxRows int) {
 	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
 
 	// Pause the key reading routine and query the terminal
-	done := e.keys.Pause()
-	defer close(done)
+	e.keys.Pause()
+	defer e.keys.Resume()
 
 	_, cposY := term.GetCursorPos()
 	if cposY == -1 {

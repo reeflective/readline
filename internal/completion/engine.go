@@ -205,3 +205,23 @@ func (e *Engine) Display() {
 func (e *Engine) Coordinates() int {
 	return e.usedY
 }
+
+// CompleteSyntax updates the line with either user-defined syntax completers, or with the builtin ones.
+func (e *Engine) CompleteSyntax(completer func([]rune, int) ([]rune, int)) {
+	if completer == nil {
+		return
+	}
+
+	line := []rune(*e.line)
+	pos := e.cursor.Pos() - 1
+
+	newLine, newPos := completer(line, pos)
+	if string(newLine) == string(line) {
+		return
+	}
+
+	newPos++
+
+	e.line.Set(newLine...)
+	e.cursor.Set(newPos)
+}
