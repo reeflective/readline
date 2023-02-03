@@ -16,6 +16,8 @@ type Keys struct {
 	paused chan struct{}
 }
 
+// NewKeys is a required constructor for the readline key stack,
+// as key reading might be paused/resumed and needs channel setup.
 func NewKeys() *Keys {
 	return &Keys{
 		paused: make(chan struct{}, 1),
@@ -82,6 +84,21 @@ func (k *Keys) Pause() {
 
 func (k *Keys) Resume() {
 	// close(k.paused)
+}
+
+// Feed can be used to directly add keys to the stack.
+// If begin is true, the keys are added on the top of
+// the stack, otherwise they are being appended to it.
+func (k *Keys) Feed(begin bool, keys ...rune) {
+	if len(keys) == 0 {
+		return
+	}
+
+	if begin {
+		k.stack = append(keys, k.stack...)
+	} else {
+		k.stack = append(k.stack, keys...)
+	}
 }
 
 // Pop pops (removes) the first key in the stack (last read) and returns it.
