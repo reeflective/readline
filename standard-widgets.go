@@ -1,664 +1,647 @@
 package readline
 
 import (
-	"fmt"
-	"regexp"
-	"strings"
+	"unicode"
+
+	"github.com/reeflective/readline/internal/common/strutil"
+	"github.com/reeflective/readline/internal/term"
+	"github.com/xo/inputrc"
 )
 
-func (rl *Instance) standardWidgets() lineWidgets {
+// standardWidgets returns all standard/emacs commands.
+// Under each comment are gathered all commands related to the comment's
+// subject. When there are two subgroups separated by an empty line, the
+// second one comprises commands that are not legacy readline commands.
+//
+// Modes
+// Moving
+// Changing text
+// Killing and Yanking
+// Numeric arguments.
+// Macros
+// Miscellaneous.
+func (rl *Shell) standardWidgets() lineWidgets {
 	widgets := map[string]widget{
-		"clear-screen":            rl.clearScreen,
-		"self-insert":             rl.selfInsert,
-		"accept-line":             rl.acceptLine,
-		"accept-and-hold":         rl.acceptAndHold,
-		"beginning-of-line":       rl.beginningOfLine,
-		"end-of-line":             rl.endOfLine,
-		"up-line":                 rl.upLine,
-		"down-line":               rl.downLine,
-		"kill-line":               rl.killLine,
-		"backward-kill-line":      rl.backwardKillLine,
-		"kill-whole-line":         rl.killWholeLine,
-		"kill-buffer":             rl.killBuffer,
-		"backward-kill-word":      rl.backwardKillWord,
-		"kill-word":               rl.killWord,
-		"yank":                    rl.yank,
-		"backward-delete-char":    rl.backwardDeleteChar,
-		"delete-char-or-list":     rl.deleteCharOrList,
-		"delete-char":             rl.deleteChar,
-		"delete-word":             rl.deleteWord,
-		"forward-char":            rl.forwardChar,
-		"backward-char":           rl.backwardChar,
-		"forward-word":            rl.forwardWord,
-		"backward-word":           rl.backwardWord,
-		"digit-argument":          rl.digitArgument,
-		"undo":                    rl.undo,
-		"overwrite-mode":          rl.overwriteMode,
-		"set-mark-command":        rl.setMarkCommand,
-		"exchange-point-and-mark": rl.exchangePointAndMark,
-		"quote-region":            rl.quoteRegion,
-		"quote-line":              rl.quoteLine,
-		"neg-argument":            rl.negArgument,
-		"capitalize-word":         rl.capitalizeWord,
-		"down-case-word":          rl.downCaseWord,
-		"up-case-word":            rl.upCaseWord,
-		"transpose-words":         rl.transposeWords,
-		"transpose-chars":         rl.transposeChars,
-		"copy-region-as-kill":     rl.copyRegionAsKill,
-		"copy-prev-word":          rl.copyPrevWord,
-		"copy-prev-shell-word":    rl.copyPrevShellWord,
-		"kill-region":             rl.killRegion,
-		"redo":                    rl.redo,
-		"switch-keyword":          rl.switchKeyword,
-		"edit-command-line":       rl.editCommandLine,
+		// Modes
+		"emacs-editing-mode": rl.emacsEditingMode,
+
+		// Moving
+		"forward-char":         rl.forwardChar,
+		"backward-char":        rl.backwardChar,
+		"forward-word":         rl.forwardWord,
+		"backward-word":        rl.backwardWord,
+		"shell-forward-word":   rl.forwardShellWord,
+		"shell-backward-word":  rl.backwardShellWord,
+		"beginning-of-line":    rl.beginningOfLine,
+		"end-of-line":          rl.endOfLine,
+		"previous-screen-line": rl.upLine,   // up-line
+		"next-screen-line":     rl.downLine, // down-line
+		"clear-screen":         rl.clearScreen,
+		"clear-display":        rl.clearDisplay,
+		"redraw-current-line":  rl.redisplay,
+
+		// Changing text
+		"end-of-file":                  rl.endOfFile,
+		"delete-char":                  rl.deleteChar,
+		"backward-delete-char":         rl.backwardDeleteChar,
+		"forward-backward-delete-char": rl.forwardBackwardDeleteChar,
+		"self-insert":                  rl.selfInsert,
+		"quoted-insert":                rl.quotedInsert,
+		"bracketed-paste-begin":        rl.bracketedPasteBegin, // TODO: Finish and find how to do it.
+		"transpose-chars":              rl.transposeChars,
+		"transpose-words":              rl.transposeWords, // TODO: test.
+		"shell-transpose-words":        rl.shellTransposeWords,
+		"down-case-word":               rl.downCaseWord,
+		"up-case-word":                 rl.upCaseWord,
+		"capitalize-word":              rl.capitalizeWord,
+		"overwrite-mode":               rl.overwriteMode,
+		"delete-char-or-list":          rl.deleteCharOrList, // TODO: re-add completion call.
+		"delete-horizontal-whitespace": rl.deleteHorizontalWhitespace,
+
+		"delete-word":      rl.deleteWord,
+		"quote-region":     rl.quoteRegion,
+		"quote-line":       rl.quoteLine,
+		"keyword-increase": rl.keywordIncrease,
+		"keyword-decrease": rl.keywordDecrease,
+
+		// Killing & yanking
+		"kill-line":                rl.killLine,
+		"backward-kill-line":       rl.backwardKillLine,
+		"unix-line-discard":        rl.backwardKillLine,
+		"kill-whole-line":          rl.killWholeLine,
+		"kill-word":                rl.killWord,
+		"backward-kill-word":       rl.backwardKillWord,
+		"shell-kill-word":          rl.shellKillWord,
+		"shell-backward-kill-word": rl.shellBackwardKillWord,
+		"unix-word-rubout":         rl.backwardKillWord,
+		"kill-region":              rl.killRegion,
+		"copy-region-as-kill":      rl.copyRegionAsKill,
+		"copy-backward-word":       rl.copyBackwardWord,
+		"copy-forward-word":        rl.copyForwardWord,
+		"yank":                     rl.yank,
+		"yank-pop":                 rl.yankPop,
+		// "yank-last-arg"
+		// "yank-nth-arg"
+
+		"kill-buffer":          rl.killBuffer,
+		"copy-prev-shell-word": rl.copyPrevShellWord,
+
+		// Numeric arguments
+		"digit-argument": rl.digitArgument,
+
+		// Macros
+		"start-kbd-macro":      rl.startKeyboardMacro,
+		"end-kbd-macro":        rl.endKeyboardMacro,
+		"call-last-kbd-macro":  rl.callLastKeyboardMacro,
+		"print-last-kbd-macro": rl.printLastKeyboardMacro,
+
+		// Miscellaneous
+		"re-read-init-file":         rl.reReadInitFile,
+		"abort":                     rl.abort,
+		"prefix-meta":               rl.prefixMeta,
+		"undo":                      rl.undoLast,
+		"revert-line":               rl.revertLine,
+		"set-mark":                  rl.setMark, // set-mark-command
+		"exchange-point-and-mark":   rl.exchangePointAndMark,
+		"character-search":          rl.characterSearch,
+		"character-search-backward": rl.characterSearchBackward,
+		"insert-comment":            rl.insertComment,
+		"dump-functions":            rl.dumpFunctions,
+		"dump-variables":            rl.dumpVariables,
+		"dump-macros":               rl.dumpMacros,
+		"magic-space":               rl.magicSpace,
+		"edit-and-execute-command":  rl.editAndExecuteCommand,
+		"edit-command-line":         rl.editCommandLine,
+
+		"redo": rl.redo,
+
+		// "accept-line":       rl.acceptLine,
+		// "accept-and-hold":   rl.acceptAndHold,
 	}
 
 	return widgets
 }
 
-// selfInsert inserts the given rune into the input line at the current cursor position.
-func (rl *Instance) selfInsert() {
-	rl.skipUndoAppend()
+//
+// Modes ----------------------------------------------------------------
+//
 
-	// If we just inserted a completion candidate, we still have the
-	// corresponding suffix matcher. Remove the last rune if needed,
-	// and forget the matcher.
-	rl.removeSuffixInserted()
-
-	buf := []rune(rl.keys)
-
-	for {
-		// I don't really understand why `0` is creaping in at the end of the
-		// array but it only happens with unicode characters.
-		if len(buf) > 1 && buf[len(buf)-1] == 0 {
-			buf = buf[:len(buf)-1]
-
-			continue
-		}
-		break
-	}
-
-	// When the key is a control character, translate it to caret notation.
-	if len(buf) == 1 && charCtrlA < byte(buf[0]) && byte(buf[0]) < charCtrlUnderscore {
-		caret := byte(buf[0]) ^ caretMultiplier
-		buf = append([]rune{'^'}, rune(caret))
-	}
-
-	// If the key is a bracket or quote, and that the next character
-	// in the line is not its matcher, insert the pair altogether.
-	// backOne := false
-	// if len(buf) == 1 {
-	// 	toInsert := buf[0]
-	// 	isSurround := isBracket(toInsert) || toInsert == '\'' || toInsert == '"'
-	// 	_, echar := rl.matchSurround(toInsert)
-	// 	matcher := false
-	// 	if len(rl.line) > rl.pos {
-	// 		matcher = rl.matches(toInsert, rl.line[rl.pos])
-	// 	}
-	// 	if isSurround && !matcher {
-	// 		buf = append(buf, echar)
-	// 		backOne = true
-	// 	}
-	// }
-
-	switch {
-	// The line is empty
-	case len(rl.line) == 0:
-		rl.line = buf
-
-	// We are inserting somewhere in the middle
-	case rl.pos < len(rl.line):
-		forwardLine := append(buf, rl.line[rl.pos:]...)
-		rl.line = append(rl.line[:rl.pos], forwardLine...)
-
-	// We are at the end of the input line
-	case rl.pos == len(rl.line):
-		rl.line = append(rl.line, buf...)
-	}
-
-	rl.pos += len(buf)
-	// if backOne {
-	// 	rl.pos--
-	// }
+func (rl *Shell) emacsEditingMode() {
+	rl.keyMap = emacs
+	rl.updateCursor(emacsC)
 }
 
-func (rl *Instance) acceptLine() {
-	rl.lineCarriageReturn()
-}
+//
+// Movement -------------------------------------------------------------
+//
 
-func (rl *Instance) acceptAndHold() {
-	rl.inferLine = true
-	rl.histPos = -1
-	rl.acceptLine()
-}
+// TODO: multiline support.
+func (rl *Shell) forwardChar() {
+	rl.undo.SkipSave()
 
-func (rl *Instance) clearScreen() {
-	rl.skipUndoAppend()
-
-	print(seqClearScreen)
-	print(seqCursorTopLeft)
-
-	rl.Prompt.init(rl)
-
-	// Since the line and helpers are going to be redisplayed
-	// the cursor is going to be moved up before anything, so
-	// we compensate here so that the prompt that has just
-	// been printed is not cleared out.
-	moveCursorDown(rl.posY)
-}
-
-func (rl *Instance) beginningOfLine() {
-	rl.skipUndoAppend()
-	for ; rl.pos >= 0; rl.pos-- {
-		for rl.pos > len(rl.line)-1 {
-			rl.pos--
-		}
-		if rl.line[rl.pos] == '\n' {
-			rl.pos++
-			break
-		}
+	if rl.cursor.Pos() < rl.line.Len() {
+		rl.cursor.Inc()
 	}
 }
 
-func (rl *Instance) endOfLine() {
-	rl.skipUndoAppend()
+func (rl *Shell) backwardChar() {
+	rl.undo.SkipSave()
 
-	for ; rl.pos < len(rl.line); rl.pos++ {
-		if rl.line[rl.pos] == '\n' {
-			break
-		}
+	if rl.cursor.Pos() > 0 {
+		rl.cursor.Dec()
 	}
 }
 
-func (rl *Instance) upLine() {
-	var cpos int // The vertical position of the cursor on the current line.
-	var bpos int // The beginning of the current line.
+func (rl *Shell) forwardWord() {
+	rl.undo.SkipSave()
 
-	// Get the index of each newline in the buffer.
-	line := append(rl.lineCompleted(), '\n')
-	nl := regexp.MustCompile("\n")
-	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
-
-	for line := len(newlinesIdx) - 1; line >= 0; line-- {
-		epos := newlinesIdx[line][0]
-		if line > rl.hpos {
-			continue
-		}
-
-		// Get the beginning of the previous line.
-		if line > 0 {
-			bpos = newlinesIdx[line-1][0] + 1
-		} else {
-			bpos = 0
-		}
-
-		// If we are on the current line,
-		// go at the beginning of the previous one.
-		if line == rl.hpos {
-			cpos = rl.pos - bpos
-			continue
-		}
-
-		// If the end position of the previous line
-		// is the same as the beginning position,
-		// then the line is empty: stay on its newline.
-		if bpos == epos {
-			bpos++
-		}
-
-		// And either go at the end of the line
-		// or to the previous cursor X coordinate.
-		if epos-bpos > cpos {
-			rl.pos = bpos + cpos
-		} else {
-			rl.pos = epos
-		}
-
-		break
+	vii := rl.getIterations()
+	for i := 1; i <= vii; i++ {
+		forward := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
+		rl.cursor.Move(forward)
 	}
 }
 
-func (rl *Instance) downLine() {
-	var cpos int // The vertical position of the cursor on the current line.
-	var bpos int // The beginning of the next line.
+func (rl *Shell) backwardWord() {
+	rl.undo.SkipSave()
 
-	// Get the index of each newline in the buffer.
-	line := append(rl.lineCompleted(), '\n')
-	nl := regexp.MustCompile("\n")
-	newlinesIdx := nl.FindAllStringIndex(string(line), -1)
-
-	for line := 0; line < len(newlinesIdx); line++ {
-		epos := newlinesIdx[line][0] + 1
-		if line < rl.hpos {
-			bpos = epos
-			continue
-		}
-
-		// If we are on the current line,
-		// go at the end of it
-		if line == rl.hpos {
-			cpos = rl.pos - bpos
-			bpos = epos
-			rl.pos = bpos
-			continue
-		}
-
-		// And either go at the end of the line
-		// or to the previous cursor X coordinate.
-		if epos-bpos > cpos {
-			rl.pos = bpos + cpos
-		} else {
-			rl.pos = epos - 1
-		}
-
-		break
+	vii := rl.getIterations()
+	for i := 1; i <= vii; i++ {
+		backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+		rl.cursor.Move(backward)
 	}
 }
 
-func (rl *Instance) killLine() {
-	rl.undoHistoryAppend()
+func (rl *Shell) forwardShellWord() {
+	// Try to find enclosing quotes from here
+	sBpos, sEpos, _, _ := rl.line.FindSurround('\'', rl.cursor.Pos())
+	dBpos, dEpos, _, _ := rl.line.FindSurround('"', rl.cursor.Pos())
+	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
 
-	rl.saveBufToRegister(rl.line[rl.pos:])
-	rl.line = rl.line[:rl.pos]
-	rl.resetHelpers()
-	rl.addIteration("")
+	// And only move the cursor if we found them.
+	if mark != -1 && cpos != -1 {
+		rl.cursor.Set(cpos)
+	}
+
+	// Then move forward to the next word
+	forward := rl.line.Forward(rl.line.TokenizeSpace, rl.cursor.Pos())
+	rl.cursor.Move(forward)
 }
 
-func (rl *Instance) backwardKillLine() {
-	rl.undoHistoryAppend()
+func (rl *Shell) backwardShellWord() {
+	// First go the beginning of the blank word
+	startPos := rl.cursor.Pos()
+	backward := rl.line.Backward(rl.line.TokenizeSpace, startPos)
+	rl.cursor.Move(backward)
 
-	rl.saveBufToRegister(rl.line[:rl.pos])
-	rl.line = rl.line[rl.pos:]
-	rl.resetHelpers()
-	rl.addIteration("")
-}
+	// Now try to find enclosing quotes from here.
+	sBpos, sEpos, _, _ := rl.line.FindSurround('\'', rl.cursor.Pos())
+	dBpos, dEpos, _, _ := rl.line.FindSurround('"', rl.cursor.Pos())
+	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
 
-func (rl *Instance) killWholeLine() {
-	rl.undoHistoryAppend()
-
-	if len(rl.line) == 0 {
+	// Either exit because we didn't match any, or select.
+	if mark == -1 && cpos == -1 {
 		return
 	}
 
-	rl.saveBufToRegister(rl.line)
-	rl.lineClear()
+	rl.cursor.Set(mark)
 }
 
-func (rl *Instance) killBuffer() {
-	rl.undoHistoryAppend()
+func (rl *Shell) beginningOfLine() {
+	rl.undo.SkipSave()
+	rl.cursor.BeginningOfLine()
+}
 
-	if len(rl.line) == 0 {
-		return
+func (rl *Shell) endOfLine() {
+	rl.undo.SkipSave()
+	rl.cursor.EndOfLine()
+}
+
+func (rl *Shell) upLine() {
+	lines := rl.getIterations()
+	rl.cursor.LineMove(lines * -1)
+}
+
+func (rl *Shell) downLine() {
+	lines := rl.getIterations()
+	rl.cursor.LineMove(lines)
+}
+
+func (rl *Shell) clearScreen() {
+	rl.undo.SkipSave()
+
+	print(term.CursorTopLeft)
+	print(term.ClearScreen)
+
+	rl.prompt.PrimaryPrint()
+}
+
+func (rl *Shell) clearDisplay() {
+	rl.undo.SkipSave()
+
+	print(term.CursorTopLeft)
+	print(term.ClearDisplay)
+
+	rl.prompt.PrimaryPrint()
+}
+
+//
+// Changing Text -----------------------------------------------------------------
+//
+
+// TODO: return values error.
+func (rl *Shell) endOfFile() {
+	switch rl.line.Len() {
+	case 0:
+	default:
+		rl.deleteChar()
 	}
-	rl.saveBufToRegister(rl.line)
-	rl.lineClear()
 }
 
-func (rl *Instance) backwardKillWord() {
-	rl.undoHistoryAppend()
-	rl.skipUndoAppend()
-
-	rl.saveToRegister(rl.viJumpB(tokeniseLine))
-	rl.viDeleteByAdjust(rl.viJumpB(tokeniseLine))
-}
-
-func (rl *Instance) killWord() {
-	rl.undoHistoryAppend()
-
-	rl.saveToRegisterTokenize(tokeniseLine, rl.viJumpE, 1)
-	rl.viDeleteByAdjust(rl.viJumpE(tokeniseLine) + 1)
-}
-
-func (rl *Instance) yank() {
-	buffer := rl.pasteFromRegister()
-	rl.lineInsert(buffer)
-}
-
-func (rl *Instance) backwardDeleteChar() {
-	rl.undoHistoryAppend()
+func (rl *Shell) deleteChar() {
+	rl.undo.Save(*rl.line, *rl.cursor)
 
 	vii := rl.getIterations()
 
-	// We might be on an active register, but not yanking...
-	rl.saveToRegister(vii)
-
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
+		rl.line.CutRune(rl.cursor.Pos())
+	}
+}
 
+func (rl *Shell) backwardDeleteChar() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	if rl.cursor.Pos() == 0 {
+		return
+	}
+
+	vii := rl.getIterations()
+
+	switch vii {
+	case 1:
 		var toDelete rune
 		var isSurround, matcher bool
-		if rl.pos > 0 && len(rl.line) > rl.pos {
-			toDelete = rl.line[rl.pos-1]
-			isSurround = isBracket(toDelete) || toDelete == '\'' || toDelete == '"'
-			matcher = rl.matches(toDelete, rl.line[rl.pos])
+
+		if rl.line.Len() > rl.cursor.Pos() {
+			toDelete = (*rl.line)[rl.cursor.Pos()-1]
+			isSurround = strutil.IsBracket(toDelete) || toDelete == '\'' || toDelete == '"'
+			matcher = strutil.IsSurround(toDelete, (*rl.line)[rl.cursor.Pos()])
 		}
 
-		// Delete the character
-		rl.deleteRune(true)
+		rl.cursor.Dec()
+		rl.line.CutRune(rl.cursor.Pos())
 
-		// When the next character was identified
-		// as a surround, delete as well.
 		if isSurround && matcher {
-			rl.pos++
-			rl.deleteRune(true)
+			rl.cursor.Inc()
+			rl.line.CutRune(rl.cursor.Pos())
+		}
+
+	default:
+		for i := 1; i <= vii; i++ {
+			rl.cursor.Dec()
+			rl.line.CutRune(rl.cursor.Pos())
 		}
 	}
-
-	if rl.main == viins || rl.main == emacs {
-		rl.skipUndoAppend()
-	}
 }
 
-func (rl *Instance) deleteChar() {
-	rl.undoHistoryAppend()
-
-	vii := rl.getIterations()
-
-	// We might be on an active register, but not yanking...
-	rl.saveToRegister(vii)
-
-	// Delete the chars in the line anyway
-	for i := 1; i <= vii; i++ {
-		rl.deleteRune(false)
-	}
-}
-
-func (rl *Instance) deleteWord() {
-	rl.undoHistoryAppend()
-
-	rl.markSelection(rl.pos)
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-	rl.deleteSelection()
-}
-
-func (rl *Instance) deleteCharOrList() {
-	switch {
-	case rl.pos < len(rl.line):
-		rl.deleteRune(false)
+func (rl *Shell) forwardBackwardDeleteChar() {
+	switch rl.cursor.Pos() {
+	case rl.line.Len():
+		rl.backwardDeleteChar()
 	default:
-		rl.expandOrComplete()
+		rl.deleteChar()
 	}
 }
 
-func (rl *Instance) forwardChar() {
-	rl.skipUndoAppend()
-	if rl.pos < len(rl.line) {
-		rl.pos++
-	}
-}
+func (rl *Shell) selfInsert() {
+	rl.undo.SkipSave()
 
-func (rl *Instance) backwardChar() {
-	rl.skipUndoAppend()
-	if rl.pos > 0 {
-		rl.pos--
-	}
-}
+	// Handle suffix-autoremoval for inserted completions.
+	rl.completer.TrimSuffix()
 
-func (rl *Instance) forwardWord() {
-	rl.skipUndoAppend()
-
-	// If the input line is empty, we don't do anything
-	if rl.pos == 0 && len(rl.line) == 0 {
+	key, empty := rl.keys.Pop()
+	if empty {
 		return
 	}
 
-	// Get iterations and move
-	vii := rl.getIterations()
-	for i := 1; i <= vii; i++ {
-		rl.moveCursorByAdjust(rl.viJumpW(tokeniseLine))
+	// Insert the unescaped version of the key, and update cursor position.
+	unescaped := inputrc.Unescape(string(key))
+	rl.line.Insert(rl.cursor.Pos(), []rune(unescaped)...)
+	rl.cursor.Move(len(unescaped))
+}
+
+func (rl *Shell) quotedInsert() {
+	rl.undo.SkipSave()
+	rl.completer.TrimSuffix()
+
+	keys, _ := rl.keys.ReadArgument()
+
+	quoted := []rune{}
+
+	for _, key := range keys {
+		switch {
+		case inputrc.IsControl(key):
+			quoted = append(quoted, '^')
+			quoted = append(quoted, inputrc.Decontrol(key))
+		default:
+			quoted = append(quoted, key)
+		}
+	}
+
+	rl.line.Insert(rl.cursor.Pos(), quoted...)
+	rl.cursor.Move(len(quoted))
+}
+
+func (rl *Shell) bracketedPasteBegin() {
+	println("Keys:")
+	keys, _ := rl.keys.PeekAll()
+	println(string(keys))
+}
+
+func (rl *Shell) transposeChars() {
+	if rl.cursor.Pos() < 2 || rl.line.Len() < 2 {
+		rl.undo.SkipSave()
+		return
+	}
+
+	switch {
+	case rl.cursor.Pos() == rl.line.Len():
+		last := (*rl.line)[rl.cursor.Pos()-1]
+		blast := (*rl.line)[rl.cursor.Pos()-2]
+		(*rl.line)[rl.cursor.Pos()-2] = last
+		(*rl.line)[rl.cursor.Pos()-1] = blast
+	default:
+		last := (*rl.line)[rl.cursor.Pos()]
+		blast := (*rl.line)[rl.cursor.Pos()-1]
+		(*rl.line)[rl.cursor.Pos()-1] = last
+		(*rl.line)[rl.cursor.Pos()] = blast
 	}
 }
 
-func (rl *Instance) backwardWord() {
-	rl.skipUndoAppend()
+func (rl *Shell) transposeWords() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+	startPos := rl.cursor.Pos()
 
+	// Save the current word and move the cursor to its beginning
+	rl.cursor.ToFirstNonSpace(true)
+	rl.selection.Mark(rl.cursor.Pos())
+	forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(forward + 1)
+	epos := rl.cursor.Pos()
+
+	backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(backward)
+	bpos := rl.cursor.Pos()
+
+	rl.selection.MarkRange(bpos, epos)
+	toTranspose, tbpos, tepos, _ := rl.selection.Pop()
+	rl.cursor.Set(tbpos)
+
+	// Then move back some number of words
 	vii := rl.getIterations()
 	for i := 1; i <= vii; i++ {
-		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
+		backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+		rl.cursor.Move(backward)
 	}
-}
 
-// digitArgument is used both in Emacs and Vim modes,
-// but strips the Alt modifier used in Emacs mode.
-func (rl *Instance) digitArgument() {
-	rl.skipUndoAppend()
+	// Save the word to transpose with
+	rl.selection.Mark(rl.cursor.Pos())
+	forward = rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(forward + 1)
 
-	// If we were called in the middle of a pending
-	// operation, we should not yet trigger the caller.
-	// This boolean is recomputed at the next key read:
-	// This just postpones running the caller a little.
-	rl.isViopp = false
+	transposeWith, wbpos, wepos, _ := rl.selection.Pop()
 
-	if len(rl.keys) > 1 {
-		// The first rune is the alt modifier.
-		rl.addIteration(rl.keys[1:])
+	// We might be on the first word of the line,
+	// in which case we don't do anything.
+	if wepos > tbpos {
+		rl.cursor.Set(startPos)
+		return
+	}
+
+	// Assemble the newline
+	begin := string((*rl.line)[:wbpos])
+	newLine := append([]rune(begin), []rune(toTranspose)...)
+	newLine = append(newLine, (*rl.line)[wepos:tbpos]...)
+	newLine = append(newLine, []rune(transposeWith)...)
+	newLine = append(newLine, (*rl.line)[tepos:]...)
+	rl.line.Set(newLine...)
+
+	// And replace the cursor
+	if vii < 0 {
+		rl.cursor.Set(epos)
 	} else {
-		rl.addIteration(string(rl.keys[0]))
+		backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+		rl.cursor.Move(backward)
+
+		for i := 0; i <= vii; i++ {
+			forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
+			rl.cursor.Move(forward + 1)
+		}
 	}
 }
 
-func (rl *Instance) overwriteMode() {
+// TODO: finish when visual and iw/ia operators are done.
+func (rl *Shell) shellTransposeWords() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	startPos := rl.cursor.Pos()
+
+	// Save the current word
+	rl.viSelectAShellWord()
+	toTranspose, tbpos, tepos, _ := rl.selection.Pop()
+
+	// First move back the number of words
+	rl.cursor.Set(tbpos)
+	rl.backwardShellWord()
+
+	// Save the word to transpose with
+	rl.viSelectAShellWord()
+	transposeWith, wbpos, wepos, _ := rl.selection.Pop()
+
+	// We might be on the first word of the line,
+	// in which case we don't do anything.
+	if wepos > tbpos {
+		rl.cursor.Set(startPos)
+		return
+	}
+
+	// Assemble the newline
+	begin := string((*rl.line)[:wbpos])
+	newLine := append([]rune(begin), []rune(toTranspose)...)
+	newLine = append(newLine, (*rl.line)[wepos:tbpos]...)
+	newLine = append(newLine, []rune(transposeWith)...)
+	newLine = append(newLine, (*rl.line)[tepos:]...)
+	rl.line.Set(newLine...)
+
+	// And replace cursor
+	rl.cursor.Set(startPos)
+}
+
+func (rl *Shell) downCaseWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	startPos := rl.cursor.Pos()
+
+	// Save the current word
+	rl.cursor.Inc()
+	backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(backward)
+
+	rl.selection.Mark(rl.cursor.Pos())
+	forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(forward)
+
+	rl.selection.ReplaceWith(unicode.ToLower)
+	rl.cursor.Set(startPos)
+}
+
+func (rl *Shell) upCaseWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	startPos := rl.cursor.Pos()
+
+	// Save the current word
+	rl.cursor.Inc()
+	backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(backward)
+
+	rl.selection.Mark(rl.cursor.Pos())
+	forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(forward)
+
+	rl.selection.ReplaceWith(unicode.ToUpper)
+	rl.cursor.Set(startPos)
+}
+
+func (rl *Shell) capitalizeWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	startPos := rl.cursor.Pos()
+
+	rl.cursor.Inc()
+	backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(backward)
+
+	letter := (*rl.line)[rl.cursor.Pos()]
+	upper := unicode.ToUpper(letter)
+	(*rl.line)[rl.cursor.Pos()] = upper
+	rl.cursor.Set(startPos)
+}
+
+func (rl *Shell) overwriteMode() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
-	rl.undoHistoryAppend()
+	rl.undo.Save(*rl.line, *rl.cursor)
 
 	// The replace mode is quite special in that it does escape back
 	// to the main readline loop: it keeps reading characters and inserts
 	// them as long as the escape key is not pressed.
 	for {
 		// Read a new key
-		keys, esc := rl.readOperator(true)
+		keys, esc := rl.keys.ReadArgument()
 		if esc {
 			return
 		}
-		key := rune(keys[0])
+
+		key := keys[0]
 
 		// If the key is a backspace, we go back one character
-		if key == charBackspace || key == charBackspace2 {
+		if key == inputrc.Backspace {
 			rl.backwardDeleteChar()
 		} else {
 			// If the cursor is at the end of the line,
 			// we insert the character instead of replacing.
-			if len(rl.line)-1 < rl.pos {
-				rl.line = append(rl.line, key)
+			if rl.cursor.Pos() == rl.line.Len() {
+				rl.line.Insert(rl.cursor.Pos(), key)
 			} else {
-				rl.line[rl.pos] = key
+				(*rl.line)[rl.cursor.Pos()] = key
 			}
 
-			rl.pos++
+			rl.cursor.Inc()
 		}
 
 		rl.redisplay()
 	}
 }
 
-func (rl *Instance) setMarkCommand() {
-	rl.skipUndoAppend()
-
-	vii := rl.getIterations()
+func (rl *Shell) deleteCharOrList() {
 	switch {
-	case vii < 0:
-		rl.resetSelection()
-		rl.visualLine = false
+	case rl.cursor.Pos() < rl.line.Len():
+		rl.line.CutRune(rl.cursor.Pos())
 	default:
-		rl.markSelection(rl.pos)
+		// rl.expandOrComplete()
 	}
 }
 
-func (rl *Instance) quoteRegion() {
-	rl.undoHistoryAppend()
+func (rl *Shell) deleteHorizontalWhitespace() {
+	rl.undo.Save(*rl.line, *rl.cursor)
 
-	_, cpos := rl.insertSelection("'", "'")
-	rl.pos = cpos + 1
+	startPos := rl.cursor.Pos()
+
+	rl.cursor.ToFirstNonSpace(false)
+
+	if rl.cursor.Pos() != startPos {
+		rl.cursor.Inc()
+	}
+	bpos := rl.cursor.Pos()
+
+	rl.cursor.ToFirstNonSpace(true)
+
+	if rl.cursor.Pos() != startPos {
+		rl.cursor.Dec()
+	}
+	epos := rl.cursor.Pos()
+
+	rl.line.Cut(bpos, epos)
+	rl.cursor.Set(bpos)
 }
 
-func (rl *Instance) quoteLine() {
-	newLine := make([]rune, 0)
-	newLine = append(newLine, '\'')
+func (rl *Shell) deleteWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
 
-	for _, char := range rl.line {
+	rl.selection.Mark(rl.cursor.Pos())
+	forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(forward)
+
+	rl.selection.Cut()
+}
+
+func (rl *Shell) quoteRegion() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	rl.selection.Surround('\'', '\'')
+	rl.cursor.Inc()
+}
+
+func (rl *Shell) quoteLine() {
+	if rl.line.Len() == 0 {
+		return
+	}
+
+	rl.line.Insert(0, '\'')
+
+	for pos, char := range *rl.line {
 		if char == '\n' {
 			break
 		}
+
 		if char == '\'' {
-			newLine = append(newLine, []rune("\\'")...)
-		} else {
-			newLine = append(newLine, char)
+			(*rl.line)[pos] = '"'
 		}
 	}
 
-	newLine = append(newLine, '\'')
-
-	rl.line = newLine
+	rl.line.Insert(rl.line.Len(), '\'')
 }
 
-func (rl *Instance) negArgument() {
-	rl.negativeArg = true
+func (rl *Shell) keywordIncrease() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.keywordSwitch(true)
 }
 
-func (rl *Instance) capitalizeWord() {
-	rl.undoHistoryAppend()
-
-	posInit := rl.pos
-	rl.pos++
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	letter := rl.line[rl.pos]
-	upper := strings.ToUpper(string(letter))
-	rl.line[rl.pos] = rune(upper[0])
-	rl.pos = posInit
-}
-
-func (rl *Instance) downCaseWord() {
-	rl.undoHistoryAppend()
-
-	posInit := rl.pos
-	rl.pos++
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-
-	rl.markSelection(rl.pos)
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-
-	word, bpos, epos, _ := rl.popSelection()
-	word = strings.ToLower(word)
-	rl.insertBlock(bpos, epos, word, "")
-
-	rl.pos = posInit
-}
-
-func (rl *Instance) upCaseWord() {
-	rl.undoHistoryAppend()
-
-	posInit := rl.pos
-	rl.pos++
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-
-	rl.markSelection(rl.pos)
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-
-	word, bpos, epos, _ := rl.popSelection()
-	word = strings.ToUpper(word)
-	rl.insertBlock(bpos, epos, word, "")
-
-	rl.pos = posInit
-}
-
-func (rl *Instance) transposeWords() {
-	rl.undoHistoryAppend()
-
-	posInit := rl.pos
-
-	// Save the current word
-	rl.pos++
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-
-	rl.markSelection(rl.pos)
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-
-	toTranspose, tbpos, tepos, _ := rl.popSelection()
-
-	// First move the number of words
-	vii := rl.getIterations()
-	for i := 0; i <= vii; i++ {
-		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-	}
-
-	// Save the word to transpose with
-	rl.markSelection(rl.pos)
-	rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-
-	transposeWith, wbpos, wepos, _ := rl.popSelection()
-
-	// Assemble the newline
-	begin := string(rl.line[:wbpos])
-	newLine := append([]rune(begin), []rune(toTranspose)...)
-	newLine = append(newLine, rl.line[wepos:tbpos]...)
-	newLine = append(newLine, []rune(transposeWith)...)
-	newLine = append(newLine, rl.line[tepos:]...)
-	rl.line = newLine
-
-	// And replace cursor
-	if vii < 0 {
-		rl.pos = posInit
-	} else {
-		rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-		for i := 0; i <= vii; i++ {
-			rl.moveCursorByAdjust(rl.viJumpE(tokeniseLine))
-		}
-	}
-}
-
-func (rl *Instance) copyRegionAsKill() {
-	rl.skipUndoAppend()
-	rl.yankSelection()
-	rl.resetSelection()
-}
-
-func (rl *Instance) copyPrevWord() {
-	rl.undoHistoryAppend()
-
-	posInit := rl.pos
-
-	rl.markSelection(rl.pos)
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseLine))
-
-	wlen, _ := rl.insertSelection("", "")
-	rl.pos = posInit + wlen
-}
-
-func (rl *Instance) copyPrevShellWord() {
-	rl.undoHistoryAppend()
-
-	posInit := rl.pos
-
-	// First go back a single blank word
-	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
-
-	// Now try to find enclosing quotes from here.
-	sBpos, sEpos, _, _ := rl.searchSurround('\'')
-	dBpos, dEpos, _, _ := rl.searchSurround('"')
-
-	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
-	if mark == -1 && cpos == -1 {
-		rl.markSelection(rl.pos)
-		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
-	} else {
-		rl.markSelection(mark)
-		rl.pos = cpos
-	}
-
-	word, _, _, _ := rl.popSelection()
-
-	// Replace the cursor before reassembling the line.
-	rl.pos = posInit
-
-	rl.insertBlock(rl.pos, rl.pos, word, "")
-	rl.pos += len(word)
-}
-
-func (rl *Instance) killRegion() {
-	rl.undoHistoryAppend()
-
-	rl.deleteSelection()
+func (rl *Shell) keywordDecrease() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.keywordSwitch(false)
 }
 
 // Cursor position cases:
@@ -678,45 +661,27 @@ func (rl *Instance) killRegion() {
 // 2 +2  => +2
 // 2 -2  => -2
 // 2 -a  => -a.
-func (rl *Instance) switchKeyword() {
-	rl.undoHistoryAppend()
-
-	cpos := rl.pos
-	increase := rl.keys[0] == charCtrlA
-
-	if match, _ := regexp.MatchString(`[+-][0-9]`, rl.lineSlice(2)); match {
-		// If cursor is on the `+` or `-`, we need to check if it is a
-		// number with a sign or an operator, only the number needs to
-		// forward the cursor.
-		digit := regexp.MustCompile(`[^0-9]`)
-		if cpos == 0 || digit.MatchString(string(rl.line[cpos-1])) {
-			cpos++
-		}
-	} else if match, _ := regexp.MatchString(`[+-][a-zA-Z]`, rl.lineSlice(2)); match {
-		// If cursor is on the `+` or `-`, we need to check if it is a
-		// short option, only the short option needs to forward the cursor.
-		if cpos == 0 || rl.line[rl.pos-1] == ' ' {
-			cpos++
-		}
-	}
+func (rl *Shell) keywordSwitch(increase bool) {
+	cpos := strutil.AdjustNumberOperatorPos(rl.cursor.Pos(), *rl.line)
 
 	// Select in word and get the selection positions
-	bpos, epos := rl.selectInWord(cpos)
+	bpos, epos := rl.line.SelectWord(cpos)
 	epos++
 
 	// Move the cursor backward if needed/possible
-	if bpos != 0 && (rl.line[bpos-1] == '+' || rl.line[bpos-1] == '-') {
+	if bpos != 0 && ((*rl.line)[bpos-1] == '+' || (*rl.line)[bpos-1] == '-') {
 		bpos--
 	}
 
 	// Get the selection string
-	selection := string(rl.line[bpos:epos])
+	selection := string((*rl.line)[bpos:epos])
 
 	// For each of the keyword handlers, run it, which returns
 	// false/none if didn't operate, then continue to next handler.
-	for _, switcher := range rl.keywordSwitchers() {
+	for _, switcher := range strutil.KeywordSwitchers() {
+		vii := rl.getIterations()
 
-		changed, word, obpos, oepos := switcher(selection, increase)
+		changed, word, obpos, oepos := switcher(selection, increase, vii)
 		if !changed {
 			continue
 		}
@@ -724,83 +689,388 @@ func (rl *Instance) switchKeyword() {
 		// We are only interested in the end position after all runs
 		epos = bpos + oepos
 		bpos += obpos
+
 		if cpos < bpos || cpos >= epos {
 			continue
 		}
 
 		// Update the line and the cursor, and return
 		// since we have a handler that has been ran.
-		begin := string(rl.line[:bpos])
-		end := string(rl.line[epos:])
+		begin := string((*rl.line)[:bpos])
+		end := string((*rl.line)[epos:])
+
 		newLine := append([]rune(begin), []rune(word)...)
 		newLine = append(newLine, []rune(end)...)
-		rl.line = newLine
-		rl.pos = bpos + len(word) - 1
+		rl.line.Set(newLine...)
+		rl.cursor.Set(bpos + len(word) - 1)
 
 		return
 	}
 }
 
-func (rl *Instance) exchangePointAndMark() {
-	rl.skipUndoAppend()
-	vii := rl.getIterations()
+//
+// Killing & Yanking -------------------------------------------------------------
+//
 
-	visual := rl.visualSelection()
-	if visual == nil {
+func (rl *Shell) killLine() {
+	rl.resetIterations()
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	cut := []rune(*rl.line)[rl.cursor.Pos():]
+	rl.buffers.Write(cut...)
+
+	rl.line.Cut(rl.cursor.Pos(), rl.line.Len())
+}
+
+func (rl *Shell) backwardKillLine() {
+	rl.resetIterations()
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	cut := []rune(*rl.line)[:rl.cursor.Pos()]
+	rl.buffers.Write(cut...)
+
+	rl.line.Cut(0, rl.cursor.Pos())
+}
+
+func (rl *Shell) killWholeLine() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	if rl.line.Len() == 0 {
 		return
 	}
 
-	switch {
-	case vii < 0:
-		rl.pos, visual.bpos = visual.bpos, rl.pos
-	case vii > 0:
-		rl.pos, visual.bpos = visual.bpos, rl.pos
-		visual.active = true
-	case vii == 0:
-		visual.active = true
-	}
+	rl.buffers.Write(*rl.line...)
+	rl.line.Cut(0, rl.line.Len())
 }
 
-func (rl *Instance) transposeChars() {
-	if rl.pos < 2 || len(rl.line) < 2 {
-		rl.skipUndoAppend()
+func (rl *Shell) killBuffer() {
+	rl.undo.Save(*rl.line, *rl.cursor)
 
+	if rl.line.Len() == 0 {
 		return
 	}
 
-	switch {
-	case rl.pos == len(rl.line):
-		last := rl.line[rl.pos-1]
-		blast := rl.line[rl.pos-2]
-		rl.line[rl.pos-2] = last
-		rl.line[rl.pos-1] = blast
-	default:
-		last := rl.line[rl.pos]
-		blast := rl.line[rl.pos-1]
-		rl.line[rl.pos-1] = last
-		rl.line[rl.pos] = blast
-	}
+	rl.buffers.Write(*rl.line...)
+	rl.line.Cut(0, rl.line.Len())
 }
 
-func (rl *Instance) editCommandLine() {
-	rl.clearHelpers()
+func (rl *Shell) killWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
 
-	buffer := rl.line
+	bpos := rl.cursor.Pos()
 
-	edited, err := rl.StartEditorWithBuffer(buffer, "")
-	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
-		rl.skipUndoAppend()
-		errStr := strings.ReplaceAll(err.Error(), "\n", "")
-		changeHint := fmt.Sprintf(seqFgRed+"Editor error: %s", errStr)
-		rl.hint = append([]rune{}, []rune(changeHint)...)
+	rl.cursor.ToFirstNonSpace(true)
+	forward := rl.line.Forward(rl.line.TokenizeSpace, rl.cursor.Pos())
+	rl.cursor.Move(forward - 1)
+	epos := rl.cursor.Pos()
+
+	rl.selection.MarkRange(bpos, epos)
+	rl.buffers.Write([]rune(rl.selection.Cut())...)
+	rl.cursor.Set(bpos)
+}
+
+func (rl *Shell) backwardKillWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.SkipSave()
+
+	rl.selection.Mark(rl.cursor.Pos())
+	adjust := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(adjust)
+
+	buf := []rune(rl.selection.Cut())
+	rl.buffers.Write(buf...)
+}
+
+func (rl *Shell) shellKillWord() {
+	startPos := rl.cursor.Pos()
+
+	// select the shell word, and if the cursor position
+	// has changed, we delete the part after the initial one.
+	rl.cursor.ToFirstNonSpace(true)
+	rl.viSelectAShellWord()
+
+	_, epos := rl.selection.Pos()
+
+	rl.buffers.Write([]rune((*rl.line)[startPos:epos])...)
+	rl.line.Cut(startPos, epos)
+	rl.cursor.Set(startPos)
+
+	rl.selection.Reset()
+}
+
+// TODO: Fix not catching the word when only one in line cursor at end of line.
+func (rl *Shell) shellBackwardKillWord() {
+	startPos := rl.cursor.Pos()
+
+	rl.cursor.ToFirstNonSpace(false)
+	backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(backward)
+
+	rl.viSelectAShellWord()
+	bpos, _ := rl.selection.Pos()
+
+	rl.buffers.Write([]rune((*rl.line)[bpos:startPos])...)
+	rl.line.Cut(bpos, startPos)
+	rl.cursor.Set(bpos)
+
+	rl.selection.Reset()
+}
+
+func (rl *Shell) killRegion() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	if !rl.selection.Active() {
 		return
 	}
 
-	// Update our line
-	rl.line = edited
+	rl.buffers.Write([]rune(rl.selection.Cut())...)
+}
 
-	// We're done with visual mode when we were in.
-	if (rl.main == vicmd || rl.main == viins) && rl.local == visual {
-		rl.exitVisualMode()
+func (rl *Shell) copyRegionAsKill() {
+	rl.undo.SkipSave()
+
+	if !rl.selection.Active() {
+		return
+	}
+
+	rl.buffers.Write([]rune(rl.selection.Text())...)
+	rl.selection.Reset()
+}
+
+func (rl *Shell) copyBackwardWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	rl.selection.Mark(rl.cursor.Pos())
+	adjust := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(adjust)
+
+	rl.buffers.Write([]rune(rl.selection.Text())...)
+	rl.selection.Reset()
+}
+
+func (rl *Shell) copyForwardWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	rl.selection.Mark(rl.cursor.Pos())
+	adjust := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(adjust + 1)
+
+	rl.buffers.Write([]rune(rl.selection.Text())...)
+	rl.selection.Reset()
+}
+
+func (rl *Shell) yank() {
+	buf := rl.buffers.Get(rune(0))
+	rl.line.Insert(rl.cursor.Pos(), buf...)
+	rl.cursor.Move(len(buf))
+}
+
+func (rl *Shell) yankPop() {
+	buf := rl.buffers.Pop()
+	rl.line.Insert(rl.cursor.Pos(), buf...)
+	rl.cursor.Move(len(buf))
+}
+
+func (rl *Shell) copyPrevShellWord() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
+	posInit := rl.cursor.Pos()
+
+	// First go back to the beginning of the current word,
+	// then go back again to the beginning of the previous.
+	rl.backwardShellWord()
+	rl.backwardShellWord()
+
+	// Select the current shell word
+	rl.viSelectAShellWord()
+
+	word := rl.selection.Text()
+
+	// Replace the cursor before reassembling the line.
+	rl.cursor.Set(posInit)
+	rl.selection.InsertAt(rl.cursor.Pos(), -1)
+	rl.cursor.Move(len(word))
+}
+
+//
+// Numeric Arguments -----------------------------------------------------------
+//
+
+// digitArgument is used both in Emacs and Vim modes,
+// but strips the Alt modifier used in Emacs mode.
+func (rl *Shell) digitArgument() {
+	rl.undo.SkipSave()
+
+	// If we were called in the middle of a pending
+	// operation, we should not yet trigger the caller.
+	// This boolean is recomputed at the next key read:
+	// This just postpones running the caller a little.
+	// rl.isViopp = false
+
+	keys, empty := rl.keys.PeekAll()
+	if empty {
+		return
+	}
+
+	// Don't add negative sign twice or in the middle of an argument.
+	if keys[0] == '-' {
+		rl.iterations = string(keys)
+	} else {
+		rl.addIteration(string(keys))
 	}
 }
+
+//
+// Macros ----------------------------------------------------------------------
+//
+
+func (rl *Shell) startKeyboardMacro() {
+	rl.macros.StartRecord()
+}
+
+func (rl *Shell) endKeyboardMacro() {
+	rl.macros.StopRecord()
+}
+
+func (rl *Shell) callLastKeyboardMacro() {
+	// TODO: mark NO FLUSH
+	rl.macros.RunLastMacro()
+}
+
+func (rl *Shell) printLastKeyboardMacro() {
+	rl.macros.PrintLastMacro()
+}
+
+//
+// Miscellaneous ---------------------------------------------------------------
+//
+
+func (rl *Shell) reReadInitFile() {
+}
+
+func (rl *Shell) abort() {}
+
+func (rl *Shell) prefixMeta() {}
+
+func (rl *Shell) undoLast() {
+	rl.undo.Undo(rl.line, rl.cursor)
+}
+
+func (rl *Shell) revertLine() {}
+
+func (rl *Shell) setMark() {
+}
+
+func (rl *Shell) exchangePointAndMark() {
+}
+
+func (rl *Shell) characterSearch()         {}
+func (rl *Shell) characterSearchBackward() {}
+func (rl *Shell) insertComment()           {}
+func (rl *Shell) dumpFunctions()           {}
+func (rl *Shell) dumpVariables()           {}
+func (rl *Shell) dumpMacros()              {}
+func (rl *Shell) magicSpace()              {}
+func (rl *Shell) editAndExecuteCommand()   {}
+func (rl *Shell) editCommandLine()         {}
+
+func (rl *Shell) redo() {
+	rl.undo.Redo(rl.line, rl.cursor)
+}
+
+// func (rl *Shell) setMarkCommand() {
+// 	rl.undo.SkipSave()
+//
+// 	vii := rl.getIterations()
+// 	switch {
+// 	case vii < 0:
+// 		rl.resetSelection()
+// 		rl.visualLine = false
+// 	default:
+// 		rl.markSelection(rl.pos)
+// 	}
+// }.
+//
+// func (rl *Shell) copyPrevShellWord() {
+// 	rl.undo.Save(*rl.line, *rl.cursor)
+//
+// 	posInit := rl.pos
+//
+// 	// First go back a single blank word
+// 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
+//
+// 	// Now try to find enclosing quotes from here.
+// 	sBpos, sEpos, _, _ := rl.searchSurround('\'')
+// 	dBpos, dEpos, _, _ := rl.searchSurround('"')
+//
+// 	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
+// 	if mark == -1 && cpos == -1 {
+// 		rl.markSelection(rl.pos)
+// 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
+// 	} else {
+// 		rl.markSelection(mark)
+// 		rl.pos = cpos
+// 	}
+//
+// 	word, _, _, _ := rl.popSelection()
+//
+// 	// Replace the cursor before reassembling the line.
+// 	rl.pos = posInit
+//
+// 	rl.insertBlock(rl.pos, rl.pos, word, "")
+// 	rl.pos += len(word)
+// }
+//
+// func (rl *Shell) exchangePointAndMark() {
+// 	rl.undo.SkipSave()
+// 	vii := rl.getIterations()
+//
+// 	visual := rl.visualSelection()
+// 	if visual == nil {
+// 		return
+// 	}
+//
+// 	switch {
+// 	case vii < 0:
+// 		rl.pos, visual.bpos = visual.bpos, rl.pos
+// 	case vii > 0:
+// 		rl.pos, visual.bpos = visual.bpos, rl.pos
+// 		visual.active = true
+// 	case vii == 0:
+// 		visual.active = true
+// 	}
+// }
+//
+// func (rl *Shell) editCommandLine() {
+// 	rl.clearHelpers()
+//
+// 	buffer := rl.line
+//
+// 	edited, err := editor.EditBuffer(buffer, "", "")
+// 	// edited, err := rl.StartEditorWithBuffer(buffer, "")
+// 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
+// 		rl.undo.SkipSave()
+// 		errStr := strings.ReplaceAll(err.Error(), "\n", "")
+// 		changeHint := fmt.Sprintf(seqFgRed+"Editor error: %s", errStr)
+// 		rl.hint = append([]rune{}, []rune(changeHint)...)
+// 		return
+// 	}
+//
+// 	// Update our line
+// 	rl.line = edited
+//
+// 	// We're done with visual mode when we were in.
+// 	if (rl.main == vicmdC || rl.main == viinsC) && rl.local == visualC {
+// 		rl.exitVisualMode()
+// 	}
+// }
+
+// func (rl *Shell) acceptLine() {
+// 	rl.lineCarriageReturn()
+// }
+
+// func (rl *Shell) acceptAndHold() {
+// 	rl.inferLine = true
+// 	rl.histPos = -1
+// 	rl.acceptLine()
+// }
