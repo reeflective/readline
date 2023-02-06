@@ -1,7 +1,7 @@
 package display
 
 import (
-	"github.com/reeflective/readline/internal/common"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/term"
@@ -19,8 +19,8 @@ type Engine struct {
 	highlighter func(line []rune) string
 
 	// UI components
-	cursor    *common.Cursor
-	selection *common.Selection
+	cursor    *core.Cursor
+	selection *core.Selection
 	histories *history.Sources
 	prompt    *ui.Prompt
 	hint      *ui.Hint
@@ -29,7 +29,7 @@ type Engine struct {
 }
 
 // NewEngine is a required constructor for the display engine.
-func NewEngine(s *common.Selection, h *history.Sources, p *ui.Prompt, i *ui.Hint, c *completion.Engine) *Engine {
+func NewEngine(s *core.Selection, h *history.Sources, p *ui.Prompt, i *ui.Hint, c *completion.Engine) *Engine {
 	return &Engine{
 		selection: s,
 		histories: h,
@@ -50,7 +50,7 @@ func (e *Engine) Init() {
 // except the the first lines of the primary prompt when the latter
 // is a multiline one.
 func (e *Engine) Refresh() {
-	var line *common.Line
+	var line *core.Line
 
 	// Get the completed line (if completions are active),
 	// and the corresponding cursor, and find any suggested line.

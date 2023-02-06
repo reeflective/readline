@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/reeflective/readline/internal/color"
-	"github.com/reeflective/readline/internal/common"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/ui"
 )
@@ -21,13 +21,13 @@ type Sources struct {
 	infer     bool              // If the last command ran needs to infer the history line.
 
 	// Shell parameters
-	line   *common.Line
-	cursor *common.Cursor
+	line   *core.Line
+	cursor *core.Cursor
 	hint   *ui.Hint
 }
 
 // NewSources is a required constructor for the history sources manager type.
-func NewSources(line *common.Line, cur *common.Cursor, hint *ui.Hint) *Sources {
+func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint) *Sources {
 	sources := &Sources{
 		list:   make(map[string]Source),
 		line:   line,
@@ -279,7 +279,7 @@ func (h *Sources) InferNext() {
 // Suggest returns the first line matching the current line buffer,
 // so that caller can use for things like history autosuggestion.
 // If no line matches the current line, it will return the latter.
-func (h *Sources) Suggest(line *common.Line) common.Line {
+func (h *Sources) Suggest(line *core.Line) core.Line {
 	if len(h.list) == 0 {
 		return *line
 	}
@@ -293,7 +293,7 @@ func (h *Sources) Suggest(line *common.Line) common.Line {
 		return *line
 	}
 
-	return common.Line([]rune(suggested))
+	return core.Line([]rune(suggested))
 }
 
 // Complete returns completions with the current history source values.

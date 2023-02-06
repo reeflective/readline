@@ -3,7 +3,7 @@ package completion
 import (
 	"regexp"
 
-	"github.com/reeflective/readline/internal/common"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/reeflective/readline/internal/ui"
 	"github.com/xo/inputrc"
@@ -24,19 +24,19 @@ type Engine struct {
 	suffix SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
 
 	// Line parameters
-	keys       *common.Keys   // The input keys reader
-	line       *common.Line   // The real input line of the shell.
-	cursor     *common.Cursor // The cursor of the shell.
-	completed  *common.Line   // A line that might include a virtually inserted candidate.
-	compCursor *common.Cursor // The adjusted cursor.
+	keys       *core.Keys   // The input keys reader
+	line       *core.Line   // The real input line of the shell.
+	cursor     *core.Cursor // The cursor of the shell.
+	completed  *core.Line   // A line that might include a virtually inserted candidate.
+	compCursor *core.Cursor // The adjusted cursor.
 
 	// Incremental search
-	isearchBuf *common.Line   // The isearch minibuffer
+	isearchBuf *core.Line   // The isearch minibuffer
 	isearch    *regexp.Regexp // Holds the current search regex match
 }
 
 // NewEngine initializes a new completion engine with the shell operating parameters.
-func NewEngine(k *common.Keys, l *common.Line, c *common.Cursor, h *ui.Hint, o *inputrc.Config) *Engine {
+func NewEngine(k *core.Keys, l *core.Line, c *core.Cursor, h *ui.Hint, o *inputrc.Config) *Engine {
 	return &Engine{
 		opts:   o,
 		keys:   k,
@@ -115,7 +115,7 @@ func (e *Engine) Matches() int {
 // if a candidate is currently selected, the line returned is the one containing
 // the candidate. If no candidate is selected, the normal input line is returned.
 // When the line returned is the completed one, the corresponding, adjusted cursor.
-func (e *Engine) Line() (*common.Line, *common.Cursor) {
+func (e *Engine) Line() (*core.Line, *core.Cursor) {
 	if len(e.comp) > 0 {
 		return e.completed, e.compCursor
 	}
@@ -130,7 +130,7 @@ func (e *Engine) Update() {
 
 // IsearchStart starts incremental search (fuzzy-finding)
 // with values matching the isearch minibuffer as a regexp.
-func (e *Engine) IsearchStart(buffer *common.Line) {
+func (e *Engine) IsearchStart(buffer *core.Line) {
 }
 
 // IsearchStop exists the incremental search mode.

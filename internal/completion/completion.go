@@ -31,7 +31,7 @@ type Values struct {
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor;
-	// it may be altered to give a common prefix for all matches.
+	// it may be altered to give a core.prefix for all matches.
 	PREFIX string
 }
 

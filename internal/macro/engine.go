@@ -1,7 +1,7 @@
 package macro
 
 import (
-	"github.com/reeflective/readline/internal/common"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/ui"
 	"github.com/xo/inputrc"
 )
@@ -13,12 +13,12 @@ type Engine struct {
 	current   []rune   // The current macro being recorded.
 	macros    []string // All previously recorded macros.
 
-	keys *common.Keys // The engine feeds macros directly in the key stack.
+	keys *core.Keys // The engine feeds macros directly in the key stack.
 	hint *ui.Hint     // The engine notifies when macro recording starts/stops.
 }
 
 // NewEngine is a required constructor to setup a working macro engine.
-func NewEngine(keys *common.Keys, hint *ui.Hint) *Engine {
+func NewEngine(keys *core.Keys, hint *ui.Hint) *Engine {
 	return &Engine{
 		current: make([]rune, 0),
 		keys:    keys,

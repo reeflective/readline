@@ -6,9 +6,9 @@
 // +build windows
 
 // Package terminal provides support functions for dealing with terminals, as
-// commonly found on UNIX systems.
+// core.y found on UNIX systems.
 //
-// Putting a terminal into raw mode is the most common requirement:
+// Putting a terminal into raw mode is the most core.requirement:
 //
 // 	oldState, err := terminal.MakeRaw(0)
 // 	if err != nil {

@@ -3,7 +3,7 @@ package keymap
 import (
 	"strings"
 
-	"github.com/reeflective/readline/internal/common"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/display"
 	"github.com/xo/inputrc"
 )
@@ -14,7 +14,7 @@ type Modes struct {
 	main     Mode
 	prefixed inputrc.Bind
 
-	keys     *common.Keys
+	keys     *core.Keys
 	display  *display.Engine
 	opts     *inputrc.Config
 	commands map[string]func()
@@ -22,7 +22,7 @@ type Modes struct {
 
 // NewModes is a required constructor for the keymap modes manager.
 // It initializes the keymaps to their defaults or configured values.
-func NewModes(keys *common.Keys, dis *display.Engine, opts *inputrc.Config) *Modes {
+func NewModes(keys *core.Keys, dis *display.Engine, opts *inputrc.Config) *Modes {
 	modes := &Modes{
 		main:     Emacs,
 		keys:     keys,

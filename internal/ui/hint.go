@@ -102,3 +102,36 @@ func wrapText(text string, lineWidth int) (wrapped string, lines int) {
 
 	return
 }
+
+// func (rl *Shell) getHintText() {
+// 	// // Before entering this function, some completer might have
+// 	// // been called, which might have already populated the hint
+// 	// // area (with either an error, a usage, etc).
+// 	// // Some of the branchings below will overwrite it.
+// 	//
+// 	// // Use the user-provided hint by default, if not empty.
+// 	// if rl.HintText != nil {
+// 	// 	userHint := rl.HintText(rl.getCompletionLine())
+// 	// 	if len(userHint) > 0 {
+// 	// 		rl.hint = rl.HintText(rl.getCompletionLine())
+// 	// 	}
+// 	// }
+// 	//
+// 	// // When completing history, we have a special hint
+// 	// if len(rl.histHint) > 0 {
+// 	// 	rl.hint = append([]rune{}, rl.histHint...)
+// 	// }
+// 	//
+// 	// // But the local keymap, especially completions,
+// 	// // overwrites the user hint, since either:
+// 	// // - We have some completions, which are self-describing
+// 	// // - We didn't match any, thus we have a new error hint.
+// 	// switch rl.local {
+// 	// case isearch:
+// 	// 	rl.isearchHint()
+// 	// case menuselect:
+// 	// 	if rl.noCompletions() {
+// 	// 		rl.hintNoMatches()
+// 	// 	}
+// 	// }
+// }

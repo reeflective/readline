@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/reeflective/readline/internal/common"
-	"github.com/reeflective/readline/internal/common/strutil"
+	"github.com/reeflective/readline/internal/core"
+	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/xo/inputrc"
 )
@@ -33,14 +33,14 @@ type Prompt struct {
 	stillOnRefresh bool
 
 	// Shell parameters
-	keys   *common.Keys
-	line   *common.Line
-	cursor *common.Cursor
+	keys   *core.Keys
+	line   *core.Line
+	cursor *core.Cursor
 	opts   *inputrc.Config
 }
 
 // NewPrompt is a required constructor to initialize the prompt system.
-func NewPrompt(keys *common.Keys, line *common.Line, cursor *common.Cursor, opts *inputrc.Config) *Prompt {
+func NewPrompt(keys *core.Keys, line *core.Line, cursor *core.Cursor, opts *inputrc.Config) *Prompt {
 	return &Prompt{
 		keys:   keys,
 		line:   line,
@@ -162,7 +162,7 @@ func (p *Prompt) LastUsed() int {
 
 // RightPrint prints the right-sided prompt strings, which might be either
 // a traditional RPROMPT string, or a tooltip prompt if any must be rendered.
-func (p *Prompt) RightPrint(line *common.Line, cursor *common.Cursor) {
+func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor) {
 	var rprompt string
 	if p.tooltipF != nil {
 		rprompt = p.tooltipF()
@@ -240,7 +240,7 @@ func (p *Prompt) TransientPrint() {
 	println(string(*p.line))
 }
 
-func (p *Prompt) cursorLineLen(line *common.Line, cursor *common.Cursor) int {
+func (p *Prompt) cursorLineLen(line *core.Line, cursor *core.Cursor) int {
 	lineLen := p.primaryCols
 
 	lines := strings.Split(string(*line), "\n")

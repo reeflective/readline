@@ -5,13 +5,13 @@ import (
 	"sort"
 
 	"github.com/reeflective/readline/internal/color"
-	"github.com/reeflective/readline/internal/common"
+	"github.com/reeflective/readline/internal/core"
 )
 
 // Highlight applies visual/selection highlighting to a line.
 // The provided line might already have been highlighted by a user-provided
 // highlighter: this function accounts for any embedded color sequences.
-func Highlight(line []rune, selection common.Selection) string {
+func Highlight(line []rune, selection core.Selection) string {
 	// Sort regions and extract colors/positions.
 	sorted := sortHighlights(selection)
 	colors := getHighlights(line, sorted)
@@ -32,9 +32,9 @@ func Highlight(line []rune, selection common.Selection) string {
 	return highlighted
 }
 
-func sortHighlights(vhl common.Selection) []common.Selection {
-	all := make([]common.Selection, 0)
-	sorted := make([]common.Selection, 0)
+func sortHighlights(vhl core.Selection) []core.Selection {
+	all := make([]core.Selection, 0)
+	sorted := make([]core.Selection, 0)
 	bpos := make([]int, 0)
 
 	for _, reg := range vhl.Surrounds() {
@@ -66,7 +66,7 @@ func sortHighlights(vhl common.Selection) []common.Selection {
 	return sorted
 }
 
-func getHighlights(line []rune, sorted []common.Selection) map[int][]rune {
+func getHighlights(line []rune, sorted []core.Selection) map[int][]rune {
 	highlights := make(map[int][]rune)
 
 	// Find any highlighting already applied on the line,
@@ -77,14 +77,14 @@ func getHighlights(line []rune, sorted []common.Selection) map[int][]rune {
 	colors = colorMatch.FindAllStringIndex(string(line), -1)
 
 	// marks that started highlighting, but not done yet.
-	regions := make([]common.Selection, 0)
+	regions := make([]core.Selection, 0)
 	pos := -1
 	skip := 0
 
 	// Build the string.
 	for rawIndex := range line {
 		var posHl []rune
-		var newHl common.Selection
+		var newHl core.Selection
 
 		// While in a color escape, keep reading runes.
 		if skip > 0 {
@@ -127,7 +127,7 @@ func getHighlights(line []rune, sorted []common.Selection) map[int][]rune {
 	return highlights
 }
 
-func hlAdd(regions []common.Selection, line []rune, pos int) ([]common.Selection, []rune) {
+func hlAdd(regions []core.Selection, line []rune, pos int) ([]core.Selection, []rune) {
 	for i, reg := range regions {
 		_, epos := reg.Pos()
 		foreground, background := reg.Highlights()
@@ -148,7 +148,7 @@ func hlAdd(regions []common.Selection, line []rune, pos int) ([]common.Selection
 	return regions, line
 }
 
-func hlReset(regions []common.Selection, newHl common.Selection, line []rune) []rune {
+func hlReset(regions []core.Selection, newHl core.Selection, line []rune) []rune {
 	// if newHl != nil {
 	if newHl.Active() {
 		fg, bg := newHl.Highlights()
