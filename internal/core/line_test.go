@@ -660,7 +660,7 @@ func TestLine_Coordinates(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gotX, gotY := test.l.Coordinates(test.args.indent, test.args.suggested)
+			gotX, gotY := test.l.Coordinates(test.args.indent)
 			if gotX != test.wantX {
 				t.Errorf("Line.Used() gotX = %v, want %v", gotX, test.wantX)
 			}

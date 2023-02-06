@@ -2,11 +2,13 @@ package readline
 
 import (
 	"os"
-	"strings"
 
-	"github.com/reeflective/readline/internal/common"
 	"github.com/reeflective/readline/internal/completion"
+	"github.com/reeflective/readline/internal/core"
+	"github.com/reeflective/readline/internal/display"
 	"github.com/reeflective/readline/internal/history"
+	"github.com/reeflective/readline/internal/keymap"
+	"github.com/reeflective/readline/internal/macro"
 	"github.com/reeflective/readline/internal/ui"
 	"github.com/xo/inputrc"
 )
@@ -16,12 +18,13 @@ import (
 // captures without having to repeatedly unload configuration.
 type Shell struct {
 	// Core editor
-	keys      *common.Keys        // Keys read user input keys and manage them.
-	line      *common.Line        // The input line buffer and its management methods.
-	cursor    *common.Cursor      // The cursor and its medhods.
-	undo      *common.LineHistory // Line undo/redo history.
-	selection *common.Selection   // The selection managees various visual/pending selections.
-	buffers   *common.Buffers     // buffers (Vim registers) and methods use/manage/query them.
+	keys       *core.Keys        // Keys read user input keys and manage them.
+	line       *core.Line        // The input line buffer and its management methods.
+	cursor     *core.Cursor      // The cursor and its medhods.
+	undo       *core.LineHistory // Line undo/redo history.
+	selection  *core.Selection   // The selection managees various visual/pending selections.
+	buffers    *core.Buffers     // buffers (Vim registers) and methods use/manage/query them.
+	iterations *core.Iterations  // Digit arguments for repeating commands.
 
 	// User interface
 	opts      *inputrc.Config    // Contains all keymaps, binds and per-application settings.
@@ -29,12 +32,11 @@ type Shell struct {
 	hint      *ui.Hint           // Usage/hints for completion/isearch below the input line.
 	completer *completion.Engine // Completions generation and display.
 	histories *history.Sources   // All history sources and management methods.
+	macros    *macro.Engine      // Record, use and display macros.
+	display   *display.Engine    // Manages display refresh/update/clearing.
 
 	// Others
-	keyMap     keymapMode // The current keymap mode ("emacs", "vi", "vi-command", etc).
-	iterations string     // Numeric arguments to commands (eg. Vim iterations)
-	prefixed   inputrc.Bind
-	startAt    int
+	keymaps *keymap.Modes // Manages main/local keymaps and runs key matching.
 
 	// User-provided functions
 	//
@@ -74,34 +76,63 @@ func NewShell() *Shell {
 	shell := new(Shell)
 
 	// Core editor
-	line := new(common.Line)
-	cursor := common.NewCursor(line)
-	keys := common.NewKeys()
-	selection := common.NewSelection(line, cursor)
+	line := new(core.Line)
+	cursor := core.NewCursor(line)
+	keys := core.NewKeys()
+	selection := core.NewSelection(line, cursor)
+	iterations := new(core.Iterations)
 
 	shell.keys = keys
 	shell.line = line
 	shell.cursor = cursor
 	shell.selection = selection
-	shell.undo = new(common.LineHistory)
-	shell.buffers = common.NewBuffers()
+	shell.undo = new(core.LineHistory)
+	shell.buffers = core.NewBuffers()
+	shell.iterations = iterations
 
 	// User interface
 	opts := shell.newInputConfig()
 	hint := new(ui.Hint)
 	prompt := ui.NewPrompt(keys, line, cursor, opts)
+	macros := macro.NewEngine(keys, hint)
 	completer := completion.NewEngine(keys, line, cursor, hint, opts)
+	history := history.NewSources(line, cursor, hint)
+	display := display.NewEngine(selection, history, prompt, hint, completer)
 
 	shell.opts = opts
 	shell.hint = hint
 	shell.prompt = prompt
 	shell.completer = completer
+	shell.macros = macros
+	shell.histories = history
+	shell.display = display
 
 	// Others
-	shell.histories = history.NewSources(line, cursor, hint)
-	shell.initKeymap()
+	shell.keymaps = keymap.NewModes(keys, iterations, display, opts)
 
 	return shell
+}
+
+// init gathers all steps to perform at the beginning of readline loop.
+func (rl *Shell) init() {
+	// Some components need the last accepted line.
+	rl.histories.Init()
+
+	// Reset core editor components.
+	rl.selection.Reset()
+	rl.buffers.Reset()
+	rl.undo.Reset()
+	rl.keys.Flush()
+	rl.cursor.ResetMark()
+	rl.cursor.Set(0)
+	rl.line.Set([]rune{}...) // TODO: Wrong; if line was inferred this resets it while it should not.
+
+	// Reset user interface components.
+	rl.hint.Reset()
+	rl.completer.Reset(true)
+
+	// Reset other components.
+	rl.iterations.Reset()
 }
 
 func (rl *Shell) Prompt() *ui.Prompt {
@@ -131,101 +162,4 @@ func (rl *Shell) newInputConfig() *inputrc.Config {
 	}
 
 	return opts
-}
-
-// matchKeymap dispatches the keys to their commands.
-func (rl *Shell) matchKeymap(km keymapMode) (cb widget, prefix bool) {
-	keys, empty := rl.keys.PeekAll()
-	if empty {
-		return
-	}
-
-	// Commands
-	binds := rl.opts.Binds[string(km)]
-	if binds == nil {
-		// Drop the key.
-	}
-
-	// Find binds matching by prefix or perfectly.
-	match, prefixed := rl.matchCommand(keys, binds)
-
-	// If the current keys have no matches but the previous
-	// matching process found a prefix, use it with the keys.
-	if match.Action == "" && len(prefixed) == 0 {
-		return rl.resolveCommand(match), false
-	}
-
-	// Or several matches, in which case we must read another key.
-	if match.Action != "" && len(prefixed) > 0 {
-		rl.prefixed = match
-		return nil, true
-	}
-
-	// Or no exact match and only prefixes
-	if len(prefixed) > 0 {
-		return nil, true
-	}
-
-	return rl.resolveCommand(match), false
-}
-
-func (rl *Shell) matchCommand(keys []rune, binds map[string]inputrc.Bind) (match inputrc.Bind, prefixed []inputrc.Bind) {
-	for sequence, kbind := range binds {
-		// If the keys are a prefix of the bind, keep the bind
-		if len(keys) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {
-			prefixed = append(prefixed, kbind)
-		}
-
-		// Else if the match is perfect, keep the bind
-		if string(keys) == sequence {
-			match = kbind
-		}
-	}
-
-	return
-}
-
-func (rl *Shell) resolveCommand(bind inputrc.Bind) widget {
-	// If the bind is a macro, inject the keys back in our stack.
-	if bind.Macro {
-		return nil
-	}
-
-	if bind.Action == "" {
-		return nil
-	}
-
-	// Standard widgets (all editing modes/styles)
-	if wg, found := rl.standardWidgets()[bind.Action]; found && wg != nil {
-		return wg
-	}
-
-	// Vim standard widgets don't return anything, wrap them in a simple call.
-	if wg, found := rl.viWidgets()[bind.Action]; found && wg != nil {
-		return wg
-	}
-
-	// History control widgets
-	// if wg, found := rl.historyWidgets()[name]; found && wg != nil {
-	// 	return wg
-	// }
-
-	// Completion & incremental search
-	// if wg, found := rl.completionWidgets()[name]; found && wg != nil {
-	// 	return wg
-	// }
-
-	return nil
-}
-
-func commandCallback(action string) EventCallback {
-	return func(_ string, line []rune, pos int) EventReturn {
-		event := EventReturn{
-			Widget:  action,
-			NewLine: line,
-			NewPos:  pos,
-		}
-
-		return event
-	}
 }

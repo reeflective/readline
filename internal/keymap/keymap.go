@@ -13,22 +13,25 @@ type Modes struct {
 	local    Mode
 	main     Mode
 	prefixed inputrc.Bind
+	pending  []action
 
-	keys     *core.Keys
-	display  *display.Engine
-	opts     *inputrc.Config
-	commands map[string]func()
+	keys       *core.Keys
+	iterations *core.Iterations
+	display    *display.Engine
+	opts       *inputrc.Config
+	commands   map[string]func()
 }
 
 // NewModes is a required constructor for the keymap modes manager.
 // It initializes the keymaps to their defaults or configured values.
-func NewModes(keys *core.Keys, dis *display.Engine, opts *inputrc.Config) *Modes {
+func NewModes(keys *core.Keys, i *core.Iterations, dis *display.Engine, opts *inputrc.Config) *Modes {
 	modes := &Modes{
-		main:     Emacs,
-		keys:     keys,
-		display:  dis,
-		opts:     opts,
-		commands: make(map[string]func()),
+		main:       Emacs,
+		keys:       keys,
+		iterations: i,
+		display:    dis,
+		opts:       opts,
+		commands:   make(map[string]func()),
 	}
 
 	switch modes.opts.GetString("editing-mode") {
@@ -37,10 +40,10 @@ func NewModes(keys *core.Keys, dis *display.Engine, opts *inputrc.Config) *Modes
 		modes.display.UpdateCursor(display.Emacs)
 	case "vi":
 		modes.main = ViIns
-		// rl.viInsertMode()
 	}
 
 	// Run the corresponding Vim mode widget to initialize.
+	// rl.viInsertMode()
 
 	return modes
 }

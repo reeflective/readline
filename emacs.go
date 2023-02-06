@@ -3,7 +3,8 @@ package readline
 import (
 	"unicode"
 
-	"github.com/reeflective/readline/internal/common/strutil"
+	"github.com/reeflective/readline/internal/keymap"
+	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/xo/inputrc"
 )
@@ -21,7 +22,7 @@ import (
 // Macros
 // Miscellaneous.
 func (rl *Shell) standardWidgets() lineWidgets {
-	widgets := map[string]widget{
+	widgets := map[string]func(){
 		// Modes
 		"emacs-editing-mode": rl.emacsEditingMode,
 
@@ -38,7 +39,7 @@ func (rl *Shell) standardWidgets() lineWidgets {
 		"next-screen-line":     rl.downLine, // down-line
 		"clear-screen":         rl.clearScreen,
 		"clear-display":        rl.clearDisplay,
-		"redraw-current-line":  rl.redisplay,
+		"redraw-current-line":  rl.display.Refresh,
 
 		// Changing text
 		"end-of-file":                  rl.endOfFile,
@@ -127,8 +128,7 @@ func (rl *Shell) standardWidgets() lineWidgets {
 //
 
 func (rl *Shell) emacsEditingMode() {
-	rl.keyMap = emacs
-	rl.updateCursor(emacsC)
+	rl.keymaps.SetMain(keymap.Emacs)
 }
 
 //
@@ -155,7 +155,7 @@ func (rl *Shell) backwardChar() {
 func (rl *Shell) forwardWord() {
 	rl.undo.SkipSave()
 
-	vii := rl.getIterations()
+	vii := rl.iterations.Get()
 	for i := 1; i <= vii; i++ {
 		forward := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
 		rl.cursor.Move(forward)
@@ -165,7 +165,7 @@ func (rl *Shell) forwardWord() {
 func (rl *Shell) backwardWord() {
 	rl.undo.SkipSave()
 
-	vii := rl.getIterations()
+	vii := rl.iterations.Get()
 	for i := 1; i <= vii; i++ {
 		backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
 		rl.cursor.Move(backward)
@@ -218,12 +218,12 @@ func (rl *Shell) endOfLine() {
 }
 
 func (rl *Shell) upLine() {
-	lines := rl.getIterations()
+	lines := rl.iterations.Get()
 	rl.cursor.LineMove(lines * -1)
 }
 
 func (rl *Shell) downLine() {
-	lines := rl.getIterations()
+	lines := rl.iterations.Get()
 	rl.cursor.LineMove(lines)
 }
 
@@ -261,7 +261,7 @@ func (rl *Shell) endOfFile() {
 func (rl *Shell) deleteChar() {
 	rl.undo.Save(*rl.line, *rl.cursor)
 
-	vii := rl.getIterations()
+	vii := rl.iterations.Get()
 
 	// Delete the chars in the line anyway
 	for i := 1; i <= vii; i++ {
@@ -276,7 +276,7 @@ func (rl *Shell) backwardDeleteChar() {
 		return
 	}
 
-	vii := rl.getIterations()
+	vii := rl.iterations.Get()
 
 	switch vii {
 	case 1:
@@ -399,7 +399,7 @@ func (rl *Shell) transposeWords() {
 	rl.cursor.Set(tbpos)
 
 	// Then move back some number of words
-	vii := rl.getIterations()
+	vii := rl.iterations.Get()
 	for i := 1; i <= vii; i++ {
 		backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
 		rl.cursor.Move(backward)
@@ -561,7 +561,7 @@ func (rl *Shell) overwriteMode() {
 			rl.cursor.Inc()
 		}
 
-		rl.redisplay()
+		rl.display.Refresh()
 	}
 }
 
@@ -679,7 +679,7 @@ func (rl *Shell) keywordSwitch(increase bool) {
 	// For each of the keyword handlers, run it, which returns
 	// false/none if didn't operate, then continue to next handler.
 	for _, switcher := range strutil.KeywordSwitchers() {
-		vii := rl.getIterations()
+		vii := rl.iterations.Get()
 
 		changed, word, obpos, oepos := switcher(selection, increase, vii)
 		if !changed {
@@ -713,7 +713,7 @@ func (rl *Shell) keywordSwitch(increase bool) {
 //
 
 func (rl *Shell) killLine() {
-	rl.resetIterations()
+	rl.iterations.Reset()
 	rl.undo.Save(*rl.line, *rl.cursor)
 
 	cut := []rune(*rl.line)[rl.cursor.Pos():]
@@ -723,7 +723,7 @@ func (rl *Shell) killLine() {
 }
 
 func (rl *Shell) backwardKillLine() {
-	rl.resetIterations()
+	rl.iterations.Reset()
 	rl.undo.Save(*rl.line, *rl.cursor)
 
 	cut := []rune(*rl.line)[:rl.cursor.Pos()]
@@ -912,12 +912,7 @@ func (rl *Shell) digitArgument() {
 		return
 	}
 
-	// Don't add negative sign twice or in the middle of an argument.
-	if keys[0] == '-' {
-		rl.iterations = string(keys)
-	} else {
-		rl.addIteration(string(keys))
-	}
+	rl.iterations.Add(string(keys))
 }
 
 //
@@ -981,7 +976,7 @@ func (rl *Shell) redo() {
 // func (rl *Shell) setMarkCommand() {
 // 	rl.undo.SkipSave()
 //
-// 	vii := rl.getIterations()
+// 	vii := rl.iterations.Get()
 // 	switch {
 // 	case vii < 0:
 // 		rl.resetSelection()
@@ -1023,7 +1018,7 @@ func (rl *Shell) redo() {
 //
 // func (rl *Shell) exchangePointAndMark() {
 // 	rl.undo.SkipSave()
-// 	vii := rl.getIterations()
+// 	vii := rl.iterations.Get()
 //
 // 	visual := rl.visualSelection()
 // 	if visual == nil {
