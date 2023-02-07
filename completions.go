@@ -24,7 +24,7 @@ type Completions struct {
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor;
-	// it may be altered to give a common prefix for all matches.
+	// it may be altered to give a core.prefix for all matches.
 	PREFIX string
 }
 
@@ -38,10 +38,10 @@ func CompleteValues(values ...string) Completions {
 	return Completions{values: vals}
 }
 
-// CompleteStyledValues is like ActionValues but also accepts a style.
+// CompleteStyledValues is like CompleteValues but also accepts a style.
 func CompleteStyledValues(values ...string) Completions {
 	if length := len(values); length%2 != 0 {
-		return Message("invalid amount of arguments [ActionStyledValues]: %v", length)
+		return Message("invalid amount of arguments [CompleteStyledValues]: %v", length)
 	}
 
 	vals := make([]Completion, 0, len(values)/2)
@@ -55,7 +55,7 @@ func CompleteStyledValues(values ...string) Completions {
 // CompleteValuesDescribed completes arbitrary key (values) with an additional description (value, description pairs).
 func CompleteValuesDescribed(values ...string) Completions {
 	if length := len(values); length%2 != 0 {
-		return Message("invalid amount of arguments [ActionValuesDescribed]: %v", length)
+		return Message("invalid amount of arguments [CompleteValuesDescribed]: %v", length)
 	}
 
 	vals := make([]Completion, 0, len(values)/2)
@@ -66,10 +66,10 @@ func CompleteValuesDescribed(values ...string) Completions {
 	return Completions{values: vals}
 }
 
-// CompleteStyledValuesDescribed is like ActionValues but also accepts a style.
+// CompleteStyledValuesDescribed is like CompleteValues but also accepts a style.
 func CompleteStyledValuesDescribed(values ...string) Completions {
 	if length := len(values); length%3 != 0 {
-		return Message("invalid amount of arguments [ActionStyledValuesDescribed]: %v", length)
+		return Message("invalid amount of arguments [CompleteStyledValuesDescribed]: %v", length)
 	}
 
 	vals := make([]Completion, 0, len(values)/3)
@@ -123,7 +123,7 @@ func (c Completions) NoSpace(suffixes ...rune) Completions {
 
 // Prefix adds a prefix to values (only the ones inserted, not the display values)
 //
-//	a := ActionValues("melon", "drop", "fall").Invoke(c)
+//	a := CompleteValues("melon", "drop", "fall").Invoke(c)
 //	b := a.Prefix("water") // ["watermelon", "waterdrop", "waterfall"] but display still ["melon", "drop", "fall"]
 func (c Completions) Prefix(prefix string) Completions {
 	for index, val := range c.values {
@@ -135,7 +135,7 @@ func (c Completions) Prefix(prefix string) Completions {
 
 // Suffix adds a suffx to values (only the ones inserted, not the display values)
 //
-//	a := ActionValues("apple", "melon", "orange").Invoke(c)
+//	a := CompleteValues("apple", "melon", "orange").Invoke(c)
 //	b := a.Suffix("juice") // ["applejuice", "melonjuice", "orangejuice"] but display still ["apple", "melon", "orange"]
 func (c Completions) Suffix(suffix string) Completions {
 	for index, val := range c.values {
@@ -163,8 +163,8 @@ func (c Completions) UsageF(f func() string) Completions {
 
 // Style sets the style, accepting cterm color codes, eg. 255, 30, etc.
 //
-//	ActionValues("yes").Style("35")
-//	ActionValues("no").Style("255")
+//	CompleteValues("yes").Style("35")
+//	CompleteValues("no").Style("255")
 func (c Completions) Style(style string) Completions {
 	return c.StyleF(func(s string) string {
 		return style
@@ -173,8 +173,8 @@ func (c Completions) Style(style string) Completions {
 
 // Style sets the style using a reference
 //
-//	ActionValues("value").StyleR(&style.Value)
-//	ActionValues("description").StyleR(&style.Value)
+//	CompleteValues("value").StyleR(&style.Value)
+//	CompleteValues("description").StyleR(&style.Value)
 func (c Completions) StyleR(style *string) Completions {
 	if style != nil {
 		return c.Style(*style)
@@ -185,8 +185,8 @@ func (c Completions) StyleR(style *string) Completions {
 
 // Style sets the style using a function
 //
-//	ActionValues("dir/", "test.txt").StyleF(myStyleFunc)
-//	ActionValues("true", "false").StyleF(styleForKeyword)
+//	CompleteValues("dir/", "test.txt").StyleF(myStyleFunc)
+//	CompleteValues("true", "false").StyleF(styleForKeyword)
 func (c Completions) StyleF(f func(s string) string) Completions {
 	for index, v := range c.values {
 		c.values[index].Style = f(v.Value)
@@ -197,7 +197,7 @@ func (c Completions) StyleF(f func(s string) string) Completions {
 
 // Tag sets the tag.
 //
-//	ActionValues("192.168.1.1", "127.0.0.1").Tag("interfaces").
+//	CompleteValues("192.168.1.1", "127.0.0.1").Tag("interfaces").
 func (c Completions) Tag(tag string) Completions {
 	return c.TagF(func(value string) string {
 		return tag
@@ -206,7 +206,7 @@ func (c Completions) Tag(tag string) Completions {
 
 // Tag sets the tag using a function.
 //
-//	ActionValues("192.168.1.1", "127.0.0.1").TagF(func(value string) string {
+//	CompleteValues("192.168.1.1", "127.0.0.1").TagF(func(value string) string {
 //		return "interfaces"
 //	})
 func (c Completions) TagF(f func(value string) string) Completions {
@@ -290,7 +290,7 @@ func (c Completions) NoSort(tags ...string) Completions {
 // Filter filters given values (this should be done before any call
 // to Prefix/Suffix as those alter the values being filtered)
 //
-//	a := ActionValues("A", "B", "C").Invoke(c)
+//	a := CompleteValues("A", "B", "C").Invoke(c)
 //	b := a.Filter([]string{"B"}) // ["A", "C"]
 func (c Completions) Filter(values []string) Completions {
 	c.values = c.values.Filter(values...)
@@ -299,8 +299,8 @@ func (c Completions) Filter(values []string) Completions {
 
 // Merge merges Completions (existing values are overwritten)
 //
-//	a := ActionValues("A", "B").Invoke(c)
-//	b := ActionValues("B", "C").Invoke(c)
+//	a := CompleteValues("A", "B").Invoke(c)
+//	b := CompleteValues("B", "C").Invoke(c)
 //	c := a.Merge(b) // ["A", "B", "C"]
 func (c Completions) Merge(others ...Completions) Completions {
 	uniqueRawValues := make(map[string]Completion)
