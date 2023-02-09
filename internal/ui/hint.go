@@ -62,7 +62,7 @@ func (h *Hint) Display() {
 	h.usedY = offset - 1
 
 	if len(wrapped) > 0 {
-		print("\n")
+		// print("\n")
 		print("\r" + wrapped + color.Reset)
 	}
 }

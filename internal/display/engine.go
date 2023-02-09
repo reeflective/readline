@@ -1,8 +1,8 @@
 package display
 
 import (
-	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/completion"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/reeflective/readline/internal/ui"
@@ -13,10 +13,13 @@ import (
 // interface and stores the necessary offsets of each components.
 type Engine struct {
 	// Operating parameters
+	highlighter func(line []rune) string
 	startAt     int
 	lineRows    int
 	cursorRow   int
-	highlighter func(line []rune) string
+	cursorCol   int
+	hintRows    int
+	compRows    int
 
 	// UI components
 	cursor    *core.Cursor
@@ -29,17 +32,30 @@ type Engine struct {
 }
 
 // NewEngine is a required constructor for the display engine.
-func NewEngine(s *core.Selection, h *history.Sources, p *ui.Prompt, i *ui.Hint, c *completion.Engine) *Engine {
+func NewEngine(s *core.Selection, h *history.Sources, p *ui.Prompt, i *ui.Hint, c *completion.Engine, opts *inputrc.Config) *Engine {
 	return &Engine{
 		selection: s,
 		histories: h,
 		prompt:    p,
 		hint:      i,
 		completer: c,
+		opts:      opts,
 	}
 }
 
-func (e *Engine) Init() {
+// Init computes some base coordinates needed before displaying the line and helpers.
+// The shell syntax highlighter is also provided here, since any consumer library will
+// have bound it after instantiating a new shell instance.
+func (e *Engine) Init(highlighter func([]rune) string) {
+	e.highlighter = highlighter
+
+	var line *core.Line
+
+	// Some coordinates must be available before all else.
+	line, e.cursor = e.completer.Line()
+	suggested := e.histories.Suggest(line)
+	e.computeCoordinates(suggested)
+
 	// rl.resetHintText()
 	// rl.resetCompletion()
 	// rl.completer = nil
@@ -52,48 +68,41 @@ func (e *Engine) Init() {
 func (e *Engine) Refresh() {
 	var line *core.Line
 
+	// 1 - Use the coordinates computed during the last refresh
+	//
 	// Get the completed line (if completions are active),
 	// and the corresponding cursor, and find any suggested line.
 	line, e.cursor = e.completer.Line()
 	suggested := e.histories.Suggest(line)
 
 	// Go back at start of the prompt.
-	promptCols := e.prompt.LastUsed()
-	_, e.cursorRow = e.cursor.Coordinates(promptCols)
-	term.MoveCursorBackwards(e.startAt)
-	// term.MoveCursorBackwards(cursorCols - promptCols - 1)
-	term.MoveCursorUp(e.cursorRow)
+	e.CursorToLineStart()
 
-	// Apply user-defined highlighting, then apply visual on top.
-	highlighted := e.highlighter([]rune(suggested))
-	highlighted = ui.Highlight([]rune(highlighted), *e.selection)
-	suggested.Set([]rune(highlighted)...)
-	suggested.Display(promptCols)
+	// 2 - We are now back in position, compute new coordinates.
+	//
+	// Get all positions required for proper refresh:
+	// prompt end (thus indentation), cursor positions, etc.
+	e.computeCoordinates(suggested)
+
+	// Apply all available line highlighters and display the line.
+	e.displayLine(suggested)
 
 	// Go back to the cursor position and print any right prompt.
-	_, e.lineRows = suggested.Coordinates(promptCols)
-	cursorCols, cursorRows := e.cursor.Coordinates(promptCols)
-	term.MoveCursorUp(e.lineRows - cursorRows)
+	term.MoveCursorUp(e.lineRows - e.cursorRow)
 	e.prompt.RightPrint(line, e.cursor)
 
 	// Go to the last row of the line, and display hints.
-	term.MoveCursorDown(e.lineRows - cursorRows)
-	hintRows := e.hint.Coordinates()
+	term.MoveCursorDown(e.lineRows - e.cursorRow)
+	e.hintRows = e.hint.Coordinates()
 	e.hint.Display()
 
 	// Display completions.
-	// TODO: Here autocomplete call
-	// rl.autoComplete()
-	compRows := e.completer.Coordinates()
-	e.completer.Display()
+	e.displayCompletions()
 
 	// Go back to cursor position.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorUp(compRows + hintRows)
-	term.MoveCursorUp(e.lineRows - cursorRows)
-	term.MoveCursorForwards(cursorCols)
-
-	e.startAt = cursorCols - promptCols
+	term.MoveCursorUp(e.hintRows)
+	term.MoveCursorUp(e.lineRows - e.cursorRow)
+	term.MoveCursorForwards(e.cursorCol)
 }
 
 // ClearHelpers clears and resets the hint and completion sections.
@@ -116,18 +125,16 @@ func (e *Engine) ResetHelpers() {
 // CursorBelowLine moves the cursor to the leftmost column
 // of the first row after the last line of input.
 func (e *Engine) CursorBelowLine() {
-	term.MoveCursorDown(e.lineRows - e.cursorRow)
+	term.MoveCursorDown((e.lineRows - e.cursorRow) + 1)
 	term.MoveCursorBackwards(term.GetWidth())
-	// term.MoveCursorForwards(rl.endLineX())
 }
 
-// CursorToLineCursor moves the cursor back
-// to where the cursor is on the input line.
-func (e *Engine) CursorToLineCursor() {
-	// moveCursorBackwards(GetTermWidth())
-	// moveCursorUp(rl.fullY)
-	// moveCursorDown(rl.posY)
-	// moveCursorForwards(rl.posX)
+// CursorToPos moves the cursor back to
+// where the cursor is on the input line.
+func (e *Engine) CursorToPos() {
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorUp(e.lineRows - e.cursorRow)
+	term.MoveCursorForwards(e.cursorCol)
 }
 
 // CursorBelowHint moves the cursor to the leftmost
@@ -139,27 +146,42 @@ func (e *Engine) CursorBelowHint() {
 
 // CursorToLineStart moves the cursor just after the primary prompt.
 func (e *Engine) CursorToLineStart() {
-	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorBackwards(e.cursorCol - e.startAt)
 	term.MoveCursorUp(e.cursorRow)
-	term.MoveCursorForwards(e.startAt)
 }
 
-func (e *Engine) moveFromHelpersEndToHintStart() {
-	// moveCursorBackwards(GetTermWidth())
-	// moveCursorUp(rl.tcUsedY)
-	// if len(rl.hint) > 0 {
-	// 	moveCursorUp(rl.hintY)
-	// }
+func (e *Engine) computeCoordinates(suggested core.Line) {
+	e.startAt = e.prompt.LastUsed()
+	_, e.lineRows = suggested.Coordinates(e.startAt)
+	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startAt)
+}
+
+func (e *Engine) displayLine(suggested core.Line) {
+	var highlighted string
+
+	// Apply user-defined highlighter if any
+	if e.highlighter != nil {
+		highlighted = e.highlighter([]rune(suggested))
+	} else {
+		highlighted = string(suggested)
+	}
+
+	// Apply visual selections highlighting if any.
+	highlighted = ui.Highlight([]rune(highlighted), *e.selection)
+
+	// And display the line.
+	suggested.Set([]rune(highlighted)...)
+	suggested.Display(e.startAt)
 }
 
 func (e *Engine) displayCompletions() {
-	// Display completions.
 	// TODO: Here autocomplete call
 	// rl.autoComplete()
-	// compRows := rl.completer.Coordinates()
-	// rl.completer.Display()
+	e.compRows = e.completer.Coordinates()
+	e.completer.Display()
 
-	// term.MoveCursorUp(compRows)
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorUp(e.compRows)
 }
 
 // renderHelpers - prints all components (prompt, line, hints & comps)

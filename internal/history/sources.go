@@ -6,19 +6,23 @@ import (
 	"strings"
 
 	"github.com/reeflective/readline/internal/color"
-	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/completion"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/ui"
 )
 
 // Sources manages and serves all history sources for the current shell.
 type Sources struct {
-	list      map[string]Source // Sources of history lines
-	names     []string          // Names of histories stored in rl.histories
-	sourcePos int               // The index of the currently used history
-	buf       string            // The current line saved when we are on another history line
-	pos       int               // Index used for navigating the history lines with arrows/j/k
-	infer     bool              // If the last command ran needs to infer the history line.
+	list       map[string]Source // Sources of history lines
+	names      []string          // Names of histories stored in rl.histories
+	sourcePos  int               // The index of the currently used history
+	buf        string            // The current line saved when we are on another history line
+	pos        int               // Index used for navigating the history lines with arrows/j/k
+	infer      bool              // If the last command ran needs to infer the history line.
+	accepted   bool              // The line has been accepted and must be returned.
+	acceptHold bool              // Should we reuse the same accepted line on the next loop.
+	acceptLine core.Line         // The line to return to the caller.
+	acceptErr  error             // An error to return to the caller.
 
 	// Shell parameters
 	line   *core.Line
@@ -46,6 +50,9 @@ func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint) *Sources {
 // to infer a command line from the history, it is performed now.
 func (h *Sources) Init() {
 	h.sourcePos = 0
+	h.accepted = false
+	h.acceptErr = nil
+	h.acceptLine = nil
 
 	if !h.infer {
 		h.pos = 0
@@ -220,6 +227,32 @@ func (h *Sources) Write(infer bool) {
 			h.hint.Set(color.FgRed + err.Error())
 		}
 	}
+}
+
+// Accept signals the line has been accepted by the user and must be
+// returned to the readline caller. If hold is true, the line is preserved
+// and redisplayed on the next loop. If infer, the line is not written to
+// the history, but preserved as a line to match against on the next loop.
+// If infer is false, the line is automatically written to active sources.
+func (h *Sources) Accept(hold, infer bool, err error) {
+	h.accepted = true
+	h.acceptHold = hold
+	h.acceptLine = *h.line
+	h.acceptErr = err
+
+	// Simply write the line to the history sources.
+	h.Write(infer)
+}
+
+// LineAccepted returns true if the user has accepted the line, signaling
+// that the shell must return from its loop. The error can be nil, but may
+// indicate a CtrlC/CtrlD style error.
+func (h *Sources) LineAccepted() (bool, string, error) {
+	if !h.accepted {
+		return false, "", nil
+	}
+
+	return true, string(h.acceptLine), h.acceptErr
 }
 
 // InsertMatch replaces the line buffer with the first history line

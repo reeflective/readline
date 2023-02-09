@@ -97,7 +97,7 @@ func NewShell() *Shell {
 	macros := macro.NewEngine(keys, hint)
 	completer := completion.NewEngine(keys, line, cursor, hint, opts)
 	history := history.NewSources(line, cursor, hint)
-	display := display.NewEngine(selection, history, prompt, hint, completer)
+	display := display.NewEngine(selection, history, prompt, hint, completer, opts)
 
 	shell.opts = opts
 	shell.hint = hint
@@ -107,8 +107,12 @@ func NewShell() *Shell {
 	shell.histories = history
 	shell.display = display
 
-	// Others
-	shell.keymaps = keymap.NewModes(keys, iterations, display, opts)
+	// Keymaps and commands
+	keymaps := keymap.NewModes(keys, iterations, display, opts)
+	keymaps.Register(shell.standardWidgets())
+	keymaps.Register(shell.viWidgets())
+	keymaps.Register(shell.historyWidgets())
+	shell.keymaps = keymaps
 
 	return shell
 }
@@ -127,9 +131,10 @@ func (rl *Shell) init() {
 	rl.cursor.Set(0)
 	rl.line.Set([]rune{}...) // TODO: Wrong; if line was inferred this resets it while it should not.
 
-	// Reset user interface components.
+	// Reset/initialize user interface components.
 	rl.hint.Reset()
 	rl.completer.Reset(true)
+	rl.display.Init(rl.SyntaxHighlighter)
 
 	// Reset other components.
 	rl.iterations.Reset()

@@ -40,6 +40,7 @@ func NewModes(keys *core.Keys, i *core.Iterations, dis *display.Engine, opts *in
 		modes.display.UpdateCursor(display.Emacs)
 	case "vi":
 		modes.main = ViIns
+		modes.display.UpdateCursor(display.Viins)
 	}
 
 	// Run the corresponding Vim mode widget to initialize.
