@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"errors"
 	"unicode"
 
 	"github.com/reeflective/readline/internal/keymap"
@@ -253,10 +254,41 @@ func (rl *Shell) clearDisplay() {
 func (rl *Shell) endOfFile() {
 	switch rl.line.Len() {
 	case 0:
+		// 	rl.keys = ""
+		//
+		// 	rl.clearHelpers()
+		// 	moveCursorDown(rl.fullY - rl.posY)
+		// 	print("\r\n")
+		//
+		// 	return io.EOF
 	default:
 		rl.deleteChar()
 	}
 }
+
+// ErrCtrlC is returned when ctrl+c is pressed.
+var ErrCtrlC = errors.New("Ctrl+C")
+
+// func (rl *Instance) errorCtrlC() error {
+// 	rl.keys = ""
+//
+// 	// When we have a completion inserted, just cancel the completions.
+// 	if len(rl.comp) > 0 {
+// 		rl.resetVirtualComp(true)
+// 		rl.resetCompletion()
+// 		rl.resetIsearch()
+// 		rl.resetHintText()
+// 		rl.completer = nil
+//
+// 		return nil
+// 	}
+//
+// 	// Or return the current command line
+// 	rl.clearHelpers()
+// 	moveCursorDown(rl.fullY - rl.posY)
+// 	print("\r\n")
+//
+// 	return ErrCtrlC
 
 func (rl *Shell) deleteChar() {
 	rl.undo.Save(*rl.line, *rl.cursor)
