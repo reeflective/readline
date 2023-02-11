@@ -208,6 +208,10 @@ func (h *Sources) Write(infer bool) {
 
 	line := string(*h.line)
 
+	if len(strings.TrimSpace(line)) == 0 {
+		return
+	}
+
 	for _, history := range h.list {
 		if history == nil {
 			continue

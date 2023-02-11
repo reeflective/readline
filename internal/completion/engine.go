@@ -31,7 +31,7 @@ type Engine struct {
 	compCursor *core.Cursor // The adjusted cursor.
 
 	// Incremental search
-	isearchBuf *core.Line   // The isearch minibuffer
+	isearchBuf *core.Line     // The isearch minibuffer
 	isearch    *regexp.Regexp // Holds the current search regex match
 }
 

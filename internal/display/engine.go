@@ -66,34 +66,26 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 // except the the first lines of the primary prompt when the latter
 // is a multiline one.
 func (e *Engine) Refresh() {
+	e.CursorToLineStart()
 	var line *core.Line
 
-	// 1 - Use the coordinates computed during the last refresh
-	//
-	// Get the completed line (if completions are active),
-	// and the corresponding cursor, and find any suggested line.
+	// Use the coordinates computed during the last refresh
 	line, e.cursor = e.completer.Line()
 	suggested := e.histories.Suggest(line)
 
-	// Go back at start of the prompt.
-	e.CursorToLineStart()
-
-	// 2 - We are now back in position, compute new coordinates.
-	//
-	// Get all positions required for proper refresh:
+	// Get all positions required for the redisplay to come:
 	// prompt end (thus indentation), cursor positions, etc.
 	e.computeCoordinates(suggested)
 
-	// Apply all available line highlighters and display the line.
+	// Display line and go to cursor, and right prompt if any.
 	e.displayLine(suggested)
-
-	// Go back to the cursor position and print any right prompt.
 	term.MoveCursorUp(e.lineRows - e.cursorRow)
 	e.prompt.RightPrint(line, e.cursor)
 
 	// Go to the last row of the line, and display hints.
-	term.MoveCursorDown(e.lineRows - e.cursorRow)
-	e.hintRows = e.hint.Coordinates()
+	e.CursorBelowLine()
+	print(term.ClearScreenBelow)
+	e.hintRows = e.hint.Coordinates() + 1
 	e.hint.Display()
 
 	// Display completions.
@@ -120,6 +112,17 @@ func (e *Engine) ClearHelpers() {
 func (e *Engine) ResetHelpers() {
 	e.hint.Reset()
 	e.completer.Reset(true)
+}
+
+// AcceptLine redraws the current UI when the line has been accepted
+// and returned to the caller. After clearing various things such as
+// hints, completions and some right prompts, the shell will put the
+// display at the start of the line immediately following the line.
+func (e *Engine) AcceptLine() {
+	e.ClearHelpers()
+	e.prompt.RightClear(false)
+	e.CursorBelowLine()
+	print(term.ClearScreenBelow)
 }
 
 // CursorBelowLine moves the cursor to the leftmost column
@@ -183,29 +186,3 @@ func (e *Engine) displayCompletions() {
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorUp(e.compRows)
 }
-
-// renderHelpers - prints all components (prompt, line, hints & comps)
-// and replaces the cursor to its current position. This function never
-// computes or refreshes any value, except from inside the echo function.
-// func (rl *Instance) renderHelpers() {
-// if rl.config.HistoryAutosuggest {
-// 	rl.autosuggestHistory(rl.lineCompleted())
-// }
-// rl.linePrint()
-
-// Go at beginning of the last line of input
-// rl.moveToHintStart()
-
-// Print hints, check for any confirmation hint current.
-// (do not overwrite the confirmation question hint)
-// rl.writeHintText()
-// moveCursorBackwards(GetTermWidth())
-
-// Print completions and go back
-// to beginning of this line
-// rl.printCompletions()
-
-// And move back to the last line of input, then to the cursor.
-// rl.moveFromHelpersEndToHintStart()
-// rl.moveFromLineEndToCursor()
-// }

@@ -185,8 +185,7 @@ func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor) {
 
 	// Go at the end of the line, and pad prompt with spaces.
 	term.MoveCursorBackwards(termWidth)
-	term.MoveCursorForwards(lineLen - 1)
-
+	term.MoveCursorForwards(lineLen)
 	defer term.MoveCursorBackwards(termWidth - cursorX)
 
 	// Check that we have room for a right/tooltip prompt.
@@ -194,7 +193,6 @@ func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor) {
 	if lineFits {
 		prompt := fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt)
 		print(prompt)
-	} else {
 	}
 }
 
