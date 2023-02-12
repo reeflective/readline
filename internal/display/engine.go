@@ -83,9 +83,9 @@ func (e *Engine) Refresh() {
 	e.prompt.RightPrint(line, e.cursor)
 
 	// Go to the last row of the line, and display hints.
-	e.CursorBelowLine()
+	// e.CursorBelowLine()
 	print(term.ClearScreenBelow)
-	e.hintRows = e.hint.Coordinates() + 1
+	e.hintRows = e.hint.Coordinates()
 	e.hint.Display()
 
 	// Display completions.
@@ -111,7 +111,7 @@ func (e *Engine) ClearHelpers() {
 // ResetHelpers cancels all active hints and completions.
 func (e *Engine) ResetHelpers() {
 	e.hint.Reset()
-	e.completer.Reset(true)
+	e.completer.Reset(true, false)
 }
 
 // AcceptLine redraws the current UI when the line has been accepted
@@ -180,8 +180,8 @@ func (e *Engine) displayLine(suggested core.Line) {
 func (e *Engine) displayCompletions() {
 	// TODO: Here autocomplete call
 	// rl.autoComplete()
-	e.compRows = e.completer.Coordinates()
 	e.completer.Display()
+	e.compRows = e.completer.Coordinates()
 
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorUp(e.compRows)

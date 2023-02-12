@@ -1,9 +1,15 @@
-package core
+package editor
 
 import (
+	"fmt"
+	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"unicode"
+
+	"github.com/reeflective/readline/internal/color"
+	"github.com/reeflective/readline/internal/completion"
 )
 
 var (
@@ -174,7 +180,38 @@ func (reg *Buffers) Reset() {
 }
 
 // Complete returns the contents of all buffers as a structured list of completions.
-func (reg *Buffers) Complete() {}
+func (reg *Buffers) Complete() completion.Values {
+	vals := make([]completion.Candidate, 0)
+
+	// Kill buffer
+	display := strings.ReplaceAll(string(reg.kill), "\n", ``)
+	unnamed := completion.Candidate{
+		Value:   string(reg.kill),
+		Display: color.Dim + "\"\"" + color.DimReset + " " + display,
+	}
+
+	vals = append(vals, unnamed)
+
+	// Alpha and numbered registers
+	vals = append(vals, reg.completeNumRegs()...)
+	vals = append(vals, reg.completeAlphaRegs()...)
+
+	// Disable sorting, force list long and add hint.
+	comps := completion.AddRaw(vals)
+	if comps.NoSort == nil {
+		comps.NoSort = make(map[string]bool)
+	}
+	comps.NoSort["*"] = true
+
+	if comps.ListLong == nil {
+		comps.ListLong = make(map[string]bool)
+	}
+	comps.ListLong["*"] = true
+
+	comps.Messages.Add(color.FgBlue + "-- registers --" + color.Reset)
+
+	return comps
+}
 
 func (reg *Buffers) writeNum(register int, buf []rune) {
 	// No numbered register above 10
@@ -225,73 +262,55 @@ func (reg *Buffers) writeAlpha(register rune, buf []rune) {
 	}
 }
 
-// The user can show registers completions and insert, no matter the cursor position.
-// func (rl *Instance) completeRegisters() Completions {
-// 	comps := Message(seqFgBlue + "-- registers --" + seqReset)
-//
-// 	display := strings.ReplaceAll(string(rl.registers.kill), "\n", ``)
-// 	unnamed := Completion{
-// 		Value:   string(rl.registers.kill),
-// 		Display: seqDim + "\"\"" + seqDimReset + " " + display,
-// 	}
-// 	comps.values = append(comps.values, unnamed)
-//
-// 	comps.values = append(comps.values, rawValues(rl.completeNumRegs())...)
-// 	comps.values = append(comps.values, rawValues(rl.completeAlphaRegs())...)
-// 	comps = comps.NoSort()
-//
-// 	return comps
-// }
-//
-// func (rl *Instance) completeNumRegs() []Completion {
-// 	regs := make([]Completion, 0)
-// 	tag := seqDim + "num ([0-9])" + seqReset
-//
-// 	var nums []int
-// 	for reg := range rl.registers.num {
-// 		nums = append(nums, reg)
-// 	}
-//
-// 	sort.Ints(nums)
-//
-// 	for _, reg := range nums {
-// 		buf := rl.registers.num[reg]
-// 		display := strings.ReplaceAll(string(buf), "\n", ``)
-//
-// 		comp := Completion{
-// 			Tag:     tag,
-// 			Value:   string(buf),
-// 			Display: fmt.Sprintf("%s\"%d%s %s", seqDim, reg, seqDimReset, display),
-// 		}
-//
-// 		regs = append(regs, comp)
-// 	}
-//
-// 	return regs
-// }
-//
-// func (rl *Instance) completeAlphaRegs() []Completion {
-// 	regs := make([]Completion, 0)
-// 	tag := seqDim + "alpha ([a-z], [A-Z])" + seqReset
-//
-// 	var lett []string
-// 	for reg := range rl.registers.alpha {
-// 		lett = append(lett, reg)
-// 	}
-// 	sort.Strings(lett)
-//
-// 	for _, reg := range lett {
-// 		buf := rl.registers.alpha[reg]
-// 		display := strings.ReplaceAll(string(buf), "\n", ``)
-//
-// 		comp := Completion{
-// 			Tag:     tag,
-// 			Value:   string(buf),
-// 			Display: fmt.Sprintf("%s\"%s%s %s", seqDim, reg, seqDimReset, display),
-// 		}
-//
-// 		regs = append(regs, comp)
-// 	}
-//
-// 	return regs
-// }
+func (reg *Buffers) completeNumRegs() []completion.Candidate {
+	regs := make([]completion.Candidate, 0)
+	tag := color.Dim + "num ([0-9])" + color.Reset
+
+	var nums []int
+	for reg := range reg.num {
+		nums = append(nums, reg)
+	}
+
+	sort.Ints(nums)
+
+	for _, num := range nums {
+		buf := reg.num[num]
+		display := strings.ReplaceAll(string(buf), "\n", ``)
+
+		comp := completion.Candidate{
+			Tag:     tag,
+			Value:   string(buf),
+			Display: fmt.Sprintf("%s\"%d%s %s", color.Dim, num, color.DimReset, display),
+		}
+
+		regs = append(regs, comp)
+	}
+
+	return regs
+}
+
+func (reg *Buffers) completeAlphaRegs() []completion.Candidate {
+	regs := make([]completion.Candidate, 0)
+	tag := color.Dim + "alpha ([a-z], [A-Z])" + color.Reset
+
+	var lett []rune
+	for slot := range reg.alpha {
+		lett = append(lett, slot)
+	}
+	sort.Slice(lett, func(i, j int) bool { return i < j })
+
+	for _, letter := range lett {
+		buf := reg.alpha[letter]
+		display := strings.ReplaceAll(string(buf), "\n", ``)
+
+		comp := completion.Candidate{
+			Tag:     tag,
+			Value:   string(buf),
+			Display: fmt.Sprintf("%s\"%s%s %s", color.Dim, string(letter), color.DimReset, display),
+		}
+
+		regs = append(regs, comp)
+	}
+
+	return regs
+}

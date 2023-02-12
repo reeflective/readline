@@ -16,3 +16,11 @@ const (
 	// SaveCursorPos    = "\x1b[s"
 	// RestorCursorPos = "\x1b[u".
 )
+
+// Some core keys needed by some stuff
+var (
+	ArrowUp    = string([]byte{27, 91, 65}) // ^[[A
+	ArrowDown  = string([]byte{27, 91, 66}) // ^[[B
+	ArrowRight = string([]byte{27, 91, 67}) // ^[[C
+	ArrowLeft  = string([]byte{27, 91, 68}) // ^[[D
+)

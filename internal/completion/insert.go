@@ -3,6 +3,7 @@ package completion
 import (
 	"strings"
 
+	"github.com/reeflective/readline/internal/core"
 	"github.com/xo/inputrc"
 )
 
@@ -66,7 +67,10 @@ func (e *Engine) removeSuffixAccepted() {
 // insertCandidate inserts a completion candidate into the virtual line.
 func (e *Engine) insertCandidate(candidate []rune) {
 	// Remove the current candidate by reusing the current line.
-	e.completed.Set(*e.line...)
+	completed := core.Line(string(*e.line))
+	e.completed = &completed
+
+	e.compCursor = core.NewCursor(e.completed)
 	e.compCursor.Set(e.cursor.Pos())
 
 	// Insert the new candidate and keep it.

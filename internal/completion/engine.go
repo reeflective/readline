@@ -5,6 +5,7 @@ import (
 
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/term"
+
 	"github.com/reeflective/readline/internal/ui"
 	"github.com/xo/inputrc"
 )
@@ -46,27 +47,55 @@ func NewEngine(k *core.Keys, l *core.Line, c *core.Cursor, h *ui.Hint, o *inputr
 	}
 }
 
-// Generate uses a list of completions to group/order
-// and prepare completions before printing them.
+// Generate uses a list of completions to group/order and prepare completions
+// before printing them. If either no completions or only one is available after
+// all constraints are applied, the engine will automatically insert/accept and/or
+// reset itself.
 func (e *Engine) Generate(completions Values) {
+	e.group(completions)
+	e.setPrefix(completions)
+	e.updateCompletedLine()
+
+	// Should maybe reset the hints.
 }
 
-// Cache accepts a completer function so that the next time
-// it has to update its results, it can reuse this completer.
-func (e *Engine) Cache(completer Completer) {
+// GenerateWith generates completions with a completer function,
+// itself cached so that the next time it has to update its results,
+// it can reuse this completer.
+func (e *Engine) GenerateWith(completer Completer) {
 	e.cached = completer
+	if e.cached == nil {
+		return
+	}
+
+	// Potentially set the keymap
+
+	// Call the provided/cached completer
+	// and use the completions as normal
+	comps := e.cached()
+
+	e.Generate(comps)
+}
+
+// IsActive indicates if the engine is currently in possession of a
+// non-empty list of generated completions (following all constraints).
+func (e *Engine) IsActive() bool {
+	return len(e.groups) > 0
 }
 
 // Select moves the completion selector by some X or Y value.
-func (e *Engine) Select(key string, column, row int) {
+func (e *Engine) Select(row, column int) {
 	grp := e.currentGroup()
 
-	// If there is no current group, we
-	// leave any current completion mode.
 	if grp == nil || len(grp.values) == 0 {
 		return
 	}
 
+	// Some keys used to move around completions
+	// will influence the coordinates' offsets.
+	e.adjustCycleKeys(row, column)
+
+	// Move the selector
 	done, next := grp.moveSelector(column, row)
 	if !done {
 		return
@@ -83,6 +112,9 @@ func (e *Engine) Select(key string, column, row int) {
 		newGrp = e.currentGroup()
 		newGrp.lastCell()
 	}
+
+	// And update the line with the candidate.
+	e.updateCompletedLine()
 }
 
 // SelectTag allows to select the first value of the next tag
@@ -123,9 +155,32 @@ func (e *Engine) Line() (*core.Line, *core.Cursor) {
 	return e.line, e.cursor
 }
 
-// Update refreshes the completion list according
+func (e *Engine) AutocompleteStart() {
+}
+
+func (e *Engine) AutocompleteStop() {}
+
+// Refresh refreshes the completion list according
 // to the current settings and line constraints.
-func (e *Engine) Update() {
+func (e *Engine) Refresh() {
+	// A refresh will only
+	// Autocomplete is either set through a global option,
+	// or for specific things such as incrementally searched
+	// commands.
+	// needsComplete := rl.config.AutoComplete &&
+	// 	len(rl.line) > 0 &&
+	// 	rl.local != menuselect &&
+	// 	rl.local != isearch
+
+	// // We always refresh history, except when
+	// // currently having a candidate selection.
+	// if completingHistory && isCorrectMenu && len(rl.comp) == 0 {
+	// 	return true
+	// }
+
+	// if rl.completer != nil {
+	// 	rl.completer()
+	// }
 }
 
 // IsearchStart starts incremental search (fuzzy-finding)
@@ -142,15 +197,18 @@ func (e *Engine) IsearchStop() {
 func (e *Engine) TrimSuffix() {
 }
 
-// Reset exits the current completions, and either inserts
-// the currently selected candidate (if any) into the input
-// line (if drop is false), or drops it (if drop is true).
-func (e *Engine) Reset(drop bool) {
+// Reset exits the current completions with the following behavior:
+// - If inserted is true, any inserted candidate is dropped, or kept.
+// - If cached is true, any cached completer function is dropped.
+func (e *Engine) Reset(inserted, cached bool) {
+	defer e.resetList(cached)
+
 	if len(e.comp) == 0 {
 		return
 	}
 
-	// Get the current candidate and its group.
+	// 1 - Settle on the completed input line itself first: accept,
+	// drop any current candidate, handle suffix/prefix autoremoval.
 	cur := e.currentGroup()
 	if cur == nil {
 		return
@@ -164,7 +222,7 @@ func (e *Engine) Reset(drop bool) {
 		return
 	}
 
-	if drop {
+	if inserted {
 		e.completed.Set(*e.line...)
 		e.compCursor.Set(e.cursor.Pos())
 

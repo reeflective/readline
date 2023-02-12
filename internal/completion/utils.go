@@ -19,6 +19,34 @@ var sanitizer = strings.NewReplacer(
 	"\t", ``,
 )
 
+func (e *Engine) setPrefix(comps Values) {
+	switch comps.PREFIX {
+	case "":
+		// When no prefix has been specified, use
+		// the current word up to the cursor position.
+		lineWords, _, _ := e.line.TokenizeSpace(e.cursor.Pos())
+		if len(lineWords) > 0 {
+			last := lineWords[len(lineWords)-1]
+			if last[len(last)-1] != ' ' {
+				e.prefix = lineWords[len(lineWords)-1]
+			}
+		}
+
+		// Newlines should not be accounted for, as they are
+		// not printable: whether or not the completions provider
+		// replaced them with spaces or not, we must not count them
+		// as part of the prefix length, so not as part of the prefix.
+		if strings.Contains(e.prefix, "\n") {
+			e.prefix = strings.ReplaceAll(e.prefix, "\n", "")
+		}
+
+	default:
+		// When the prefix has been overridden, add it to all
+		// completions AND as a line prefix, for correct candidate insertion.
+		e.prefix = comps.PREFIX
+	}
+}
+
 func (rl *Engine) clearVirtualComp() {
 	// Merge lines.
 	rl.line.Set(*rl.completed...)
@@ -46,6 +74,25 @@ func (e *Engine) currentGroup() (grp *group) {
 	}
 
 	return
+}
+
+func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
+	cur := e.currentGroup()
+
+	keyRunes, _ := e.keys.PeekAll()
+	keys := string(keyRunes)
+
+	if row > 0 {
+		if cur.aliased && keys != term.ArrowRight && keys != term.ArrowDown {
+			row, column = 0, row
+		}
+	} else {
+		if cur.aliased && keys != term.ArrowLeft && keys != term.ArrowUp {
+			row, column = 0, -1*row
+		}
+	}
+
+	return row, column
 }
 
 // cycleNextGroup - Finds either the first non-empty group,
@@ -88,6 +135,32 @@ func (e *Engine) cyclePreviousGroup() {
 
 			break
 		}
+	}
+}
+
+func (e *Engine) updateCompletedLine() {
+	// If no completions, reset ourselves.
+	if e.noCompletions() {
+		e.Reset(true, true)
+		return
+	}
+
+	grp := e.currentGroup()
+	if grp == nil {
+		return
+	}
+
+	// If only one completion, insert and reset.
+	if e.hasUniqueCandidate() {
+		e.Reset(false, true)
+	}
+
+	// Else, insert the comp.
+	comp := grp.selected().Value
+
+	if len(comp) >= len(e.prefix) {
+		diff := []rune(comp[len(e.prefix):])
+		e.insertCandidate(diff)
 	}
 }
 
@@ -163,6 +236,22 @@ func (e *Engine) noCompletions() bool {
 	}
 
 	return true
+}
+
+func (e *Engine) resetList(cached bool) {
+	e.groups = make([]*group, 0)
+
+	if cached {
+		e.cached = nil
+	}
+
+	// if len(e.groups) > 0 {
+	// 	for _, g := range e.groups {
+	// 		g.isCurrent = false
+	// 	}
+	//
+	// 	e.groups[0].isCurrent = true
+	// }
 }
 
 // returns either the max number of completion rows configured

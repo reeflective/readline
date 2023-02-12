@@ -338,6 +338,12 @@ func (c *Completions) merge(other Completions) {
 			c.listLong[tag] = true
 		}
 	}
+
+	for tag := range other.noSort {
+		if _, found := c.noSort[tag]; !found {
+			c.noSort[tag] = true
+		}
+	}
 }
 
 func (c *Completions) convert() completion.Values {

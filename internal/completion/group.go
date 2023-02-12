@@ -33,7 +33,7 @@ type group struct {
 	tcMaxY        int
 }
 
-func (e *Engine) groupCompletions(comps Values) {
+func (e *Engine) group(comps Values) {
 	e.hintCompletions(comps)
 
 	// Nothing else to do if no completions
