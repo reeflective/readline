@@ -98,7 +98,7 @@ func (rl *Shell) viWidgets() lineWidgets {
 		"vi-select-surround":   rl.viSelectSurround,
 
 		// Miscellaneous
-		// "vi-eof-maybe",
+		"vi-eof-maybe": rl.viEofMaybe,
 		// "vi-search"
 		// "vi-search-again"
 		"vi-arg-digit":                rl.viArgDigit, // vi-digit-or-beginning-of-line
@@ -1188,7 +1188,9 @@ func (rl *Shell) viSelectSurround() {
 // Miscellaneous ---------------------------------------------------------------
 //
 
-func (rl *Shell) viEofMaybe()    {}
+func (rl *Shell) viEofMaybe() {
+	rl.endOfFile()
+}
 func (rl *Shell) viSearch()      {}
 func (rl *Shell) viSearchAgain() {}
 

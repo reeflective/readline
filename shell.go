@@ -6,6 +6,7 @@ import (
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/display"
+	"github.com/reeflective/readline/internal/editor"
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/macro"
@@ -23,8 +24,8 @@ type Shell struct {
 	cursor     *core.Cursor      // The cursor and its medhods.
 	undo       *core.LineHistory // Line undo/redo history.
 	selection  *core.Selection   // The selection managees various visual/pending selections.
-	buffers    *core.Buffers     // buffers (Vim registers) and methods use/manage/query them.
 	iterations *core.Iterations  // Digit arguments for repeating commands.
+	buffers    *editor.Buffers   // buffers (Vim registers) and methods use/manage/query them.
 
 	// User interface
 	opts      *inputrc.Config    // Contains all keymaps, binds and per-application settings.
@@ -87,7 +88,7 @@ func NewShell() *Shell {
 	shell.cursor = cursor
 	shell.selection = selection
 	shell.undo = new(core.LineHistory)
-	shell.buffers = core.NewBuffers()
+	shell.buffers = editor.NewBuffers()
 	shell.iterations = iterations
 
 	// User interface
@@ -112,6 +113,7 @@ func NewShell() *Shell {
 	keymaps.Register(shell.standardWidgets())
 	keymaps.Register(shell.viWidgets())
 	keymaps.Register(shell.historyWidgets())
+	keymaps.Register(shell.completionWidgets())
 	shell.keymaps = keymaps
 
 	return shell
@@ -133,7 +135,7 @@ func (rl *Shell) init() {
 
 	// Reset/initialize user interface components.
 	rl.hint.Reset()
-	rl.completer.Reset(true)
+	rl.completer.Reset(true, true)
 	rl.display.Init(rl.SyntaxHighlighter)
 
 	// Reset other components.

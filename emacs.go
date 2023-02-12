@@ -1,7 +1,7 @@
 package readline
 
 import (
-	"errors"
+	"io"
 	"unicode"
 
 	"github.com/reeflective/readline/internal/keymap"
@@ -57,7 +57,6 @@ func (rl *Shell) standardWidgets() lineWidgets {
 		"up-case-word":                 rl.upCaseWord,
 		"capitalize-word":              rl.capitalizeWord,
 		"overwrite-mode":               rl.overwriteMode,
-		"delete-char-or-list":          rl.deleteCharOrList, // TODO: re-add completion call.
 		"delete-horizontal-whitespace": rl.deleteHorizontalWhitespace,
 
 		"delete-word":      rl.deleteWord,
@@ -82,8 +81,6 @@ func (rl *Shell) standardWidgets() lineWidgets {
 		"copy-forward-word":        rl.copyForwardWord,
 		"yank":                     rl.yank,
 		"yank-pop":                 rl.yankPop,
-		// "yank-last-arg"
-		// "yank-nth-arg"
 
 		"kill-buffer":          rl.killBuffer,
 		"copy-prev-shell-word": rl.copyPrevShellWord,
@@ -116,9 +113,6 @@ func (rl *Shell) standardWidgets() lineWidgets {
 		"edit-command-line":         rl.editCommandLine,
 
 		"redo": rl.redo,
-
-		// "accept-line":       rl.acceptLine,
-		// "accept-and-hold":   rl.acceptAndHold,
 	}
 
 	return widgets
@@ -250,24 +244,15 @@ func (rl *Shell) clearDisplay() {
 // Changing Text -----------------------------------------------------------------
 //
 
-// TODO: return values error.
 func (rl *Shell) endOfFile() {
 	switch rl.line.Len() {
 	case 0:
-		// 	rl.keys = ""
-		//
-		// 	rl.clearHelpers()
-		// 	moveCursorDown(rl.fullY - rl.posY)
-		// 	print("\r\n")
-		//
-		// 	return io.EOF
+		rl.display.AcceptLine()
+		rl.histories.Accept(false, false, io.EOF)
 	default:
 		rl.deleteChar()
 	}
 }
-
-// ErrCtrlC is returned when ctrl+c is pressed.
-var ErrCtrlC = errors.New("Ctrl+C")
 
 // func (rl *Instance) errorCtrlC() error {
 // 	rl.keys = ""
@@ -291,6 +276,12 @@ var ErrCtrlC = errors.New("Ctrl+C")
 // 	return ErrCtrlC
 
 func (rl *Shell) deleteChar() {
+	// Extract from bash documentation of readline:
+	// Delete the character at point.  If this function is bound
+	// to the same character as the tty EOF character, as C-d
+	//
+	// TODO: We should match the same behavior here.
+
 	rl.undo.Save(*rl.line, *rl.cursor)
 
 	vii := rl.iterations.Get()
@@ -594,15 +585,6 @@ func (rl *Shell) overwriteMode() {
 		}
 
 		rl.display.Refresh()
-	}
-}
-
-func (rl *Shell) deleteCharOrList() {
-	switch {
-	case rl.cursor.Pos() < rl.line.Len():
-		rl.line.CutRune(rl.cursor.Pos())
-	default:
-		// rl.expandOrComplete()
 	}
 }
 
@@ -1090,14 +1072,4 @@ func (rl *Shell) redo() {
 // 	if (rl.main == vicmdC || rl.main == viinsC) && rl.local == visualC {
 // 		rl.exitVisualMode()
 // 	}
-// }
-
-// func (rl *Shell) acceptLine() {
-// 	rl.lineCarriageReturn()
-// }
-
-// func (rl *Shell) acceptAndHold() {
-// 	rl.inferLine = true
-// 	rl.histPos = -1
-// 	rl.acceptLine()
 // }

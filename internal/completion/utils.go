@@ -157,6 +157,7 @@ func (e *Engine) updateCompletedLine() {
 
 	// Else, insert the comp.
 	comp := grp.selected().Value
+	e.comp = []rune(comp)
 
 	if len(comp) >= len(e.prefix) {
 		diff := []rune(comp[len(e.prefix):])

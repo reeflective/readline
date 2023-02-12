@@ -70,6 +70,9 @@ func (rl *Shell) possibleCompletions() {
 	// 	rl.resetCompletion()
 	// 	return
 	// }
+
+	rl.completer.Reset(false, false)
+	rl.completer.GenerateWith(rl.normalCompletions)
 }
 
 func (rl *Shell) insertCompletions() {}

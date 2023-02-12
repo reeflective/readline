@@ -54,7 +54,6 @@ func NewEngine(k *core.Keys, l *core.Line, c *core.Cursor, h *ui.Hint, o *inputr
 func (e *Engine) Generate(completions Values) {
 	e.group(completions)
 	e.setPrefix(completions)
-	e.updateCompletedLine()
 
 	// Should maybe reset the hints.
 }
@@ -95,6 +94,10 @@ func (e *Engine) Select(row, column int) {
 	// will influence the coordinates' offsets.
 	e.adjustCycleKeys(row, column)
 
+	// In the end we will update the line with
+	// the currently selected completion candidate.
+	defer e.updateCompletedLine()
+
 	// Move the selector
 	done, next := grp.moveSelector(column, row)
 	if !done {
@@ -112,9 +115,6 @@ func (e *Engine) Select(row, column int) {
 		newGrp = e.currentGroup()
 		newGrp.lastCell()
 	}
-
-	// And update the line with the candidate.
-	e.updateCompletedLine()
 }
 
 // SelectTag allows to select the first value of the next tag
@@ -249,13 +249,9 @@ func (e *Engine) Display() {
 	completions, e.usedY = e.cropCompletions(completions)
 
 	if completions != "" {
-		print("\n")
-		e.usedY++
-
 		print(term.ClearScreenBelow)
+		print(completions)
 	}
-
-	print(completions)
 }
 
 // Coordinates returns the number of terminal rows used

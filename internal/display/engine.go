@@ -83,7 +83,7 @@ func (e *Engine) Refresh() {
 	e.prompt.RightPrint(line, e.cursor)
 
 	// Go to the last row of the line, and display hints.
-	// e.CursorBelowLine()
+	e.CursorBelowLine()
 	print(term.ClearScreenBelow)
 	e.hintRows = e.hint.Coordinates()
 	e.hint.Display()
@@ -92,7 +92,7 @@ func (e *Engine) Refresh() {
 	e.displayCompletions()
 
 	// Go back to cursor position.
-	term.MoveCursorUp(e.hintRows)
+	term.MoveCursorUp(e.hintRows + 1)
 	term.MoveCursorUp(e.lineRows - e.cursorRow)
 	term.MoveCursorForwards(e.cursorCol)
 }

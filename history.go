@@ -1,7 +1,5 @@
 package readline
 
-import "github.com/reeflective/readline/internal/term"
-
 // historyWidgets returns all history commands.
 // Under each comment are gathered all commands related to the comment's
 // subject. When there are two subgroups separated by an empty line, the
@@ -50,30 +48,7 @@ func (rl *Shell) historyWidgets() lineWidgets {
 //
 
 func (rl *Shell) acceptLine() {
-	// Without multiline support, we always return the line.
-	if rl.AcceptMultiline == nil {
-		rl.histories.Accept(false, false, nil)
-		return
-	}
-
-	// Ask the caller if the line should be accepted as is.
-	if rl.AcceptMultiline(*rl.line) {
-		// Clear the tooltip prompt and clear hints/completions.
-		rl.display.ClearHelpers()
-		rl.prompt.RightClear(false)
-		rl.display.CursorBelowLine()
-		print(term.ClearScreenBelow)
-
-		// Save the command line and accept it.
-		rl.histories.Accept(false, false, nil)
-		return
-	}
-
-	// If not, we should start editing another line,
-	// and insert a newline where our cursor value is.
-	// This has the nice advantage of being able to work
-	// in multiline mode even in the middle of the buffer.
-	rl.line.Insert(rl.cursor.Pos(), '\n')
+	rl.acceptLineWith(false, false)
 }
 
 func (rl *Shell) downHistory() {
@@ -175,7 +150,9 @@ func (rl *Shell) yankNthArg()  {}
 // Added -------------------------------------------------------------------
 //
 
-func (rl *Shell) acceptAndHold() {}
+func (rl *Shell) acceptAndHold() {
+	rl.acceptLineWith(true, false)
+}
 
 func (rl *Shell) acceptAndInferNextHistory() {
 	// rl.inferLine = true // The next loop will retrieve a line.
@@ -280,27 +257,25 @@ func (rl *Shell) beginningHistorySearchForward() {
 	// rl.historySearchLine(true)
 }
 
-func (rl *Shell) lineCarriageReturn() {
-	// rl.histSuggested = []rune{}
-	//
-	// // Ask the caller if the line should be accepted as is.
-	// if rl.AcceptMultiline(rl.lineCompleted()) {
-	// 	// Clear the tooltip prompt if any,
-	// 	// then go down and clear hints/completions.
-	// 	rl.moveToLineEnd()
-	// 	rl.Prompt.clearRprompt(rl, false)
-	// 	print("\r\n")
-	// 	print(seqClearScreenBelow)
-	//
-	// 	// Save the command line and accept it.
-	// 	rl.writeHistoryLine()
-	// 	rl.accepted = true
-	// 	return
-	// }
-	//
-	// // If not, we should start editing another line,
-	// // and insert a newline where our cursor value is.
-	// // This has the nice advantage of being able to work
-	// // in multiline mode even in the middle of the buffer.
-	// rl.lineInsert([]rune{'\n'})
+func (rl *Shell) acceptLineWith(infer, hold bool) {
+	// Without multiline support, we always return the line.
+	if rl.AcceptMultiline == nil {
+		rl.histories.Accept(hold, infer, nil)
+		return
+	}
+
+	// Ask the caller if the line should be accepted
+	// as is, save the command line and accept it.
+	if rl.AcceptMultiline(*rl.line) {
+		rl.display.AcceptLine()
+		rl.histories.Accept(hold, infer, nil)
+		return
+	}
+
+	// If not, we should start editing another line,
+	// and insert a newline where our cursor value is.
+	// This has the nice advantage of being able to work
+	// in multiline mode even in the middle of the buffer.
+	rl.line.Insert(rl.cursor.Pos(), '\n')
+	rl.cursor.Inc()
 }

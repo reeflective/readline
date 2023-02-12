@@ -40,6 +40,10 @@ func (rl *Shell) Readline() (string, error) {
 		command, prefixed := rl.keymaps.Match(true)
 		if command != nil {
 			command()
+			accepted, line, err := rl.histories.LineAccepted()
+			if accepted {
+				return line, err
+			}
 		} else if prefixed {
 			continue
 		}
