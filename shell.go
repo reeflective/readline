@@ -76,6 +76,8 @@ type Shell struct {
 func NewShell() *Shell {
 	shell := new(Shell)
 
+	opts := shell.newInputConfig()
+
 	// Core editor
 	line := new(core.Line)
 	cursor := core.NewCursor(line)
@@ -91,12 +93,20 @@ func NewShell() *Shell {
 	shell.buffers = editor.NewBuffers()
 	shell.iterations = iterations
 
+	// Keymaps and commands
+	keymaps := keymap.NewModes(keys, iterations, opts)
+	keymaps.Register(shell.standardWidgets())
+	keymaps.Register(shell.viWidgets())
+	keymaps.Register(shell.historyWidgets())
+	keymaps.Register(shell.completionWidgets())
+
+	shell.keymaps = keymaps
+
 	// User interface
-	opts := shell.newInputConfig()
 	hint := new(ui.Hint)
 	prompt := ui.NewPrompt(keys, line, cursor, opts)
 	macros := macro.NewEngine(keys, hint)
-	completer := completion.NewEngine(keys, line, cursor, hint, opts)
+	completer := completion.NewEngine(keys, line, cursor, hint, keymaps, opts)
 	history := history.NewSources(line, cursor, hint)
 	display := display.NewEngine(selection, history, prompt, hint, completer, opts)
 
@@ -107,14 +117,6 @@ func NewShell() *Shell {
 	shell.macros = macros
 	shell.histories = history
 	shell.display = display
-
-	// Keymaps and commands
-	keymaps := keymap.NewModes(keys, iterations, display, opts)
-	keymaps.Register(shell.standardWidgets())
-	keymaps.Register(shell.viWidgets())
-	keymaps.Register(shell.historyWidgets())
-	keymaps.Register(shell.completionWidgets())
-	shell.keymaps = keymaps
 
 	return shell
 }
