@@ -46,6 +46,9 @@ func NewModes(keys *core.Keys, i *core.Iterations, opts *inputrc.Config) *Modes 
 	// Run the corresponding Vim mode widget to initialize.
 	// rl.viInsertMode()
 
+	// Add additional default keymaps
+	modes.opts.Binds[string(Visual)] = visualKeys
+
 	return modes
 }
 
@@ -129,7 +132,9 @@ func (m *Modes) Match(main bool) (command func(), prefix bool) {
 		return nil, true
 	}
 
+	// Or an exact match, in which case drop any prefixed one.
 	m.active = match
+	m.prefixed = inputrc.Bind{}
 
 	return m.resolveCommand(match), false
 }

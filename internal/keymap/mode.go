@@ -17,7 +17,7 @@ const (
 	Vi     Mode = "vi"
 	ViCmd  Mode = "vi-command"
 	ViMove Mode = "vi-move"
-	Visual Mode = "visual"
+	Visual Mode = "vi-visual"
 	ViOpp  Mode = "vi-opp"
 
 	// Completion and search.
