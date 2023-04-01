@@ -1,5 +1,34 @@
 package readline
 
+import "github.com/reeflective/readline/internal/history"
+
+//
+// API ----------------------------------------------------------------
+//
+
+// NewHistoryFromFile creates a new command history
+// source writing to and reading from a file.
+var NewHistoryFromFile = history.NewSourceFromFile
+
+// AddHistoryFromFile adds a command history source from a file path.
+// The name is used when using/searching the history source.
+func (rl *Shell) AddHistoryFromFile(name, filepath string) {
+	rl.histories.AddFromFile(name, filepath)
+}
+
+// Add adds a source of history lines bound to a given name (printed above
+// this source when used). When only the default in-memory history is bound,
+// it's replaced with the provided source. Following ones are added to the list.
+func (rl *Shell) AddHistory(name string, source history.Source) {
+	rl.histories.Add(name, source)
+}
+
+// Delete deletes one or more history source by name.
+// If no arguments are passed, all currently bound sources are removed.
+func (rl *Shell) DeleteHistory(sources ...string) {
+	rl.histories.Delete(sources...)
+}
+
 // historyWidgets returns all history commands.
 // Under each comment are gathered all commands related to the comment's
 // subject. When there are two subgroups separated by an empty line, the
@@ -91,28 +120,12 @@ func (rl *Shell) fetchHistory() {}
 
 func (rl *Shell) historyIncrementalSearchForward() {
 	rl.undo.SkipSave()
-
-	// Start history completion without matching against the current line.
-	// rl.historyCompletion(true, false)
-	//
-	// // And only enter isearch mode when we have some completions: if we
-	// // don't, we either exhausted our history sources, or don't have comps.
-	// if rl.local == menuselect {
-	// 	rl.enterIsearchMode()
-	// }
+	rl.historyCompletion(true, false)
 }
 
 func (rl *Shell) historyIncrementalSearchBackward() {
 	rl.undo.SkipSave()
-
-	// Start history completion without matching against the current line.
-	// rl.historyCompletion(false, false)
-	//
-	// // And only enter isearch mode when we have some completions: if we
-	// // don't, we either exhausted our history sources, or don't have comps.
-	// if rl.local == menuselect {
-	// 	rl.enterIsearchMode()
-	// }
+	rl.historyCompletion(false, false)
 }
 
 func (rl *Shell) nonIncrementalForwardSearchHistory() {}
@@ -163,8 +176,8 @@ func (rl *Shell) acceptAndInferNextHistory() {
 func (rl *Shell) downLineOrHistory() {
 	rl.undo.SkipSave()
 	switch {
-	// case rl.hpos < rl.numLines()-1:
-	// 	rl.downLine()
+	case rl.cursor.Line() < rl.line.Lines():
+		rl.cursor.LineMove(1)
 	default:
 		rl.histories.Walk(-1)
 	}
@@ -173,8 +186,8 @@ func (rl *Shell) downLineOrHistory() {
 func (rl *Shell) upLineOrHistory() {
 	rl.undo.SkipSave()
 	switch {
-	// case rl.hpos > 0:
-	// 	rl.upLine()
+	case rl.cursor.Line() > 0:
+		rl.cursor.LineMove(-1)
 	default:
 		rl.histories.Walk(1)
 	}
@@ -183,8 +196,8 @@ func (rl *Shell) upLineOrHistory() {
 func (rl *Shell) upLineOrSearch() {
 	rl.undo.SkipSave()
 	switch {
-	// case rl.hpos > 0:
-	// 	rl.upLine()
+	case rl.cursor.Line() > 0:
+		rl.cursor.LineMove(-1)
 	default:
 		rl.historySearchBackward()
 	}
@@ -193,8 +206,8 @@ func (rl *Shell) upLineOrSearch() {
 func (rl *Shell) downLineOrSearch() {
 	rl.undo.SkipSave()
 	switch {
-	// case rl.hpos < rl.numLines()-1:
-	// 	rl.upLine()
+	case rl.cursor.Line() < rl.line.Lines():
+		rl.cursor.LineMove(1)
 	default:
 		rl.historySearchForward()
 	}
@@ -260,6 +273,7 @@ func (rl *Shell) beginningHistorySearchForward() {
 func (rl *Shell) acceptLineWith(infer, hold bool) {
 	// Without multiline support, we always return the line.
 	if rl.AcceptMultiline == nil {
+		rl.display.AcceptLine()
 		rl.histories.Accept(hold, infer, nil)
 		return
 	}

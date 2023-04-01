@@ -27,10 +27,10 @@ type group struct {
 	tcMaxLength   int           // Used when display is map/list, for determining message width
 	maxDescWidth  int
 	maxCellLength int
-	tcPosX        int
-	tcPosY        int
-	tcMaxX        int
-	tcMaxY        int
+	posX          int
+	posY          int
+	maxX          int
+	maxY          int
 }
 
 func (e *Engine) group(comps Values) {
@@ -97,8 +97,8 @@ func (e *Engine) newGroup(c Values, tag string, vals RawValues, aliased bool) {
 		tag:           tag,
 		noSpace:       c.NoSpace,
 		listSeparator: "--",
-		tcPosX:        -1,
-		tcPosY:        -1,
+		posX:          -1,
+		posY:          -1,
 		aliased:       aliased,
 		columnsWidth:  []int{0},
 	}
@@ -184,13 +184,13 @@ func (g *group) computeCells(vals RawValues) {
 		}
 	}
 
-	g.tcMaxX = termWidth / (g.maxCellLength)
-	if g.tcMaxX < 1 {
-		g.tcMaxX = 1 // avoid a divide by zero error
+	g.maxX = termWidth / (g.maxCellLength)
+	if g.maxX < 1 {
+		g.maxX = 1 // avoid a divide by zero error
 	}
 
-	if g.tcMaxX > len(vals) {
-		g.tcMaxX = len(vals)
+	if g.maxX > len(vals) {
+		g.maxX = len(vals)
 	}
 
 	numColumns := termWidth / (g.maxCellLength)
@@ -200,7 +200,7 @@ func (g *group) computeCells(vals RawValues) {
 
 	// We also have the width for each column
 	g.columnsWidth = make([]int, numColumns)
-	for i := 0; i < g.tcMaxX; i++ {
+	for i := 0; i < g.maxX; i++ {
 		g.columnsWidth[i] = g.maxCellLength
 	}
 }
@@ -238,13 +238,13 @@ nextValue:
 	}
 
 	if g.aliased {
-		g.tcMaxX = len(g.columnsWidth)
+		g.maxX = len(g.columnsWidth)
 		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth)
 	}
 
-	g.tcMaxY = len(g.values)
-	if g.tcMaxY > g.maxLength && g.maxLength != 0 {
-		g.tcMaxY = g.maxLength
+	g.maxY = len(g.values)
+	if g.maxY > g.maxLength && g.maxLength != 0 {
+		g.maxY = g.maxLength
 	}
 }
 
@@ -264,93 +264,136 @@ func (g *group) canFitInRow(termWidth int) bool {
 // Usage-time functions (selecting/writing) 9----------------------------------------------------------------
 //
 
+// updateIsearch - When searching through all completion groups (whether it be command history or not),
+// we ask each of them to filter its own items and return the results to the shell for aggregating them.
+// The rx parameter is passed, as the shell already checked that the search pattern is valid.
+func (g *group) updateIsearch(e *Engine) {
+	if e.isearch == nil {
+		return
+	}
+
+	suggs := make([]Candidate, 0)
+	for i := range g.values {
+		row := g.values[i]
+
+		for _, val := range row {
+			if e.isearch.MatchString(val.Value) {
+				suggs = append(suggs, val)
+			} else if val.Description != "" && e.isearch.MatchString(val.Description) {
+				suggs = append(suggs, val)
+			}
+		}
+	}
+
+	// Reset the group parameters
+	g.values = make([][]Candidate, 0)
+	g.posX = -1
+	g.posY = -1
+	g.columnsWidth = []int{0}
+
+	// Assign the filtered values: we don't need to check
+	// for a separate set of non-described values, as the
+	// completions have already been triaged when generated.
+	vals, _, aliased := groupValues(suggs)
+	g.aliased = aliased
+
+	if len(vals) == 0 {
+		return
+	}
+
+	// And perform the usual initialization routines.
+	vals = g.checkDisplays(vals)
+	g.computeCells(vals)
+	g.makeMatrix(vals)
+}
+
 func (g *group) firstCell() {
-	g.tcPosX = 0
-	g.tcPosY = 0
+	g.posX = 0
+	g.posY = 0
 }
 
 func (g *group) lastCell() {
-	g.tcPosY = len(g.values) - 1
-	g.tcPosX = len(g.columnsWidth) - 1
+	g.posY = len(g.values) - 1
+	g.posX = len(g.columnsWidth) - 1
 
 	if g.aliased {
 		g.findFirstCandidate(0, -1)
 	} else {
-		g.tcPosX = len(g.values[g.tcPosY]) - 1
+		g.posX = len(g.values[g.posY]) - 1
 	}
 }
 
 func (g *group) selected() (comp Candidate) {
-	if g.tcPosY == -1 || g.tcPosX == -1 {
+	if g.posY == -1 || g.posX == -1 {
 		return g.values[0][0]
 	}
 
-	return g.values[g.tcPosY][g.tcPosX]
+	return g.values[g.posY][g.posX]
 }
 
 func (g *group) moveSelector(x, y int) (done, next bool) {
 	// When the group has not yet been used, adjust
-	if g.tcPosX == -1 && g.tcPosY == -1 {
+	if g.posX == -1 && g.posY == -1 {
 		if x != 0 {
-			g.tcPosY++
+			g.posY++
 		} else {
-			g.tcPosX++
+			g.posX++
 		}
 	}
 
-	g.tcPosX += x
-	g.tcPosY += y
+	g.posX += x
+	g.posY += y
 	reverse := (x < 0 || y < 0)
 
 	// 1) Ensure columns is minimum one, if not, either
 	// go to previous row, or go to previous group.
-	if g.tcPosX < 0 {
-		if g.tcPosY == 0 && reverse {
-			g.tcPosX = 0
-			g.tcPosY = 0
+	if g.posX < 0 {
+		if g.posY == 0 && reverse {
+			g.posX = 0
+			g.posY = 0
 
 			return true, false
 		}
 
-		g.tcPosY--
-		g.tcPosX = len(g.values[g.tcPosY]) - 1
+		g.posY--
+		g.posX = len(g.values[g.posY]) - 1
 	}
 
 	// 2) If we are reverse-cycling and currently on the first candidate,
 	// we are done with this group. Stay on those coordinates still.
-	if g.tcPosY < 0 {
-		if g.tcPosX == 0 {
-			g.tcPosX = 0
-			g.tcPosY = 0
+	if g.posY < 0 {
+		if g.posX == 0 {
+			g.posX = 0
+			g.posY = 0
 
 			return true, false
 		}
 
-		g.tcPosY = len(g.values) - 1
-		g.tcPosX--
+		g.posY = len(g.values) - 1
+		g.posX--
 	}
 
 	// 3) If we are on the last row, we might have to move to
 	// the next column, if there is another one.
-	if g.tcPosY > g.tcMaxY-1 {
-		g.tcPosY = 0
-		if g.tcPosX < len(g.values[g.tcPosY])-1 {
-			g.tcPosX++
+	if g.posY > g.maxY-1 {
+		g.posY = 0
+		if g.posX < len(g.values[g.posY])-1 {
+			g.posX++
 		} else {
 			return true, true
 		}
 	}
 
 	// 4) If we are on the last column, go to next row or next group
-	if g.tcPosX > len(g.values[g.tcPosY])-1 {
+	if g.posX > len(g.values[g.posY])-1 {
 		if g.aliased {
 			return g.findFirstCandidate(x, y)
 		}
 
-		g.tcPosX = 0
+		g.posX = 0
 
-		if g.tcPosY < g.tcMaxY-1 {
-			g.tcPosY++
+		if g.posY < g.maxY-1 {
+			g.posY++
 		} else {
 			return true, true
 		}
@@ -364,28 +407,28 @@ func (g *group) moveSelector(x, y int) (done, next bool) {
 // otherwise loop in the direction wished until one is found, or go next/
 // previous column, and so on.
 func (g *group) findFirstCandidate(x, y int) (done, next bool) {
-	for g.tcPosX > len(g.values[g.tcPosY])-1 {
-		g.tcPosY += y
-		g.tcPosY += x
+	for g.posX > len(g.values[g.posY])-1 {
+		g.posY += y
+		g.posY += x
 
 		// Previous column or group
-		if g.tcPosY < 0 {
-			if g.tcPosX == 0 {
-				g.tcPosX = 0
-				g.tcPosY = 0
+		if g.posY < 0 {
+			if g.posX == 0 {
+				g.posX = 0
+				g.posY = 0
 
 				return true, false
 			}
 
-			g.tcPosY = len(g.values) - 1
-			g.tcPosX--
+			g.posY = len(g.values) - 1
+			g.posX--
 		}
 
 		// Next column or group
-		if g.tcPosY > g.tcMaxY-1 {
-			g.tcPosY = 0
-			if g.tcPosX < len(g.columnsWidth)-1 {
-				g.tcPosX++
+		if g.posY > g.maxY-1 {
+			g.posY = 0
+			if g.posX < len(g.columnsWidth)-1 {
+				g.posX++
 			} else {
 				return true, true
 			}
@@ -417,7 +460,7 @@ func (g *group) writeComps(eng *Engine) (comp string) {
 		columns++
 		rows++
 
-		if rows > g.tcMaxY {
+		if rows > g.maxY {
 			break
 		}
 	}
@@ -446,7 +489,7 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 
 	for col, val := range current {
 		// Generate the highlighted candidate with its padding
-		isSelected := row == g.tcPosY && col == g.tcPosX && g.isCurrent
+		isSelected := row == g.posY && col == g.posX && g.isCurrent
 		cell, pad := g.padCandidate(current, val, col)
 		comp += g.highlightCandidate(eng, val, cell, pad, isSelected) + " "
 
@@ -503,7 +546,7 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 	}
 
 	// If the comp is currently selected, overwrite any highlighting already applied.
-	if row == g.tcPosY && col == g.tcPosX && g.isCurrent && !g.aliased {
+	if row == g.posY && col == g.posX && g.isCurrent && !g.aliased {
 		desc = color.SGR(strconv.Itoa(255), false) + color.FgBlackBright + g.descriptionTrimmed(val.Description)
 	}
 
@@ -540,7 +583,7 @@ func (g *group) padDescription(row []Candidate, val Candidate, valPad int) (pad 
 	}
 
 	candidateLen := len(g.displayTrimmed(val.Display)) + valPad + 1
-	individualRest := (term.GetWidth() % g.maxCellLength) / (g.tcMaxX + len(row))
+	individualRest := (term.GetWidth() % g.maxCellLength) / (g.maxX + len(row))
 	pad = g.maxCellLength - candidateLen - len(g.descriptionTrimmed(val.Description)) + individualRest
 
 	if pad > 1 {
