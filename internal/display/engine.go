@@ -67,6 +67,8 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 // is a multiline one.
 func (e *Engine) Refresh() {
 	e.CursorToLineStart()
+	print(term.ClearScreenBelow)
+
 	var line *core.Line
 
 	// Use the coordinates computed during the last refresh
@@ -85,8 +87,8 @@ func (e *Engine) Refresh() {
 	// Go to the last row of the line, and display hints.
 	e.CursorBelowLine()
 	print(term.ClearScreenBelow)
-	e.hintRows = e.hint.Coordinates()
 	e.hint.Display()
+	e.hintRows = e.hint.Coordinates()
 
 	// Display completions.
 	e.displayCompletions()
@@ -100,11 +102,11 @@ func (e *Engine) Refresh() {
 // ClearHelpers clears and resets the hint and completion sections.
 func (e *Engine) ClearHelpers() {
 	cursorCols, cursorRows := e.cursor.Coordinates(e.startAt)
-	term.MoveCursorDown(e.lineRows - cursorRows)
+	term.MoveCursorDown((e.lineRows - cursorRows) + 1)
 
 	print(term.ClearScreenBelow)
 
-	term.MoveCursorUp(e.lineRows - cursorRows)
+	term.MoveCursorUp((e.lineRows - cursorRows) + 1)
 	term.MoveCursorForwards(cursorCols)
 }
 
