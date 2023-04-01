@@ -540,6 +540,17 @@ func (l *Line) Coordinates(indent int) (x, y int) {
 	return usedX, usedY
 }
 
+// Lines returns the number of real lines in the input buffer.
+// If there are no newlines, the result is 1, otherwise it's
+// the number of newlines + 1.
+func (l *Line) Lines() int {
+	line := string(*l)
+	nl := regexp.MustCompile(string(inputrc.Newline))
+	lines := nl.FindAllStringIndex(line, -1)
+
+	return len(lines)
+}
+
 // newlines gives the indexes of all newline characters in the line.
 func (l *Line) newlines() [][]int {
 	line := string(*l)

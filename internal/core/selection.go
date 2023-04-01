@@ -58,7 +58,7 @@ func (s *Selection) MarkRange(bpos, epos int) {
 	s.active = true
 	s.bpos = bpos
 	s.epos = epos
-	s.bg = color.BgBlue + color.Dim
+	s.bg = color.BgBlue
 }
 
 // MarkSurroundA creates two distinct selections each containing one rune.
@@ -140,7 +140,7 @@ func (s *Selection) Pos() (bpos, epos int) {
 // selection is to be deleted, but also works for yank operations.
 func (s *Selection) Cursor() int {
 	bpos, epos := s.Pos()
-	if bpos == -1 || epos == -1 {
+	if bpos == -1 && epos == -1 {
 		return s.cursor.Pos()
 	}
 
@@ -333,7 +333,7 @@ func (s *Selection) ReplaceWith(replacer func(r rune) rune) {
 // and returns the deleted content, which can then be passed to the shell registers.
 // After deletion, the selection is reset.
 func (s *Selection) Cut() (buf string) {
-	if s.line.Len() == 0 || s.Len() == 0 {
+	if s.line.Len() == 0 {
 		return
 	}
 
