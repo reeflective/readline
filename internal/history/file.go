@@ -29,6 +29,17 @@ type Item struct {
 	Block    string
 }
 
+// NewSourceFromFile returns a new history source writing to and reading from a file.
+func NewSourceFromFile(file string) (Source, error) {
+	var err error
+
+	hist := new(fileHistory)
+	hist.file = file
+	hist.lines, err = openHist(file)
+
+	return hist, err
+}
+
 func openHist(filename string) (list []Item, err error) {
 	file, err := os.Open(filename)
 	if err != nil {

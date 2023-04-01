@@ -187,6 +187,12 @@ func (h *Sources) Cycle(next bool) {
 	}
 }
 
+// OnLastSource returns true if the currently active
+// history source is the last one in the list.
+func (h *Sources) OnLastSource() bool {
+	return h.sourcePos == len(h.names)-1
+}
+
 // Current returns the current/active history source.
 func (h *Sources) Current() Source {
 	if len(h.list) == 0 {
@@ -358,7 +364,7 @@ func (h *Sources) Complete(forward, filter bool) completion.Values {
 
 	if forward {
 		histPos = -1
-		done = func(i int) bool { return i < history.Len() }
+		done = func(i int) bool { return i < history.Len()-1 }
 		move = func(pos int) int { return pos + 1 }
 	} else {
 		histPos = history.Len()
@@ -407,9 +413,15 @@ nextLine:
 
 	comps := completion.AddRaw(compLines)
 	comps.NoSort["*"] = true
+	comps.ListLong["*"] = true
 	comps.PREFIX = string(*h.line)
 
 	return comps
+}
+
+// Name returns the name of the currently active history source.
+func (h *Sources) Name() string {
+	return h.names[h.sourcePos]
 }
 
 func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
