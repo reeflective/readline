@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/reeflective/readline/internal/core"
-	"github.com/reeflective/readline/internal/display"
 	"github.com/xo/inputrc"
 )
 
@@ -13,34 +12,35 @@ type Modes struct {
 	local    Mode
 	main     Mode
 	prefixed inputrc.Bind
+	active   inputrc.Bind
 	pending  []action
+	skip     bool
+	isCaller bool
 
 	keys       *core.Keys
 	iterations *core.Iterations
-	display    *display.Engine
 	opts       *inputrc.Config
 	commands   map[string]func()
 }
 
 // NewModes is a required constructor for the keymap modes manager.
 // It initializes the keymaps to their defaults or configured values.
-func NewModes(keys *core.Keys, i *core.Iterations, dis *display.Engine, opts *inputrc.Config) *Modes {
+func NewModes(keys *core.Keys, i *core.Iterations, opts *inputrc.Config) *Modes {
 	modes := &Modes{
 		main:       Emacs,
 		keys:       keys,
 		iterations: i,
-		display:    dis,
 		opts:       opts,
 		commands:   make(map[string]func()),
 	}
 
+	defer modes.UpdateCursor()
+
 	switch modes.opts.GetString("editing-mode") {
 	case "emacs":
 		modes.main = Emacs
-		modes.display.UpdateCursor(display.Emacs)
 	case "vi":
 		modes.main = ViIns
-		modes.display.UpdateCursor(display.Viins)
 	}
 
 	// Run the corresponding Vim mode widget to initialize.
@@ -94,6 +94,10 @@ func (m *Modes) Match(main bool) (command func(), prefix bool) {
 		keymap = m.local
 	}
 
+	if keymap == "" {
+		return
+	}
+
 	keys, empty := m.keys.PeekAll()
 	if empty {
 		return
@@ -101,8 +105,8 @@ func (m *Modes) Match(main bool) (command func(), prefix bool) {
 
 	// Commands
 	binds := m.opts.Binds[string(keymap)]
-	if binds == nil {
-		// Drop the key.
+	if len(binds) == 0 {
+		return
 	}
 
 	// Find binds matching by prefix or perfectly.
@@ -125,28 +129,38 @@ func (m *Modes) Match(main bool) (command func(), prefix bool) {
 		return nil, true
 	}
 
+	m.active = match
+
 	return m.resolveCommand(match), false
+}
+
+func (m *Modes) RunLocal(match inputrc.Bind) (prefixed bool) {
+	return
+}
+
+func (m *Modes) RunMain() (accept, prefixed bool, err error) {
+	return
 }
 
 // UpdateCursor reprints the cursor corresponding to the current keymaps.
 func (m *Modes) UpdateCursor() {
 	switch m.local {
 	case ViOpp:
-		m.display.UpdateCursor(display.Viopp)
+		m.PrintCursor(ViOpp)
 		return
 	case Visual:
-		m.display.UpdateCursor(display.Visual)
+		m.PrintCursor(Visual)
 		return
 	}
 
 	// But if not, we check for the global keymap
 	switch m.main {
 	case Emacs, EmacsStandard, EmacsMeta, EmacsCtrlX:
-		m.display.UpdateCursor(display.Emacs)
+		m.PrintCursor(Emacs)
 	case ViIns:
-		m.display.UpdateCursor(display.Viins)
+		m.PrintCursor(ViIns)
 	case ViCmd:
-		m.display.UpdateCursor(display.Vicmd)
+		m.PrintCursor(ViCmd)
 	}
 }
 
