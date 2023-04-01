@@ -163,6 +163,9 @@ func (p *Prompt) LastUsed() int {
 // RightPrint prints the right-sided prompt strings, which might be either
 // a traditional RPROMPT string, or a tooltip prompt if any must be rendered.
 func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor) {
+	p.line = line
+	p.cursor = cursor
+
 	var rprompt string
 	if p.tooltipF != nil {
 		rprompt = p.tooltipF()
@@ -206,15 +209,25 @@ func (p *Prompt) RightClear(force bool) {
 		return
 	}
 
+	// Get all dimensions we need
+	termWidth := term.GetWidth()
+	lineLen := p.cursorLineLen(p.line, p.cursor)
+	cursorX, _ := p.cursor.Coordinates(p.primaryCols)
+
+	// Go at the end of the line, and pad prompt with spaces.
+	term.MoveCursorBackwards(termWidth)
+	term.MoveCursorForwards(lineLen)
+	defer term.MoveCursorBackwards(termWidth - cursorX)
+
 	// If the right prompt is a tooltip, remove it anyway.
 	if tooltip != "" {
-		print(term.ClearScreenBelow)
+		print(term.ClearLineAfter)
 		return
 	}
 
 	// Or only remove the right prompt if asked to.
 	if force && p.rightF() != "" {
-		print(term.ClearScreenBelow)
+		print(term.ClearLineAfter)
 	}
 }
 

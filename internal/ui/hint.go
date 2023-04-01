@@ -6,6 +6,7 @@ import (
 
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/term"
+	"github.com/xo/inputrc"
 )
 
 // Hint is in charge of printing the usage messages below the input line.
@@ -59,11 +60,10 @@ func (h *Hint) Display() {
 	wrapped, _ := wrapText(string(h.text), termWidth)
 
 	offset += actual
-	h.usedY = offset - 1
+	h.usedY = offset
 
 	if len(wrapped) > 0 {
-		// print("\n")
-		print("\r" + wrapped + color.Reset)
+		print("\r" + wrapped + string(inputrc.Newline) + color.Reset)
 	}
 }
 
@@ -82,11 +82,6 @@ func wrapText(text string, lineWidth int) (wrapped string, lines int) {
 
 	wrapped = words[0]
 	spaceLeft := lineWidth - len(wrapped)
-
-	// There must be at least a line
-	if text != "" {
-		lines++
-	}
 
 	for _, word := range words[1:] {
 		if len(color.Strip(word))+1 > spaceLeft {

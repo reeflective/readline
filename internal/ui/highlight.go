@@ -149,7 +149,6 @@ func hlAdd(regions []core.Selection, line []rune, pos int) ([]core.Selection, []
 }
 
 func hlReset(regions []core.Selection, newHl core.Selection, line []rune) []rune {
-	// if newHl != nil {
 	if newHl.Active() {
 		fg, bg := newHl.Highlights()
 		line = append(line, []rune(bg)...)
