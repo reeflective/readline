@@ -107,7 +107,14 @@ func (c *Cursor) ToFirstNonSpace(forward bool) {
 // BeginningOfLine moves the cursor to the beginning of the current line,
 // (marked by a newline) or if no newline found, to the beginning of the buffer.
 func (c *Cursor) BeginningOfLine() {
-	c.pos = 0
+	defer c.CheckCommand()
+
+	newlinePos := c.line.Find(inputrc.Newline, c.pos, false)
+	if newlinePos != -1 {
+		c.pos = newlinePos + 1
+	} else {
+		c.pos = 0
+	}
 }
 
 // EndOfLine moves the cursor to the end of the current line, (marked by
@@ -127,7 +134,15 @@ func (c *Cursor) EndOfLine() {
 // EndOfLineAppend moves the cursor to the very end of the line,
 // that is, equal to len(Line), as in when appending in insert mode.
 func (c *Cursor) EndOfLineAppend() {
-	c.pos = c.line.Len()
+	defer c.CheckAppend()
+
+	newlinePos := c.line.Find(inputrc.Newline, c.pos, true)
+
+	if newlinePos != -1 {
+		c.pos = newlinePos
+	} else {
+		c.pos = c.line.Len()
+	}
 }
 
 // SetMark sets the current cursor position as the mark.
@@ -189,8 +204,8 @@ func (c *Cursor) LineMove(lines int) {
 // OnEmptyLine returns true if the rune under the current cursor position is a newline
 // and that the preceding rune in the line is also a newline, or returns false.
 func (c *Cursor) OnEmptyLine() bool {
-	if c.pos <= 0 {
-		return false
+	if c.pos == c.line.Len() {
+		return true
 	}
 
 	if (*c.line)[c.pos] == inputrc.Newline {
@@ -382,7 +397,7 @@ func (c *Cursor) moveLineUp(lines int) {
 func (c *Cursor) onSpace() bool {
 	if c.pos == c.line.Len() {
 		return false
-	} else if c.pos <= 0 {
+	} else if c.pos < 0 {
 		return false
 	}
 

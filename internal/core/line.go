@@ -171,7 +171,6 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 		if forward {
 			pos++
 			if pos > l.Len()-1 {
-				pos--
 				break
 			}
 		} else {

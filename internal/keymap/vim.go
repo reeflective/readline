@@ -133,8 +133,8 @@ var visualKeys = map[string]inputrc.Bind{
 	"ia":         {Action: "select-in-shell-word"},
 	"iw":         {Action: "select-in-word"},
 	"a":          {Action: "vi-select-surround"},
-	"c":          {Action: "vi-change"},
-	"d":          {Action: "vi-delete"},
+	"c":          {Action: "vi-change-to"},
+	"d":          {Action: "vi-delete-to"},
 	"i":          {Action: "vi-select-surround"},
 	"j":          {Action: "down-line"},
 	"k":          {Action: "up-line"},
@@ -142,8 +142,8 @@ var visualKeys = map[string]inputrc.Bind{
 	"S":          {Action: "vi-add-surround"},
 	"u":          {Action: "vi-down-case"},
 	"v":          {Action: "vi-edit-command-line"},
-	"x":          {Action: "vi-delete"},
-	"y":          {Action: "vi-yank"},
+	"x":          {Action: "vi-delete-to"},
+	"y":          {Action: "vi-yank-to"},
 	"~":          {Action: "vi-swap-case"},
 }
 
