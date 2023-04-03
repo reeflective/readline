@@ -77,8 +77,8 @@ func (rl *Shell) viWidgets() lineWidgets {
 		"vi-unix-word-rubout": rl.backwardKillWord, // backward-kill-word
 		"vi-rubout":           rl.viRubout,
 		"vi-yank-to":          rl.viYankTo, // vi-yank
-		// "vi-yank-pop":                       rl.viYank,
-		// "vi-yank-arg":                       rl.viYank,
+		"vi-yank-pop":         rl.yankPop,
+		"vi-yank-arg":         rl.yankLastArg,
 
 		"vi-kill-line":       rl.viKillLine,
 		"vi-put":             rl.viPut,

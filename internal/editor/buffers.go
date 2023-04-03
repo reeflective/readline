@@ -23,7 +23,6 @@ var (
 // Buffers is a list of registers in which to put yanked/cut contents.
 // These buffers technically are Vim registers with full functionality.
 type Buffers struct {
-	kill     []rune          // Kill buffer/register, used by default
 	num      map[int][]rune  // numbered registers (0-9)
 	alpha    map[rune][]rune // lettered registers ( a-z )
 	ro       map[rune][]rune // read-only registers ( . % : )
@@ -75,10 +74,6 @@ func (reg *Buffers) SetActive(register rune) {
 // If the rune is nil (rune(0)), it returns the value of the kill buffer (the " Vim register).
 // If the register name is invalid, the function returns an empty rune slice.
 func (reg *Buffers) Get(register rune) []rune {
-	if register == rune(0) {
-		return reg.kill
-	}
-
 	num, err := strconv.Atoi(string(reg.active))
 	if err == nil {
 		return reg.num[num]
@@ -101,7 +96,8 @@ func (reg *Buffers) Active() []rune {
 	defer reg.Reset()
 
 	if !reg.waiting && !reg.selected {
-		return reg.kill
+		return reg.GetKill()
+		// return reg.kill
 	}
 
 	return reg.Get(reg.active)
@@ -110,20 +106,29 @@ func (reg *Buffers) Active() []rune {
 // Pop rotates the kill ring and returns the new top.
 func (reg *Buffers) Pop() []rune {
 	if len(reg.num) == 0 {
-		return reg.kill
+		return nil
 	}
 
 	// Reassign the kill buffer and
 	// pop the first numbered register.
-	reg.kill = []rune(reg.num[0])
+	buf := string(reg.num[0])
 	delete(reg.num, 0)
 
-	return reg.kill
+	for i := 0; i < len(reg.num); i++ {
+		reg.num[i] = []rune(string(reg.num[i+1]))
+		delete(reg.num, i+1)
+	}
+
+	return []rune(buf)
 }
 
 // GetKill returns the contents of the kill buffer.
 func (reg *Buffers) GetKill() []rune {
-	return reg.kill
+	if len(reg.num) == 0 {
+		return nil
+	}
+
+	return reg.num[0]
 }
 
 // Write writes a slice to the currently active buffer, and/or to the kill one.
@@ -136,8 +141,6 @@ func (reg *Buffers) Write(content ...rune) {
 	if len(content) == 0 || buf == "" {
 		return
 	}
-
-	reg.kill = []rune(buf)
 
 	// Either write to the active register, or add to numbered ones.
 	if reg.selected {
@@ -183,15 +186,6 @@ func (reg *Buffers) Reset() {
 func (reg *Buffers) Complete() completion.Values {
 	vals := make([]completion.Candidate, 0)
 
-	// Kill buffer
-	display := strings.ReplaceAll(string(reg.kill), "\n", ``)
-	unnamed := completion.Candidate{
-		Value:   string(reg.kill),
-		Display: color.Dim + "\"\"" + color.DimReset + " " + display,
-	}
-
-	vals = append(vals, unnamed)
-
 	// Alpha and numbered registers
 	vals = append(vals, reg.completeNumRegs()...)
 	vals = append(vals, reg.completeAlphaRegs()...)
@@ -220,7 +214,7 @@ func (reg *Buffers) writeNum(register int, buf []rune) {
 	}
 
 	// Add to the stack with the specified register
-	if register != -1 {
+	if register > 0 {
 		reg.num[register] = buf
 
 		return
