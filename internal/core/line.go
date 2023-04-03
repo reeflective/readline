@@ -593,10 +593,10 @@ func (l *Line) Display(indent int) {
 			term.MoveCursorForwards(indent)
 		}
 
-		line += term.ClearLineAfter
-
 		if i < len(lines)-1 {
 			line += "\n"
+		} else {
+			line += term.ClearScreenBelow
 		}
 
 		print(line)
