@@ -271,7 +271,7 @@ func (c *Cursor) CheckCommand() {
 	// The cursor can also not be on a newline sign,
 	// as it will induce the line rendering into an error.
 	if c.line.Len() > 0 && (*c.line)[c.pos] == '\n' && !c.OnEmptyLine() {
-		c.Dec()
+		c.Inc()
 	}
 }
 
@@ -315,19 +315,17 @@ func (c *Cursor) moveLineDown(lines int) {
 	newlines := c.line.newlines()
 
 	for line := 0; line < len(newlines); line++ {
-		end := newlines[line][0] + 1
+		end := newlines[line][0]
 		if line < c.Line() {
 			begin = end
 			continue
 		}
 
-		cpos = c.pos - begin
-		begin = end
-		c.pos = begin
-
 		// If we are on the current line,
 		// go at the end of it
 		if line == c.Line() {
+			cpos = c.pos - begin
+			begin = end
 			continue
 		}
 
@@ -355,7 +353,7 @@ func (c *Cursor) moveLineUp(lines int) {
 	newlines := c.line.newlines()
 
 	for line := len(newlines) - 1; line >= 0; line-- {
-		end := newlines[line][0]
+		end := newlines[line][0] - 1
 
 		if line > c.Line() {
 			continue
@@ -366,13 +364,13 @@ func (c *Cursor) moveLineUp(lines int) {
 			begin = newlines[line-1][0] + 1
 		} else {
 			begin = 0
+			end--
 		}
-
-		cpos = c.pos - begin
 
 		// If we are on the current line,
 		// go at the beginning of the previous one.
 		if line == c.Line() {
+			cpos = c.pos - begin
 			continue
 		}
 
@@ -381,7 +379,7 @@ func (c *Cursor) moveLineUp(lines int) {
 		if end-begin > cpos {
 			c.pos = begin + cpos
 		} else {
-			c.pos = begin
+			c.pos = end
 		}
 
 		// Perform the operation

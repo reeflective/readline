@@ -1085,36 +1085,6 @@ func (rl *Shell) viSelectSurround() {
 	rl.selection.MarkRange(bpos, epos)
 }
 
-func (rl *Shell) spacesAroundWord(cpos int) (before, under bool) {
-	under = (*rl.line)[cpos] == inputrc.Space
-	before = cpos > 0 && (*rl.line)[cpos-1] == inputrc.Space
-
-	return
-}
-
-// adjustWordSelection adjust the beginning and end of a word (blank or not) selection, depending
-// on whether it's surrounded by spaces, and if selection started from a whitespace or within word.
-func (rl *Shell) adjustWordSelection(before, under, after bool, bpos int) (int, int) {
-	var epos int
-
-	if after && !under {
-		rl.cursor.Inc()
-		rl.cursor.ToFirstNonSpace(true)
-		rl.cursor.Dec()
-	} else if !after {
-		epos = rl.cursor.Pos()
-		rl.cursor.Set(bpos - 1)
-		rl.cursor.ToFirstNonSpace(false)
-		rl.cursor.Inc()
-		bpos = rl.cursor.Pos()
-		rl.cursor.Set(epos)
-	}
-
-	epos = rl.cursor.Pos()
-
-	return bpos, epos
-}
-
 //
 // Miscellaneous ---------------------------------------------------------------
 //
