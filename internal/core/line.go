@@ -165,6 +165,44 @@ func (l *Line) SelectWord(pos int) (bpos, epos int) {
 	return bpos, epos
 }
 
+// SelectBlankWord returns the full bigword around the specified position.
+func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
+	pos, valid := l.checkPos(pos)
+	if !valid {
+		return
+	}
+
+	pattern := `[^\s\\]`
+	bpos, epos = pos, pos
+
+	if match, _ := regexp.MatchString(pattern, string((*l)[pos])); !match {
+		pattern = `[^\s\\ ]`
+	}
+
+	// To first space found backward
+	for ; bpos >= 0; bpos-- {
+		if match, _ := regexp.MatchString(pattern, string((*l)[bpos])); !match {
+			break
+		}
+	}
+
+	// And to first space found forward
+	for ; epos < l.Len(); epos++ {
+		if match, _ := regexp.MatchString(pattern, string((*l)[epos])); !match {
+			break
+		}
+	}
+
+	bpos++
+
+	// Ending position must be greater than 0
+	if epos > 0 {
+		epos--
+	}
+
+	return bpos, epos
+}
+
 // Find returns the index position of a target rune, or -1 if not found.
 func (l *Line) Find(char rune, pos int, forward bool) int {
 	for {
@@ -206,7 +244,7 @@ func (l *Line) FindSurround(char rune, pos int) (bpos, epos int, bchar, echar ru
 	// How many occurences before and after cursor.
 	var before, after int
 
-	bpos = l.Find(bchar, pos, false)
+	bpos = l.Find(bchar, pos+1, false)
 	epos = l.Find(echar, pos, true)
 
 	next, prev := epos, bpos

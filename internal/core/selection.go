@@ -378,7 +378,6 @@ func (s *Selection) SelectAShellWord() {
 	// If none of the quotes matched, use blank word
 	if mark == -1 && cpos == -1 {
 		s.SelectABlankWord()
-
 		return
 	}
 

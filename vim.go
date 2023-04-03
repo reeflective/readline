@@ -992,6 +992,12 @@ func (rl *Shell) viSelectABlankWord() {
 
 func (rl *Shell) viSelectAShellWord() {
 	rl.undo.SkipSave()
+	// First find the blank word under cursor,
+	// and put or cursor at the beginning of it.
+	bpos, _ := rl.line.SelectBlankWord(rl.cursor.Pos())
+	rl.cursor.Set(bpos)
+
+	// Then find any enclosing quotes, if valid.
 	rl.selection.SelectAShellWord()
 }
 
@@ -1003,30 +1009,22 @@ func (rl *Shell) viSelectAWord() {
 func (rl *Shell) viSelectInBlankWord() {
 	rl.undo.SkipSave()
 
-	// Go the beginning of the word and start mark
-	rl.cursor.ToFirstNonSpace(true)
-	backward := rl.line.Backward(rl.line.TokenizeSpace, rl.cursor.Pos())
-	rl.cursor.Move(backward)
-	bpos := rl.cursor.Pos()
-
-	// Then go to the end of the blank word
-	forward := rl.line.ForwardEnd(rl.line.TokenizeSpace, rl.cursor.Pos())
-	rl.cursor.Move(forward)
-	epos := rl.cursor.Pos()
-
-	// Select the range and return: the caller will decide what
-	// to do with the cursor position and the selection itself.
-	rl.selection.MarkRange(bpos, epos)
+	bpos, epos := rl.line.SelectBlankWord(rl.cursor.Pos())
+	rl.cursor.Set(epos)
+	rl.selection.Mark(bpos)
 }
 
 func (rl *Shell) viSelectInShellWord() {
 	rl.undo.SkipSave()
 
-	rl.cursor.ToFirstNonSpace(true)
+	// First find the blank word under cursor,
+	// and put or cursor at the beginning of it.
+	bpos, _ := rl.line.SelectBlankWord(rl.cursor.Pos())
+	rl.cursor.Set(bpos)
 
+	// Then find any enclosing quotes, if valid.
 	sBpos, sEpos, _, _ := rl.line.FindSurround('\'', rl.cursor.Pos())
 	dBpos, dEpos, _, _ := rl.line.FindSurround('"', rl.cursor.Pos())
-
 	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
 
 	// If none matched, use blankword
@@ -1036,27 +1034,19 @@ func (rl *Shell) viSelectInShellWord() {
 		return
 	}
 
+	rl.cursor.Set(cpos - 1)
+
 	// Select the range and return: the caller will decide what
 	// to do with the cursor position and the selection itself.
-	rl.selection.MarkRange(mark+1, cpos-1)
+	rl.selection.Mark(mark + 1)
 }
 
 func (rl *Shell) viSelectInWord() {
 	rl.undo.SkipSave()
 
-	rl.cursor.ToFirstNonSpace(true)
-
-	// Go to the beginning of the current word.
-	rl.cursor.Move(rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos()))
-	bpos := rl.cursor.Pos()
-
-	// Then go to the end of the blank word
-	rl.cursor.Move(rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos()) + 1)
-	epos := rl.cursor.Pos()
-
-	// Select the range and return: the caller will decide what
-	// to do with the cursor position and the selection itself.
-	rl.selection.MarkRange(bpos, epos)
+	bpos, epos := rl.line.SelectWord(rl.cursor.Pos())
+	rl.cursor.Set(epos)
+	rl.selection.Mark(bpos)
 }
 
 func (rl *Shell) viSelectSurround() {
