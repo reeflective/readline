@@ -168,6 +168,22 @@ func (h *Sources) Walk(pos int) {
 	h.cursor.Set(h.line.Len())
 }
 
+// GetLast returns the last saved history line in the active history source.
+func (h *Sources) GetLast() string {
+	history := h.Current()
+
+	if history == nil || history.Len() == 0 {
+		return ""
+	}
+
+	last, err := history.GetLine(history.Len() - 1)
+	if err != nil {
+		return ""
+	}
+
+	return last
+}
+
 // Cycle checks for the next history source (if any) and makes it the active one.
 // If next is false, the source cycles to the previous source.
 func (h *Sources) Cycle(next bool) {

@@ -209,7 +209,9 @@ func (rl *Shell) beginningOfLine() {
 
 func (rl *Shell) endOfLine() {
 	rl.undo.SkipSave()
-	rl.cursor.EndOfLine()
+	// If in Vim command mode, cursor
+	// will be brought back once later.
+	rl.cursor.EndOfLineAppend()
 }
 
 func (rl *Shell) upLine() {
@@ -293,7 +295,13 @@ func (rl *Shell) deleteChar() {
 }
 
 func (rl *Shell) backwardDeleteChar() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	if rl.keymaps.Main() == keymap.ViIns {
+		rl.undo.SkipSave()
+	} else {
+		rl.undo.Save(*rl.line, *rl.cursor)
+	}
+
+	rl.completer.Update()
 
 	if rl.cursor.Pos() == 0 {
 		return
@@ -342,6 +350,7 @@ func (rl *Shell) selfInsert() {
 
 	// Handle suffix-autoremoval for inserted completions.
 	rl.completer.TrimSuffix()
+	rl.completer.Update()
 
 	key, empty := rl.keys.Pop()
 	if empty {
