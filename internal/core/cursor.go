@@ -195,9 +195,15 @@ func (c *Cursor) LineMove(lines int) {
 	}
 
 	if lines < 0 {
-		c.moveLineUp(lines)
+		for i := 0; i < -1*lines; i++ {
+			c.moveLineUp()
+			c.CheckCommand()
+		}
 	} else {
-		c.moveLineDown(lines)
+		for i := 0; i < lines; i++ {
+			c.moveLineDown()
+			c.CheckCommand()
+		}
 	}
 }
 
@@ -309,7 +315,7 @@ func (c *Cursor) Coordinates(indent int) (x, y int) {
 	return
 }
 
-func (c *Cursor) moveLineDown(lines int) {
+func (c *Cursor) moveLineDown() {
 	var cpos, begin int
 
 	newlines := c.line.newlines()
@@ -337,17 +343,11 @@ func (c *Cursor) moveLineDown(lines int) {
 			c.pos = end - 1
 		}
 
-		// Perform the operation
-		// as many times as needed.
-		lines--
-
-		if lines == 0 {
-			break
-		}
+		break
 	}
 }
 
-func (c *Cursor) moveLineUp(lines int) {
+func (c *Cursor) moveLineUp() {
 	var cpos, begin int
 
 	newlines := c.line.newlines()
@@ -382,13 +382,7 @@ func (c *Cursor) moveLineUp(lines int) {
 			c.pos = end
 		}
 
-		// Perform the operation
-		// as many times as needed.
-		lines++
-
-		if lines == 0 {
-			return
-		}
+		break
 	}
 }
 
