@@ -122,10 +122,14 @@ func (c *Cursor) BeginningOfLine() {
 func (c *Cursor) EndOfLine() {
 	defer c.CheckCommand()
 
+	if c.OnEmptyLine() {
+		return
+	}
+
 	newlinePos := c.line.Find(inputrc.Newline, c.pos, true)
 
 	if newlinePos != -1 {
-		c.pos = newlinePos
+		c.pos = newlinePos - 1
 	} else {
 		c.pos = c.line.Len() - 1
 	}
