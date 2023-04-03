@@ -109,8 +109,8 @@ func (k *Keys) Pop() (key rune, empty bool) {
 		return rune(0), true
 	}
 
-	key = k.stack[len(k.stack)-1]
-	k.stack = k.stack[:len(k.stack)-1]
+	key = k.stack[0]
+	k.stack = k.stack[1:]
 
 	return key, false
 }

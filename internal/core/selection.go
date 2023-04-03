@@ -370,8 +370,8 @@ func (s *Selection) SelectABlankWord() {
 func (s *Selection) SelectAShellWord() {
 	s.cursor.ToFirstNonSpace(true)
 
-	sBpos, sEpos, _, _ := s.line.FindSurround('\'', s.cursor.Pos())
-	dBpos, dEpos, _, _ := s.line.FindSurround('"', s.cursor.Pos())
+	sBpos, sEpos := s.line.SurroundQuotes(true, s.cursor.Pos())
+	dBpos, dEpos := s.line.SurroundQuotes(false, s.cursor.Pos())
 
 	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
 

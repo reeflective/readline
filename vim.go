@@ -1023,8 +1023,8 @@ func (rl *Shell) viSelectInShellWord() {
 	rl.cursor.Set(bpos)
 
 	// Then find any enclosing quotes, if valid.
-	sBpos, sEpos, _, _ := rl.line.FindSurround('\'', rl.cursor.Pos())
-	dBpos, dEpos, _, _ := rl.line.FindSurround('"', rl.cursor.Pos())
+	sBpos, sEpos := rl.line.SurroundQuotes(true, rl.cursor.Pos())
+	dBpos, dEpos := rl.line.SurroundQuotes(false, rl.cursor.Pos())
 	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
 
 	// If none matched, use blankword

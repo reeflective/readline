@@ -48,6 +48,7 @@ func NewModes(keys *core.Keys, i *core.Iterations, opts *inputrc.Config) *Modes 
 
 	// Add additional default keymaps
 	modes.opts.Binds[string(Visual)] = visualKeys
+	modes.opts.Binds[string(ViOpp)] = vioppKeys
 
 	return modes
 }

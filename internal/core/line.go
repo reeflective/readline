@@ -241,6 +241,39 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 func (l *Line) FindSurround(char rune, pos int) (bpos, epos int, bchar, echar rune) {
 	bchar, echar = strutil.MatchSurround(char)
 
+	bpos = l.Find(bchar, pos+1, false)
+	epos = l.Find(echar, pos-1, true)
+
+	if bpos == epos {
+		pos++
+		epos = l.Find(echar, pos, true)
+
+		if epos == -1 {
+			pos--
+			epos = l.Find(echar, pos, false)
+
+			if epos != -1 {
+				bpos, epos = epos, bpos
+			}
+		}
+	}
+
+	return
+}
+
+// SurroundQuotes returns the index positions of enclosing quotes around the given cursor
+// position, provided that these quotes are really enclosing the inner selection (that is,
+// that each of those quotes is not paired with another, outer quote).
+// bpos or epos can be -1 if no quotes have been forward/backward found.
+func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
+	var bchar, echar rune
+
+	if single {
+		bchar, echar = '\'', '\''
+	} else {
+		bchar, echar = '"', '"'
+	}
+
 	// How many occurences before and after cursor.
 	var before, after int
 
@@ -272,7 +305,7 @@ func (l *Line) FindSurround(char rune, pos int) (bpos, epos int, bchar, echar ru
 	// If there is an equal number of signs (like quotes) on each side,
 	// that means we are not pointing at a word/phrase within quotes.
 	if before%2 == 0 && after%2 == 0 {
-		return -1, -1, bchar, echar
+		return -1, -1
 	}
 
 	// Or we possibly are (but not mandatorily: bpos/epos can be -1)
