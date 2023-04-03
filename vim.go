@@ -120,6 +120,8 @@ func (rl *Shell) viWidgets() lineWidgets {
 //
 
 func (rl *Shell) viInsertMode() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
 	// Reset any visual selection and iterations.
 	rl.selection.Reset()
 	rl.iterations.Reset()
@@ -132,7 +134,6 @@ func (rl *Shell) viInsertMode() {
 
 func (rl *Shell) viCommandMode() {
 	// Reset any visual selection and iterations.
-	rl.undo.SkipSave()
 	rl.iterations.Reset()
 	rl.selection.Reset()
 
@@ -424,7 +425,7 @@ func (rl *Shell) viChangeTo() {
 	case rl.keymaps.IsCaller():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `cc`), so copy the entire current line.
-		rl.undo.SaveWithPos(*rl.line, rl.cursor.Pos())
+		rl.undo.Save(*rl.line, *rl.cursor)
 		rl.undo.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
@@ -467,7 +468,7 @@ func (rl *Shell) viDeleteTo() {
 	case rl.keymaps.IsCaller():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `dd`), so delete the entire current line.
-		rl.undo.SaveWithPos(*rl.line, rl.cursor.Pos())
+		rl.undo.Save(*rl.line, *rl.cursor)
 		rl.undo.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
@@ -479,7 +480,7 @@ func (rl *Shell) viDeleteTo() {
 
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just cut it.
-		rl.undo.SaveWithPos(*rl.line, rl.cursor.Pos())
+		rl.undo.Save(*rl.line, *rl.cursor)
 		rl.undo.SkipSave()
 
 		cpos := rl.selection.Cursor()
@@ -1149,8 +1150,10 @@ func (rl *Shell) viSetMark() {
 	rl.selection.Mark(rl.cursor.Pos())
 }
 
+// TODO:
 func (rl *Shell) viEditAndExecuteCommand() {}
 
+// TODO:
 func (rl *Shell) viEditCommandLine() {}
 
 func (rl *Shell) viFindNextChar() {

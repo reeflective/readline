@@ -20,17 +20,24 @@ type undoItem struct {
 // If this was called while the shell in the middle of its undo history
 // (eg. the caller has undone one or more times), all undone steps are dropped.
 func (lh *LineHistory) Save(line Line, cursor Cursor) {
+	defer lh.Reset()
+
 	if lh.skip {
 		return
 	}
 
-	// When the line is identical to the previous undo, we skip it.
+	// When the line is identical to the previous undo, we just update
+	// the cursor position if it's a different one.
 	if len(lh.items) > 0 && lh.items[len(lh.items)-1].line == string(line) {
+		lh.items[len(lh.items)-1].pos = cursor.Pos()
 		return
 	}
 
 	// When we add an item to the undo history, the history
 	// is cut from the current undo hist position onwards.
+	if lh.pos > len(lh.items) {
+		lh.pos = len(lh.items)
+	}
 	lh.items = lh.items[:len(lh.items)-lh.pos]
 
 	// Make a copy of the cursor and ensure its position.
@@ -43,21 +50,6 @@ func (lh *LineHistory) Save(line Line, cursor Cursor) {
 		line: string(line),
 		pos:  cur.Pos(),
 	})
-}
-
-// SaveWithPos is identical to Save(), except that the cursor position is
-// overridden. If the cursor position is negative or invalid, nothing is saved.
-func (lh *LineHistory) SaveWithPos(line Line, pos int) {
-	if pos < 0 || pos > line.Len() {
-		return
-	}
-
-	// Make a cursor
-	cur := NewCursor(&line)
-	cur.Set(pos)
-	cur.CheckCommand()
-
-	lh.Save(line, *cur)
 }
 
 // SkipSave will not save the current line when the target command is done.
