@@ -987,96 +987,17 @@ func (rl *Shell) viSetBuffer() {
 
 func (rl *Shell) viSelectABlankWord() {
 	rl.undo.SkipSave()
-
-	// Go the beginning of the word and start mark
-	rl.cursor.ToFirstNonSpace(true)
-	backward := rl.line.Backward(rl.line.TokenizeSpace, rl.cursor.Pos())
-	rl.cursor.Move(backward)
-	bpos := rl.cursor.Pos()
-
-	// Then go to the end of the blank word
-	forward := rl.line.Forward(rl.line.TokenizeSpace, rl.cursor.Pos())
-	rl.cursor.Move(forward - 1)
-	epos := rl.cursor.Pos()
-
-	// Adjust if we are at the end of the line.
-	if rl.cursor.Pos() == rl.line.Len()-1 {
-		rl.cursor.Set(bpos)
-
-		backward := rl.line.Backward(rl.line.TokenizeSpace, rl.cursor.Pos())
-		rl.cursor.Move(backward)
-
-		forward := rl.line.Forward(rl.line.TokenizeSpace, rl.cursor.Pos())
-		rl.cursor.Move(forward + 1)
-
-		bpos = rl.cursor.Pos()
-		rl.cursor.Set(epos)
-	}
-
-	rl.selection.MarkRange(bpos, epos)
+	rl.selection.SelectABlankWord()
 }
 
 func (rl *Shell) viSelectAShellWord() {
 	rl.undo.SkipSave()
-
-	rl.cursor.ToFirstNonSpace(true)
-
-	sBpos, sEpos, _, _ := rl.line.FindSurround('\'', rl.cursor.Pos())
-	dBpos, dEpos, _, _ := rl.line.FindSurround('"', rl.cursor.Pos())
-
-	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
-
-	// If none matched, use blankword
-	if mark == -1 && cpos == -1 {
-		rl.viSelectABlankWord()
-
-		return
-	}
-
-	// Adjust for spaces preceding
-	rl.cursor.Set(mark)
-	rl.cursor.ToFirstNonSpace(false)
-	bpos := rl.cursor.Pos() + 1
-
-	// Else set the region inside those quotes
-	rl.cursor.Set(cpos)
-	rl.selection.MarkRange(bpos, rl.cursor.Pos())
+	rl.selection.SelectAShellWord()
 }
 
 func (rl *Shell) viSelectAWord() {
 	rl.undo.SkipSave()
-
-	rl.cursor.ToFirstNonSpace(true)
-
-	// Go to the beginning of the current word, and select all spaces before it.
-	rl.cursor.Move(rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos()))
-
-	spaceBefore := rl.cursor.Pos() > 0 && (*rl.line)[rl.cursor.Pos()-1] == inputrc.Space
-	if spaceBefore {
-		rl.cursor.Dec()
-		rl.cursor.ToFirstNonSpace(false)
-		if rl.cursor.Pos() != 0 {
-			rl.cursor.Inc()
-		}
-	}
-
-	bpos := rl.cursor.Pos()
-
-	// Then go the end of the word, and only select further spaces
-	// if the word selected is not preceded by spaces as well.
-	rl.cursor.Move(rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos()) + 1)
-
-	if !spaceBefore {
-		rl.cursor.Inc()
-		rl.cursor.ToFirstNonSpace(true)
-		rl.cursor.Dec()
-	}
-
-	epos := rl.cursor.Pos()
-
-	// Select the range and return: the caller will decide what
-	// to do with the cursor position and the selection itself.
-	rl.selection.MarkRange(bpos, epos)
+	rl.selection.SelectAWord()
 }
 
 func (rl *Shell) viSelectInBlankWord() {
@@ -1172,6 +1093,36 @@ func (rl *Shell) viSelectSurround() {
 	// Select the range and return: the caller will decide what
 	// to do with the cursor position and the selection itself.
 	rl.selection.MarkRange(bpos, epos)
+}
+
+func (rl *Shell) spacesAroundWord(cpos int) (before, under bool) {
+	under = (*rl.line)[cpos] == inputrc.Space
+	before = cpos > 0 && (*rl.line)[cpos-1] == inputrc.Space
+
+	return
+}
+
+// adjustWordSelection adjust the beginning and end of a word (blank or not) selection, depending
+// on whether it's surrounded by spaces, and if selection started from a whitespace or within word.
+func (rl *Shell) adjustWordSelection(before, under, after bool, bpos int) (int, int) {
+	var epos int
+
+	if after && !under {
+		rl.cursor.Inc()
+		rl.cursor.ToFirstNonSpace(true)
+		rl.cursor.Dec()
+	} else if !after {
+		epos = rl.cursor.Pos()
+		rl.cursor.Set(bpos - 1)
+		rl.cursor.ToFirstNonSpace(false)
+		rl.cursor.Inc()
+		bpos = rl.cursor.Pos()
+		rl.cursor.Set(epos)
+	}
+
+	epos = rl.cursor.Pos()
+
+	return bpos, epos
 }
 
 //

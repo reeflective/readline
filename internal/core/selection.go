@@ -2,6 +2,8 @@ package core
 
 import (
 	"github.com/reeflective/readline/internal/color"
+	"github.com/reeflective/readline/internal/strutil"
+	"github.com/xo/inputrc"
 )
 
 // Selection contains all regions of an input line that are currently selected/marked
@@ -307,6 +309,118 @@ func (s *Selection) Surround(bchar, echar rune) {
 	s.line.InsertBetween(bpos, epos, buf...)
 }
 
+// SelectAWord selects a word around the current cursor position,
+// selecting leading or trailing spaces depending on where the cursor
+// is: if on a blank space, in a word, or at the end of the line.
+func (s *Selection) SelectAWord() {
+	var bpos, epos int
+
+	bpos = s.cursor.Pos()
+	cpos := bpos
+
+	spaceBefore, spaceUnder := s.spacesAroundWord(bpos)
+
+	bpos, epos = s.line.SelectWord(cpos)
+	s.cursor.Set(epos)
+	cpos = s.cursor.Pos()
+
+	spaceAfter := cpos < s.line.Len()-1 && (*s.line)[cpos+1] == inputrc.Space
+
+	// And only select spaces after it if the word selected is not preceded
+	// by spaces as well, or if we started the selection within this word.
+	bpos, _ = s.adjustWordSelection(spaceBefore, spaceUnder, spaceAfter, bpos)
+
+	if !s.Active() || bpos < cpos {
+		s.Mark(bpos)
+	}
+}
+
+// SelectABlankWord selects a bigword around the current cursor position,
+// selecting leading or trailing spaces depending on where the cursor is:
+// if on a blank space, in a word, or at the end of the line.
+func (s *Selection) SelectABlankWord() {
+	bpos := s.cursor.Pos()
+	spaceBefore, spaceUnder := s.spacesAroundWord(bpos)
+
+	// If we are out of a word or in the middle of one, find its beginning.
+	if !spaceUnder && !spaceBefore {
+		s.cursor.Inc()
+		s.cursor.Move(s.line.Backward(s.line.TokenizeSpace, s.cursor.Pos()))
+		bpos = s.cursor.Pos()
+	} else {
+		s.cursor.ToFirstNonSpace(true)
+	}
+
+	// Then go to the end of the blank word
+	s.cursor.Move(s.line.ForwardEnd(s.line.TokenizeSpace, s.cursor.Pos()))
+	spaceAfter := s.cursor.Pos() < s.line.Len()-1 && (*s.line)[s.cursor.Pos()+1] == inputrc.Space
+
+	// And only select spaces after it if the word selected is not preceded
+	// by spaces as well, or if we started the selection within this word.
+	bpos, _ = s.adjustWordSelection(spaceBefore, spaceUnder, spaceAfter, bpos)
+
+	if !s.Active() || bpos < s.cursor.Pos() {
+		s.Mark(bpos)
+	}
+}
+
+// SelectAShellWord selects a shell word around the cursor position,
+// selecting leading or trailing spaces depending on where the cursor
+// is: if on a blank space, in a word, or at the end of the line.
+func (s *Selection) SelectAShellWord() {
+	s.cursor.ToFirstNonSpace(true)
+
+	sBpos, sEpos, _, _ := s.line.FindSurround('\'', s.cursor.Pos())
+	dBpos, dEpos, _, _ := s.line.FindSurround('"', s.cursor.Pos())
+
+	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
+
+	// If none of the quotes matched, use blank word
+	if mark == -1 && cpos == -1 {
+		s.SelectABlankWord()
+
+		return
+	}
+
+	s.cursor.Set(mark)
+
+	// The quotes might be followed by non-blank characters,
+	// in which case we must keep expanding our selection.
+	for {
+		spaceBefore := mark > 0 && (*s.line)[mark-1] == inputrc.Space
+		if spaceBefore {
+			s.cursor.Dec()
+			s.cursor.ToFirstNonSpace(false)
+			s.cursor.Inc()
+			break
+		} else if mark == 0 {
+			break
+		}
+
+		s.cursor.Move(s.line.Backward(s.line.TokenizeSpace, s.cursor.Pos()))
+		mark = s.cursor.Pos()
+	}
+
+	bpos := s.cursor.Pos()
+	s.cursor.Set(cpos)
+
+	// Adjust if no spaces after.
+	for {
+		spaceAfter := cpos < s.line.Len()-1 && (*s.line)[cpos+1] == inputrc.Space
+		if spaceAfter || cpos == s.line.Len()-1 {
+			break
+		}
+
+		s.cursor.Move(s.line.ForwardEnd(s.line.TokenizeSpace, cpos))
+		cpos = s.cursor.Pos()
+	}
+
+	// Else set the region inside those quotes
+	if !s.Active() || bpos < s.cursor.Pos() {
+		s.Mark(bpos)
+	}
+}
+
 // ReplaceWith replaces all characters of the line within the current
 // selection range by applying to each rune the provided replacer function.
 // After replacement, the selection is reset.
@@ -449,6 +563,36 @@ func (s *Selection) selectToCursor(bpos int) (int, int) {
 	if bpos > epos {
 		bpos, epos = epos, bpos
 	}
+
+	return bpos, epos
+}
+
+func (s *Selection) spacesAroundWord(cpos int) (before, under bool) {
+	under = (*s.line)[cpos] == inputrc.Space
+	before = cpos > 0 && (*s.line)[cpos-1] == inputrc.Space
+
+	return
+}
+
+// adjustWordSelection adjust the beginning and end of a word (blank or not) selection, depending
+// on whether it's surrounded by spaces, and if selection started from a whitespace or within word.
+func (s *Selection) adjustWordSelection(before, under, after bool, bpos int) (int, int) {
+	var epos int
+
+	if after && !under {
+		s.cursor.Inc()
+		s.cursor.ToFirstNonSpace(true)
+		s.cursor.Dec()
+	} else if !after {
+		epos = s.cursor.Pos()
+		s.cursor.Set(bpos - 1)
+		s.cursor.ToFirstNonSpace(false)
+		s.cursor.Inc()
+		bpos = s.cursor.Pos()
+		s.cursor.Set(epos)
+	}
+
+	epos = s.cursor.Pos()
 
 	return bpos, epos
 }

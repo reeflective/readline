@@ -203,23 +203,41 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 func (l *Line) FindSurround(char rune, pos int) (bpos, epos int, bchar, echar rune) {
 	bchar, echar = strutil.MatchSurround(char)
 
-	bpos = l.Find(bchar, pos+1, false)
-	epos = l.Find(echar, pos-1, true)
+	// How many occurences before and after cursor.
+	var before, after int
 
-	if bpos == epos {
-		pos++
-		epos = l.Find(echar, pos, true)
+	bpos = l.Find(bchar, pos, false)
+	epos = l.Find(echar, pos, true)
 
-		if epos == -1 {
-			pos--
-			epos = l.Find(echar, pos, false)
+	next, prev := epos, bpos
 
-			if epos != -1 {
-				bpos, epos = epos, bpos
-			}
+	// Recursively search for occurences, forward and backward.
+	for {
+		if prev != -1 {
+			before++
 		}
+
+		if next != -1 {
+			after++
+		}
+
+		// If one of the searches failed, we're done.
+		if prev == -1 || next == -1 {
+			break
+		}
+
+		// Or we use a new forward/backward reference pos.
+		prev = l.Find(bchar, prev, false)
+		next = l.Find(echar, next, true)
 	}
 
+	// If there is an equal number of signs (like quotes) on each side,
+	// that means we are not pointing at a word/phrase within quotes.
+	if before%2 == 0 && after%2 == 0 {
+		return -1, -1, bchar, echar
+	}
+
+	// Or we possibly are (but not mandatorily: bpos/epos can be -1)
 	return
 }
 
