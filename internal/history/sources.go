@@ -339,7 +339,7 @@ func (h *Sources) InferNext() {
 // so that caller can use for things like history autosuggestion.
 // If no line matches the current line, it will return the latter.
 func (h *Sources) Suggest(line *core.Line) core.Line {
-	if len(h.list) == 0 {
+	if len(h.list) == 0 || len(*line) == 0 {
 		return *line
 	}
 
@@ -479,7 +479,8 @@ func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
 		}
 
 		// Or if not fully matching
-		if !strings.HasPrefix(string(*h.line), histline) {
+		if !strings.HasPrefix(histline, string(*h.line)) {
+			// if !strings.HasPrefix(string(*h.line), histline) {
 			continue
 		}
 

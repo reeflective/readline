@@ -1,6 +1,7 @@
 package display
 
 import (
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
@@ -80,9 +81,9 @@ func (e *Engine) Refresh() {
 	e.computeCoordinates(suggested)
 
 	// Display line and go to cursor, and right prompt if any.
-	e.displayLine(suggested)
+	e.displayLine(*line, suggested)
 	term.MoveCursorUp(e.lineRows - e.cursorRow)
-	e.prompt.RightPrint(line, e.cursor)
+	e.prompt.RightPrint(&suggested, e.cursor)
 
 	// Go to the last row of the line, and display hints.
 	e.CursorBelowLine()
@@ -161,18 +162,23 @@ func (e *Engine) computeCoordinates(suggested core.Line) {
 	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startAt)
 }
 
-func (e *Engine) displayLine(suggested core.Line) {
+func (e *Engine) displayLine(input, suggested core.Line) {
 	var highlighted string
 
-	// Apply user-defined highlighter if any
+	// Apply user-defined highlighter to the input line.
 	if e.highlighter != nil {
-		highlighted = e.highlighter([]rune(suggested))
+		highlighted = e.highlighter([]rune(input))
 	} else {
-		highlighted = string(suggested)
+		highlighted = string(input)
 	}
 
 	// Apply visual selections highlighting if any.
 	highlighted = ui.Highlight([]rune(highlighted), *e.selection)
+
+	// Get the subset of the suggested line to print.
+	if len(suggested) > len(input) {
+		highlighted += color.Dim + string(suggested[len(input):]) + color.Reset
+	}
 
 	// And display the line.
 	suggested.Set([]rune(highlighted)...)
