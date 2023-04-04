@@ -151,6 +151,8 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 	var keys []rune
 	allKeys, _ := m.keys.PeekAll()
 
+	var last inputrc.Bind
+
 	// Important to wrap in a defer function,
 	// because the keys array is not yet populated.
 	defer func() {
@@ -174,20 +176,31 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 		if match.Action == "" && len(prefixed) == 0 {
 			cmd = m.resolveCommand(m.prefixed)
 			prefix = false
-			continue
+			return
+		}
+
+		// If we matched twice the same keybind, return anyway.
+		if match.Action == last.Action {
+			prefix = false
+			cmd = m.resolveCommand(m.prefixed)
+			m.prefixed = inputrc.Bind{}
+
+			return
 		}
 
 		// Or several matches, in which case we read another key.
 		if match.Action != "" && len(prefixed) > 0 {
-			m.prefixed = match
 			prefix = true
+			m.prefixed = match
+			last = match
+
 			continue
 		}
 
 		// Or no exact match and only prefixes
 		if len(prefixed) > 0 {
 			prefix = true
-			continue
+			return
 		}
 
 		// Or an exact match, so drop any prefixed one.

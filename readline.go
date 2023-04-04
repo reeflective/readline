@@ -73,7 +73,7 @@ func (rl *Shell) Readline() (string, error) {
 
 		// If the keys did not match any command either
 		// exactly or by prefix, we flush the key stack.
-		// rl.keys.Flush()
+		rl.keys.FlushUsed()
 	}
 }
 

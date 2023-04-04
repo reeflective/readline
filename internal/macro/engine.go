@@ -82,11 +82,6 @@ func (e *Engine) RunLastMacro() {
 	}
 
 	macro := inputrc.Unescape(e.macros[len(e.macros)-1])
-
-	// Since this method is called within a command,
-	// and that the key having triggered that command
-	// have not been flushed yet, we flush them first.
-	// The key management routine will not flush them
 	e.keys.Feed(false, true, []rune(macro)...)
 }
 
