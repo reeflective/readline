@@ -85,66 +85,6 @@ func (m *Modes) ResetLocal() {
 	m.UpdateCursor()
 }
 
-// Match matches the current input keys against the command map.
-// If main is true, the main keymap is used, otherwise we use the local one.
-func (m *Modes) Match(main bool) (command func(), prefix bool) {
-	var keymap Mode
-	if main {
-		keymap = m.main
-	} else {
-		keymap = m.local
-	}
-
-	if keymap == "" {
-		return
-	}
-
-	keys, empty := m.keys.PeekAll()
-	if empty {
-		return
-	}
-
-	// Commands
-	binds := m.opts.Binds[string(keymap)]
-	if len(binds) == 0 {
-		return
-	}
-
-	// Find binds matching by prefix or perfectly.
-	match, prefixed := m.matchCommand(keys, binds)
-
-	// If the current keys have no matches but the previous
-	// matching process found a prefix, use it with the keys.
-	if match.Action == "" && len(prefixed) == 0 {
-		return m.resolveCommand(m.prefixed), false
-	}
-
-	// Or several matches, in which case we must read another key.
-	if match.Action != "" && len(prefixed) > 0 {
-		m.prefixed = match
-		return nil, true
-	}
-
-	// Or no exact match and only prefixes
-	if len(prefixed) > 0 {
-		return nil, true
-	}
-
-	// Or an exact match, in which case drop any prefixed one.
-	m.active = match
-	m.prefixed = inputrc.Bind{}
-
-	return m.resolveCommand(match), false
-}
-
-func (m *Modes) RunLocal(match inputrc.Bind) (prefixed bool) {
-	return
-}
-
-func (m *Modes) RunMain() (accept, prefixed bool, err error) {
-	return
-}
-
 // UpdateCursor reprints the cursor corresponding to the current keymaps.
 func (m *Modes) UpdateCursor() {
 	switch m.local {
@@ -174,6 +114,87 @@ func (m *Modes) IsEmacs() bool {
 		return true
 	default:
 		return false
+	}
+}
+
+// MatchMain incrementally attempts to match cached input keys against the local keymap.
+// Returns the bind if matched, the corresponding command, and if we only matched by prefix.
+func (m *Modes) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
+	if m.main == "" {
+		return
+	}
+
+	binds := m.opts.Binds[string(m.main)]
+	if len(binds) == 0 {
+		return
+	}
+
+	return m.matchKeymap(binds)
+}
+
+// MatchMain incrementally attempts to match cached input keys against the main keymap.
+// Returns the bind if matched, the corresponding command, and if we only matched by prefix.
+func (m *Modes) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
+	if m.local == "" {
+		return
+	}
+
+	binds := m.opts.Binds[string(m.local)]
+	if len(binds) == 0 {
+		return
+	}
+
+	return m.matchKeymap(binds)
+}
+
+func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
+	var keys []rune
+	allKeys, _ := m.keys.PeekAll()
+
+	// Important to wrap in a defer function,
+	// because the keys array is not yet populated.
+	defer func() {
+		m.keys.Feed(true, keys...)
+	}()
+
+	for {
+		// Read keys one by one, and abort once exhausted.
+		key, empty := m.keys.Pop()
+		if empty || len(keys) == len(allKeys) {
+			return
+		}
+
+		keys = append(keys, key)
+
+		// Find binds (actions/macros) matching by prefix or perfectly.
+		match, prefixed := m.matchCommand(keys, binds)
+
+		// If the current keys have no matches but the previous
+		// matching process found a prefix, use it with the keys.
+		if match.Action == "" && len(prefixed) == 0 {
+			cmd = m.resolveCommand(m.prefixed)
+			prefix = false
+			continue
+		}
+
+		// Or several matches, in which case we read another key.
+		if match.Action != "" && len(prefixed) > 0 {
+			m.prefixed = match
+			prefix = true
+			continue
+		}
+
+		// Or no exact match and only prefixes
+		if len(prefixed) > 0 {
+			prefix = true
+			continue
+		}
+
+		// Or an exact match, so drop any prefixed one.
+		m.active = match
+		m.prefixed = inputrc.Bind{}
+
+		return match, m.resolveCommand(match), false
 	}
 }
 

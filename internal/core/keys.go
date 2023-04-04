@@ -94,6 +94,8 @@ func (k *Keys) Feed(begin bool, keys ...rune) {
 		return
 	}
 
+	keys = []rune(string(keys))
+
 	if begin {
 		k.stack = append(keys, k.stack...)
 	} else {

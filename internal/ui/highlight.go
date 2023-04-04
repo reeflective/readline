@@ -31,7 +31,7 @@ func Highlight(line []rune, selection core.Selection) string {
 	// Finally, highlight comments using a regex.
 	// TODO: Replace # with configured comment sign
 	commentsMatch := regexp.MustCompile(`(^|\s)#.*`)
-	highlighted = commentsMatch.ReplaceAllString(highlighted, fmt.Sprintf("%s${0}%s", color.Dim, color.DimReset))
+	highlighted = commentsMatch.ReplaceAllString(highlighted, fmt.Sprintf("%s${0}%s", color.FgBlackBright, color.Reset))
 
 	highlighted += color.Reset
 
