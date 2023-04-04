@@ -154,7 +154,7 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 	// Important to wrap in a defer function,
 	// because the keys array is not yet populated.
 	defer func() {
-		m.keys.Feed(true, keys...)
+		m.keys.Matched(keys...)
 	}()
 
 	for {

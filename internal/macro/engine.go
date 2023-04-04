@@ -1,6 +1,10 @@
 package macro
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/ui"
 	"github.com/xo/inputrc"
@@ -13,8 +17,9 @@ type Engine struct {
 	current   []rune   // The current macro being recorded.
 	macros    []string // All previously recorded macros.
 
-	keys *core.Keys // The engine feeds macros directly in the key stack.
-	hint *ui.Hint     // The engine notifies when macro recording starts/stops.
+	keys   *core.Keys // The engine feeds macros directly in the key stack.
+	hint   *ui.Hint   // The engine notifies when macro recording starts/stops.
+	status string     // The hint status displaying the currently recorded macro.
 }
 
 // NewEngine is a required constructor to setup a working macro engine.
@@ -30,12 +35,19 @@ func NewEngine(keys *core.Keys, hint *ui.Hint) *Engine {
 // A notification is given through the hint section.
 func (e *Engine) StartRecord() {
 	e.recording = true
+	e.status = color.Dim + "Recording macro: " + color.Bold
+	e.hint.Set(e.status)
 }
 
 // StopRecord stops using key input as part of a macro.
 // A notification is given through the hint section.
 func (e *Engine) StopRecord() {
 	e.recording = false
+
+	// Remove the hint.
+	if strings.HasPrefix(e.hint.Text(), color.Dim+"Recording macro:") {
+		e.hint.Reset()
+	}
 
 	if len(e.current) == 0 {
 		return
@@ -46,14 +58,20 @@ func (e *Engine) StopRecord() {
 	e.current = make([]rune, 0)
 }
 
-// RecordKey is being passed every key read by the shell, and will save
+// RecordKeys is being passed every key read by the shell, and will save
 // those entered while the engine is in record mode. All others are ignored.
-func (e *Engine) RecordKey(key rune) {
-	if !e.recording {
+func (e *Engine) RecordKeys(bind inputrc.Bind) {
+	if !e.recording || bind.Action == "end-kbd-macro" {
 		return
 	}
 
-	e.current = append(e.current, key)
+	keys, empty := e.keys.PeekAll()
+	if empty || len(keys) == 0 {
+		return
+	}
+
+	e.current = append(e.current, keys...)
+	e.hint.Set(e.status + inputrc.EscapeMacro(string(e.current)))
 }
 
 // RunLastMacro feeds keys the last recorded macro to
@@ -69,7 +87,7 @@ func (e *Engine) RunLastMacro() {
 	// and that the key having triggered that command
 	// have not been flushed yet, we flush them first.
 	// The key management routine will not flush them
-	e.keys.Feed(false, []rune(macro)...)
+	e.keys.Feed(false, true, []rune(macro)...)
 }
 
 // RunMacro runs a given macro, injecting its
@@ -82,11 +100,10 @@ func (e *Engine) PrintLastMacro() {
 		return
 	}
 
-	// Go below the current line, clear helpers,
-	// print the macro and the prompt, then let
-	// the shell do its job refreshing.
-
-	print(e.macros[len(e.macros)-1])
+	// Print the macro and the prompt.
+	// The shell takes care of clearing itself
+	// before printing, and refreshing after.
+	fmt.Printf("\n%s\n", e.macros[len(e.macros)-1])
 }
 
 // PrintAllMacros dumps all macros to the screen.
