@@ -769,14 +769,18 @@ func (rl *Shell) viChangeSurround() {
 
 func (rl *Shell) viOpenLineAbove() {
 	rl.undo.Save(*rl.line, *rl.cursor)
-	rl.beginningOfLine()
+	if !rl.cursor.OnEmptyLine() {
+		rl.beginningOfLine()
+	}
 	rl.line.Insert(rl.cursor.Pos(), '\n')
 	rl.viInsertMode()
 }
 
 func (rl *Shell) viOpenLineBelow() {
 	rl.undo.Save(*rl.line, *rl.cursor)
-	rl.endOfLine()
+	if !rl.cursor.OnEmptyLine() {
+		rl.endOfLine()
+	}
 	rl.line.Insert(rl.cursor.Pos(), '\n')
 	rl.cursor.Inc()
 	rl.viInsertMode()

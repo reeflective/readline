@@ -214,12 +214,14 @@ func (c *Cursor) LineMove(lines int) {
 // OnEmptyLine returns true if the rune under the current cursor position is a newline
 // and that the preceding rune in the line is also a newline, or returns false.
 func (c *Cursor) OnEmptyLine() bool {
-	if c.pos == c.line.Len() {
+	if c.line.Len() == 0 {
 		return true
 	}
 
 	if (*c.line)[c.pos] == inputrc.Newline {
-		if (*c.line)[c.pos-1] == inputrc.Newline {
+		if c.pos == 0 {
+			return true
+		} else if (*c.line)[c.pos-1] == inputrc.Newline {
 			return true
 		}
 	}

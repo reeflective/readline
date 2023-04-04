@@ -596,7 +596,7 @@ func (l *Line) Display(indent int) {
 		if i < len(lines)-1 {
 			line += "\n"
 		} else {
-			line += term.ClearScreenBelow
+			line += term.ClearLineAfter
 		}
 
 		print(line)
@@ -607,8 +607,7 @@ func (l *Line) Display(indent int) {
 // any contained newlines, any overflowing line, and the indent passed as parameter. The values
 // also take into account an eventual suggestion added to the line before printing.
 // Params:
-// @indent -    Coordinates to align all lines (except the first) together on a single column.
-// @suggested - An optional string to append to the line, for things like command autosuggestion.
+// @indent - Coordinates to align all lines (except the first) together on a single column.
 // Returns:
 // @x - The number of columns, starting from the terminal left, to the end of the last line.
 // @y - The number of actual lines on which the line spans, accounting for line wrap.
