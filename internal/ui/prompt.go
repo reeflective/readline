@@ -259,7 +259,7 @@ func (p *Prompt) cursorLineLen(line *core.Line, cursor *core.Cursor) int {
 		return lineLen
 	}
 
-	lineLen += strutil.RealLength(lines[cursor.Line()])
+	lineLen += strutil.RealLength(lines[len(lines)-1])
 
 	termWidth := term.GetWidth()
 	if lineLen > termWidth {

@@ -218,15 +218,13 @@ func (c *Cursor) OnEmptyLine() bool {
 		return true
 	}
 
-	if (*c.line)[c.pos] == inputrc.Newline {
-		if c.pos == 0 {
-			return true
-		} else if (*c.line)[c.pos-1] == inputrc.Newline {
-			return true
-		}
+	if c.pos == 0 {
+		return (*c.line)[c.pos] == inputrc.Newline
+	} else if c.pos == c.line.Len() {
+		return (*c.line)[c.pos-1] == inputrc.Newline
 	}
 
-	return false
+	return (*c.line)[c.pos] == inputrc.Newline
 }
 
 // AtBeginningOfLine returns true if the cursor is either at the beginning
