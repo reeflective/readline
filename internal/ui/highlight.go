@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 
@@ -26,6 +27,11 @@ func Highlight(line []rune, selection core.Selection) string {
 
 		highlighted += string(r)
 	}
+
+	// Finally, highlight comments using a regex.
+	// TODO: Replace # with configured comment sign
+	commentsMatch := regexp.MustCompile(`(^|\s)#.*`)
+	highlighted = commentsMatch.ReplaceAllString(highlighted, fmt.Sprintf("%s${0}%s", color.Dim, color.DimReset))
 
 	highlighted += color.Reset
 

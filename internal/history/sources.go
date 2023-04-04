@@ -2,6 +2,7 @@ package history
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -273,12 +274,20 @@ func (h *Sources) Accept(hold, infer bool, err error) {
 // LineAccepted returns true if the user has accepted the line, signaling
 // that the shell must return from its loop. The error can be nil, but may
 // indicate a CtrlC/CtrlD style error.
+// If the input line contains any comments (as defined by the configured
+// comment sign), they will be removed before returning the line. Those
+// are nonetheless preserved when the line is saved to history sources.
 func (h *Sources) LineAccepted() (bool, string, error) {
 	if !h.accepted {
 		return false, "", nil
 	}
 
-	return true, string(h.acceptLine), h.acceptErr
+	// Remove all comments before returning the line to the caller.
+	// TODO: Replace # with configured comment sign
+	commentsMatch := regexp.MustCompile(`(^|\s)#.*`)
+	line := commentsMatch.ReplaceAllString(string(h.acceptLine), "")
+
+	return true, line, h.acceptErr
 }
 
 // InsertMatch replaces the line buffer with the first history line
