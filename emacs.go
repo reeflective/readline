@@ -56,7 +56,7 @@ func (rl *Shell) standardWidgets() lineWidgets {
 		"quoted-insert":                rl.quotedInsert,
 		"bracketed-paste-begin":        rl.bracketedPasteBegin, // TODO: Finish and find how to do it.
 		"transpose-chars":              rl.transposeChars,
-		"transpose-words":              rl.transposeWords, // TODO: test.
+		"transpose-words":              rl.transposeWords,
 		"shell-transpose-words":        rl.shellTransposeWords,
 		"down-case-word":               rl.downCaseWord,
 		"up-case-word":                 rl.upCaseWord,
@@ -135,21 +135,14 @@ func (rl *Shell) emacsEditingMode() {
 // Movement -------------------------------------------------------------
 //
 
-// TODO: multiline support.
 func (rl *Shell) forwardChar() {
 	rl.undo.SkipSave()
-
-	if rl.cursor.Pos() < rl.line.Len() {
-		rl.cursor.Inc()
-	}
+	rl.cursor.Inc()
 }
 
 func (rl *Shell) backwardChar() {
 	rl.undo.SkipSave()
-
-	if rl.cursor.Pos() > 0 {
-		rl.cursor.Dec()
-	}
+	rl.cursor.Dec()
 }
 
 func (rl *Shell) forwardWord() {
@@ -410,42 +403,39 @@ func (rl *Shell) transposeChars() {
 
 func (rl *Shell) transposeWords() {
 	rl.undo.Save(*rl.line, *rl.cursor)
+
 	startPos := rl.cursor.Pos()
+	rl.cursor.ToFirstNonSpace(true)
 
 	// Save the current word and move the cursor to its beginning
-	rl.cursor.ToFirstNonSpace(true)
-	rl.selection.Mark(rl.cursor.Pos())
-	forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
-	rl.cursor.Move(forward + 1)
-	epos := rl.cursor.Pos()
-
-	backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
-	rl.cursor.Move(backward)
-	bpos := rl.cursor.Pos()
-
-	rl.selection.MarkRange(bpos, epos)
+	rl.viSelectInWord()
 	toTranspose, tbpos, tepos, _ := rl.selection.Pop()
-	rl.cursor.Set(tbpos)
 
-	// Then move back some number of words
-	vii := rl.iterations.Get()
-	for i := 1; i <= vii; i++ {
-		backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
-		rl.cursor.Move(backward)
+	// Then move some number of words.
+	// Either use words backward (if we are at end of line) or forward.
+	rl.cursor.Set(tbpos)
+	if tepos == rl.line.Len()-1 || tepos == rl.line.Len() || rl.iterations.Get() == 1 {
+		rl.backwardWord()
+	} else {
+		rl.forwardWord()
 	}
 
 	// Save the word to transpose with
-	rl.selection.Mark(rl.cursor.Pos())
-	forward = rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
-	rl.cursor.Move(forward + 1)
-
+	rl.viSelectInWord()
 	transposeWith, wbpos, wepos, _ := rl.selection.Pop()
 
 	// We might be on the first word of the line,
 	// in which case we don't do anything.
-	if wepos > tbpos {
+	if tbpos == 0 {
 		rl.cursor.Set(startPos)
 		return
+	}
+
+	// If we went forward rather than backward, swap everything.
+	if wbpos > tbpos {
+		wbpos, tbpos = tbpos, wbpos
+		wepos, tepos = tepos, wepos
+		transposeWith, toTranspose = toTranspose, transposeWith
 	}
 
 	// Assemble the newline
@@ -457,17 +447,7 @@ func (rl *Shell) transposeWords() {
 	rl.line.Set(newLine...)
 
 	// And replace the cursor
-	if vii < 0 {
-		rl.cursor.Set(epos)
-	} else {
-		backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
-		rl.cursor.Move(backward)
-
-		for i := 0; i <= vii; i++ {
-			forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
-			rl.cursor.Move(forward + 1)
-		}
-	}
+	rl.cursor.Set(tepos)
 }
 
 func (rl *Shell) shellTransposeWords() {
@@ -1020,6 +1000,7 @@ func (rl *Shell) undoLast() {
 func (rl *Shell) revertLine() {}
 
 func (rl *Shell) setMark() {
+	rl.cursor.Mark()
 }
 
 func (rl *Shell) exchangePointAndMark() {
