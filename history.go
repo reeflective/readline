@@ -1,6 +1,11 @@
 package readline
 
-import "github.com/reeflective/readline/internal/history"
+import (
+	"strings"
+
+	"github.com/reeflective/readline/internal/history"
+	"github.com/reeflective/readline/internal/strutil"
+)
 
 //
 // API ----------------------------------------------------------------
@@ -42,8 +47,8 @@ func (rl *Shell) historyWidgets() lineWidgets {
 		"end-of-history":                         rl.endOfHistory,
 		"operate-and-get-next":                   rl.acceptLineAndDownHistory, // accept-line-and-down-history
 		"fetch-history":                          rl.fetchHistory,
-		"reverse-search-history":                 rl.historyIncrementalSearchForward,  // history-incremental-search-forward
-		"forward-search-history":                 rl.historyIncrementalSearchBackward, // history-incremental-search-backward
+		"forward-search-history":                 rl.historyIncrementalSearchForward,  // history-incremental-search-forward
+		"reverse-search-history":                 rl.historyIncrementalSearchBackward, // history-incremental-search-backward
 		"non-incremental-forward-search-history": rl.nonIncrementalForwardSearchHistory,
 		"non-incremental-reverse-search-history": rl.nonIncrementalReverseSearchHistory,
 		"history-search-forward":                 rl.historySearchForward,
@@ -156,8 +161,70 @@ func (rl *Shell) historySearchBackward() {
 func (rl *Shell) historySubstringSearchForward()  {}
 func (rl *Shell) historySubstringSearchBackward() {}
 
-func (rl *Shell) yankLastArg() {}
-func (rl *Shell) yankNthArg()  {}
+func (rl *Shell) yankLastArg() {
+	// Get the last history line.
+	last := rl.histories.GetLast()
+	if last == "" {
+		return
+	}
+
+	// Split it into words, and get the last one.
+	words, err := strutil.Split(last)
+	if err != nil || len(words) == 0 {
+		return
+	}
+
+	// Get the last word, and quote it if it contains spaces.
+	lastArg := words[len(words)-1]
+	if strings.ContainsAny(lastArg, " \t") {
+		if strings.Contains(lastArg, "\"") {
+			lastArg = "'" + lastArg + "'"
+		} else {
+			lastArg = "\"" + lastArg + "\""
+		}
+	}
+
+	// And append it to the end of the line.
+	rl.line.Insert(rl.cursor.Pos(), []rune(lastArg)...)
+	rl.cursor.Move(len(lastArg))
+}
+
+func (rl *Shell) yankNthArg() {
+	// Get the last history line.
+	last := rl.histories.GetLast()
+	if last == "" {
+		return
+	}
+
+	// Split it into words, and get the last one.
+	words, err := strutil.Split(last)
+	if err != nil || len(words) == 0 {
+		return
+	}
+
+	var lastArg string
+
+	// Abort if the required position is out of bounds.
+	argNth := rl.iterations.Get()
+	if len(words) < argNth {
+		return
+	} else {
+		lastArg = words[argNth-1]
+	}
+
+	// Quote if required.
+	if strings.ContainsAny(lastArg, " \t") {
+		if strings.Contains(lastArg, "\"") {
+			lastArg = "'" + lastArg + "'"
+		} else {
+			lastArg = "\"" + lastArg + "\""
+		}
+	}
+
+	// And append it to the end of the line.
+	rl.line.Insert(rl.line.Len(), []rune(lastArg)...)
+	rl.cursor.Move(len(lastArg))
+}
 
 //
 // Added -------------------------------------------------------------------
@@ -175,21 +242,37 @@ func (rl *Shell) acceptAndInferNextHistory() {
 
 func (rl *Shell) downLineOrHistory() {
 	rl.undo.SkipSave()
-	switch {
-	case rl.cursor.Line() < rl.line.Lines():
-		rl.cursor.LineMove(1)
-	default:
-		rl.histories.Walk(-1)
+
+	times := rl.iterations.Get()
+	linesDown := rl.line.Lines() - rl.cursor.Line()
+
+	// If we can go down some lines out of
+	// the available iterations, use them.
+	if linesDown > 0 {
+		rl.cursor.LineMove(times)
+		times -= linesDown
+	}
+
+	if times > 0 {
+		rl.histories.Walk(times * -1)
 	}
 }
 
 func (rl *Shell) upLineOrHistory() {
 	rl.undo.SkipSave()
-	switch {
-	case rl.cursor.Line() > 0:
-		rl.cursor.LineMove(-1)
-	default:
-		rl.histories.Walk(1)
+
+	times := rl.iterations.Get()
+	linesUp := rl.cursor.Line()
+
+	// If we can go down some lines out of
+	// the available iterations, use them.
+	if linesUp > 0 {
+		rl.cursor.LineMove(times * -1)
+		times -= linesUp
+	}
+
+	if times > 0 {
+		rl.histories.Walk(times)
 	}
 }
 

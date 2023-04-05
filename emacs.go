@@ -1,9 +1,14 @@
 package readline
 
 import (
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"sort"
 	"unicode"
 
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
@@ -352,7 +357,7 @@ func (rl *Shell) selfInsert() {
 	rl.completer.TrimSuffix()
 	rl.completer.Update()
 
-	key, empty := rl.keys.Pop()
+	key, empty := rl.keys.Peek()
 	if empty {
 		return
 	}
@@ -800,8 +805,7 @@ func (rl *Shell) backwardKillWord() {
 	adjust := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
 	rl.cursor.Move(adjust)
 
-	buf := []rune(rl.selection.Cut())
-	rl.buffers.Write(buf...)
+	rl.buffers.Write([]rune(rl.selection.Cut())...)
 }
 
 func (rl *Shell) shellKillWord() {
@@ -951,12 +955,16 @@ func (rl *Shell) endKeyboardMacro() {
 }
 
 func (rl *Shell) callLastKeyboardMacro() {
-	// TODO: mark NO FLUSH
 	rl.macros.RunLastMacro()
 }
 
 func (rl *Shell) printLastKeyboardMacro() {
+	rl.display.ClearHelpers()
+
 	rl.macros.PrintLastMacro()
+
+	rl.prompt.PrimaryPrint()
+	rl.display.Refresh()
 }
 
 //
@@ -964,6 +972,14 @@ func (rl *Shell) printLastKeyboardMacro() {
 //
 
 func (rl *Shell) reReadInitFile() {
+	config := filepath.Join(os.Getenv("HOME"), ".inputrc")
+
+	err := inputrc.ParseFile(config, rl.opts)
+	if err != nil {
+		rl.hint.Set(color.FgRed + "Inputrc reload error: " + err.Error())
+	} else {
+		rl.hint.Set(color.FgGreen + "Inputrc reloaded: " + config)
+	}
 }
 
 func (rl *Shell) abort() {}
@@ -985,12 +1001,82 @@ func (rl *Shell) exchangePointAndMark() {
 func (rl *Shell) characterSearch()         {}
 func (rl *Shell) characterSearchBackward() {}
 func (rl *Shell) insertComment()           {}
-func (rl *Shell) dumpFunctions()           {}
-func (rl *Shell) dumpVariables()           {}
-func (rl *Shell) dumpMacros()              {}
-func (rl *Shell) magicSpace()              {}
-func (rl *Shell) editAndExecuteCommand()   {}
-func (rl *Shell) editCommandLine()         {}
+
+func (rl *Shell) dumpFunctions() {}
+
+func (rl *Shell) dumpVariables() {
+	rl.display.ClearHelpers()
+	fmt.Println()
+
+	defer func() {
+		rl.prompt.PrimaryPrint()
+		rl.display.Refresh()
+	}()
+
+	// Get all variables and their values, alphabetically sorted.
+	var variables []string
+
+	for variable := range rl.opts.Vars {
+		variables = append(variables, variable)
+	}
+
+	sort.Strings(variables)
+
+	// Either print in inputrc format, or wordly one.
+	if rl.iterations.Get() != 1 {
+		for _, variable := range variables {
+			value := rl.opts.Vars[variable]
+			fmt.Printf("set %s %v\n", variable, value)
+		}
+	} else {
+		for _, variable := range variables {
+			value := rl.opts.Vars[variable]
+			fmt.Printf("%s is set to `%v'\n", variable, value)
+		}
+	}
+}
+
+func (rl *Shell) dumpMacros() {
+	rl.display.ClearHelpers()
+	fmt.Println()
+
+	defer func() {
+		rl.prompt.PrimaryPrint()
+		rl.display.Refresh()
+	}()
+
+	// We print the macros bound to the current keymap only.
+	binds := rl.opts.Binds[string(rl.keymaps.Main())]
+	if len(binds) == 0 {
+		return
+	}
+
+	var macroBinds []string
+
+	for keys, bind := range binds {
+		if bind.Macro {
+			macroBinds = append(macroBinds, inputrc.Escape(keys))
+		}
+	}
+
+	sort.Strings(macroBinds)
+
+	if rl.iterations.Get() != 1 {
+		for _, key := range macroBinds {
+			action := inputrc.Escape(binds[inputrc.Unescape(key)].Action)
+			fmt.Printf("\"%s\": \"%s\"\n", key, action)
+		}
+	} else {
+		for _, key := range macroBinds {
+			action := inputrc.Escape(binds[inputrc.Unescape(key)].Action)
+			fmt.Printf("%s outputs %s\n", key, action)
+		}
+	}
+}
+
+func (rl *Shell) magicSpace()            {}
+func (rl *Shell) editAndExecuteCommand() {}
+func (rl *Shell) editCommandLine()       {}
 
 func (rl *Shell) redo() {
 	rl.undo.Redo(rl.line, rl.cursor)

@@ -71,8 +71,6 @@ func (rl *Shell) Readline() (string, error) {
 			return line, err
 		}
 
-		// If the keys did not match any command either
-		// exactly or by prefix, we flush the key stack.
 		rl.keys.FlushUsed()
 	}
 }
@@ -82,9 +80,8 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 		return false, "", nil
 	}
 
-	// Whether or not the command is resolved,
-	// let the macro engine record the keys if
-	// currently recording a macro.
+	// Whether or not the command is resolved, let the macro
+	// engine record the keys if currently recording a macro.
 	rl.macros.RecordKeys(bind)
 
 	// The completion system might have control of the
@@ -95,7 +92,7 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	command()               // Run the matched command
 	rl.keymaps.RunPending() // Run pending commands.
 	rl.checkCursor()        // Ensure cursor position is correct.
-	rl.keys.FlushUsed()
+	rl.keys.FlushUsed()     // Drop some or all keys (used ones)
 
 	// If the command just run was using the incremental search
 	// buffer (acting on it), update the list of matches.

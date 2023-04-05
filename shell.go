@@ -134,6 +134,7 @@ func (rl *Shell) init() {
 	rl.cursor.ResetMark()
 	rl.cursor.Set(0)
 	rl.line.Set([]rune{}...) // TODO: Wrong; if line was inferred this resets it while it should not.
+	rl.undo.Save(*rl.line, *rl.cursor)
 
 	// Reset/initialize user interface components.
 	rl.hint.Reset()
