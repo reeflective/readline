@@ -992,11 +992,15 @@ func (rl *Shell) viSetBuffer() {
 
 func (rl *Shell) viSelectABlankWord() {
 	rl.undo.SkipSave()
+	rl.cursor.CheckCommand()
+
 	rl.selection.SelectABlankWord()
 }
 
 func (rl *Shell) viSelectAShellWord() {
 	rl.undo.SkipSave()
+	rl.cursor.CheckCommand()
+
 	// First find the blank word under cursor,
 	// and put or cursor at the beginning of it.
 	bpos, _ := rl.line.SelectBlankWord(rl.cursor.Pos())

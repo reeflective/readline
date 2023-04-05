@@ -245,6 +245,10 @@ func (s *Selection) Pop() (buf string, bpos, epos, cpos int) {
 		return "", -1, -1, 0
 	}
 
+	// End position is increased by one so
+	// that we capture the entire selection.
+	epos++
+
 	cpos = s.Cursor()
 	buf = string((*s.line)[bpos:epos])
 
@@ -338,8 +342,8 @@ func (s *Selection) SelectAWord() {
 // SelectABlankWord selects a bigword around the current cursor position,
 // selecting leading or trailing spaces depending on where the cursor is:
 // if on a blank space, in a word, or at the end of the line.
-func (s *Selection) SelectABlankWord() {
-	bpos := s.cursor.Pos()
+func (s *Selection) SelectABlankWord() (bpos, epos int) {
+	bpos = s.cursor.Pos()
 	spaceBefore, spaceUnder := s.spacesAroundWord(bpos)
 
 	// If we are out of a word or in the middle of one, find its beginning.
@@ -362,12 +366,14 @@ func (s *Selection) SelectABlankWord() {
 	if !s.Active() || bpos < s.cursor.Pos() {
 		s.Mark(bpos)
 	}
+
+	return bpos, s.cursor.Pos()
 }
 
 // SelectAShellWord selects a shell word around the cursor position,
 // selecting leading or trailing spaces depending on where the cursor
 // is: if on a blank space, in a word, or at the end of the line.
-func (s *Selection) SelectAShellWord() {
+func (s *Selection) SelectAShellWord() (bpos, epos int) {
 	s.cursor.ToFirstNonSpace(true)
 
 	sBpos, sEpos := s.line.SurroundQuotes(true, s.cursor.Pos())
@@ -377,8 +383,7 @@ func (s *Selection) SelectAShellWord() {
 
 	// If none of the quotes matched, use blank word
 	if mark == -1 && cpos == -1 {
-		s.SelectABlankWord()
-		return
+		mark, cpos = s.line.SelectBlankWord(s.cursor.Pos())
 	}
 
 	s.cursor.Set(mark)
@@ -400,7 +405,7 @@ func (s *Selection) SelectAShellWord() {
 		mark = s.cursor.Pos()
 	}
 
-	bpos := s.cursor.Pos()
+	bpos = s.cursor.Pos()
 	s.cursor.Set(cpos)
 
 	// Adjust if no spaces after.
@@ -418,6 +423,8 @@ func (s *Selection) SelectAShellWord() {
 	if !s.Active() || bpos < s.cursor.Pos() {
 		s.Mark(bpos)
 	}
+
+	return bpos, cpos
 }
 
 // ReplaceWith replaces all characters of the line within the current
