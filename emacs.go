@@ -1023,9 +1023,23 @@ func (rl *Shell) setMark() {
 func (rl *Shell) exchangePointAndMark() {
 }
 
-func (rl *Shell) characterSearch()         {}
-func (rl *Shell) characterSearchBackward() {}
-func (rl *Shell) insertComment()           {}
+func (rl *Shell) characterSearch() {
+	if rl.iterations.Get() < 0 {
+		rl.viFindChar(false, false)
+	} else {
+		rl.viFindChar(true, false)
+	}
+}
+
+func (rl *Shell) characterSearchBackward() {
+	if rl.iterations.Get() < 0 {
+		rl.viFindChar(true, false)
+	} else {
+		rl.viFindChar(false, false)
+	}
+}
+
+func (rl *Shell) insertComment() {}
 
 func (rl *Shell) dumpFunctions() {
 	rl.display.ClearHelpers()
