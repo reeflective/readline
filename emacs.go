@@ -1002,7 +1002,18 @@ func (rl *Shell) characterSearch()         {}
 func (rl *Shell) characterSearchBackward() {}
 func (rl *Shell) insertComment()           {}
 
-func (rl *Shell) dumpFunctions() {}
+func (rl *Shell) dumpFunctions() {
+	rl.display.ClearHelpers()
+	fmt.Println()
+
+	defer func() {
+		rl.prompt.PrimaryPrint()
+		rl.display.Refresh()
+	}()
+
+	inputrcFormat := rl.iterations.Get() != 1
+	rl.keymaps.PrintBinds(inputrcFormat)
+}
 
 func (rl *Shell) dumpVariables() {
 	rl.display.ClearHelpers()

@@ -1,6 +1,8 @@
 package keymap
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/reeflective/readline/internal/core"
@@ -114,6 +116,82 @@ func (m *Modes) IsEmacs() bool {
 		return true
 	default:
 		return false
+	}
+}
+
+// PrintBinds displays a list of currently bound commands (and their sequences)
+// to the screen. If inputrcFormat is true, it displays it formatted such that
+// the output can be reused in an .inputrc file.
+func (m *Modes) PrintBinds(inputrcFormat bool) {
+	var commands []string
+
+	for command := range m.commands {
+		commands = append(commands, command)
+	}
+
+	sort.Strings(commands)
+
+	binds := m.opts.Binds[string(m.Main())]
+
+	// Make a list of all sequences bound to each command.
+	allBinds := make(map[string][]string)
+
+	for _, command := range commands {
+		for key, bind := range binds {
+			if bind.Action != command {
+				continue
+			}
+
+			commandBinds := allBinds[command]
+			commandBinds = append(commandBinds, inputrc.Escape(key))
+			allBinds[command] = commandBinds
+		}
+	}
+
+	if inputrcFormat {
+		for _, command := range commands {
+			commandBinds := allBinds[command]
+			sort.Strings(commandBinds)
+
+			switch {
+			case len(commandBinds) == 0:
+				fmt.Printf("# %s (not bound)\n", command)
+			default:
+				for _, bind := range commandBinds {
+					fmt.Printf("\"%s\": %s\n", bind, command)
+				}
+			}
+		}
+	} else {
+		for _, command := range commands {
+			commandBinds := allBinds[command]
+			sort.Strings(commandBinds)
+
+			switch {
+			case len(commandBinds) == 0:
+				fmt.Printf("%s is not bound to any keys\n", command)
+
+			case len(commandBinds) > 5:
+				var firstBinds []string
+
+				for i := 0; i < 5; i++ {
+					firstBinds = append(firstBinds, "\""+commandBinds[i]+"\"")
+				}
+
+				bindsStr := strings.Join(firstBinds, ", ")
+				fmt.Printf("%s can be found on %s ...\n", command, bindsStr)
+
+			default:
+				var firstBinds []string
+
+				for _, bind := range commandBinds {
+					firstBinds = append(firstBinds, "\""+bind+"\"")
+				}
+
+				bindsStr := strings.Join(firstBinds, ", ")
+				fmt.Printf("%s can be found on %s\n", command, bindsStr)
+			}
+		}
 	}
 }
 
