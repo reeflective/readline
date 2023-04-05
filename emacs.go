@@ -195,16 +195,8 @@ func (rl *Shell) backwardShellWord() {
 	rl.cursor.Move(backward)
 
 	// Now try to find enclosing quotes from here.
-	sBpos, sEpos, _, _ := rl.line.FindSurround('\'', rl.cursor.Pos())
-	dBpos, dEpos, _, _ := rl.line.FindSurround('"', rl.cursor.Pos())
-	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
-
-	// Either exit because we didn't match any, or select.
-	if mark == -1 && cpos == -1 {
-		return
-	}
-
-	rl.cursor.Set(mark)
+	bpos, _ := rl.selection.SelectAShellWord()
+	rl.cursor.Set(bpos)
 }
 
 func (rl *Shell) beginningOfLine() {
@@ -478,7 +470,6 @@ func (rl *Shell) transposeWords() {
 	}
 }
 
-// TODO: finish when visual and iw/ia operators are done.
 func (rl *Shell) shellTransposeWords() {
 	rl.undo.Save(*rl.line, *rl.cursor)
 
@@ -512,7 +503,7 @@ func (rl *Shell) shellTransposeWords() {
 	rl.line.Set(newLine...)
 
 	// And replace cursor
-	rl.cursor.Set(startPos)
+	rl.cursor.Set(tepos)
 }
 
 func (rl *Shell) downCaseWord() {
@@ -813,7 +804,7 @@ func (rl *Shell) shellKillWord() {
 
 	// select the shell word, and if the cursor position
 	// has changed, we delete the part after the initial one.
-	rl.cursor.ToFirstNonSpace(true)
+	// rl.cursor.ToFirstNonSpace(true)
 	rl.viSelectAShellWord()
 
 	_, epos := rl.selection.Pos()
@@ -825,20 +816,56 @@ func (rl *Shell) shellKillWord() {
 	rl.selection.Reset()
 }
 
-// TODO: Fix not catching the word when only one in line cursor at end of line.
 func (rl *Shell) shellBackwardKillWord() {
 	startPos := rl.cursor.Pos()
 
+	// Always ignore the character under cursor.
+	rl.cursor.Dec()
 	rl.cursor.ToFirstNonSpace(false)
-	backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
-	rl.cursor.Move(backward)
 
+	// Find the beginning of a correctly formatted shellword.
 	rl.viSelectAShellWord()
 	bpos, _ := rl.selection.Pos()
 
+	// But don't include any of the leading spaces.
+	rl.cursor.Set(bpos)
+	rl.cursor.ToFirstNonSpace(true)
+	bpos = rl.cursor.Pos()
+
+	// Find any quotes backard, and settle on the outermost one.
+	outquote := -1
+
+	squote := rl.line.Find('\'', bpos, false)
+	dquote := rl.line.Find('"', bpos, false)
+
+	if squote != -1 {
+		outquote = squote
+	}
+	if dquote != -1 {
+		if squote != -1 && dquote < squote {
+			outquote = dquote
+		} else if squote == -1 {
+			outquote = dquote
+		}
+	}
+
+	// If any is found, try to find if it's matching another one.
+	if outquote != -1 {
+		sBpos, sEpos := rl.line.SurroundQuotes(true, outquote)
+		dBpos, dEpos := rl.line.SurroundQuotes(false, outquote)
+		mark, _ := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
+
+		// And if no matches have been found, only use the quote
+		// if its backward to our currently found shellword.
+		if mark == -1 && outquote < bpos {
+			bpos = outquote
+			rl.cursor.Set(bpos)
+		}
+	}
+
+	// Remove the selection.
 	rl.buffers.Write([]rune((*rl.line)[bpos:startPos])...)
 	rl.line.Cut(bpos, startPos)
-	rl.cursor.Set(bpos)
 
 	rl.selection.Reset()
 }

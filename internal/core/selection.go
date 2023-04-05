@@ -374,6 +374,7 @@ func (s *Selection) SelectABlankWord() (bpos, epos int) {
 // selecting leading or trailing spaces depending on where the cursor
 // is: if on a blank space, in a word, or at the end of the line.
 func (s *Selection) SelectAShellWord() (bpos, epos int) {
+	s.cursor.CheckCommand()
 	s.cursor.ToFirstNonSpace(true)
 
 	sBpos, sEpos := s.line.SurroundQuotes(true, s.cursor.Pos())

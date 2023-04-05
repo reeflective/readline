@@ -82,6 +82,7 @@ func (c *Cursor) ToFirstNonSpace(forward bool) {
 
 	if c.pos == c.line.Len() {
 		forward = false
+		c.pos--
 	}
 
 	// At line bounds
@@ -101,6 +102,11 @@ func (c *Cursor) ToFirstNonSpace(forward bool) {
 		} else {
 			c.pos--
 		}
+
+		if c.pos <= 0 && c.pos >= c.line.Len() {
+			return
+		}
+
 	}
 }
 
@@ -391,12 +397,6 @@ func (c *Cursor) moveLineUp() {
 }
 
 func (c *Cursor) onSpace() bool {
-	if c.pos == c.line.Len() {
-		return false
-	} else if c.pos < 0 {
-		return false
-	}
-
 	switch (*c.line)[c.pos] {
 	case inputrc.Space, inputrc.Newline, inputrc.Tab:
 		return true
