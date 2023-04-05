@@ -6,9 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"unicode"
 
 	"github.com/reeflective/readline/internal/color"
+	"github.com/reeflective/readline/internal/editor"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
@@ -406,6 +408,7 @@ func (rl *Shell) transposeWords() {
 
 	startPos := rl.cursor.Pos()
 	rl.cursor.ToFirstNonSpace(true)
+	rl.cursor.CheckCommand()
 
 	// Save the current word and move the cursor to its beginning
 	rl.viSelectInWord()
@@ -1000,7 +1003,21 @@ func (rl *Shell) undoLast() {
 func (rl *Shell) revertLine() {}
 
 func (rl *Shell) setMark() {
-	rl.cursor.Mark()
+	switch {
+	case rl.iterations.Get() == 1:
+		rl.cursor.SetMark()
+	default:
+		cpos := rl.cursor.Pos()
+		mark := rl.iterations.Get()
+
+		if mark > rl.line.Len()-1 {
+			return
+		}
+
+		rl.cursor.Set(mark)
+		rl.cursor.SetMark()
+		rl.cursor.Set(cpos)
+	}
 }
 
 func (rl *Shell) exchangePointAndMark() {
@@ -1093,9 +1110,54 @@ func (rl *Shell) dumpMacros() {
 	}
 }
 
-func (rl *Shell) magicSpace()            {}
-func (rl *Shell) editAndExecuteCommand() {}
-func (rl *Shell) editCommandLine()       {}
+func (rl *Shell) magicSpace() {}
+
+func (rl *Shell) editAndExecuteCommand() {
+	buffer := *rl.line
+
+	// Edit in editor
+	edited, err := editor.EditBuffer(buffer, "", "")
+	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
+		rl.undo.SkipSave()
+		errStr := strings.ReplaceAll(err.Error(), "\n", "")
+		changeHint := fmt.Sprintf(color.FgRed+"Editor error: %s", errStr)
+		rl.hint.Set(changeHint)
+		return
+	}
+
+	// Update our line and return it the caller.
+	rl.line.Set(edited...)
+	rl.display.AcceptLine()
+	rl.histories.Accept(false, false, nil)
+}
+
+func (rl *Shell) editCommandLine() {
+	buffer := *rl.line
+	keymapCur := rl.keymaps.Main()
+
+	// Edit in editor
+	edited, err := editor.EditBuffer(buffer, "", "")
+	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
+		rl.undo.SkipSave()
+		errStr := strings.ReplaceAll(err.Error(), "\n", "")
+		changeHint := fmt.Sprintf(color.FgRed+"Editor error: %s", errStr)
+		rl.hint.Set(changeHint)
+		return
+	}
+
+	// Update our line
+	rl.line.Set(edited...)
+
+	// We're done with visual mode when we were in.
+	switch keymapCur {
+	case keymap.ViCmd:
+		rl.viCommandMode()
+	case keymap.ViIns:
+		rl.viInsertMode()
+	case keymap.Emacs, keymap.EmacsStandard, keymap.EmacsMeta, keymap.EmacsCtrlX:
+		rl.emacsEditingMode()
+	}
+}
 
 func (rl *Shell) redo() {
 	rl.undo.Redo(rl.line, rl.cursor)
@@ -1161,29 +1223,5 @@ func (rl *Shell) redo() {
 // 		visual.active = true
 // 	case vii == 0:
 // 		visual.active = true
-// 	}
-// }
-//
-// func (rl *Shell) editCommandLine() {
-// 	rl.clearHelpers()
-//
-// 	buffer := rl.line
-//
-// 	edited, err := editor.EditBuffer(buffer, "", "")
-// 	// edited, err := rl.StartEditorWithBuffer(buffer, "")
-// 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
-// 		rl.undo.SkipSave()
-// 		errStr := strings.ReplaceAll(err.Error(), "\n", "")
-// 		changeHint := fmt.Sprintf(seqFgRed+"Editor error: %s", errStr)
-// 		rl.hint = append([]rune{}, []rune(changeHint)...)
-// 		return
-// 	}
-//
-// 	// Update our line
-// 	rl.line = edited
-//
-// 	// We're done with visual mode when we were in.
-// 	if (rl.main == vicmdC || rl.main == viinsC) && rl.local == visualC {
-// 		rl.exitVisualMode()
 // 	}
 // }
