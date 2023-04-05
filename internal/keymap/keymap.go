@@ -149,9 +149,6 @@ func (m *Modes) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 
 func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
 	var keys []rune
-	allKeys, _ := m.keys.PeekAll()
-
-	var last inputrc.Bind
 
 	// Important to wrap in a defer function,
 	// because the keys array is not yet populated.
@@ -162,7 +159,7 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 	for {
 		// Read keys one by one, and abort once exhausted.
 		key, empty := m.keys.Pop()
-		if empty || len(keys) == len(allKeys) {
+		if empty {
 			return
 		}
 
@@ -174,16 +171,8 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 		// If the current keys have no matches but the previous
 		// matching process found a prefix, use it with the keys.
 		if match.Action == "" && len(prefixed) == 0 {
-			cmd = m.resolveCommand(m.prefixed)
-			prefix = false
-			return
-		}
-
-		// If we matched twice the same keybind, return anyway.
-		if match.Action == last.Action {
 			prefix = false
 			cmd = m.resolveCommand(m.prefixed)
-			m.prefixed = inputrc.Bind{}
 
 			return
 		}
@@ -192,7 +181,6 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 		if match.Action != "" && len(prefixed) > 0 {
 			prefix = true
 			m.prefixed = match
-			last = match
 
 			continue
 		}
@@ -200,7 +188,7 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 		// Or no exact match and only prefixes
 		if len(prefixed) > 0 {
 			prefix = true
-			return
+			continue
 		}
 
 		// Or an exact match, so drop any prefixed one.
