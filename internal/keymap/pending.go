@@ -28,10 +28,29 @@ func (m *Modes) Pending() {
 	m.pending = append(m.pending, act)
 }
 
+// CancelPending is used by commands that have been registering themselves
+// as waiting for a pending operator, but have actually been called twice
+// in a row (eg. dd/yy in Vim mode). This removes those commands from queue.
+func (m *Modes) CancelPending() {
+	if len(m.pending) == 0 {
+		return
+	}
+
+	m.pending = m.pending[:len(m.pending)-1]
+
+	if len(m.pending) == 0 && m.Local() == ViOpp {
+		m.SetLocal("")
+	}
+}
+
 // IsCaller returns true when invoked from within the command
 // that also happens to be the next in line of pending commands.
 func (m *Modes) IsCaller() bool {
-	return m.isCaller
+	if len(m.pending) == 0 {
+		return false
+	}
+
+	return m.active.Action == m.pending[0].command.Action
 }
 
 // RunPending runs any command with pending execution.

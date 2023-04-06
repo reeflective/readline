@@ -425,6 +425,8 @@ func (rl *Shell) viChangeTo() {
 	case rl.keymaps.IsCaller():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `cc`), so copy the entire current line.
+		rl.keymaps.CancelPending()
+
 		rl.undo.Save(*rl.line, *rl.cursor)
 		rl.undo.SkipSave()
 
@@ -468,6 +470,8 @@ func (rl *Shell) viDeleteTo() {
 	case rl.keymaps.IsCaller():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `dd`), so delete the entire current line.
+		rl.keymaps.CancelPending()
+
 		rl.undo.Save(*rl.line, *rl.cursor)
 		rl.undo.SkipSave()
 
@@ -475,8 +479,13 @@ func (rl *Shell) viDeleteTo() {
 		rl.selection.Visual(true)
 		rl.cursor.Set(rl.selection.Cursor())
 
-		cut := rl.selection.Cut()
-		rl.buffers.Write([]rune(cut)...)
+		text := rl.selection.Cut()
+
+		// Get buffer and add newline if there isn't one at the end
+		if len(text) > 0 && rune(text[len(text)-1]) != inputrc.Newline {
+			text += string(inputrc.Newline)
+		}
+		rl.buffers.Write([]rune(text)...)
 
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just cut it.
@@ -521,7 +530,12 @@ func (rl *Shell) viDeleteChar() {
 }
 
 func (rl *Shell) viChangeChar() {
+	rl.undo.Save(*rl.line, *rl.cursor)
+
 	// We read a character to use first.
+	done := rl.keymaps.PendingCursor()
+	defer done()
+
 	key, isAbort := rl.keys.ReadArgument()
 	if isAbort || len(key) == 0 {
 		rl.undo.SkipSave()
@@ -551,6 +565,9 @@ func (rl *Shell) viReplace() {
 
 	// Don't use the delete cache past the end of the line
 	lineStart := rl.line.Len()
+
+	done := rl.keymaps.PendingCursor()
+	defer done()
 
 	// The replace mode is quite special in that it does escape back
 	// to the main readline loop: it keeps reading characters and inserts
@@ -713,6 +730,9 @@ func (rl *Shell) viChangeEol() {
 
 func (rl *Shell) viAddSurround() {
 	// Get the surround character to change.
+	done := rl.keymaps.PendingCursor()
+	defer done()
+
 	key, isAbort := rl.keys.ReadArgument()
 	if isAbort {
 		rl.undo.SkipSave()
@@ -728,9 +748,13 @@ func (rl *Shell) viAddSurround() {
 }
 
 func (rl *Shell) viChangeSurround() {
+	rl.undo.Save(*rl.line, *rl.cursor)
 	rl.undo.SkipSave()
 
 	// Read a key as a rune to search for
+	done := rl.keymaps.PendingCursor()
+	defer done()
+
 	key, isAbort := rl.keys.ReadArgument()
 	if isAbort {
 		return
@@ -751,6 +775,9 @@ func (rl *Shell) viChangeSurround() {
 	defer func() { rl.selection.Reset() }()
 
 	// Now read another key
+	done = rl.keymaps.PendingCursor()
+	defer done()
+
 	key, isAbort = rl.keys.ReadArgument()
 	if isAbort {
 		return
@@ -840,10 +867,17 @@ func (rl *Shell) viYankTo() {
 	case rl.keymaps.IsCaller():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `yy`), so copy the entire current line.
+		rl.keymaps.CancelPending()
+
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
 
+		// Get buffer and add newline if there isn't one at the end
 		text, _, _, cpos := rl.selection.Pop()
+		if len(text) > 0 && rune(text[len(text)-1]) != inputrc.Newline {
+			text += string(inputrc.Newline)
+		}
+
 		rl.buffers.Write([]rune(text)...)
 		rl.cursor.Set(cpos)
 
@@ -978,6 +1012,9 @@ func (rl *Shell) viSetBuffer() {
 	rl.buffers.Reset()
 
 	// Then read a key to select the register
+	done := rl.keymaps.PendingCursor()
+	defer done()
+
 	key, isAbort := rl.keys.ReadArgument()
 	if isAbort {
 		return
@@ -1184,6 +1221,9 @@ func (rl *Shell) viFindChar(forward, skip bool) {
 	rl.undo.SkipSave()
 
 	// Read the argument key to use as a pattern to search
+	done := rl.keymaps.PendingCursor()
+	defer done()
+
 	key, esc := rl.keys.ReadArgument()
 	if esc {
 		return

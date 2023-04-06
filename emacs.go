@@ -361,6 +361,9 @@ func (rl *Shell) quotedInsert() {
 	rl.undo.SkipSave()
 	rl.completer.TrimSuffix()
 
+	done := rl.keymaps.PendingCursor()
+	defer done()
+
 	keys, _ := rl.keys.ReadArgument()
 
 	quoted := []rune{}
@@ -546,6 +549,9 @@ func (rl *Shell) overwriteMode() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
 	rl.undo.Save(*rl.line, *rl.cursor)
+
+	done := rl.keymaps.PendingCursor()
+	defer done()
 
 	// The replace mode is quite special in that it does escape back
 	// to the main readline loop: it keeps reading characters and inserts

@@ -109,6 +109,16 @@ func (m *Modes) UpdateCursor() {
 	}
 }
 
+// PendingCursor changes the cursor to pending mode,
+// and returns a function to call once done with it.
+func (m *Modes) PendingCursor() func() {
+	m.PrintCursor(ViOpp)
+
+	return func() {
+		m.UpdateCursor()
+	}
+}
+
 // IsEmacs returns true if the main keymap is one of the emacs modes.
 func (m *Modes) IsEmacs() bool {
 	switch m.main {
