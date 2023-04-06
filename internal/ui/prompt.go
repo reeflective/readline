@@ -179,22 +179,7 @@ func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor) {
 		return
 	}
 
-	// Get all dimensions we need
-	termWidth := term.GetWidth()
-	promptLen := strutil.RealLength(rprompt)
-	lineLen := p.cursorLineLen(line, cursor)
-	cursorX, _ := cursor.Coordinates(p.primaryCols)
-	padLen := termWidth - lineLen - promptLen
-
-	// Go at the end of the line, and pad prompt with spaces.
-	term.MoveCursorBackwards(termWidth)
-	term.MoveCursorForwards(lineLen)
-	defer term.MoveCursorBackwards(termWidth - cursorX)
-
-	// Check that we have room for a right/tooltip prompt.
-	lineFits := lineLen+promptLen < termWidth
-	if lineFits {
-		prompt := fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt)
+	if prompt, canPrint := p.formatRightPrompt(rprompt); canPrint {
 		print(prompt)
 	}
 }
@@ -212,7 +197,7 @@ func (p *Prompt) RightClear(force bool) {
 	// Get all dimensions we need
 	termWidth := term.GetWidth()
 	lineLen := p.cursorLineLen(p.line, p.cursor)
-	cursorX, _ := p.cursor.Coordinates(p.primaryCols)
+	cursorX, _ := p.cursor.Coordinates(p.LastUsed())
 
 	// Go at the end of the line, and pad prompt with spaces.
 	term.MoveCursorBackwards(termWidth)
@@ -251,8 +236,31 @@ func (p *Prompt) TransientPrint() {
 	println(string(*p.line))
 }
 
+func (p *Prompt) formatRightPrompt(rprompt string) (prompt string, canPrint bool) {
+	// Dimensions
+	termWidth := term.GetWidth()
+	promptLen := strutil.RealLength(rprompt)
+	lineLen := p.cursorLineLen(p.line, p.cursor)
+	padLen := termWidth - lineLen - promptLen
+
+	// Adjust padding when the last line is as large as terminal.
+	if lineLen+promptLen < termWidth {
+		padLen = termWidth - lineLen - promptLen
+	} else if lineLen == termWidth {
+		padLen = lineLen - promptLen
+	}
+
+	// Check that we have room for a right/tooltip prompt.
+	canPrint = (lineLen+promptLen < termWidth) || lineLen == termWidth
+	if canPrint {
+		prompt = fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt)
+	}
+
+	return
+}
+
 func (p *Prompt) cursorLineLen(line *core.Line, cursor *core.Cursor) int {
-	lineLen := p.primaryCols
+	lineLen := p.LastUsed()
 
 	lines := strings.Split(string(*line), "\n")
 	if len(lines) == 0 {

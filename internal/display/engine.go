@@ -16,6 +16,7 @@ type Engine struct {
 	// Operating parameters
 	highlighter func(line []rune) string
 	startAt     int
+	lineCol     int
 	lineRows    int
 	cursorRow   int
 	cursorCol   int
@@ -63,16 +64,17 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 	// rl.getHintText()
 }
 
-// Refresh recomputes and redisplays the entire readline interface,
-// except the the first lines of the primary prompt when the latter
-// is a multiline one.
+// Refresh recomputes and redisplays the entire readline interface, except
+// the first lines of the primary prompt when the latter is a multiline one.
 func (e *Engine) Refresh() {
+	// Go back to the end of the prompt, clear and save position.
 	e.CursorToLineStart()
 	print(term.ClearScreenBelow)
+	print(term.SaveCursorPos)
 
 	var line *core.Line
 
-	// Use the coordinates computed during the last refresh
+	// Get desired input line and auto-suggested one.
 	line, e.cursor = e.completer.Line()
 	suggested := e.histories.Suggest(line)
 
@@ -80,24 +82,24 @@ func (e *Engine) Refresh() {
 	// prompt end (thus indentation), cursor positions, etc.
 	e.computeCoordinates(suggested)
 
-	// Display line and go to cursor, and right prompt if any.
+	// Print the line, and adjust the cursor if the line fits
+	// exactly in the terminal width, then print the right prompt.
 	e.displayLine(*line, suggested)
-	term.MoveCursorUp(e.lineRows - e.cursorRow)
+	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
+		term.MoveCursorDown(1)
+	}
 	e.prompt.RightPrint(&suggested, e.cursor)
 
-	// Go to the last row of the line, and display hints.
-	e.CursorBelowLine()
-	print(term.ClearScreenBelow)
+	// Display the hint section and completions.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorDown(1)
 	e.hint.Display()
-	e.hintRows = e.hint.Coordinates()
-
-	// Display completions.
 	e.displayCompletions()
+	term.MoveCursorUp(1)
 
-	// Go back to cursor position.
-	term.MoveCursorUp(e.hintRows + 1)
-	term.MoveCursorUp(e.lineRows - e.cursorRow)
-	term.MoveCursorForwards(e.cursorCol)
+	// Go back to the start of the line, then to cursor.
+	print(term.RestoreCursorPos)
+	e.LineStartToCursorPos()
 }
 
 // ClearHelpers clears and resets the hint and completion sections.
@@ -139,7 +141,18 @@ func (e *Engine) CursorBelowLine() {
 // where the cursor is on the input line.
 func (e *Engine) CursorToPos() {
 	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorUp(e.lineRows - e.cursorRow)
+	term.MoveCursorForwards(e.cursorCol)
+
+	term.MoveCursorUp(e.lineRows)
+	term.MoveCursorDown(e.cursorRow)
+}
+
+// LineStartToCursorPos can be used if the cursor is currently
+// at the very start of the input line, that is just after the
+// last character of the prompt.
+func (e *Engine) LineStartToCursorPos() {
+	term.MoveCursorDown(e.cursorRow)
+	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorForwards(e.cursorCol)
 }
 
@@ -152,36 +165,37 @@ func (e *Engine) CursorBelowHint() {
 
 // CursorToLineStart moves the cursor just after the primary prompt.
 func (e *Engine) CursorToLineStart() {
-	term.MoveCursorBackwards(e.cursorCol - e.startAt)
+	term.MoveCursorBackwards(e.cursorCol)
+	term.MoveCursorForwards(e.startAt)
 	term.MoveCursorUp(e.cursorRow)
 }
 
 func (e *Engine) computeCoordinates(suggested core.Line) {
 	e.startAt = e.prompt.LastUsed()
-	_, e.lineRows = suggested.Coordinates(e.startAt)
+	e.lineCol, e.lineRows = suggested.Coordinates(e.startAt)
 	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startAt)
 }
 
 func (e *Engine) displayLine(input, suggested core.Line) {
-	var highlighted string
+	var line string
 
 	// Apply user-defined highlighter to the input line.
 	if e.highlighter != nil {
-		highlighted = e.highlighter([]rune(input))
+		line = e.highlighter([]rune(input))
 	} else {
-		highlighted = string(input)
+		line = string(input)
 	}
 
 	// Apply visual selections highlighting if any.
-	highlighted = ui.Highlight([]rune(highlighted), *e.selection)
+	line = ui.Highlight([]rune(line), *e.selection)
 
 	// Get the subset of the suggested line to print.
 	if len(suggested) > len(input) {
-		highlighted += color.Dim + string(suggested[len(input):]) + color.Reset
+		line += color.FgBlackBright + string(suggested[len(input):]) + color.Reset
 	}
 
 	// And display the line.
-	suggested.Set([]rune(highlighted)...)
+	suggested.Set([]rune(line)...)
 	suggested.Display(e.startAt)
 }
 

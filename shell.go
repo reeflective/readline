@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/reeflective/readline/internal/completion"
@@ -167,7 +168,7 @@ func (rl *Shell) newInputConfig() *inputrc.Config {
 	// Try to parse user/system inputrc.
 	for _, path := range inputrcConfigs {
 		if err := inputrc.ParseFile(path, opts); err != nil {
-			println(err)
+			fmt.Println(err)
 		}
 	}
 

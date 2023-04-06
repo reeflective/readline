@@ -595,8 +595,6 @@ func (l *Line) Display(indent int) {
 
 		if i < len(lines)-1 {
 			line += "\n"
-		} else {
-			line += term.ClearLineAfter
 		}
 
 		print(line)

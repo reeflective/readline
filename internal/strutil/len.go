@@ -23,17 +23,6 @@ func LineSpan(line []rune, idx, indent int) (x, y int) {
 	cursorY := lineLen / termWidth
 	cursorX := lineLen % termWidth
 
-	// The very first (unreal) line counts for nothing,
-	// so by opposition all others count for one more.
-	if idx == 0 {
-		cursorY--
-	}
-
-	// Any excess wrap means a newline.
-	if cursorX > 0 {
-		cursorY++
-	}
-
 	// Empty lines are still considered a line.
 	if cursorY == 0 && idx != 0 {
 		cursorY++

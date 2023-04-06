@@ -223,6 +223,7 @@ func (rl *Shell) clearScreen() {
 	print(term.ClearScreen)
 
 	rl.prompt.PrimaryPrint()
+	rl.display.CursorToPos()
 }
 
 func (rl *Shell) clearDisplay() {
@@ -232,6 +233,7 @@ func (rl *Shell) clearDisplay() {
 	print(term.ClearDisplay)
 
 	rl.prompt.PrimaryPrint()
+	rl.display.CursorToPos()
 }
 
 //
