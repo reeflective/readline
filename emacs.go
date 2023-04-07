@@ -29,7 +29,7 @@ import (
 // Numeric arguments.
 // Macros
 // Miscellaneous.
-func (rl *Shell) standardWidgets() lineWidgets {
+func (rl *Shell) standardWidgets() commands {
 	widgets := map[string]func(){
 		// Modes
 		"emacs-editing-mode": rl.emacsEditingMode,

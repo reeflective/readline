@@ -8,8 +8,8 @@ import (
 	"github.com/xo/inputrc"
 )
 
-// lineWidgets maps widget names to their implementation.
-type lineWidgets map[string]func()
+// commands maps widget names to their implementation.
+type commands map[string]func()
 
 // viWidgets returns all Vim commands.
 // Under each comment are gathered all commands related to the comment's
@@ -22,7 +22,7 @@ type lineWidgets map[string]func()
 // Killing and Yanking
 // Selecting text
 // Miscellaneous.
-func (rl *Shell) viWidgets() lineWidgets {
+func (rl *Shell) viWidgets() commands {
 	return map[string]func(){
 		// Modes enter/exit
 		"vi-append-mode":      rl.viAddNext,     // vi-add-next
