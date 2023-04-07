@@ -43,9 +43,9 @@ func (m *Modes) CancelPending() {
 	}
 }
 
-// IsCaller returns true when invoked from within the command
+// IsPending returns true when invoked from within the command
 // that also happens to be the next in line of pending commands.
-func (m *Modes) IsCaller() bool {
+func (m *Modes) IsPending() bool {
 	if len(m.pending) == 0 {
 		return false
 	}

@@ -422,7 +422,7 @@ func (rl *Shell) viGotoMark() {
 
 func (rl *Shell) viChangeTo() {
 	switch {
-	case rl.keymaps.IsCaller():
+	case rl.keymaps.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `cc`), so copy the entire current line.
 		rl.keymaps.CancelPending()
@@ -467,7 +467,7 @@ func (rl *Shell) viChangeTo() {
 
 func (rl *Shell) viDeleteTo() {
 	switch {
-	case rl.keymaps.IsCaller():
+	case rl.keymaps.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `dd`), so delete the entire current line.
 		rl.keymaps.CancelPending()
@@ -643,7 +643,7 @@ func (rl *Shell) viDownCase() {
 	rl.undo.SkipSave()
 
 	switch {
-	case rl.keymaps.IsCaller():
+	case rl.keymaps.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `uu`), so modify the entire current line.
 		rl.undo.Save(*rl.line, *rl.cursor)
@@ -670,7 +670,7 @@ func (rl *Shell) viUpCase() {
 	rl.undo.SkipSave()
 
 	switch {
-	case rl.keymaps.IsCaller():
+	case rl.keymaps.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `uu`), so modify the entire current line.
 		rl.undo.Save(*rl.line, *rl.cursor)
@@ -864,7 +864,7 @@ func (rl *Shell) viYankTo() {
 	rl.undo.SkipSave()
 
 	switch {
-	case rl.keymaps.IsCaller():
+	case rl.keymaps.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `yy`), so copy the entire current line.
 		rl.keymaps.CancelPending()
