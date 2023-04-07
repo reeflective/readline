@@ -152,8 +152,8 @@ func (rl *Shell) forwardWord() {
 
 	vii := rl.iterations.Get()
 	for i := 1; i <= vii; i++ {
-		forward := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
-		rl.cursor.Move(forward)
+		forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
+		rl.cursor.Move(forward + 1)
 	}
 }
 
@@ -168,19 +168,9 @@ func (rl *Shell) backwardWord() {
 }
 
 func (rl *Shell) forwardShellWord() {
-	// Try to find enclosing quotes from here
-	sBpos, sEpos, _, _ := rl.line.FindSurround('\'', rl.cursor.Pos())
-	dBpos, dEpos, _, _ := rl.line.FindSurround('"', rl.cursor.Pos())
-	mark, cpos := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
-
-	// And only move the cursor if we found them.
-	if mark != -1 && cpos != -1 {
-		rl.cursor.Set(cpos)
-	}
-
-	// Then move forward to the next word
-	forward := rl.line.Forward(rl.line.TokenizeSpace, rl.cursor.Pos())
-	rl.cursor.Move(forward)
+	rl.selection.SelectAShellWord()
+	_, _, tepos, _ := rl.selection.Pop()
+	rl.cursor.Set(tepos)
 }
 
 func (rl *Shell) backwardShellWord() {
