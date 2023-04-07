@@ -75,8 +75,9 @@ func (s *Selection) MarkSurround(bpos, epos int) {
 		s.surrounds = append(s.surrounds, Selection{
 			stype:  "surround",
 			active: true,
+			visual: true,
 			bpos:   pos,
-			epos:   pos + 1,
+			epos:   pos,
 			bg:     color.BgRed,
 			line:   s.line,
 			cursor: s.cursor,

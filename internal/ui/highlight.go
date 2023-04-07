@@ -62,8 +62,8 @@ func sortHighlights(vhl core.Selection) []core.Selection {
 		for _, reg := range all {
 			bpos, _ := reg.Pos()
 
-			if bpos == pos && vhl.Active() && vhl.IsVisual() {
-				sorted = append(sorted, vhl)
+			if bpos == pos && reg.Active() && reg.IsVisual() {
+				sorted = append(sorted, reg)
 				break
 			}
 		}

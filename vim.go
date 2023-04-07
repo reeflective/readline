@@ -764,7 +764,7 @@ func (rl *Shell) viChangeSurround() {
 
 	// Find the corresponding enclosing chars
 	bpos, epos, _, _ := rl.line.FindSurround(char, rl.cursor.Pos())
-	if bpos == -1 && epos == -1 {
+	if bpos == -1 || epos == -1 {
 		return
 	}
 
