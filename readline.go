@@ -87,7 +87,7 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// The completion system might have control of the
 	// input line and be using it with a virtual insertion,
 	// so it knows which line and cursor we should work on.
-	rl.line, rl.cursor = rl.completer.GetBuffer()
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	command()               // Run the matched command
 	rl.keymaps.RunPending() // Run pending commands.
@@ -100,7 +100,7 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 
 	// Work is done: ask the completion system to
 	// return the correct input line and cursor.
-	rl.line, rl.cursor = rl.completer.GetBuffer()
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	// History: save the last action to the line history,
 	// and return with the call to the history system that

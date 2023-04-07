@@ -96,10 +96,10 @@ func NewShell() *Shell {
 
 	// Keymaps and commands
 	keymaps := keymap.NewModes(keys, iterations, opts)
-	keymaps.Register(shell.standardWidgets())
-	keymaps.Register(shell.viWidgets())
-	keymaps.Register(shell.historyWidgets())
-	keymaps.Register(shell.completionWidgets())
+	keymaps.Register(shell.standardCommands())
+	keymaps.Register(shell.viCommands())
+	keymaps.Register(shell.historyCommands())
+	keymaps.Register(shell.completionCommands())
 
 	shell.keymaps = keymaps
 
@@ -107,7 +107,7 @@ func NewShell() *Shell {
 	hint := new(ui.Hint)
 	prompt := ui.NewPrompt(keys, line, cursor, opts)
 	macros := macro.NewEngine(keys, hint)
-	completer := completion.NewEngine(keys, line, cursor, hint, keymaps, opts)
+	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, opts)
 	history := history.NewSources(line, cursor, hint)
 	display := display.NewEngine(selection, history, prompt, hint, completer, opts)
 

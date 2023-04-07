@@ -12,20 +12,18 @@ var isearchKeys = map[string]string{}
 var IsearchCommands = []string{
 	"accept-and-infer-next-history",
 	"accept-line",
-	"accept-line-and-down-history",
+	"operate-and-get-next",
 	"accept-search",
+	"delete-char",
 	"backward-delete-char",
-	"vi-backward-delete-char",
 	"backward-kill-word",
-	"backward-delete-word",
-	"vi-backward-kill-word",
+	"vi-unix-word-rubout",
 	"clear-screen",
 	"history-incremental-search-forward",  // Not sure history- needed
 	"history-incremental-search-backward", // same
-	"space",
+	"magic-space",
 	"quoted-insert",
-	"vi-quoted-insert",
-	"vi-cmd-mode",
+	"vi-movement-mode",
 	"self-insert",
 }
 
