@@ -34,11 +34,11 @@ func (rl *Shell) DeleteHistory(sources ...string) {
 	rl.histories.Delete(sources...)
 }
 
-// historyWidgets returns all history commands.
+// historyCommands returns all history commands.
 // Under each comment are gathered all commands related to the comment's
 // subject. When there are two subgroups separated by an empty line, the
 // second one comprises commands that are not legacy readline commands.
-func (rl *Shell) historyWidgets() commands {
+func (rl *Shell) historyCommands() commands {
 	widgets := map[string]func(){
 		"accept-line":                            rl.acceptLine,
 		"next-history":                           rl.downHistory, // down-history

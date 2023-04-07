@@ -356,6 +356,17 @@ func (h *Sources) Suggest(line *core.Line) core.Line {
 		return *line
 	}
 
+	// Don't autosuggest when the line is not
+	// the current input line: we are completing.
+	if line != h.line {
+		return *line
+	}
+	// current := h.line
+	// h.line = line
+	// defer func() {
+	// 	h.line = current
+	// }()
+
 	suggested, _, found := h.matchFirst(false)
 	if !found {
 		return *line

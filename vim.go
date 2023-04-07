@@ -11,7 +11,7 @@ import (
 // commands maps widget names to their implementation.
 type commands map[string]func()
 
-// viWidgets returns all Vim commands.
+// viCommands returns all Vim commands.
 // Under each comment are gathered all commands related to the comment's
 // subject. When there are two subgroups separated by an empty line, the
 // second one comprises commands that are not legacy readline commands.
@@ -22,7 +22,7 @@ type commands map[string]func()
 // Killing and Yanking
 // Selecting text
 // Miscellaneous.
-func (rl *Shell) viWidgets() commands {
+func (rl *Shell) viCommands() commands {
 	return map[string]func(){
 		// Modes enter/exit
 		"vi-append-mode":      rl.viAddNext,     // vi-add-next

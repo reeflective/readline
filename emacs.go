@@ -17,7 +17,7 @@ import (
 	"github.com/xo/inputrc"
 )
 
-// standardWidgets returns all standard/emacs commands.
+// standardCommands returns all standard/emacs commands.
 // Under each comment are gathered all commands related to the comment's
 // subject. When there are two subgroups separated by an empty line, the
 // second one comprises commands that are not legacy readline commands.
@@ -29,7 +29,7 @@ import (
 // Numeric arguments.
 // Macros
 // Miscellaneous.
-func (rl *Shell) standardWidgets() commands {
+func (rl *Shell) standardCommands() commands {
 	widgets := map[string]func(){
 		// Modes
 		"emacs-editing-mode": rl.emacsEditingMode,
@@ -318,7 +318,6 @@ func (rl *Shell) backwardDeleteChar() {
 		rl.line.CutRune(rl.cursor.Pos())
 
 		if isSurround && matcher {
-			rl.cursor.Inc()
 			rl.line.CutRune(rl.cursor.Pos())
 		}
 
