@@ -9,12 +9,12 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/editor"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/xo/inputrc"
 )
 
 // standardCommands returns all standard/emacs commands.

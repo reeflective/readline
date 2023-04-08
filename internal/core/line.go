@@ -7,7 +7,7 @@ import (
 
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 // Tokenizer is a method used by a (line) type to split itself according to

@@ -1,6 +1,6 @@
 package keymap
 
-import "github.com/xo/inputrc"
+import "github.com/reeflective/readline/inputrc"
 
 // The isearch keymap is empty by default: the widgets that can
 // be used while in incremental search mode will be found in the

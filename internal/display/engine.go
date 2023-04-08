@@ -7,7 +7,7 @@ import (
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/reeflective/readline/internal/ui"
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 // Engine handles all display operations: it refreshes the terminal

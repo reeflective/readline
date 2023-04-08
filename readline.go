@@ -5,7 +5,7 @@ import (
 
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 // Readline displays the readline prompt and reads for user input.
@@ -58,7 +58,7 @@ func (rl *Shell) Readline() (string, error) {
 		// on the line or on the cursor position, so we must first
 		// "reset" or accept any completion state we're in, if any,
 		// such as a virtually inserted candidate.
-		// rl.completer.Update()
+		rl.completer.Update()
 
 		// 2 - Main keymap (vicmd/viins/emacs-*)
 		bind, command, prefixed = rl.keymaps.MatchMain()

@@ -1,6 +1,6 @@
 package keymap
 
-import "github.com/xo/inputrc"
+import "github.com/reeflective/readline/inputrc"
 
 // menuselectKeys are the default keymaps in menuselect mode.
 var menuselectKeys = map[string]inputrc.Bind{

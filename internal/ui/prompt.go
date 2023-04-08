@@ -7,7 +7,7 @@ import (
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 const transientEnableOption = "prompt-transient"

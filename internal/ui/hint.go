@@ -6,7 +6,7 @@ import (
 
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 // Hint is in charge of printing the usage messages below the input line.

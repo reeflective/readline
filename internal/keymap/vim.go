@@ -1,6 +1,6 @@
 package keymap
 
-import "github.com/xo/inputrc"
+import "github.com/reeflective/readline/inputrc"
 
 // viinsKeys are the default keymaps in Vim Insert mode.
 var viinsKeys = map[string]inputrc.Bind{

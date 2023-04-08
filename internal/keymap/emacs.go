@@ -1,6 +1,6 @@
 package keymap
 
-import "github.com/xo/inputrc"
+import "github.com/reeflective/readline/inputrc"
 
 // emacsKeys are the default keymaps in Emacs mode.
 var emacsKeys = map[string]inputrc.Bind{

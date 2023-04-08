@@ -2,7 +2,7 @@ package core
 
 import (
 	"github.com/reeflective/readline/internal/strutil"
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 // Cursor is the cursor position in the current line buffer.

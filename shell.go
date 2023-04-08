@@ -12,7 +12,7 @@ import (
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/macro"
 	"github.com/reeflective/readline/internal/ui"
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 // Shell is used to encapsulate the parameter group and run time of any given

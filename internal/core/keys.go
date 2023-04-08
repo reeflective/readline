@@ -3,7 +3,7 @@ package core
 import (
 	"os"
 
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 const (

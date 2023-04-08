@@ -5,7 +5,7 @@ import (
 
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
-	"github.com/xo/inputrc"
+	"github.com/reeflective/readline/inputrc"
 )
 
 // commands maps widget names to their implementation.
