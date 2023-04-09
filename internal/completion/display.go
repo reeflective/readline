@@ -14,8 +14,12 @@ import (
 func (e *Engine) Display() {
 	e.usedY = 0
 
-	// Don't print completions when not active.
-	if !e.IsActive() && !e.auto {
+	// The completion engine might be inactive but still having
+	// a non-empty list of completions. This is on purpose, as
+	// sometimes it's better to keep completions printed for a
+	// little more time. The engine itself is responsible for
+	// deleting those lists when it deems them useless.
+	if e.Matches() == 0 {
 		return
 	}
 

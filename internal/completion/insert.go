@@ -3,32 +3,14 @@ package completion
 import (
 	"strings"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
-	"github.com/xo/inputrc"
 )
 
-// acceptCandidate transfers the virtually inserted candidate into the real line.
-func (e *Engine) acceptCandidate() {
-	cur := e.currentGroup()
-	if cur == nil {
-		return
-	}
-
-	value := cur.selected().Value
-	length := len(e.prefix)
-
-	if len(value) >= length {
-		e.line.Insert(e.cursor.Pos(), []rune(value[length:])...)
-		e.cursor.Inc()
-
-		e.suffix = cur.noSpace
-		e.suffix.pos = e.cursor.Pos()
-	}
-}
-
-// removeSuffixAccepted removes a suffix from the real input line.
-func (e *Engine) removeSuffixAccepted() {
-	if len(e.comp) > 0 {
+// TrimSuffix removes the last inserted completion's suffix if the required constraints
+// are satisfied, among which the index position, the suffix matching patterns, etc.
+func (e *Engine) TrimSuffix() {
+	if e.line.Len() == 0 || e.cursor.Pos() == 0 || len(e.comp) > 0 {
 		return
 	}
 
@@ -64,22 +46,54 @@ func (e *Engine) removeSuffixAccepted() {
 	}
 }
 
-// insertCandidate inserts a completion candidate into the virtual line.
-func (e *Engine) insertCandidate(candidate []rune) {
-	// Remove the current candidate by reusing the current line.
+// acceptCandidate inserts the currently selected candidate into the real input line.
+func (e *Engine) acceptCandidate() {
+	cur := e.currentGroup()
+	if cur == nil {
+		return
+	}
+
+	// Prepare the completion candidate, remove the
+	// prefix part and save its sufffixes for later.
+	completion := e.prepareSuffix()
+	inserted := []rune(completion[len(e.prefix):])
+
+	// Insert it in the line.
+	e.line.Insert(e.cursor.Pos(), inserted...)
+	e.cursor.Move(len(inserted))
+}
+
+// insertCandidate inserts a completion candidate into the virtual (completed) line.
+func (e *Engine) insertCandidate() {
+	grp := e.currentGroup()
+	if grp == nil {
+		return
+	}
+
+	if len(grp.selected().Value) < len(e.prefix) {
+		return
+	}
+
+	// Prepare the completion candidate, remove the
+	// prefix part and save its sufffixes for later.
+	completion := e.prepareSuffix()
+	e.comp = []rune(completion[len(e.prefix):])
+
+	// Copy the current (uncompleted) line/cursor.
 	completed := core.Line(string(*e.line))
 	e.completed = &completed
 
 	e.compCursor = core.NewCursor(e.completed)
 	e.compCursor.Set(e.cursor.Pos())
 
-	// Insert the new candidate and keep it.
-	e.completed.Insert(e.cursor.Pos(), candidate...)
-	e.compCursor.Move(len(candidate))
+	// And insert it in the completed line.
+	e.completed.Insert(e.compCursor.Pos(), e.comp...)
+	e.compCursor.Move(len(e.comp))
 }
 
-// removeSuffixInserted removes a suffix from the virtual input line.
-func (e *Engine) removeSuffixInserted() (comp string) {
+// prepareSuffix caches any suffix matcher associated with the completion candidate
+// to be inserted/accepted into the input line, and trims it if required at this point.
+func (e *Engine) prepareSuffix() (comp string) {
 	cur := e.currentGroup()
 	if cur == nil {
 		return
@@ -101,10 +115,10 @@ func (e *Engine) removeSuffixInserted() (comp string) {
 	// matcher for later: whatever the decision we take here will be identical
 	// to the one we take while removing suffix in "non-virtual comp" mode.
 	e.suffix = cur.noSpace
-	e.suffix.pos = e.cursor.Pos() - 1
+	e.suffix.pos = e.cursor.Pos() + len(comp) - prefix - 1
 
 	// Add a space to suffix matcher when empty.
-	if cur.noSpace.string == "" && e.opts.GetBool("autocomplete") {
+	if cur.noSpace.string == "" && !e.opts.GetBool("autocomplete") {
 		cur.noSpace.Add([]rune{' '}...)
 	}
 
@@ -134,6 +148,19 @@ func (e *Engine) removeSuffixInserted() (comp string) {
 
 // remove any virtually inserted candidate.
 func (e *Engine) cutCandidate() {
+	if len(e.comp) == 0 {
+		return
+	}
+
+	bpos := e.cursor.Pos() - len(e.comp)
+	epos := e.cursor.Pos()
+
+	e.line.Cut(bpos, epos)
+	e.cursor.Set(bpos)
+	// e.cursor.Move(-1 * len(e.comp))
+
+	// e.completed.Cut(bpos, epos)
+	// e.compCursor.Move(-1 * len(e.comp))
 }
 
 func notMatcher(key rune, matchers string) bool {

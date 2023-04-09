@@ -1,11 +1,14 @@
 package readline
 
 import (
+	"fmt"
+
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/keymap"
 )
 
-func (rl *Shell) completionWidgets() lineWidgets {
+func (rl *Shell) completionCommands() commands {
 	return map[string]func(){
 		"complete":               rl.completeWord,        // complete-word
 		"possible-completions":   rl.possibleCompletions, // list-choices
@@ -71,8 +74,9 @@ func (rl *Shell) possibleCompletions() {
 	// 	return
 	// }
 
-	rl.completer.Reset(false, false)
-	rl.completer.GenerateWith(rl.normalCompletions)
+	rl.completer.Cancel(false, false)
+	rl.keymaps.SetLocal(keymap.MenuSelect)
+	rl.completer.GenerateWith(rl.commandCompletion)
 }
 
 func (rl *Shell) insertCompletions() {}
@@ -83,8 +87,9 @@ func (rl *Shell) menuComplete() {
 	// No completions are being printed yet, so simply generate the completions
 	// as if we just request them without immediately selecting a candidate.
 	if !rl.completer.IsActive() {
-		rl.completer.GenerateWith(rl.normalCompletions)
+		rl.startMenuComplete(rl.commandCompletion)
 	} else {
+		rl.keymaps.SetLocal(keymap.MenuSelect)
 		rl.completer.Select(1, 0)
 	}
 
@@ -156,6 +161,7 @@ func (rl *Shell) menuCompleteBackward() {
 		return
 	}
 
+	rl.keymaps.SetLocal(keymap.MenuSelect)
 	rl.completer.Select(-1, 0)
 }
 
@@ -166,6 +172,7 @@ func (rl *Shell) menuCompleteNextTag() {
 		return
 	}
 
+	rl.keymaps.SetLocal(keymap.MenuSelect)
 	rl.completer.SelectTag(true)
 }
 
@@ -176,6 +183,7 @@ func (rl *Shell) menuCompletePrevTag() {
 		return
 	}
 
+	rl.keymaps.SetLocal(keymap.MenuSelect)
 	rl.completer.SelectTag(false)
 }
 
@@ -230,22 +238,12 @@ func (rl *Shell) viRegistersComplete() {
 
 func (rl *Shell) menuIncrementalSearch() {
 	rl.undo.SkipSave()
-	//
-	// switch rl.local {
-	// case isearch:
-	// 	fallthrough
-	// default:
-	// 	// First initialize completions.
-	// 	if rl.completer != nil {
-	// 		rl.startMenuComplete(rl.completer)
-	// 	}
-	//
-	// 	// Then enter the isearch mode, which updates
-	// 	// the hint line, and initializes other things.
-	// 	if rl.local == menuselect {
-	// 		rl.enterIsearchMode()
-	// 	}
-	// }
+
+	if !rl.completer.IsActive() {
+		rl.completer.GenerateWith(rl.commandCompletion)
+	}
+
+	rl.completer.IsearchStart("completions")
 }
 
 //
@@ -254,14 +252,14 @@ func (rl *Shell) menuIncrementalSearch() {
 
 // startMenuComplete generates a completion menu with completions
 // generated from a given completer, without selecting a candidate.
-func (rl *Shell) startMenuComplete(completer func()) {
-	rl.keymaps.SetLocal(keymap.MenuSelect)
+func (rl *Shell) startMenuComplete(completer completion.Completer) {
 	rl.undo.SkipSave()
-	// rl.local = menuselect
-	// rl.skipUndoAppend()
+
+	rl.keymaps.SetLocal(keymap.MenuSelect)
+	rl.completer.GenerateWith(rl.commandCompletion)
 }
 
-func (rl *Shell) normalCompletions() completion.Values {
+func (rl *Shell) commandCompletion() completion.Values {
 	if rl.Completer == nil {
 		return completion.Values{}
 	}
@@ -273,51 +271,38 @@ func (rl *Shell) normalCompletions() completion.Values {
 }
 
 func (rl *Shell) historyCompletion(forward, filterLine bool) {
-	// switch rl.local {
-	// case menuselect, isearch:
-	// 	// If we are currently completing the last
-	// 	// history source, cancel history completion.
-	// 	if rl.historySourcePos == len(rl.histories)-1 {
-	// 		rl.histHint = []rune{}
-	// 		rl.nextHistorySource()
-	// 		rl.resetCompletion()
-	// 		rl.completer = nil
-	// 		rl.local = ""
-	// 		rl.resetHintText()
-	//
-	// 		return
-	// 	}
-	//
-	// 	// Else complete the next history source.
-	// 	rl.nextHistorySource()
-	//
-	// 	fallthrough
-	//
-	// default:
-	// 	// Notify if we don't have history sources at all.
-	// 	if rl.currentHistory() == nil {
-	// 		noHistory := fmt.Sprintf("%s%s%s %s", seqDim, seqFgRed, "No command history source", seqReset)
-	// 		rl.histHint = []rune(noHistory)
-	//
-	// 		return
-	// 	}
-	//
-	// 	// Generate the completions with specified behavior.
-	// 	historyCompletion := func() {
-	// 		rl.tcGroups = make([]*comps, 0)
-	//
-	// 		// Either against the current line or not.
-	// 		if filterLine {
-	// 			rl.tcPrefix = string(rl.line)
-	// 		}
-	//
-	// 		comps := rl.completeHistory(forward)
-	// 		comps = comps.DisplayList()
-	// 		rl.groupCompletions(comps)
-	// 		rl.setCompletionPrefix(comps)
-	// 	}
-	//
-	// 	// Else, generate the completions.
-	// 	rl.startMenuComplete(historyCompletion)
-	// }
+	switch rl.keymaps.Local() {
+	case keymap.MenuSelect, keymap.Isearch:
+		// If we are currently completing the last
+		// history source, cancel history completion.
+		if rl.histories.OnLastSource() {
+			rl.histories.Cycle(true)
+			rl.completer.Cancel(true, true)
+			rl.completer.Drop(true)
+			rl.hint.Reset()
+			rl.completer.IsearchStop()
+
+			return
+		}
+
+		// Else complete the next history source.
+		rl.histories.Cycle(true)
+
+		fallthrough
+
+	default:
+		// Notify if we don't have history sources at all.
+		if rl.histories.Current() == nil {
+			rl.hint.Set(fmt.Sprintf("%s%s%s %s", color.Dim, color.FgRed, "No command history source", color.Reset))
+			return
+		}
+
+		// Generate the completions with specified behavior.
+		completer := func() completion.Values {
+			return rl.histories.Complete(forward, filterLine)
+		}
+
+		rl.completer.GenerateWith(completer)
+		rl.completer.IsearchStart(rl.histories.Name())
+	}
 }

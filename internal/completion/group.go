@@ -505,13 +505,16 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 	return
 }
 
+// TODO: After checking works, remove commented lines
 func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string, selected bool) (candidate string) {
 	reset := color.SGR(val.Style, true)
-	candidate = g.displayTrimmed(val.Display) + cell
+	candidate = g.displayTrimmed(val.Display)
+	// candidate = g.displayTrimmed(val.Display) + cell
 
 	if eng.isearch != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.isearch.FindString(candidate)
-		match = color.BgBlackBright + match + color.Reset + reset
+		match = color.BgBlackBright + match + color.Reset + cell + reset
+		// match = color.BgBlackBright + match + color.Reset + reset
 		candidate = eng.isearch.ReplaceAllLiteralString(candidate, match)
 	}
 
@@ -524,7 +527,8 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 		}
 
 	default:
-		candidate = reset + candidate + color.Reset
+		candidate = reset + candidate + color.Reset + cell
+		// candidate = reset + candidate + color.Reset
 	}
 
 	candidate += pad

@@ -3,7 +3,9 @@ package completion
 import (
 	"os"
 	"strings"
+	"unicode"
 
+	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/term"
 )
 
@@ -18,6 +20,15 @@ var sanitizer = strings.NewReplacer(
 	"\r", ``,
 	"\t", ``,
 )
+
+// prepare builds the list of completions but does
+// not attempt any insertion/abortion on the line.
+func (e *Engine) prepare(completions Values) {
+	e.groups = make([]*group, 0)
+
+	e.group(completions)
+	e.setPrefix(completions)
+}
 
 func (e *Engine) setPrefix(comps Values) {
 	switch comps.PREFIX {
@@ -47,13 +58,14 @@ func (e *Engine) setPrefix(comps Values) {
 	}
 }
 
-func (rl *Engine) clearVirtualComp() {
-	// Merge lines.
-	rl.line.Set(*rl.completed...)
-	rl.cursor.Set(rl.compCursor.Pos())
+func (e *Engine) clearVirtualComp() {
+	// The completed line includes any currently selected
+	// candidate, just overwrite it with the normal line.
+	e.completed.Set(*e.line...)
+	e.compCursor.Set(e.cursor.Pos())
 
 	// And no virtual candidate anymore.
-	rl.comp = make([]rune, 0)
+	e.comp = make([]rune, 0)
 }
 
 func (e *Engine) currentGroup() (grp *group) {
@@ -88,7 +100,7 @@ func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
 		}
 	} else {
 		if cur.aliased && keys != term.ArrowLeft && keys != term.ArrowUp {
-			row, column = 0, -1*row
+			row, column = 0, 1*row
 		}
 	}
 
@@ -106,14 +118,15 @@ func (e *Engine) cycleNextGroup() {
 				e.groups[0].isCurrent = true
 			} else {
 				e.groups[pos+1].isCurrent = true
-				next := e.currentGroup()
-				if len(next.values) == 0 {
-					e.cycleNextGroup()
-				}
 			}
 
 			break
 		}
+	}
+
+	next := e.currentGroup()
+	if len(next.values) == 0 {
+		e.cycleNextGroup()
 	}
 }
 
@@ -127,21 +140,24 @@ func (e *Engine) cyclePreviousGroup() {
 				e.groups[len(e.groups)-1].isCurrent = true
 			} else {
 				e.groups[pos-1].isCurrent = true
-				prev := e.currentGroup()
-				if len(prev.values) == 0 {
-					e.cyclePreviousGroup()
-				}
 			}
 
 			break
 		}
 	}
+
+	prev := e.currentGroup()
+	if len(prev.values) == 0 {
+		e.cyclePreviousGroup()
+	}
 }
 
-func (e *Engine) updateCompletedLine() {
-	// If no completions, reset ourselves.
+// refreshLine - Either insert the only candidate in the real line
+// and drop the current completion list, prefix, keymaps, etc, or
+// swap the formerly selected candidate with the new one.
+func (e *Engine) refreshLine() {
 	if e.noCompletions() {
-		e.Reset(true, true)
+		e.Cancel(true, true)
 		return
 	}
 
@@ -150,18 +166,11 @@ func (e *Engine) updateCompletedLine() {
 		return
 	}
 
-	// If only one completion, insert and reset.
 	if e.hasUniqueCandidate() {
-		e.Reset(false, true)
-	}
-
-	// Else, insert the comp.
-	comp := grp.selected().Value
-	e.comp = []rune(comp)
-
-	if len(comp) >= len(e.prefix) {
-		diff := []rune(comp[len(e.prefix):])
-		e.insertCandidate(diff)
+		e.acceptCandidate()
+		e.Drop(true)
+	} else {
+		e.insertCandidate()
 	}
 }
 
@@ -182,10 +191,10 @@ func (e *Engine) completionCount() (comps int, used int) {
 
 		used++
 
-		if group.tcMaxY > len(group.values) {
+		if group.maxY > len(group.values) {
 			used += len(group.values)
 		} else {
-			used += group.tcMaxY
+			used += group.maxY
 		}
 	}
 
@@ -239,20 +248,27 @@ func (e *Engine) noCompletions() bool {
 	return true
 }
 
-func (e *Engine) resetList(cached bool) {
-	e.groups = make([]*group, 0)
+func (e *Engine) resetList(comps, cached bool) {
+	e.prefix = ""
 
+	// Drop the list of already generated/prepared completion candidates.
+	if comps {
+		e.groups = make([]*group, 0)
+	}
+
+	// Drop the completion generation function.
 	if cached {
 		e.cached = nil
 	}
 
-	// if len(e.groups) > 0 {
-	// 	for _, g := range e.groups {
-	// 		g.isCurrent = false
-	// 	}
-	//
-	// 	e.groups[0].isCurrent = true
-	// }
+	// If generated choices were kept, select first choice.
+	if len(e.groups) > 0 {
+		for _, g := range e.groups {
+			g.isCurrent = false
+		}
+
+		e.groups[0].isCurrent = true
+	}
 }
 
 // returns either the max number of completion rows configured
@@ -284,6 +300,34 @@ func (e *Engine) getCompletionMaxRows() (maxRows int) {
 	return termHeight / maxRowsRatio
 }
 
+func (e *Engine) needsAutoComplete() bool {
+	// Autocomplete is not needed when already completing,
+	// or when the input line is empty (would always trigger)
+	needsComplete := e.opts.GetBool("autocomplete") &&
+		e.line.Len() > 0 &&
+		e.keymaps.Local() != keymap.MenuSelect &&
+		e.keymaps.Local() != keymap.Isearch
+
+		// Not possible in Vim command mode either.
+	isCorrectMenu := e.keymaps.Main() != keymap.ViCmd &&
+		e.keymaps.Local() != keymap.Isearch
+
+	// if isCorrectMenu && len(e.comp) == 0 {
+	// 	return true
+	// }
+
+	if needsComplete && isCorrectMenu && len(e.comp) == 0 {
+		return true
+	}
+
+	return false
+}
+
+func (e *Engine) isAutoCompleting() bool {
+	return e.opts.GetBool("autocomplete") &&
+		e.line.Len() > 0
+}
+
 func (e *Engine) getAbsPos() int {
 	var prev int
 	var foundCurrent bool
@@ -294,13 +338,13 @@ func (e *Engine) getAbsPos() int {
 		}
 
 		if grp.isCurrent {
-			prev += grp.tcPosY
+			prev += grp.posY
 			foundCurrent = true
 
 			break
 		}
 
-		prev += grp.tcMaxY
+		prev += grp.maxY
 	}
 
 	// If there was no current group, it means
@@ -348,4 +392,14 @@ func sum(vals []int) (sum int) {
 	}
 
 	return
+}
+
+func hasUpper(line []rune) bool {
+	for _, r := range line {
+		if unicode.IsUpper(r) {
+			return true
+		}
+	}
+
+	return false
 }
