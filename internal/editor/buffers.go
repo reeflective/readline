@@ -269,7 +269,7 @@ func (reg *Buffers) completeNumRegs() []completion.Candidate {
 
 	for _, num := range nums {
 		buf := reg.num[num]
-		display := strings.ReplaceAll(string(buf), "\n", ``)
+		display := strings.ReplaceAll(string(buf), "\n", ` `)
 
 		comp := completion.Candidate{
 			Tag:     tag,
@@ -295,7 +295,7 @@ func (reg *Buffers) completeAlphaRegs() []completion.Candidate {
 
 	for _, letter := range lett {
 		buf := reg.alpha[letter]
-		display := strings.ReplaceAll(string(buf), "\n", ``)
+		display := strings.ReplaceAll(string(buf), "\n", ` `)
 
 		comp := completion.Candidate{
 			Tag:     tag,

@@ -107,32 +107,8 @@ func (e *Engine) newGroup(c Values, tag string, vals RawValues, aliased bool) {
 	// and begin computing some parameters.
 	vals = grp.checkDisplays(vals)
 
-	// Override grid/list displays
-	_, grp.list = c.ListLong[tag]
-	if _, all := c.ListLong["*"]; all && len(c.ListLong) == 1 {
-		grp.list = true
-	}
-
-	listSep, found := c.ListSep[tag]
-	if !found {
-		if allSep, found := c.ListSep["*"]; found {
-			grp.listSeparator = allSep
-		}
-	} else {
-		grp.listSeparator = listSep
-	}
-
-	// Override sorting or sort if needed
-	_, grp.noSort = c.NoSort[tag]
-	if _, all := c.NoSort["*"]; all && len(c.NoSort) == 1 {
-		grp.noSort = true
-	}
-
-	if !grp.noSort {
-		sort.Slice(vals, func(i, j int) bool {
-			return vals[i].Display < vals[j].Display
-		})
-	}
+	// Set sorting options, various display styles, etc.
+	grp.setOptions(c, tag, vals)
 
 	// Keep computing/devising some parameters and constraints.
 	// This does not do much when we have aliased completions.
@@ -159,6 +135,36 @@ func (g *group) checkDisplays(vals RawValues) RawValues {
 	}
 
 	return vals
+}
+
+func (g *group) setOptions(c Values, tag string, vals RawValues) {
+	// Override grid/list displays
+	_, g.list = c.ListLong[tag]
+	if _, all := c.ListLong["*"]; all && len(c.ListLong) == 1 {
+		g.list = true
+	}
+
+	// Description list separator
+	listSep, found := c.ListSep[tag]
+	if !found {
+		if allSep, found := c.ListSep["*"]; found {
+			g.listSeparator = allSep
+		}
+	} else {
+		g.listSeparator = listSep
+	}
+
+	// Override sorting or sort if needed
+	_, g.noSort = c.NoSort[tag]
+	if _, all := c.NoSort["*"]; all && len(c.NoSort) == 1 {
+		g.noSort = true
+	}
+
+	if !g.noSort {
+		sort.Slice(vals, func(i, j int) bool {
+			return vals[i].Display < vals[j].Display
+		})
+	}
 }
 
 func (g *group) computeCells(vals RawValues) {

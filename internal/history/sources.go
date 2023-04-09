@@ -426,7 +426,7 @@ nextLine:
 			continue
 		}
 
-		display := strings.ReplaceAll(line, "\n", ``)
+		display := strings.ReplaceAll(line, "\n", ` `)
 
 		for _, comp := range compLines {
 			if comp.Display == line {
