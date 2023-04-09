@@ -89,7 +89,6 @@ func (rl *Shell) menuComplete() {
 	if !rl.completer.IsActive() {
 		rl.startMenuComplete(rl.commandCompletion)
 	} else {
-		rl.keymaps.SetLocal(keymap.MenuSelect)
 		rl.completer.Select(1, 0)
 	}
 
@@ -161,7 +160,6 @@ func (rl *Shell) menuCompleteBackward() {
 		return
 	}
 
-	rl.keymaps.SetLocal(keymap.MenuSelect)
 	rl.completer.Select(-1, 0)
 }
 
@@ -172,7 +170,6 @@ func (rl *Shell) menuCompleteNextTag() {
 		return
 	}
 
-	rl.keymaps.SetLocal(keymap.MenuSelect)
 	rl.completer.SelectTag(true)
 }
 
@@ -183,7 +180,6 @@ func (rl *Shell) menuCompletePrevTag() {
 		return
 	}
 
-	rl.keymaps.SetLocal(keymap.MenuSelect)
 	rl.completer.SelectTag(false)
 }
 

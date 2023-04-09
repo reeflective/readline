@@ -95,6 +95,9 @@ func (e *Engine) Select(row, column int) {
 		return
 	}
 
+	// Ensure the completion keymaps are set.
+	e.adjustSelectKeymap()
+
 	// Some keys used to move around completions
 	// will influence the coordinates' offsets.
 	row, column = e.adjustCycleKeys(row, column)
@@ -102,7 +105,7 @@ func (e *Engine) Select(row, column int) {
 	// If we already have an inserted candidate
 	// remove it before inserting the new one.
 	if len(e.comp) > 0 {
-		e.clearVirtualComp()
+		e.dropInserted()
 	}
 
 	defer e.refreshLine()
@@ -129,6 +132,9 @@ func (e *Engine) Select(row, column int) {
 // SelectTag allows to select the first value of the next tag (next=true),
 // or the last value of the previous tag (next=false).
 func (e *Engine) SelectTag(next bool) {
+	// Ensure the completion keymaps are set.
+	e.adjustSelectKeymap()
+
 	if len(e.groups) <= 1 {
 		return
 	}
@@ -136,7 +142,7 @@ func (e *Engine) SelectTag(next bool) {
 	// If the completion candidate is not empty,
 	// it's also inserted in the line, so remove it.
 	if len(e.comp) > 0 {
-		e.clearVirtualComp()
+		e.dropInserted()
 	}
 
 	// In the end we will update the line with the
@@ -171,7 +177,9 @@ func (e *Engine) Update() {
 
 	// If autocomplete is on, we also drop the list of generated
 	// completions, because it will be recomputed shortly after.
-	e.Cancel(e.auto, false)
+	// Do the same when using incremental search.
+	inserted := e.auto || e.keymaps.Local() == keymap.Isearch
+	e.Cancel(inserted, false)
 }
 
 // Cancel exits the current completions with the following behavior:
@@ -190,7 +198,7 @@ func (e *Engine) Cancel(inserted, cached bool) {
 	}
 
 	// In the end, there is no completed line anymore.
-	defer e.clearVirtualComp()
+	defer e.dropInserted()
 
 	completion := cur.selected().Value
 
@@ -254,6 +262,12 @@ func (e *Engine) Line() (*core.Line, *core.Cursor) {
 func (e *Engine) Autocomplete() {
 	e.auto = e.needsAutoComplete()
 
+	// Clear the current completion list when we are at the
+	// beginning of the line, and not currently completing.
+	if e.auto || (!e.IsActive() && e.cursor.Pos() == 0) {
+		e.resetList(true, false)
+	}
+
 	// We are not auto when either: autocomplete is disabled,
 	// incremental-search mode is active, or a completion is
 	// currently selected in the menu.
@@ -261,9 +275,7 @@ func (e *Engine) Autocomplete() {
 		return
 	}
 
-	// Clear the current list of completions.
-	e.resetList(true, false)
-
+	// Regenerate the completions.
 	if e.defaut != nil {
 		e.prepare(e.defaut())
 	}

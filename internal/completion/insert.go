@@ -118,6 +118,7 @@ func (e *Engine) prepareSuffix() (comp string) {
 	e.suffix.pos = e.cursor.Pos() + len(comp) - prefix - 1
 
 	// Add a space to suffix matcher when empty.
+	// if cur.noSpace.string == "" {
 	if cur.noSpace.string == "" && !e.opts.GetBool("autocomplete") {
 		cur.noSpace.Add([]rune{' '}...)
 	}
@@ -139,9 +140,9 @@ func (e *Engine) prepareSuffix() (comp string) {
 	}
 
 	// Else if the suffix matches a pattern, remove
-	if cur.noSpace.Matches(comp) {
-		comp = comp[:len(comp)-1]
-	}
+	// if cur.noSpace.Matches(comp) {
+	// 	comp = comp[:len(comp)-1]
+	// }
 
 	return comp
 }

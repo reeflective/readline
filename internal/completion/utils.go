@@ -58,16 +58,6 @@ func (e *Engine) setPrefix(comps Values) {
 	}
 }
 
-func (e *Engine) clearVirtualComp() {
-	// The completed line includes any currently selected
-	// candidate, just overwrite it with the normal line.
-	e.completed.Set(*e.line...)
-	e.compCursor.Set(e.cursor.Pos())
-
-	// And no virtual candidate anymore.
-	e.comp = make([]rune, 0)
-}
-
 func (e *Engine) currentGroup() (grp *group) {
 	for _, g := range e.groups {
 		if g.isCurrent {
@@ -86,25 +76,6 @@ func (e *Engine) currentGroup() (grp *group) {
 	}
 
 	return
-}
-
-func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
-	cur := e.currentGroup()
-
-	keyRunes, _ := e.keys.PeekAll()
-	keys := string(keyRunes)
-
-	if row > 0 {
-		if cur.aliased && keys != term.ArrowRight && keys != term.ArrowDown {
-			row, column = 0, row
-		}
-	} else {
-		if cur.aliased && keys != term.ArrowLeft && keys != term.ArrowUp {
-			row, column = 0, 1*row
-		}
-	}
-
-	return row, column
 }
 
 // cycleNextGroup - Finds either the first non-empty group,
@@ -152,6 +123,32 @@ func (e *Engine) cyclePreviousGroup() {
 	}
 }
 
+func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
+	cur := e.currentGroup()
+
+	keyRunes, _ := e.keys.PeekAll()
+	keys := string(keyRunes)
+
+	if row > 0 {
+		if cur.aliased && keys != term.ArrowRight && keys != term.ArrowDown {
+			row, column = 0, row
+		}
+	} else {
+		if cur.aliased && keys != term.ArrowLeft && keys != term.ArrowUp {
+			row, column = 0, 1*row
+		}
+	}
+
+	return row, column
+}
+
+// adjustSelectKeymap is only when the selector function has been used.
+func (e *Engine) adjustSelectKeymap() {
+	if e.keymaps.Local() != keymap.Isearch {
+		e.keymaps.SetLocal(keymap.MenuSelect)
+	}
+}
+
 // refreshLine - Either insert the only candidate in the real line
 // and drop the current completion list, prefix, keymaps, etc, or
 // swap the formerly selected candidate with the new one.
@@ -172,6 +169,16 @@ func (e *Engine) refreshLine() {
 	} else {
 		e.insertCandidate()
 	}
+}
+
+func (e *Engine) dropInserted() {
+	// The completed line includes any currently selected
+	// candidate, just overwrite it with the normal line.
+	e.completed.Set(*e.line...)
+	e.compCursor.Set(e.cursor.Pos())
+
+	// And no virtual candidate anymore.
+	e.comp = make([]rune, 0)
 }
 
 func (e *Engine) currentCandidate() (comp string) {
@@ -304,17 +311,13 @@ func (e *Engine) needsAutoComplete() bool {
 	// Autocomplete is not needed when already completing,
 	// or when the input line is empty (would always trigger)
 	needsComplete := e.opts.GetBool("autocomplete") &&
-		e.line.Len() > 0 &&
 		e.keymaps.Local() != keymap.MenuSelect &&
-		e.keymaps.Local() != keymap.Isearch
+		e.keymaps.Local() != keymap.Isearch &&
+		e.line.Len() > 0
 
 		// Not possible in Vim command mode either.
 	isCorrectMenu := e.keymaps.Main() != keymap.ViCmd &&
 		e.keymaps.Local() != keymap.Isearch
-
-	// if isCorrectMenu && len(e.comp) == 0 {
-	// 	return true
-	// }
 
 	if needsComplete && isCorrectMenu && len(e.comp) == 0 {
 		return true
