@@ -3,9 +3,9 @@ package readline
 import (
 	"os"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/reeflective/readline/inputrc"
 )
 
 // Readline displays the readline prompt and reads for user input.

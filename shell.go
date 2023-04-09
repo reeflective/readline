@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/display"
@@ -12,7 +13,6 @@ import (
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/macro"
 	"github.com/reeflective/readline/internal/ui"
-	"github.com/reeflective/readline/inputrc"
 )
 
 // Shell is used to encapsulate the parameter group and run time of any given
@@ -108,6 +108,7 @@ func NewShell() *Shell {
 	prompt := ui.NewPrompt(keys, line, cursor, opts)
 	macros := macro.NewEngine(keys, hint)
 	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, opts)
+	completer.SetAutocompleter(shell.commandCompletion)
 	history := history.NewSources(line, cursor, hint)
 	display := display.NewEngine(selection, history, prompt, hint, completer, opts)
 
@@ -139,7 +140,7 @@ func (rl *Shell) init() {
 
 	// Reset/initialize user interface components.
 	rl.hint.Reset()
-	rl.completer.Reset(true, true)
+	rl.completer.Cancel(true, true)
 	rl.display.Init(rl.SyntaxHighlighter)
 
 	// Reset other components.

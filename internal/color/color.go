@@ -78,7 +78,7 @@ const (
 // SGR formats a color code as an ANSI escaped color sequence.
 func SGR(color string, fg bool) string {
 	if fg {
-		return sgrStart + fgColorStart + color + sgrEnd
+		return sgrStart + color + sgrEnd
 	}
 
 	return sgrStart + bgColorStart + color + sgrEnd

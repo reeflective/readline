@@ -333,7 +333,6 @@ func (rl *Shell) selfInsert() {
 
 	// Handle suffix-autoremoval for inserted completions.
 	rl.completer.TrimSuffix()
-	rl.completer.Update()
 
 	key, empty := rl.keys.Peek()
 	if empty {
