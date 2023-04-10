@@ -1,13 +1,13 @@
 package display
 
 import (
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/reeflective/readline/internal/ui"
-	"github.com/reeflective/readline/inputrc"
 )
 
 // Engine handles all display operations: it refreshes the terminal
@@ -88,7 +88,7 @@ func (e *Engine) Refresh() {
 	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
 		term.MoveCursorDown(1)
 	}
-	e.prompt.RightPrint(&suggested, e.cursor)
+	e.prompt.RightPrint(&suggested, e.cursor, true)
 
 	// Display the hint section and completions.
 	term.MoveCursorBackwards(term.GetWidth())
@@ -116,7 +116,7 @@ func (e *Engine) ClearHelpers() {
 // ResetHelpers cancels all active hints and completions.
 func (e *Engine) ResetHelpers() {
 	e.hint.Reset()
-	e.completer.Reset(true, false)
+	e.completer.Cancel(true, false)
 }
 
 // AcceptLine redraws the current UI when the line has been accepted
@@ -124,10 +124,23 @@ func (e *Engine) ResetHelpers() {
 // hints, completions and some right prompts, the shell will put the
 // display at the start of the line immediately following the line.
 func (e *Engine) AcceptLine() {
-	e.ClearHelpers()
-	e.prompt.RightClear(false)
-	e.CursorBelowLine()
+	e.CursorToLineStart()
+
+	line, cursor := e.completer.Line()
+	e.computeCoordinates(*line)
+
+	// Go back to the end of the non-suggested line.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorDown(e.lineRows)
+	term.MoveCursorForwards(e.lineCol)
 	print(term.ClearScreenBelow)
+
+	// Reprint the right-side prompt if it's not a tooltip one.
+	e.prompt.RightPrint(line, cursor, false)
+
+	// Go below this non-suggested line and clear everything.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorDown(1)
 }
 
 // CursorBelowLine moves the cursor to the leftmost column
@@ -200,8 +213,7 @@ func (e *Engine) displayLine(input, suggested core.Line) {
 }
 
 func (e *Engine) displayCompletions() {
-	// TODO: Here autocomplete call
-	// rl.autoComplete()
+	e.completer.Autocomplete()
 	e.completer.Display()
 	e.compRows = e.completer.Coordinates()
 
