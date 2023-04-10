@@ -1,8 +1,8 @@
 package core
 
 import (
-	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/inputrc"
+	"github.com/reeflective/readline/internal/strutil"
 )
 
 // Cursor is the cursor position in the current line buffer.
@@ -289,7 +289,7 @@ func (c *Cursor) CheckCommand() {
 
 	// The cursor can also not be on a newline sign,
 	// as it will induce the line rendering into an error.
-	if c.line.Len() > 0 && (*c.line)[c.pos] == '\n' && !c.OnEmptyLine() {
+	if c.line.Len() > 0 && c.pos < c.line.Len()-1 && (*c.line)[c.pos] == '\n' && !c.OnEmptyLine() {
 		c.Dec()
 	}
 }

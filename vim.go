@@ -3,9 +3,9 @@ package readline
 import (
 	"unicode"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
-	"github.com/reeflective/readline/inputrc"
 )
 
 // commands maps widget names to their implementation.
@@ -137,6 +137,12 @@ func (rl *Shell) viCommandMode() {
 	rl.iterations.Reset()
 	rl.selection.Reset()
 
+	// Cancel completions if any.
+	if rl.completer.IsActive() {
+		rl.completer.Cancel(false, false)
+		rl.completer.Drop(true)
+	}
+
 	// Only go back if not in insert mode
 	if rl.keymaps.Main() == keymap.ViIns && !rl.cursor.AtBeginningOfLine() {
 		rl.cursor.Dec()
@@ -151,6 +157,12 @@ func (rl *Shell) viCommandMode() {
 func (rl *Shell) viVisualMode() {
 	rl.undo.SkipSave()
 	rl.iterations.Reset()
+
+	// Cancel completions if any.
+	if rl.completer.IsActive() {
+		rl.completer.Cancel(false, false)
+		rl.completer.Drop(true)
+	}
 
 	// Mark the selection as visual at the current cursor position.
 	rl.selection.Mark(rl.cursor.Pos())
@@ -383,7 +395,9 @@ func (rl *Shell) viGotoColumn() {
 
 func (rl *Shell) viEndOfLine() {
 	rl.undo.SkipSave()
-	rl.cursor.EndOfLine()
+	// We use append so that any y$ / d$
+	// will include the last character.
+	rl.cursor.EndOfLineAppend()
 }
 
 func (rl *Shell) viFirstPrint() {
