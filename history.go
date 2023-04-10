@@ -11,8 +11,15 @@ import (
 // API ----------------------------------------------------------------
 //
 
-// NewHistoryFromFile creates a new command history
-// source writing to and reading from a file.
+// History is an interface to allow you to write your own history logging tools.
+// By default readline will just use an in-memory history satisfying this interface,
+// which only logs the history to memory ([]string to be precise).
+// Users who want an easy to use, file-based history should use NewHistoryFromFile().
+type History = history.Source
+
+// NewHistoryFromFile creates a new command history source writing to
+// and reading from a file. The caller should bind the history source
+// returned from this call to the readline instance, with AddHistory().
 var NewHistoryFromFile = history.NewSourceFromFile
 
 // AddHistoryFromFile adds a command history source from a file path.

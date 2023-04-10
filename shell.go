@@ -1,8 +1,7 @@
 package readline
 
 import (
-	"fmt"
-	"os"
+	"os/user"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/completion"
@@ -77,7 +76,11 @@ type Shell struct {
 func NewShell() *Shell {
 	shell := new(Shell)
 
-	opts := shell.newInputConfig()
+	// Configuration
+	opts := inputrc.NewDefaultConfig()
+	if user, err := user.Current(); err == nil {
+		inputrc.UserDefault(user, opts)
+	}
 
 	// Core editor
 	line := new(core.Line)
@@ -145,33 +148,4 @@ func (rl *Shell) init() {
 
 	// Reset other components.
 	rl.iterations.Reset()
-}
-
-func (rl *Shell) Prompt() *ui.Prompt {
-	return rl.prompt
-}
-
-type History = history.Source
-
-var inputrcConfigs = []string{
-	"/etc/inputrc",
-	os.Getenv("HOME") + "/.inputrc",
-}
-
-func (rl *Shell) newInputConfig() *inputrc.Config {
-	opts := inputrc.NewDefaultConfig()
-
-	// TODO: Before parsing user files, add default
-	// binds for this readline library.
-
-	// TODO: use parser instead of raw config and export its access.
-
-	// Try to parse user/system inputrc.
-	for _, path := range inputrcConfigs {
-		if err := inputrc.ParseFile(path, opts); err != nil {
-			fmt.Println(err)
-		}
-	}
-
-	return opts
 }
