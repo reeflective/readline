@@ -3,6 +3,7 @@ package completion
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/reeflective/readline/internal/color"
@@ -132,4 +133,30 @@ func (e *Engine) excessCompletionsHint(cropped string, maxRows, offset int) stri
 	hinted := cropped + hint
 
 	return hinted
+}
+
+// returns either the max number of completion rows configured
+// or a reasonable amount of rows so as not to bother the user.
+func (e *Engine) getCompletionMaxRows() (maxRows int) {
+	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
+
+	// Pause the key reading routine and query the terminal
+	_, cposY := e.keys.GetCursorPos()
+	if cposY == -1 {
+		if termHeight != -1 {
+			return termHeight / maxRowsRatio
+		}
+
+		return maxRows
+	}
+
+	spaceBelow := (termHeight - cposY) - 1
+
+	// Only return the space below if it's reasonably large.
+	if spaceBelow >= minRowsSpaceBelow {
+		return spaceBelow
+	}
+
+	// Otherwise return half the terminal.
+	return termHeight / maxRowsRatio
 }

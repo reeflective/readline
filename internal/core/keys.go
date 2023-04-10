@@ -2,6 +2,9 @@ package core
 
 import (
 	"os"
+	"regexp"
+	"strconv"
+	"sync"
 
 	"github.com/reeflective/readline/inputrc"
 )
@@ -10,22 +13,22 @@ const (
 	keyScanBufSize = 1024
 )
 
+var (
+	rxRcvCursorPos  = regexp.MustCompile(`^\x1b\[([0-9]+);([0-9]+)R$`)
+	cursorPosBufLen = 64
+)
+
 // Keys is used read, manage and use keys input by the shell user.
 type Keys struct {
-	stack       []rune // Keys that have been read, not yet consumed.
-	skipRead    bool   // Something fed the stack on its own, skip reading user input.
-	macroCalled bool   // The last feeding is the macro engine, don't adjust cachedSkip yet.
-	cachedSkip  int    // The number of keys fed for, to consume before reading input.
-	matchedKeys int    // A call to keys.Matched() has happened, waiting for those to be dropped.
-	paused      chan struct{}
-}
-
-// NewKeys is a required constructor for the readline key stack,
-// as key reading might be paused/resumed and needs channel setup.
-func NewKeys() *Keys {
-	return &Keys{
-		paused: make(chan struct{}, 1),
-	}
+	stack       []rune      // Keys that have been read, not yet consumed.
+	skipRead    bool        // Something fed the stack on its own, skip reading user input.
+	macroCalled bool        // The last feeding is the macro engine, don't adjust cachedSkip yet.
+	cachedSkip  int         // The number of keys fed for, to consume before reading input.
+	matchedKeys int         // A call to keys.Matched() has happened, waiting for those to be dropped.
+	paused      bool        // Reading the cursor position.
+	reading     bool        // Reading user input.
+	cursor      chan string // Passing cursor coordinates output.
+	mutex       sync.RWMutex
 }
 
 // Read reads user input from stdin and stores the result in the key stack.
@@ -40,60 +43,99 @@ func (k *Keys) Read() {
 	k.stack = append(k.stack, keys...)
 }
 
+// GetCursorPos returns the current cursor position in the terminal.
+// This is normally safe to call even if the shell is reading input.
+func (k *Keys) GetCursorPos() (x, y int) {
+	defer func() {
+		k.paused = false
+	}()
+
+	disable := func() (int, int) {
+		os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
+		return -1, -1
+	}
+
+	var cursor string
+
+	// Notify pause if we are reading.
+	k.mutex.RLock()
+	k.paused = k.reading
+	k.mutex.RUnlock()
+
+	print("\x1b[6n")
+
+	// Either read the output, or wait for
+	// the main reading routine to catch it.
+	if !k.reading {
+		buf := make([]byte, cursorPosBufLen)
+
+		read, err := os.Stdin.Read(buf)
+		if err != nil {
+			return disable()
+		}
+		cursor = string(buf[:read])
+	} else {
+		cursor = <-k.cursor
+	}
+
+	// Find it and return coordinates.
+	if !rxRcvCursorPos.MatchString(cursor) {
+		return disable()
+	}
+
+	match := rxRcvCursorPos.FindAllStringSubmatch(cursor, 1)
+
+	y, err := strconv.Atoi(match[0][1])
+	if err != nil {
+		return disable()
+	}
+
+	x, err = strconv.Atoi(match[0][2])
+	if err != nil {
+		return disable()
+	}
+
+	return x, y
+}
+
 // ReadArgument reads keys from stdin like Read(), but immediately
 // returns them instead of storing them in the stack, along with an
 // indication on whether this key is an escape/abort one.
 func (k *Keys) ReadArgument() (keys []rune, isAbort bool) {
-	if k.paused == nil {
-		k.paused = make(chan struct{}, 1)
-	}
+	k.reading = true
+	k.cursor = make(chan string)
 
-read:
+	defer func() {
+		k.reading = false
+	}()
+
 	for {
 		// Start reading from os.Stdin in the background.
-		read, done := k.readInput()
+		// We will either read keys from user, or an EOF
+		// send by ourselves, because we pause reading.
+		buf := make([]byte, keyScanBufSize)
 
-		for {
-			select {
-			case keys = <-read:
-				// We have read user input keys.
-				if len(keys) == 1 && keys[0] == inputrc.Esc {
-					isAbort = true
-				}
-
-				break read
-
-			case <-k.paused:
-				// We are asked to stop reading our keys for some time.
-				// Close the reading goroutine, and wait for the caller
-				// to notify us that we can start a new one.
-				close(done)
-
-				<-k.paused
-				k.paused = make(chan struct{}, 1)
-
-				continue
-			}
+		read, err := os.Stdin.Read(buf)
+		if err != nil {
+			return
 		}
+
+		keys = []rune(string(buf[:read]))
+
+		if k.paused {
+			k.cursor <- string(buf[:read])
+			continue
+		}
+
+		// We have read user input keys.
+		if len(keys) == 1 && keys[0] == inputrc.Esc {
+			isAbort = true
+		}
+
+		break
 	}
 
 	return keys, isAbort
-}
-
-// Pause temporarily pauses reading for input keys.
-// This is used when the shell needs to query the terminal for its current state,
-// which is output to stdout. Once done with your operation, close the channel to
-// resume normal key input scan.
-func (k *Keys) Pause() {
-	// k.paused <- struct{}{}
-	if k.paused == nil {
-		k.paused = make(chan struct{}, 1)
-	}
-	// close(k.paused)
-}
-
-func (k *Keys) Resume() {
-	// close(k.paused)
 }
 
 // Feed can be used to directly add keys to the stack.
@@ -168,9 +210,8 @@ func (k *Keys) Matched(keys ...rune) {
 	k.stack = append(keys, k.stack...)
 }
 
-// FlushUsed drops the number of keys that have been fed
-// with the last keys.Feed call from the key stack.
-// If the former call used skipRead = true, no keys are flushed.
+// FlushUsed drops the number of keys that have been fed with the last keys.Feed()
+// call from the key stack. If the former call used skipRead = true, no keys are flushed.
 func (k *Keys) FlushUsed() {
 	if k.skipRead && !k.macroCalled {
 		k.cachedSkip -= k.matchedKeys
@@ -200,58 +241,3 @@ func (k *Keys) Flush() []rune {
 
 	return []rune(keys)
 }
-
-func (k *Keys) readInput() (keys chan []rune, done chan struct{}) {
-	done = make(chan struct{})
-	keys = make(chan []rune)
-
-	go func() {
-		buf := make([]byte, keyScanBufSize)
-
-		read, err := os.Stdin.Read(buf)
-		if err != nil {
-			return
-		}
-
-		keys <- []rune(string(buf[:read]))
-	}()
-
-	return
-}
-
-// readOperator reads a key required by some (rare) widgets that directly read/need
-// their argument/operator, without going though operator pending mode first.
-// If all is true, we return all keys, including numbers (instead of adding them as iterations.)
-// func (rl *Instance) readOperator(all bool) (key string, ret bool) {
-// 	rl.enterVioppMode("")
-// 	rl.updateCursor()
-//
-// 	defer func() {
-// 		rl.exitVioppMode()
-// 		rl.updateCursor()
-// 	}()
-//
-// 	b, i, _ := rl.readInput()
-// 	key = string(b[:i])
-//
-// 	// If the last key is a number, add to iterations instead,
-// 	// and read another key input.
-// 	if !all {
-// 		numMatcher, _ := regexp.Compile(`^[1-9][0-9]*$`)
-//
-// 		for numMatcher.MatchString(string(key[len(key)-1])) {
-// 			rl.iterations += string(key[len(key)-1])
-//
-// 			b, i, _ = rl.readInput()
-// 			key = string(b[:i])
-// 		}
-// 	}
-//
-// 	// If the key is an escape key for the current mode.
-// 	if len(key) == 1 &&
-// 		(key[0] == charEscape) {
-// 		ret = true
-// 	}
-//
-// 	return
-// }

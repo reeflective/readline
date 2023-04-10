@@ -1,7 +1,6 @@
 package completion
 
 import (
-	"os"
 	"strings"
 	"unicode"
 
@@ -276,35 +275,6 @@ func (e *Engine) resetList(comps, cached bool) {
 
 		e.groups[0].isCurrent = true
 	}
-}
-
-// returns either the max number of completion rows configured
-// or a reasonable amount of rows so as not to bother the user.
-func (e *Engine) getCompletionMaxRows() (maxRows int) {
-	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
-
-	// Pause the key reading routine and query the terminal
-	e.keys.Pause()
-	defer e.keys.Resume()
-
-	_, cposY := term.GetCursorPos()
-	if cposY == -1 {
-		if termHeight != -1 {
-			return termHeight / maxRowsRatio
-		}
-
-		return maxRows
-	}
-
-	spaceBelow := (termHeight - cposY) - 1
-
-	// Only return the space below if it's reasonably large.
-	if spaceBelow >= minRowsSpaceBelow {
-		return spaceBelow
-	}
-
-	// Otherwise return half the terminal.
-	return termHeight / maxRowsRatio
 }
 
 func (e *Engine) needsAutoComplete() bool {

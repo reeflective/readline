@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/reeflective/readline/inputrc"
 )
 
 const transientEnableOption = "prompt-transient"
@@ -30,7 +30,7 @@ type Prompt struct {
 
 	// True if some logs have printed asynchronously
 	// since last loop. Check refresh prompt funcs.
-	stillOnRefresh bool
+	refreshing bool
 
 	// Shell parameters
 	keys   *core.Keys
@@ -92,6 +92,8 @@ func (p *Prompt) Tooltip(prompt func(word string) string) {
 // PrimaryPrint prints the primary prompt string, excluding
 // the last line if the primary spans on several lines.
 func (p *Prompt) PrimaryPrint() {
+	p.refreshing = false
+
 	if p.primaryF == nil {
 		return
 	}
@@ -106,10 +108,7 @@ func (p *Prompt) PrimaryPrint() {
 	p.primaryRows = len(lines) - 1
 
 	// And save the current cursor X position.
-	p.keys.Pause()
-	defer p.keys.Resume()
-
-	p.primaryCols, _ = term.GetCursorPos()
+	p.primaryCols, _ = p.keys.GetCursorPos()
 	if p.primaryCols == -1 {
 		p.primaryCols = len(lines[len(lines)-1])
 	}
@@ -143,10 +142,7 @@ func (p *Prompt) LastPrint() {
 
 	print(lines[len(lines)-1])
 
-	p.keys.Pause()
-	defer p.keys.Resume()
-
-	p.primaryCols, _ = term.GetCursorPos()
+	p.primaryCols, _ = p.keys.GetCursorPos()
 	if p.primaryCols == -1 {
 		p.primaryCols = len(lines[len(lines)-1])
 	}
@@ -162,12 +158,15 @@ func (p *Prompt) LastUsed() int {
 
 // RightPrint prints the right-sided prompt strings, which might be either
 // a traditional RPROMPT string, or a tooltip prompt if any must be rendered.
-func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor) {
+// If force is true, whatever rprompt or tooltip exists will be printed.
+// If false, only the rprompt, if it exists, will be printed.
+func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor, force bool) {
 	p.line = line
 	p.cursor = cursor
 
 	var rprompt string
-	if p.tooltipF != nil {
+
+	if p.tooltipF != nil && force {
 		rprompt = p.tooltipF()
 	}
 
@@ -181,38 +180,6 @@ func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor) {
 
 	if prompt, canPrint := p.formatRightPrompt(rprompt); canPrint {
 		print(prompt)
-	}
-}
-
-// RightClear clears the right-sided prompt strings from the screen.
-// If force is true, the prompt is cleared regardless of its contents.
-// If false, the prompt is only cleared if its currently a tooltip one.
-func (p *Prompt) RightClear(force bool) {
-	tooltip := p.tooltipF()
-
-	if !force && tooltip == "" {
-		return
-	}
-
-	// Get all dimensions we need
-	termWidth := term.GetWidth()
-	lineLen := p.cursorLineLen(p.line, p.cursor)
-	cursorX, _ := p.cursor.Coordinates(p.LastUsed())
-
-	// Go at the end of the line, and pad prompt with spaces.
-	term.MoveCursorBackwards(termWidth)
-	term.MoveCursorForwards(lineLen)
-	defer term.MoveCursorBackwards(termWidth - cursorX)
-
-	// If the right prompt is a tooltip, remove it anyway.
-	if tooltip != "" {
-		print(term.ClearLineAfter)
-		return
-	}
-
-	// Or only remove the right prompt if asked to.
-	if force && p.rightF() != "" {
-		print(term.ClearLineAfter)
 	}
 }
 
@@ -234,6 +201,12 @@ func (p *Prompt) TransientPrint() {
 	// And print the prompt and the accepted input line.
 	print(p.transientF())
 	println(string(*p.line))
+}
+
+// Refreshing returns true if the prompt is currently redisplaying
+// itself (at least the primary prompt), or false if not.
+func (p *Prompt) Refreshing() bool {
+	return p.refreshing
 }
 
 func (p *Prompt) formatRightPrompt(rprompt string) (prompt string, canPrint bool) {
