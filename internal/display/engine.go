@@ -67,10 +67,12 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 // Refresh recomputes and redisplays the entire readline interface, except
 // the first lines of the primary prompt when the latter is a multiline one.
 func (e *Engine) Refresh() {
-	// Go back to the end of the prompt, clear and save position.
+	// Recompute completions and related hints if autocompletion is on.
+	e.completer.Autocomplete()
+
+	// Go back to the end of the prompt.
 	e.CursorToLineStart()
 	print(term.ClearScreenBelow)
-	print(term.SaveCursorPos)
 
 	var line *core.Line
 
@@ -95,10 +97,10 @@ func (e *Engine) Refresh() {
 	term.MoveCursorDown(1)
 	e.hint.Display()
 	e.displayCompletions()
-	term.MoveCursorUp(1)
+	term.MoveCursorUp(e.hint.Coordinates())
 
 	// Go back to the start of the line, then to cursor.
-	print(term.RestoreCursorPos)
+	term.MoveCursorUp(e.lineRows)
 	e.LineStartToCursorPos()
 }
 
@@ -213,7 +215,6 @@ func (e *Engine) displayLine(input, suggested core.Line) {
 }
 
 func (e *Engine) displayCompletions() {
-	e.completer.Autocomplete()
 	e.completer.Display()
 	e.compRows = e.completer.Coordinates()
 

@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/reeflective/readline/inputrc"
 )
 
 // Hint is in charge of printing the usage messages below the input line.
@@ -43,6 +43,10 @@ func (h *Hint) Reset() {
 
 // Display prints the hint section.
 func (h *Hint) Display() {
+	defer func() {
+		h.usedY++
+	}()
+
 	if len(h.text) == 0 {
 		h.usedY = 0
 		return
