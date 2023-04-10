@@ -83,9 +83,9 @@ func NewShell() *Shell {
 	}
 
 	// Core editor
+	keys := new(core.Keys)
 	line := new(core.Line)
 	cursor := core.NewCursor(line)
-	keys := core.NewKeys()
 	selection := core.NewSelection(line, cursor)
 	iterations := new(core.Iterations)
 
