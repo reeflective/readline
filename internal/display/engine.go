@@ -1,6 +1,8 @@
 package display
 
 import (
+	"fmt"
+
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
@@ -63,9 +65,9 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 // the first lines of the primary prompt when the latter is a multiline one.
 func (e *Engine) Refresh() {
 	// Clear everything below the current input line.
-	print(term.HideCursor)
+	fmt.Print(term.HideCursor)
 	e.CursorBelowLine()
-	print(term.ClearScreenBelow)
+	fmt.Print(term.ClearScreenBelow)
 	e.CursorHintToLineStart()
 
 	// Get the new input line and auto-suggested one.
@@ -85,13 +87,13 @@ func (e *Engine) Refresh() {
 	// term.MoveCursorUp(e.lineRows)
 	e.CursorHintToLineStart()
 	e.LineStartToCursorPos()
-	print(term.ShowCursor)
+	fmt.Print(term.ShowCursor)
 }
 
 // ClearHelpers clears and resets the hint and completion sections.
 func (e *Engine) ClearHelpers() {
 	e.CursorBelowLine()
-	print(term.ClearScreenBelow)
+	fmt.Print(term.ClearScreenBelow)
 
 	term.MoveCursorUp(1)
 	term.MoveCursorUp(e.lineRows)
@@ -112,7 +114,7 @@ func (e *Engine) displayHelpers() {
 	// Clear everything below the input line.
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorDown(1)
-	print(term.ClearScreenBelow)
+	fmt.Print(term.ClearScreenBelow)
 
 	// Recompute completions and hints if autocompletion is on.
 	e.completer.Autocomplete()
@@ -142,7 +144,7 @@ func (e *Engine) AcceptLine() {
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorDown(e.lineRows)
 	term.MoveCursorForwards(e.lineCol)
-	print(term.ClearScreenBelow)
+	fmt.Print(term.ClearScreenBelow)
 
 	// Reprint the right-side prompt if it's not a tooltip one.
 	e.prompt.RightPrint(e.lineCol, false)

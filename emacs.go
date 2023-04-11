@@ -209,8 +209,8 @@ func (rl *Shell) downLine() {
 func (rl *Shell) clearScreen() {
 	rl.undo.SkipSave()
 
-	print(term.CursorTopLeft)
-	print(term.ClearScreen)
+	fmt.Print(term.CursorTopLeft)
+	fmt.Print(term.ClearScreen)
 
 	rl.prompt.PrimaryPrint()
 	rl.display.CursorToPos()
@@ -219,8 +219,8 @@ func (rl *Shell) clearScreen() {
 func (rl *Shell) clearDisplay() {
 	rl.undo.SkipSave()
 
-	print(term.CursorTopLeft)
-	print(term.ClearDisplay)
+	fmt.Print(term.CursorTopLeft)
+	fmt.Print(term.ClearDisplay)
 
 	rl.prompt.PrimaryPrint()
 	rl.display.CursorToPos()
@@ -257,7 +257,7 @@ func (rl *Shell) endOfFile() {
 // 	// Or return the current command line
 // 	rl.clearHelpers()
 // 	moveCursorDown(rl.fullY - rl.posY)
-// 	print("\r\n")
+// 	fmt.Print("\r\n")
 //
 // 	return ErrCtrlC
 

@@ -34,11 +34,7 @@ func GetLength() int {
 
 func printf(format string, a ...interface{}) {
 	s := fmt.Sprintf(format, a...)
-	print(s)
-}
-
-func print(s string) {
-	os.Stdout.WriteString(s)
+	fmt.Print(s)
 }
 
 var rxAnsiSgr = regexp.MustCompile("\x1b\\[[:;0-9]+m")

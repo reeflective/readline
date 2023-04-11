@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -63,7 +64,7 @@ func (h *Hint) Display() {
 	h.usedY = offset
 
 	if len(wrapped) > 0 {
-		print("\r" + wrapped + string(inputrc.Newline) + color.Reset)
+		fmt.Print("\r" + wrapped + string(inputrc.Newline) + color.Reset)
 	}
 }
 

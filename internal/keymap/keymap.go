@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/inputrc"
+	"github.com/reeflective/readline/internal/core"
 )
 
 // Modes is used to manage the main and local keymaps for the shell.

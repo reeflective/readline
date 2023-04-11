@@ -1,5 +1,7 @@
 package keymap
 
+import "fmt"
+
 // CursorStyle is the style of the cursor
 // in a given input mode/submode.
 type CursorStyle string
@@ -58,5 +60,5 @@ func (m *Modes) PrintCursor(keymap Mode) {
 		cursor = defaultCursors[keymap]
 	}
 
-	print(cursors[cursor])
+	fmt.Print(cursors[cursor])
 }

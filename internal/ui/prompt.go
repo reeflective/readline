@@ -100,7 +100,7 @@ func (p *Prompt) PrimaryPrint() {
 
 	// Print the prompt.
 	prompt := p.primaryF()
-	print(prompt)
+	fmt.Print(prompt)
 
 	// Save the number of lines used,
 	// and last line for line redisplay.
@@ -140,7 +140,7 @@ func (p *Prompt) LastPrint() {
 		return
 	}
 
-	print(lines[len(lines)-1])
+	fmt.Print(lines[len(lines)-1])
 
 	p.primaryCols, _ = p.keys.GetCursorPos()
 	if p.primaryCols == -1 {
@@ -176,9 +176,9 @@ func (p *Prompt) RightPrint(startColumn int, force bool) {
 	}
 
 	if prompt, canPrint := p.formatRightPrompt(rprompt, startColumn); canPrint {
-		print(prompt)
+		fmt.Print(prompt)
 	} else {
-		print(term.ClearLineAfter)
+		fmt.Print(term.ClearLineAfter)
 	}
 }
 
@@ -195,10 +195,10 @@ func (p *Prompt) TransientPrint() {
 	// moveCursorUp
 	promptLines := strings.Count(p.primaryF(), "\n")
 	term.MoveCursorUp(promptLines)
-	print(term.ClearScreenBelow)
+	fmt.Print(term.ClearScreenBelow)
 
 	// And print the prompt and the accepted input line.
-	print(p.transientF())
+	fmt.Print(p.transientF())
 	println(string(*p.line))
 }
 

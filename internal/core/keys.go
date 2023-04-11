@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"strconv"
@@ -62,7 +63,7 @@ func (k *Keys) GetCursorPos() (x, y int) {
 	k.paused = k.reading
 	k.mutex.RUnlock()
 
-	print("\x1b[6n")
+	fmt.Print("\x1b[6n")
 
 	// Either read the output, or wait for
 	// the main reading routine to catch it.

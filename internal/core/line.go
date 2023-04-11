@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -605,7 +606,7 @@ func (l *Line) Display(indent int) {
 			line += "\n"
 		}
 
-		print(line)
+		fmt.Print(line)
 	}
 }
 

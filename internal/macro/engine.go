@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/ui"
-	"github.com/reeflective/readline/inputrc"
 )
 
 // Engine manages all things related to keyboard macros:

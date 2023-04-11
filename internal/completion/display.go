@@ -35,8 +35,8 @@ func (e *Engine) Display() {
 	completions, e.usedY = e.cropCompletions(completions)
 
 	if completions != "" {
-		print(term.ClearScreenBelow)
-		print(completions)
+		fmt.Print(term.ClearScreenBelow)
+		fmt.Print(completions)
 	}
 }
 

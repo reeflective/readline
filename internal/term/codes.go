@@ -16,7 +16,7 @@ const (
 	ShowCursor       = "\x1b[?25h"
 )
 
-// Some core keys needed by some stuff
+// Some core keys needed by some stuff.
 var (
 	ArrowUp    = string([]byte{27, 91, 65}) // ^[[A
 	ArrowDown  = string([]byte{27, 91, 66}) // ^[[B

@@ -22,7 +22,7 @@ func (rl *Shell) Log(msg string, args ...interface{}) {
 	// and clear everything below (hints and completions).
 	rl.display.CursorBelowLine()
 	term.MoveCursorBackwards(term.GetWidth())
-	print(term.ClearScreenBelow)
+	fmt.Print(term.ClearScreenBelow)
 
 	// Skip a line, and print the formatted message.
 	fmt.Printf(msg+"\n", args...)
@@ -44,7 +44,7 @@ func (rl *Shell) LogTransient(msg string, args ...interface{}) {
 	term.MoveCursorBackwards(term.GetWidth())
 
 	term.MoveCursorUp(rl.Prompt().PrimaryUsed())
-	print(term.ClearScreenBelow)
+	fmt.Print(term.ClearScreenBelow)
 
 	// Print the logged message.
 	fmt.Printf(msg+"\n", args...)
