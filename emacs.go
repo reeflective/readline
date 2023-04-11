@@ -54,8 +54,9 @@ func (rl *Shell) standardCommands() commands {
 		"delete-char":                  rl.deleteChar,
 		"backward-delete-char":         rl.backwardDeleteChar,
 		"forward-backward-delete-char": rl.forwardBackwardDeleteChar,
-		"self-insert":                  rl.selfInsert,
 		"quoted-insert":                rl.quotedInsert,
+		"tab-insert":                   rl.tabInsert,
+		"self-insert":                  rl.selfInsert,
 		"bracketed-paste-begin":        rl.bracketedPasteBegin, // TODO: Finish and find how to do it.
 		"transpose-chars":              rl.transposeChars,
 		"transpose-words":              rl.transposeWords,
@@ -328,23 +329,6 @@ func (rl *Shell) forwardBackwardDeleteChar() {
 	}
 }
 
-func (rl *Shell) selfInsert() {
-	rl.undo.SkipSave()
-
-	// Handle suffix-autoremoval for inserted completions.
-	rl.completer.TrimSuffix()
-
-	key, empty := rl.keys.Peek()
-	if empty {
-		return
-	}
-
-	// Insert the unescaped version of the key, and update cursor position.
-	unescaped := inputrc.Unescape(string(key))
-	rl.line.Insert(rl.cursor.Pos(), []rune(unescaped)...)
-	rl.cursor.Move(len(unescaped))
-}
-
 func (rl *Shell) quotedInsert() {
 	rl.undo.SkipSave()
 	rl.completer.TrimSuffix()
@@ -368,6 +352,31 @@ func (rl *Shell) quotedInsert() {
 
 	rl.line.Insert(rl.cursor.Pos(), quoted...)
 	rl.cursor.Move(len(quoted))
+}
+
+func (rl *Shell) tabInsert() {
+	rl.undo.SkipSave()
+
+	// tab := fmt.Sprint("\t")
+	// rl.line.Insert(rl.cursor.Pos(), '\t')
+	// rl.cursor.Move(1)
+}
+
+func (rl *Shell) selfInsert() {
+	rl.undo.SkipSave()
+
+	// Handle suffix-autoremoval for inserted completions.
+	rl.completer.TrimSuffix()
+
+	key, empty := rl.keys.Peek()
+	if empty {
+		return
+	}
+
+	// Insert the unescaped version of the key, and update cursor position.
+	unescaped := inputrc.Unescape(string(key))
+	rl.line.Insert(rl.cursor.Pos(), []rune(unescaped)...)
+	rl.cursor.Move(len(unescaped))
 }
 
 func (rl *Shell) bracketedPasteBegin() {
@@ -996,7 +1005,9 @@ func (rl *Shell) undoLast() {
 	rl.undo.Undo(rl.line, rl.cursor)
 }
 
-func (rl *Shell) revertLine() {}
+func (rl *Shell) revertLine() {
+	rl.undo.Revert(rl.line, rl.cursor)
+}
 
 func (rl *Shell) setMark() {
 	switch {

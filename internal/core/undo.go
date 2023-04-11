@@ -97,6 +97,25 @@ func (lh *LineHistory) Undo(line *Line, cursor *Cursor) {
 	cursor.Set(undo.pos)
 }
 
+// Revert goes back to the initial state of the line, with is what it was
+// like when the shell started reading user input. Note that this state might
+// be a line that was inferred, accept-and-held from the previous readline run.
+func (lh *LineHistory) Revert(line *Line, cursor *Cursor) {
+	if len(lh.items) == 0 {
+		return
+	}
+
+	// Reuse the first saved state.
+	undo := lh.items[0]
+
+	line.Set([]rune(undo.line)...)
+	cursor.Set(undo.pos)
+
+	// And reset everything
+	lh.items = make([]undoItem, 0)
+	lh.Reset()
+}
+
 // Redo cancels an undo action if any has been made, or if
 // at the begin of the undo history, restores the original
 // line's contents as their were before starting undoing.

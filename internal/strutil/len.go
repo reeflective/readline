@@ -1,16 +1,25 @@
 package strutil
 
 import (
+	"strings"
 	"unicode/utf8"
 
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/term"
 )
 
+// FormatTabs replaces all '\t' occurrences in a string with 6 spaces each.
+func FormatTabs(s string) string {
+	return strings.ReplaceAll(s, "\t", "     ")
+}
+
 // RealLength returns the real length of a string, trimming all ANSI escaped codes.
 func RealLength(s string) int {
-	colorStripped := color.Strip(s)
-	return utf8.RuneCountInString(colorStripped)
+	colors := color.Strip(s)                          // Remove colors
+	tabs := strings.ReplaceAll(colors, "\t", "     ") // Remove spaces
+
+	return utf8.RuneCountInString(tabs)
+	// return utf8.RuneCountInString(colorStripped)
 }
 
 // LineSpan computes the number of columns and lines that are needed for a given line,
