@@ -20,10 +20,10 @@ type Engine struct {
 	lineRows    int
 	cursorRow   int
 	cursorCol   int
-	hintRows    int
 	compRows    int
 
 	// UI components
+	line      *core.Line
 	cursor    *core.Cursor
 	selection *core.Selection
 	histories *history.Sources
@@ -62,64 +62,70 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 // Refresh recomputes and redisplays the entire readline interface, except
 // the first lines of the primary prompt when the latter is a multiline one.
 func (e *Engine) Refresh() {
-	// Recompute completions and related hints if autocompletion is on.
-	e.completer.Autocomplete()
-
-	// Go back to the end of the prompt.
+	// Clear everything below the current input line.
+	print(term.HideCursor)
 	e.CursorBelowLine()
 	print(term.ClearScreenBelow)
-	term.MoveCursorUp(1)
-	e.CursorToPos()
-	print(term.HideCursor)
-	e.CursorToLineStart()
+	e.CursorHintToLineStart()
 
-	var line *core.Line
-
-	// Get desired input line and auto-suggested one.
-	line, e.cursor = e.completer.Line()
-	suggested := e.histories.Suggest(line)
+	// Get the new input line and auto-suggested one.
+	e.line, e.cursor = e.completer.Line()
+	suggested := e.histories.Suggest(e.line)
 
 	// Get all positions required for the redisplay to come:
 	// prompt end (thus indentation), cursor positions, etc.
 	e.computeCoordinates(suggested)
 
-	// Print the line, and adjust the cursor if the line fits
-	// exactly in the terminal width, then print the right prompt.
-	e.displayLine(*line, suggested)
-	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
-		term.MoveCursorDown(1)
-	}
-	e.prompt.RightPrint(e.startAt+e.lineCol, true)
-
-	// Display the hint section and completions.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorDown(1)
-	print(term.ClearScreenBelow)
-	e.hint.Display()
-	e.displayCompletions()
-	term.MoveCursorUp(e.hint.Coordinates())
+	// Print the line, right prompt, hints and completions.
+	e.displayLine(suggested)
+	e.prompt.RightPrint(e.lineCol, true)
+	e.displayHelpers()
 
 	// Go back to the start of the line, then to cursor.
-	term.MoveCursorUp(e.lineRows)
+	// term.MoveCursorUp(e.lineRows)
+	e.CursorHintToLineStart()
 	e.LineStartToCursorPos()
 	print(term.ShowCursor)
 }
 
 // ClearHelpers clears and resets the hint and completion sections.
 func (e *Engine) ClearHelpers() {
-	cursorCols, cursorRows := e.cursor.Coordinates(e.startAt)
-	term.MoveCursorDown((e.lineRows - cursorRows) + 1)
-
+	e.CursorBelowLine()
 	print(term.ClearScreenBelow)
 
-	term.MoveCursorUp((e.lineRows - cursorRows) + 1)
-	term.MoveCursorForwards(cursorCols)
+	term.MoveCursorUp(1)
+	term.MoveCursorUp(e.lineRows)
+	term.MoveCursorDown(e.cursorRow)
+	term.MoveCursorForwards(e.cursorCol)
 }
 
 // ResetHelpers cancels all active hints and completions.
 func (e *Engine) ResetHelpers() {
 	e.hint.Reset()
-	e.completer.Cancel(true, false)
+	e.completer.Reset(true)
+}
+
+// displayHelpers renders the hint and completion sections.
+// It assumes that the cursor is on the last line of input,
+// and goes back to this same line after displaying this.
+func (e *Engine) displayHelpers() {
+	// Clear everything below the input line.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorDown(1)
+	print(term.ClearScreenBelow)
+
+	// Recompute completions and hints if autocompletion is on.
+	e.completer.Autocomplete()
+
+	// Display hint and completions.
+	e.hint.Display()
+	e.completer.Display()
+	e.compRows = e.completer.Coordinates()
+
+	// Go back to the first line below the input line.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorUp(e.compRows)
+	term.MoveCursorUp(e.hint.Coordinates())
 }
 
 // AcceptLine redraws the current UI when the line has been accepted
@@ -149,12 +155,12 @@ func (e *Engine) AcceptLine() {
 // CursorBelowLine moves the cursor to the leftmost column
 // of the first row after the last line of input.
 func (e *Engine) CursorBelowLine() {
-	term.MoveCursorDown((e.lineRows - e.cursorRow) + 1)
-	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorUp(e.cursorRow)
+	term.MoveCursorDown(e.lineRows)
+	term.MoveCursorDown(1)
 }
 
-// CursorToPos moves the cursor back to
-// where the cursor is on the input line.
+// CursorToPos moves the cursor back to where the cursor is on the input line.
 func (e *Engine) CursorToPos() {
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorForwards(e.cursorCol)
@@ -186,39 +192,43 @@ func (e *Engine) CursorToLineStart() {
 	term.MoveCursorForwards(e.startAt)
 }
 
+// cursor is on the line below the last line of input.
+func (e *Engine) CursorHintToLineStart() {
+	term.MoveCursorUp(1)
+	term.MoveCursorUp(e.lineRows - e.cursorRow)
+	e.CursorToLineStart()
+}
+
 func (e *Engine) computeCoordinates(suggested core.Line) {
 	e.startAt = e.prompt.LastUsed()
 	e.lineCol, e.lineRows = suggested.Coordinates(e.startAt)
 	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startAt)
 }
 
-func (e *Engine) displayLine(input, suggested core.Line) {
+func (e *Engine) displayLine(suggested core.Line) {
 	var line string
 
 	// Apply user-defined highlighter to the input line.
 	if e.highlighter != nil {
-		line = e.highlighter([]rune(input))
+		line = e.highlighter(*e.line)
 	} else {
-		line = string(input)
+		line = string(*e.line)
 	}
 
 	// Apply visual selections highlighting if any.
 	line = ui.Highlight([]rune(line), *e.selection)
 
 	// Get the subset of the suggested line to print.
-	if len(suggested) > len(input) {
-		line += color.FgBlackBright + string(suggested[len(input):]) + color.Reset
+	if len(suggested) > e.line.Len() {
+		line += color.FgBlackBright + string(suggested[e.line.Len():]) + color.Reset
 	}
 
 	// And display the line.
 	suggested.Set([]rune(line)...)
 	suggested.Display(e.startAt)
-}
 
-func (e *Engine) displayCompletions() {
-	e.completer.Display()
-	e.compRows = e.completer.Coordinates()
-
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorUp(e.compRows)
+	// Adjust the cursor if the line fits exactly in the terminal width.
+	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
+		term.MoveCursorDown(1)
+	}
 }

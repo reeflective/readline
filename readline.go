@@ -11,9 +11,9 @@ import (
 // Readline displays the readline prompt and reads for user input.
 // It can return from the call because of different several things:
 //
-// - When the user accepts the line (generally with Enter).
-// - If a particular keystroke mapping returns an error
-//   (like Ctrl-C, Ctrl-D, etc).
+//   - When the user accepts the line (generally with Enter).
+//   - If a particular keystroke mapping returns an error
+//     (like Ctrl-C, Ctrl-D, etc).
 //
 // In all cases, the current input line is returned along with any error,
 // and it is up to the caller to decide what to do with the line result.

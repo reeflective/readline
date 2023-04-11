@@ -43,10 +43,6 @@ func (h *Hint) Reset() {
 
 // Display prints the hint section.
 func (h *Hint) Display() {
-	defer func() {
-		h.usedY++
-	}()
-
 	if len(h.text) == 0 {
 		h.usedY = 0
 		return

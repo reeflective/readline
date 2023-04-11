@@ -274,7 +274,7 @@ func (rl *Shell) historyCompletion(forward, filterLine bool) {
 		if rl.histories.OnLastSource() {
 			rl.histories.Cycle(true)
 			rl.completer.Cancel(true, true)
-			rl.completer.Drop(true)
+			rl.completer.Reset(true)
 			rl.hint.Reset()
 			rl.completer.IsearchStop()
 

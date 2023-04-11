@@ -177,6 +177,8 @@ func (p *Prompt) RightPrint(startColumn int, force bool) {
 
 	if prompt, canPrint := p.formatRightPrompt(rprompt, startColumn); canPrint {
 		print(prompt)
+	} else {
+		print(term.ClearLineAfter)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/reeflective/readline/inputrc"
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 )
@@ -274,7 +275,7 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 		bchar, echar = '"', '"'
 	}
 
-	// How many occurences before and after cursor.
+	// How many occurrences before and after cursor.
 	var before, after int
 
 	bpos = l.Find(bchar, pos+1, false)
@@ -282,7 +283,7 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 
 	next, prev := epos, bpos
 
-	// Recursively search for occurences, forward and backward.
+	// Recursively search for occurrences, forward and backward.
 	for {
 		if prev != -1 {
 			before++
@@ -588,12 +589,18 @@ func (l *Line) Display(indent int) {
 		lines = append(lines, "")
 	}
 
-	for i, line := range lines {
-		if i > 0 {
+	for num, line := range lines {
+		// Don't let any visual selection go further than length.
+		line += color.BgDefault
+
+		// Clear everything before each line, except the first.
+		if num > 0 {
 			term.MoveCursorForwards(indent)
+			line = term.ClearLineBefore + line
 		}
 
-		if i < len(lines)-1 {
+		// Clear everything after each line, except the last.
+		if num < len(lines)-1 {
 			line += term.ClearLineAfter
 			line += "\n"
 		}

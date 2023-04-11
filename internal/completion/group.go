@@ -511,7 +511,7 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 	return
 }
 
-// TODO: After checking works, remove commented lines
+// TODO: After checking works, remove commented lines.
 func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string, selected bool) (candidate string) {
 	reset := color.SGR(val.Style, true)
 	candidate = g.displayTrimmed(val.Display)

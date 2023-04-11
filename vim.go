@@ -142,7 +142,7 @@ func (rl *Shell) viCommandMode() {
 
 	if rl.completer.IsActive() {
 		rl.completer.Cancel(false, false)
-		rl.completer.Drop(true)
+		rl.completer.Reset(true)
 	}
 
 	// Only go back if not in insert mode
@@ -163,7 +163,7 @@ func (rl *Shell) viVisualMode() {
 	// Cancel completions if any.
 	if rl.completer.IsActive() {
 		rl.completer.Cancel(false, false)
-		rl.completer.Drop(true)
+		rl.completer.Reset(true)
 	}
 
 	// Mark the selection as visual at the current cursor position.
@@ -1215,10 +1215,10 @@ func (rl *Shell) viSetMark() {
 	rl.selection.Mark(rl.cursor.Pos())
 }
 
-// TODO:
+// TODO:.
 func (rl *Shell) viEditAndExecuteCommand() {}
 
-// TODO:
+// TODO:.
 func (rl *Shell) viEditCommandLine() {}
 
 func (rl *Shell) viFindNextChar() {

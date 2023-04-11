@@ -4,7 +4,6 @@ import (
 	"regexp"
 
 	"github.com/reeflective/readline/inputrc"
-
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/ui"
@@ -64,12 +63,12 @@ func (e *Engine) Generate(completions Values) {
 	e.prepare(completions)
 
 	if e.noCompletions() {
-		e.Drop(true)
+		e.Reset(true)
 	}
 
 	if e.hasUniqueCandidate() {
 		e.acceptCandidate()
-		e.Drop(true)
+		e.Reset(true)
 	}
 }
 
@@ -172,7 +171,7 @@ func (e *Engine) Update() {
 	// This does not apply when autocomplete is on.
 	choices := len(e.comp) != 0
 	if !e.auto {
-		defer e.Drop(choices)
+		defer e.Reset(choices)
 	}
 
 	// If autocomplete is on, we also drop the list of generated
@@ -219,9 +218,9 @@ func (e *Engine) Cancel(inserted, cached bool) {
 	e.cursor.Set(e.compCursor.Pos())
 }
 
-// Drop exits the current completion keymap (if set) and clears the
+// Reset exits the current completion keymap (if set) and clears the
 // current list of generated completions (if completions is true).
-func (e *Engine) Drop(completions bool) {
+func (e *Engine) Reset(completions bool) {
 	e.resetList(completions, false)
 
 	if e.keymaps.Local() == keymap.MenuSelect {

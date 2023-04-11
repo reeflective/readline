@@ -1,9 +1,9 @@
 package core
 
 import (
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/strutil"
-	"github.com/reeflective/readline/inputrc"
 )
 
 // Selection contains all regions of an input line that are currently selected/marked

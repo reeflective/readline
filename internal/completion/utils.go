@@ -164,7 +164,7 @@ func (e *Engine) refreshLine() {
 
 	if e.hasUniqueCandidate() {
 		e.acceptCandidate()
-		e.Drop(true)
+		e.Reset(true)
 	} else {
 		e.insertCandidate()
 	}
