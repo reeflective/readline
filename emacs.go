@@ -371,9 +371,9 @@ func (rl *Shell) quotedInsert() {
 }
 
 func (rl *Shell) bracketedPasteBegin() {
-	println("Keys:")
+	fmt.Println("Keys:")
 	keys, _ := rl.keys.PeekAll()
-	println(string(keys))
+	fmt.Println(string(keys))
 }
 
 func (rl *Shell) transposeChars() {

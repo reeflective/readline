@@ -216,7 +216,7 @@ func buildResult(t *testing.T, exp []byte, cfg *Config, custom map[string][]stri
 		}
 	}
 	if len(vv) != 0 {
-		fmt.Fprintln(buf, "vars:")
+		fmt.Ffmt.Println(buf, "vars:")
 		keys := maps.Keys(vv)
 		slices.Sort(keys)
 		for _, k := range keys {
@@ -243,7 +243,7 @@ func buildResult(t *testing.T, exp []byte, cfg *Config, custom map[string][]stri
 		}
 	}
 	if count != 0 {
-		fmt.Fprintln(buf, "binds:")
+		fmt.Ffmt.Println(buf, "binds:")
 		keymaps := maps.Keys(vb)
 		slices.Sort(keymaps)
 		for _, k := range keymaps {

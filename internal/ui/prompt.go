@@ -199,7 +199,7 @@ func (p *Prompt) TransientPrint() {
 
 	// And print the prompt and the accepted input line.
 	fmt.Print(p.transientF())
-	println(string(*p.line))
+	fmt.Println(string(*p.line))
 }
 
 // Refreshing returns true if the prompt is currently redisplaying
