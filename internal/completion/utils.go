@@ -25,8 +25,8 @@ var sanitizer = strings.NewReplacer(
 func (e *Engine) prepare(completions Values) {
 	e.groups = make([]*group, 0)
 
-	e.group(completions)
 	e.setPrefix(completions)
+	e.group(completions)
 }
 
 func (e *Engine) setPrefix(comps Values) {
@@ -259,6 +259,7 @@ func (e *Engine) resetList(comps, cached bool) {
 
 	// Drop the list of already generated/prepared completion candidates.
 	if comps {
+		e.usedY = 0
 		e.groups = make([]*group, 0)
 	}
 

@@ -34,7 +34,11 @@ type group struct {
 }
 
 func (e *Engine) group(comps Values) {
-	e.hintCompletions(comps)
+	// Compute hints once we found either any errors,
+	// or if we have no completions but usage strings.
+	defer func() {
+		e.hintCompletions(comps)
+	}()
 
 	// Nothing else to do if no completions
 	if len(comps.values) == 0 {
@@ -44,7 +48,7 @@ func (e *Engine) group(comps Values) {
 	comps.values.eachTag(func(tag string, values RawValues) {
 		// Separate the completions that have a description and
 		// those which don't, and devise if there are aliases.
-		vals, noDescVals, aliased := groupValues(values)
+		vals, noDescVals, aliased := e.groupValues(&comps, values)
 
 		// Create a "first" group with the "first" grouped values
 		e.newGroup(comps, tag, vals, aliased)
@@ -58,13 +62,23 @@ func (e *Engine) group(comps Values) {
 }
 
 // groupValues separates values based on whether they have descriptions, or are aliases of each other.
-func groupValues(values RawValues) (vals, noDescVals RawValues, aliased bool) {
+func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals RawValues, aliased bool) {
 	var descriptions []string
 
 	for _, val := range values {
 		// Ensure all values have a display string.
 		if val.Display == "" {
 			val.Display = val.Value
+		}
+
+		// NOTE: Currently this is because errors are passed as completions.
+		// Filter out error messages
+		if val.Value == e.prefix+"ERR" || val.Value == e.prefix+"_" {
+			if val.Description != "" && comps != nil {
+				comps.Messages.Add(color.FgRed + val.Description)
+			}
+
+			continue
 		}
 
 		// Grid completions
@@ -126,6 +140,10 @@ func (g *group) checkDisplays(vals RawValues) RawValues {
 		return vals
 	}
 
+	if len(vals) == 0 {
+		g.columnsWidth[0] = term.GetWidth() - 1
+	}
+
 	// Otherwise update the size of the longest candidate
 	for _, val := range vals {
 		valLen := utf8.RuneCountInString(val.Display)
@@ -137,17 +155,17 @@ func (g *group) checkDisplays(vals RawValues) RawValues {
 	return vals
 }
 
-func (g *group) setOptions(c Values, tag string, vals RawValues) {
+func (g *group) setOptions(comps Values, tag string, vals RawValues) {
 	// Override grid/list displays
-	_, g.list = c.ListLong[tag]
-	if _, all := c.ListLong["*"]; all && len(c.ListLong) == 1 {
+	_, g.list = comps.ListLong[tag]
+	if _, all := comps.ListLong["*"]; all && len(comps.ListLong) == 1 {
 		g.list = true
 	}
 
 	// Description list separator
-	listSep, found := c.ListSep[tag]
+	listSep, found := comps.ListSep[tag]
 	if !found {
-		if allSep, found := c.ListSep["*"]; found {
+		if allSep, found := comps.ListSep["*"]; found {
 			g.listSeparator = allSep
 		}
 	} else {
@@ -155,8 +173,8 @@ func (g *group) setOptions(c Values, tag string, vals RawValues) {
 	}
 
 	// Override sorting or sort if needed
-	_, g.noSort = c.NoSort[tag]
-	if _, all := c.NoSort["*"]; all && len(c.NoSort) == 1 {
+	_, g.noSort = comps.NoSort[tag]
+	if _, all := comps.NoSort["*"]; all && len(comps.NoSort) == 1 {
 		g.noSort = true
 	}
 
@@ -170,6 +188,10 @@ func (g *group) setOptions(c Values, tag string, vals RawValues) {
 func (g *group) computeCells(vals RawValues) {
 	// Aliases will compute themselves individually, later.
 	if g.aliased {
+		return
+	}
+
+	if len(vals) == 0 {
 		return
 	}
 
@@ -273,19 +295,20 @@ func (g *group) canFitInRow(termWidth int) bool {
 // updateIsearch - When searching through all completion groups (whether it be command history or not),
 // we ask each of them to filter its own items and return the results to the shell for aggregating them.
 // The rx parameter is passed, as the shell already checked that the search pattern is valid.
-func (g *group) updateIsearch(e *Engine) {
-	if e.isearch == nil {
+func (g *group) updateIsearch(eng *Engine) {
+	if eng.isearch == nil {
 		return
 	}
 
 	suggs := make([]Candidate, 0)
+
 	for i := range g.values {
 		row := g.values[i]
 
 		for _, val := range row {
-			if e.isearch.MatchString(val.Value) {
+			if eng.isearch.MatchString(val.Value) {
 				suggs = append(suggs, val)
-			} else if val.Description != "" && e.isearch.MatchString(val.Description) {
+			} else if val.Description != "" && eng.isearch.MatchString(val.Description) {
 				suggs = append(suggs, val)
 			}
 		}
@@ -300,7 +323,7 @@ func (g *group) updateIsearch(e *Engine) {
 	// Assign the filtered values: we don't need to check
 	// for a separate set of non-described values, as the
 	// completions have already been triaged when generated.
-	vals, _, aliased := groupValues(suggs)
+	vals, _, aliased := eng.groupValues(nil, suggs)
 	g.aliased = aliased
 
 	if len(vals) == 0 {

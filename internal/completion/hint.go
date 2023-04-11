@@ -13,7 +13,7 @@ func (e *Engine) hintCompletions(comps Values) {
 	// First add the command/flag usage string if any,
 	// and only if we don't have completions.
 	if len(comps.values) == 0 {
-		hint += color.Dim + comps.Usage
+		hint += color.Dim + comps.Usage + "\n"
 	}
 
 	// And all further messages
@@ -28,10 +28,6 @@ func (e *Engine) hintCompletions(comps Values) {
 	// Remove the last newline
 	if len(hint) > 0 && hint[len(hint)-1] == '\n' {
 		hint = hint[:len(hint)-2]
-	}
-
-	if hint == color.Dim {
-		return
 	}
 
 	// Add the hint to the shell.
