@@ -160,10 +160,7 @@ func (p *Prompt) LastUsed() int {
 // a traditional RPROMPT string, or a tooltip prompt if any must be rendered.
 // If force is true, whatever rprompt or tooltip exists will be printed.
 // If false, only the rprompt, if it exists, will be printed.
-func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor, force bool) {
-	p.line = line
-	p.cursor = cursor
-
+func (p *Prompt) RightPrint(startColumn int, force bool) {
 	var rprompt string
 
 	if p.tooltipF != nil && force {
@@ -178,7 +175,7 @@ func (p *Prompt) RightPrint(line *core.Line, cursor *core.Cursor, force bool) {
 		return
 	}
 
-	if prompt, canPrint := p.formatRightPrompt(rprompt); canPrint {
+	if prompt, canPrint := p.formatRightPrompt(rprompt, startColumn); canPrint {
 		print(prompt)
 	}
 }
@@ -209,50 +206,22 @@ func (p *Prompt) Refreshing() bool {
 	return p.refreshing
 }
 
-func (p *Prompt) formatRightPrompt(rprompt string) (prompt string, canPrint bool) {
+func (p *Prompt) formatRightPrompt(rprompt string, startColumn int) (prompt string, canPrint bool) {
 	// Dimensions
 	termWidth := term.GetWidth()
 	promptLen := strutil.RealLength(rprompt)
-	lineLen := p.cursorLineLen(p.line, p.cursor)
-	padLen := termWidth - lineLen - promptLen
+	padLen := termWidth - startColumn - promptLen
 
 	// Adjust padding when the last line is as large as terminal.
-	if lineLen+promptLen < termWidth {
-		padLen = termWidth - lineLen - promptLen
-	} else if lineLen == termWidth {
-		padLen = lineLen - promptLen
+	if startColumn == termWidth {
+		padLen = startColumn - promptLen
 	}
 
 	// Check that we have room for a right/tooltip prompt.
-	canPrint = (lineLen+promptLen < termWidth) || lineLen == termWidth
+	canPrint = (startColumn+promptLen < termWidth) || startColumn == termWidth
 	if canPrint {
-		prompt = fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt)
+		prompt = fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt) + term.ClearLineAfter
 	}
 
 	return
-}
-
-func (p *Prompt) cursorLineLen(line *core.Line, cursor *core.Cursor) int {
-	lineLen := p.LastUsed()
-
-	lines := strings.Split(string(*line), "\n")
-	if len(lines) == 0 {
-		return lineLen
-	}
-
-	lineLen += strutil.RealLength(lines[len(lines)-1])
-
-	termWidth := term.GetWidth()
-	if lineLen > termWidth {
-		lines := lineLen / termWidth
-		restLen := lineLen % termWidth
-
-		if lines > 0 && lineLen == 0 {
-			return termWidth
-		}
-
-		return restLen
-	}
-
-	return lineLen
 }

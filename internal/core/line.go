@@ -5,9 +5,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
-	"github.com/reeflective/readline/inputrc"
 )
 
 // Tokenizer is a method used by a (line) type to split itself according to
@@ -594,6 +594,7 @@ func (l *Line) Display(indent int) {
 		}
 
 		if i < len(lines)-1 {
+			line += term.ClearLineAfter
 			line += "\n"
 		}
 

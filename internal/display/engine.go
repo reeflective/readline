@@ -57,11 +57,6 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 	line, e.cursor = e.completer.Line()
 	suggested := e.histories.Suggest(line)
 	e.computeCoordinates(suggested)
-
-	// rl.resetHintText()
-	// rl.resetCompletion()
-	// rl.completer = nil
-	// rl.getHintText()
 }
 
 // Refresh recomputes and redisplays the entire readline interface, except
@@ -71,8 +66,12 @@ func (e *Engine) Refresh() {
 	e.completer.Autocomplete()
 
 	// Go back to the end of the prompt.
-	e.CursorToLineStart()
+	e.CursorBelowLine()
 	print(term.ClearScreenBelow)
+	term.MoveCursorUp(1)
+	e.CursorToPos()
+	print(term.HideCursor)
+	e.CursorToLineStart()
 
 	var line *core.Line
 
@@ -90,11 +89,12 @@ func (e *Engine) Refresh() {
 	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
 		term.MoveCursorDown(1)
 	}
-	e.prompt.RightPrint(&suggested, e.cursor, true)
+	e.prompt.RightPrint(e.startAt+e.lineCol, true)
 
 	// Display the hint section and completions.
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorDown(1)
+	print(term.ClearScreenBelow)
 	e.hint.Display()
 	e.displayCompletions()
 	term.MoveCursorUp(e.hint.Coordinates())
@@ -102,6 +102,7 @@ func (e *Engine) Refresh() {
 	// Go back to the start of the line, then to cursor.
 	term.MoveCursorUp(e.lineRows)
 	e.LineStartToCursorPos()
+	print(term.ShowCursor)
 }
 
 // ClearHelpers clears and resets the hint and completion sections.
@@ -128,7 +129,7 @@ func (e *Engine) ResetHelpers() {
 func (e *Engine) AcceptLine() {
 	e.CursorToLineStart()
 
-	line, cursor := e.completer.Line()
+	line, _ := e.completer.Line()
 	e.computeCoordinates(*line)
 
 	// Go back to the end of the non-suggested line.
@@ -138,7 +139,7 @@ func (e *Engine) AcceptLine() {
 	print(term.ClearScreenBelow)
 
 	// Reprint the right-side prompt if it's not a tooltip one.
-	e.prompt.RightPrint(line, cursor, false)
+	e.prompt.RightPrint(e.lineCol, false)
 
 	// Go below this non-suggested line and clear everything.
 	term.MoveCursorBackwards(term.GetWidth())
@@ -181,8 +182,8 @@ func (e *Engine) CursorBelowHint() {
 // CursorToLineStart moves the cursor just after the primary prompt.
 func (e *Engine) CursorToLineStart() {
 	term.MoveCursorBackwards(e.cursorCol)
-	term.MoveCursorForwards(e.startAt)
 	term.MoveCursorUp(e.cursorRow)
+	term.MoveCursorForwards(e.startAt)
 }
 
 func (e *Engine) computeCoordinates(suggested core.Line) {

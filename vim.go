@@ -137,7 +137,9 @@ func (rl *Shell) viCommandMode() {
 	rl.iterations.Reset()
 	rl.selection.Reset()
 
-	// Cancel completions if any.
+	// Cancel completions and hints if any.
+	rl.hint.Reset()
+
 	if rl.completer.IsActive() {
 		rl.completer.Cancel(false, false)
 		rl.completer.Drop(true)
@@ -529,6 +531,10 @@ func (rl *Shell) viDeleteTo() {
 }
 
 func (rl *Shell) viDeleteChar() {
+	if rl.line.Len() == 0 || rl.cursor.Pos() == rl.line.Len() {
+		return
+	}
+
 	rl.undo.Save(*rl.line, *rl.cursor)
 
 	cutBuf := make([]rune, 0)

@@ -283,13 +283,13 @@ func (c *Cursor) CheckAppend() {
 func (c *Cursor) CheckCommand() {
 	c.CheckAppend()
 
-	if c.pos == c.line.Len() {
+	if c.pos == c.line.Len() && !c.OnEmptyLine() {
 		c.pos--
 	}
 
 	// The cursor can also not be on a newline sign,
 	// as it will induce the line rendering into an error.
-	if c.line.Len() > 0 && c.pos < c.line.Len()-1 && (*c.line)[c.pos] == '\n' && !c.OnEmptyLine() {
+	if c.line.Len() > 0 && c.pos < c.line.Len() && (*c.line)[c.pos] == '\n' && !c.OnEmptyLine() {
 		c.Dec()
 	}
 }
