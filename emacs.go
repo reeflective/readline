@@ -1129,9 +1129,11 @@ func (rl *Shell) editAndExecuteCommand() {
 	edited, err := editor.EditBuffer(buffer, "", "")
 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
 		rl.undo.SkipSave()
+
 		errStr := strings.ReplaceAll(err.Error(), "\n", "")
 		changeHint := fmt.Sprintf(color.FgRed+"Editor error: %s", errStr)
 		rl.hint.Set(changeHint)
+
 		return
 	}
 
@@ -1149,9 +1151,11 @@ func (rl *Shell) editCommandLine() {
 	edited, err := editor.EditBuffer(buffer, "", "")
 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
 		rl.undo.SkipSave()
+
 		errStr := strings.ReplaceAll(err.Error(), "\n", "")
 		changeHint := fmt.Sprintf(color.FgRed+"Editor error: %s", errStr)
 		rl.hint.Set(changeHint)
+
 		return
 	}
 
@@ -1160,10 +1164,6 @@ func (rl *Shell) editCommandLine() {
 
 	// We're done with visual mode when we were in.
 	switch keymapCur {
-	case keymap.ViCmd:
-		rl.viCommandMode()
-	case keymap.ViIns:
-		rl.viInsertMode()
 	case keymap.Emacs, keymap.EmacsStandard, keymap.EmacsMeta, keymap.EmacsCtrlX:
 		rl.emacsEditingMode()
 	}
@@ -1172,66 +1172,3 @@ func (rl *Shell) editCommandLine() {
 func (rl *Shell) redo() {
 	rl.undo.Redo(rl.line, rl.cursor)
 }
-
-// func (rl *Shell) setMarkCommand() {
-// 	rl.undo.SkipSave()
-//
-// 	vii := rl.iterations.Get()
-// 	switch {
-// 	case vii < 0:
-// 		rl.resetSelection()
-// 		rl.visualLine = false
-// 	default:
-// 		rl.markSelection(rl.pos)
-// 	}
-// }.
-//
-// func (rl *Shell) copyPrevShellWord() {
-// 	rl.undo.Save(*rl.line, *rl.cursor)
-//
-// 	posInit := rl.pos
-//
-// 	// First go back a single blank word
-// 	rl.moveCursorByAdjust(rl.viJumpB(tokeniseSplitSpaces))
-//
-// 	// Now try to find enclosing quotes from here.
-// 	sBpos, sEpos, _, _ := rl.searchSurround('\'')
-// 	dBpos, dEpos, _, _ := rl.searchSurround('"')
-//
-// 	mark, cpos := adjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
-// 	if mark == -1 && cpos == -1 {
-// 		rl.markSelection(rl.pos)
-// 		rl.moveCursorByAdjust(rl.viJumpE(tokeniseSplitSpaces))
-// 	} else {
-// 		rl.markSelection(mark)
-// 		rl.pos = cpos
-// 	}
-//
-// 	word, _, _, _ := rl.popSelection()
-//
-// 	// Replace the cursor before reassembling the line.
-// 	rl.pos = posInit
-//
-// 	rl.insertBlock(rl.pos, rl.pos, word, "")
-// 	rl.pos += len(word)
-// }
-//
-// func (rl *Shell) exchangePointAndMark() {
-// 	rl.undo.SkipSave()
-// 	vii := rl.iterations.Get()
-//
-// 	visual := rl.visualSelection()
-// 	if visual == nil {
-// 		return
-// 	}
-//
-// 	switch {
-// 	case vii < 0:
-// 		rl.pos, visual.bpos = visual.bpos, rl.pos
-// 	case vii > 0:
-// 		rl.pos, visual.bpos = visual.bpos, rl.pos
-// 		visual.active = true
-// 	case vii == 0:
-// 		visual.active = true
-// 	}
-// }

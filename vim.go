@@ -97,7 +97,7 @@ func (rl *Shell) viCommands() commands {
 		"vi-select-surround":   rl.viSelectSurround,
 
 		// Miscellaneous
-		"vi-eof-maybe": rl.viEofMaybe,
+		"vi-eof-maybe": rl.viEOFMaybe,
 		// "vi-search"
 		// "vi-search-again"
 		"vi-arg-digit":                rl.viArgDigit, // vi-digit-or-beginning-of-line
@@ -1155,7 +1155,7 @@ func (rl *Shell) viSelectSurround() {
 // Miscellaneous ---------------------------------------------------------------
 //
 
-func (rl *Shell) viEofMaybe() {
+func (rl *Shell) viEOFMaybe() {
 	rl.endOfFile()
 }
 func (rl *Shell) viSearch()      {}
@@ -1215,11 +1215,23 @@ func (rl *Shell) viSetMark() {
 	rl.selection.Mark(rl.cursor.Pos())
 }
 
-// TODO:.
-func (rl *Shell) viEditAndExecuteCommand() {}
+func (rl *Shell) viEditAndExecuteCommand() {
+	rl.editAndExecuteCommand()
+}
 
-// TODO:.
-func (rl *Shell) viEditCommandLine() {}
+func (rl *Shell) viEditCommandLine() {
+	keymapCur := rl.keymaps.Main()
+
+	rl.editCommandLine()
+
+	// We're done with visual mode when we were in.
+	switch keymapCur {
+	case keymap.ViCmd, keymap.Vi:
+		rl.viCommandMode()
+	default:
+		rl.viInsertMode()
+	}
+}
 
 func (rl *Shell) viFindNextChar() {
 	rl.viFindChar(true, false)
