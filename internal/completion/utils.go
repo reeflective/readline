@@ -26,34 +26,57 @@ func (e *Engine) prepare(completions Values) {
 	e.groups = make([]*group, 0)
 
 	e.setPrefix(completions)
+	e.setSuffix(completions)
+
 	e.group(completions)
 }
 
 func (e *Engine) setPrefix(comps Values) {
 	switch comps.PREFIX {
 	case "":
-		// When no prefix has been specified, use
-		// the current word up to the cursor position.
-		lineWords, _, _ := e.line.TokenizeSpace(e.cursor.Pos())
-		if len(lineWords) > 0 {
-			last := lineWords[len(lineWords)-1]
-			if last[len(last)-1] != ' ' {
-				e.prefix = lineWords[len(lineWords)-1]
-			}
+		// Select the character just before the cursor.
+		cpos := e.cursor.Pos() - 1
+		if cpos < 0 {
+			cpos = 0
 		}
 
-		// Newlines should not be accounted for, as they are
-		// not printable: whether or not the completions provider
-		// replaced them with spaces or not, we must not count them
-		// as part of the prefix length, so not as part of the prefix.
-		if strings.Contains(e.prefix, "\n") {
-			e.prefix = strings.ReplaceAll(e.prefix, "\n", "")
+		bpos, _ := e.line.SelectBlankWord(cpos)
+
+		// Safety checks and adjustments.
+		if bpos > cpos {
+			bpos = cpos
 		}
+
+		if cpos < e.line.Len() {
+			cpos++
+		}
+
+		e.prefix = strings.TrimSpace(string((*e.line)[bpos:cpos]))
 
 	default:
-		// When the prefix has been overridden, add it to all
-		// completions AND as a line prefix, for correct candidate insertion.
 		e.prefix = comps.PREFIX
+	}
+}
+
+func (e *Engine) setSuffix(comps Values) {
+	switch comps.SUFFIX {
+	case "":
+		cpos := e.cursor.Pos()
+		_, epos := e.line.SelectBlankWord(cpos)
+
+		// Safety checks and adjustments.
+		if epos < e.line.Len() {
+			epos++
+		}
+
+		if epos < cpos {
+			epos = cpos
+		}
+
+		e.suffix = strings.TrimSpace(string((*e.line)[cpos:epos]))
+
+	default:
+		e.suffix = comps.SUFFIX
 	}
 }
 
@@ -214,7 +237,6 @@ func (e *Engine) noCompletions() bool {
 }
 
 func (e *Engine) resetValues(comps, cached bool) {
-	e.prefix = ""
 	e.selected = Candidate{}
 
 	// Drop the list of already generated/prepared completion candidates.

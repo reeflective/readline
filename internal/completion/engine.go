@@ -19,9 +19,10 @@ type Engine struct {
 
 	// Completion parameters
 	groups   []*group      // All of our suggestions tree is in here
-	suffix   SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
+	sm       SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
 	selected Candidate     // The currently selected item, not yet a real part of the input line.
-	prefix   string        // The current tab completion prefix  against which to build candidates
+	prefix   string        // The current tab completion prefix against which to build candidates
+	suffix   string        // The current word suffix
 	inserted []rune        // The selected candidate (inserted in line) without prefix or suffix.
 	usedY    int           // Comprehensive offset of the currently built completions
 	auto     bool          // Is the engine autocompleting ?
@@ -208,6 +209,7 @@ func (e *Engine) Cancel(inserted, cached bool) {
 		cpos := e.cursor.Pos()
 		e.cursor.Move(-1 * len(e.inserted))
 		e.line.Cut(e.cursor.Pos(), cpos)
+		e.line.Insert(e.cursor.Pos(), []rune(e.suffix)...)
 
 		return
 	}

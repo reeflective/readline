@@ -136,6 +136,10 @@ func (l *Line) SelectWord(pos int) (bpos, epos int) {
 		return
 	}
 
+	if pos == l.Len() {
+		pos--
+	}
+
 	pattern := "[0-9a-zA-Z_]"
 	bpos, epos = pos, pos
 
@@ -172,6 +176,10 @@ func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
 	pos, valid := l.checkPos(pos)
 	if !valid {
 		return
+	}
+
+	if pos == l.Len() {
+		pos--
 	}
 
 	pattern := `[^\s\\]`

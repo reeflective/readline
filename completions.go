@@ -23,9 +23,15 @@ type Completions struct {
 	listSep  map[string]string
 
 	// Initially this will be set to the part of the current word
-	// from the beginning of the word up to the position of the cursor;
-	// it may be altered to give a core.prefix for all matches.
+	// from the beginning of the word up to the position of the cursor.
+	// It may be altered to give a prefix for all matches.
 	PREFIX string
+
+	// Initially this will be set to the part of the current word,
+	// starting from the cursor position up to the end of the word.
+	// It may be altered so that inserted completions don't overwrite
+	// entirely any suffix when completing in the middle of a word.
+	SUFFIX string
 }
 
 // CompleteValues completes arbitrary keywords (values).

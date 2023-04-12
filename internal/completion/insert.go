@@ -16,8 +16,8 @@ func (e *Engine) TrimSuffix() {
 
 	// If our suffix matcher was registered at a different
 	// place in our line, then it's an orphan.
-	if e.suffix.pos != e.cursor.Pos()-1 {
-		e.suffix = SuffixMatcher{}
+	if e.sm.pos != e.cursor.Pos()-1 {
+		e.sm = SuffixMatcher{}
 		return
 	}
 
@@ -27,7 +27,7 @@ func (e *Engine) TrimSuffix() {
 	// Special case when completing paths: if the comp is ended
 	// by a slash, only remove this slash if the inserted key is
 	// one of the suffix matchers, otherwise keep it.
-	if suf == '/' && key != ' ' && notMatcher(key, e.suffix.string) {
+	if suf == '/' && key != ' ' && notMatcher(key, e.sm.string) {
 		return
 	}
 
@@ -37,11 +37,11 @@ func (e *Engine) TrimSuffix() {
 	// inserted directory, the net result is actually
 	// nil, so that a space then entered should still
 	// trigger the same behavior.
-	if e.suffix.Matches(string(suf)) {
+	if e.sm.Matches(string(suf)) {
 		e.line.CutRune(e.cursor.Pos())
 
 		if key != suf {
-			e.suffix = SuffixMatcher{}
+			e.sm = SuffixMatcher{}
 		}
 	}
 }
@@ -81,12 +81,17 @@ func (e *Engine) acceptCandidate() {
 	completion := e.prepareSuffix()
 	e.inserted = []rune(completion[len(e.prefix):])
 
+	// Remove the suffix from the line first.
+	e.line.Cut(e.cursor.Pos(), e.cursor.Pos()+len(e.suffix))
+
 	// Insert it in the line.
 	e.line.Insert(e.cursor.Pos(), e.inserted...)
 	e.cursor.Move(len(e.inserted))
 
 	// And forget about this inserted completion.
 	e.inserted = make([]rune, 0)
+	e.prefix = ""
+	e.suffix = ""
 }
 
 // insertCandidate inserts a completion candidate into the virtual (completed) line.
@@ -113,6 +118,9 @@ func (e *Engine) insertCandidate() {
 
 	e.compCursor = core.NewCursor(e.completed)
 	e.compCursor.Set(e.cursor.Pos())
+
+	// Remove the suffix from the line first.
+	e.completed.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.suffix))
 
 	// And insert it in the completed line.
 	e.completed.Insert(e.compCursor.Pos(), e.inserted...)
@@ -143,8 +151,8 @@ func (e *Engine) prepareSuffix() (comp string) {
 	// If we are to even consider removing a suffix, we keep the suffix
 	// matcher for later: whatever the decision we take here will be identical
 	// to the one we take while removing suffix in "non-virtual comp" mode.
-	e.suffix = cur.noSpace
-	e.suffix.pos = e.cursor.Pos() + len(comp) - prefix - 1
+	e.sm = cur.noSpace
+	e.sm.pos = e.cursor.Pos() + len(comp) - prefix - 1
 
 	// Add a space to suffix matcher when empty.
 	// if cur.noSpace.string == "" {

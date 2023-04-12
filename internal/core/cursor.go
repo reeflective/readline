@@ -330,6 +330,7 @@ func (c *Cursor) Coordinates(indent int) (x, y int) {
 
 func (c *Cursor) moveLineDown() {
 	var cpos, begin int
+	begin = -1
 
 	newlines := c.line.newlines()
 
@@ -345,6 +346,7 @@ func (c *Cursor) moveLineDown() {
 		if line == c.Line() {
 			cpos = c.pos - begin
 			begin = end
+
 			continue
 		}
 
@@ -376,7 +378,7 @@ func (c *Cursor) moveLineUp() {
 		if line > 0 {
 			begin = newlines[line-1][0]
 		} else {
-			begin = 0
+			begin = -1
 			end--
 		}
 
