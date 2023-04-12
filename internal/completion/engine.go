@@ -64,12 +64,12 @@ func (e *Engine) Generate(completions Values) {
 	e.prepare(completions)
 
 	if e.noCompletions() {
-		e.Reset(true)
+		e.ClearMenu(true)
 	}
 
 	if e.hasUniqueCandidate() {
 		e.acceptCandidate()
-		e.Reset(true)
+		e.ClearMenu(true)
 	}
 }
 
@@ -172,14 +172,17 @@ func (e *Engine) Update() {
 	// This does not apply when autocomplete is on.
 	choices := len(e.selected.Value) != 0
 	if !e.auto {
-		defer e.Reset(choices)
+		defer e.ClearMenu(choices)
 	}
 
 	// If autocomplete is on, we also drop the list of generated
 	// completions, because it will be recomputed shortly after.
-	// Do the same when using incremental search.
-	// inserted := e.auto || e.keymaps.Local() == keymap.Isearch
-	inserted := e.keymaps.Local() == keymap.Isearch
+	// Do the same when using incremental search, except if the
+	// last key typed is an escape, in which case the user wants
+	// to quit incremental search but keeping any selected comp.
+	key, _ := e.keys.Peek()
+	inserted := e.keymaps.Local() == keymap.Isearch && key != inputrc.Esc
+
 	e.Cancel(inserted, false)
 }
 
@@ -214,9 +217,32 @@ func (e *Engine) Cancel(inserted, cached bool) {
 	e.cursor.Set(e.compCursor.Pos())
 }
 
-// Reset exits the current completion keymap (if set) and clears the
-// current list of generated completions (if completions is true).
-func (e *Engine) Reset(completions bool) {
+// ResetForce drops any currently inserted candidate from the line,
+// drops any cached completer function and generated list, and exits
+// the incremental-search mode.
+// All those steps are performed whether or not the engine is active.
+func (e *Engine) ResetForce() {
+	e.Cancel(true, true)
+	e.ClearMenu(true)
+	e.IsearchStop()
+}
+
+// Reset accepts the currently inserted candidate (if any), clears the current
+// list of completions and exits the incremental-search mode if active.
+// If the completion engine was not active to begin with, nothing will happen.
+func (e *Engine) Reset() {
+	if !e.IsActive() {
+		return
+	}
+
+	e.Cancel(false, false)
+	e.ClearMenu(true)
+	e.IsearchStop()
+}
+
+// ClearMenu exits the current completion keymap (if set) and clears
+// the current list of generated completions (if completions is true).
+func (e *Engine) ClearMenu(completions bool) {
 	e.resetValues(completions, false)
 
 	if e.keymaps.Local() == keymap.MenuSelect {

@@ -148,37 +148,6 @@ func (e *Engine) adjustSelectKeymap() {
 	}
 }
 
-// refreshLine - Either insert the only candidate in the real line
-// and drop the current completion list, prefix, keymaps, etc, or
-// swap the formerly selected candidate with the new one.
-func (e *Engine) refreshLine() {
-	if e.noCompletions() {
-		e.Cancel(true, true)
-		return
-	}
-
-	if e.currentGroup() == nil {
-		return
-	}
-
-	if e.hasUniqueCandidate() {
-		e.acceptCandidate()
-		e.Reset(true)
-	} else {
-		e.insertCandidate()
-	}
-}
-
-func (e *Engine) cancelCompletedLine() {
-	// The completed line includes any currently selected
-	// candidate, just overwrite it with the normal line.
-	e.completed.Set(*e.line...)
-	e.compCursor.Set(e.cursor.Pos())
-
-	// And no virtual candidate anymore.
-	e.selected = Candidate{}
-}
-
 func (e *Engine) completionCount() (comps int, used int) {
 	for _, group := range e.groups {
 		for _, row := range group.values {

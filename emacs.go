@@ -983,9 +983,7 @@ func (rl *Shell) abort() {
 
 	// Cancel completions and/or incremental search.
 	rl.hint.Reset()
-	rl.completer.Cancel(true, true)
-	rl.completer.Reset(true)
-	rl.completer.IsearchStop()
+	rl.completer.ResetForce()
 }
 
 // func (rl *Instance) errorCtrlC() error {

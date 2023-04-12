@@ -22,10 +22,12 @@ func (e *Engine) IsearchStart(name string) {
 	e.hint.Set(color.Bold + color.FgCyan + e.isearchName + " (isearch): " + color.Reset + string(*e.isearchBuf))
 }
 
-// IsearchStop exists the incremental search mode.
+// IsearchStop exists the incremental search mode,
+// and drops the currently used regexp matcher.
 func (e *Engine) IsearchStop() {
 	e.keymaps.SetLocal("")
 	e.auto = false
+	e.isearch = nil
 }
 
 // GetBuffer returns either the current input line when incremental

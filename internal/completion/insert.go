@@ -46,6 +46,27 @@ func (e *Engine) TrimSuffix() {
 	}
 }
 
+// refreshLine - Either insert the only candidate in the real line
+// and drop the current completion list, prefix, keymaps, etc, or
+// swap the formerly selected candidate with the new one.
+func (e *Engine) refreshLine() {
+	if e.noCompletions() {
+		e.Cancel(true, true)
+		return
+	}
+
+	if e.currentGroup() == nil {
+		return
+	}
+
+	if e.hasUniqueCandidate() {
+		e.acceptCandidate()
+		e.ClearMenu(true)
+	} else {
+		e.insertCandidate()
+	}
+}
+
 // acceptCandidate inserts the currently selected candidate into the real input line.
 func (e *Engine) acceptCandidate() {
 	cur := e.currentGroup()
@@ -63,6 +84,9 @@ func (e *Engine) acceptCandidate() {
 	// Insert it in the line.
 	e.line.Insert(e.cursor.Pos(), e.inserted...)
 	e.cursor.Move(len(e.inserted))
+
+	// And forget about this inserted completion.
+	e.inserted = make([]rune, 0)
 }
 
 // insertCandidate inserts a completion candidate into the virtual (completed) line.
@@ -150,6 +174,16 @@ func (e *Engine) prepareSuffix() (comp string) {
 	// }
 
 	return comp
+}
+
+func (e *Engine) cancelCompletedLine() {
+	// The completed line includes any currently selected
+	// candidate, just overwrite it with the normal line.
+	e.completed.Set(*e.line...)
+	e.compCursor.Set(e.cursor.Pos())
+
+	// And no virtual candidate anymore.
+	e.selected = Candidate{}
 }
 
 func notMatcher(key rune, matchers string) bool {

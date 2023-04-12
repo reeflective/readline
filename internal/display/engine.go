@@ -104,7 +104,7 @@ func (e *Engine) ClearHelpers() {
 // ResetHelpers cancels all active hints and completions.
 func (e *Engine) ResetHelpers() {
 	e.hint.Reset()
-	e.completer.Reset(true)
+	e.completer.ClearMenu(true)
 }
 
 // displayHelpers renders the hint and completion sections.

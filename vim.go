@@ -139,11 +139,7 @@ func (rl *Shell) viCommandMode() {
 
 	// Cancel completions and hints if any.
 	rl.hint.Reset()
-
-	if rl.completer.IsActive() {
-		rl.completer.Cancel(false, false)
-		rl.completer.Reset(true)
-	}
+	rl.completer.Reset()
 
 	// Only go back if not in insert mode
 	if rl.keymaps.Main() == keymap.ViIns && !rl.cursor.AtBeginningOfLine() {
@@ -160,11 +156,9 @@ func (rl *Shell) viVisualMode() {
 	rl.undo.SkipSave()
 	rl.iterations.Reset()
 
-	// Cancel completions if any.
-	if rl.completer.IsActive() {
-		rl.completer.Cancel(false, false)
-		rl.completer.Reset(true)
-	}
+	// Cancel completions and hints if any.
+	rl.hint.Reset()
+	rl.completer.Reset()
 
 	// Mark the selection as visual at the current cursor position.
 	rl.selection.Mark(rl.cursor.Pos())
@@ -175,6 +169,9 @@ func (rl *Shell) viVisualMode() {
 func (rl *Shell) viVisualLineMode() {
 	rl.undo.SkipSave()
 	rl.iterations.Reset()
+
+	rl.hint.Reset()
+	rl.completer.Reset()
 
 	// Mark the selection as visual at the current
 	// cursor position, in visual line mode.
