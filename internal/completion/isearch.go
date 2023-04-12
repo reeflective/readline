@@ -39,7 +39,7 @@ func (e *Engine) GetBuffer() (*core.Line, *core.Cursor, *core.Selection) {
 	}
 
 	// Completed line (with inserted candidate)
-	if len(e.comp) > 0 {
+	if len(e.selected.Value) > 0 {
 		return e.completed, e.compCursor, e.selection
 	}
 
@@ -58,7 +58,7 @@ func (e *Engine) UpdateIsearch() {
 	// last action was a tab-complete selection: we don't need to
 	// refresh the list of matches, as the minibuffer did not change,
 	// and because it would make our currently selected comp to drop.
-	if len(e.comp) > 0 {
+	if len(e.selected.Value) > 0 {
 		return
 	}
 

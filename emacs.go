@@ -241,27 +241,6 @@ func (rl *Shell) endOfFile() {
 	}
 }
 
-// func (rl *Instance) errorCtrlC() error {
-// 	rl.keys = ""
-//
-// 	// When we have a completion inserted, just cancel the completions.
-// 	if len(rl.comp) > 0 {
-// 		rl.resetVirtualComp(true)
-// 		rl.resetCompletion()
-// 		rl.resetIsearch()
-// 		rl.resetHintText()
-// 		rl.completer = nil
-//
-// 		return nil
-// 	}
-//
-// 	// Or return the current command line
-// 	rl.clearHelpers()
-// 	moveCursorDown(rl.fullY - rl.posY)
-// 	fmt.Print("\r\n")
-//
-// 	return ErrCtrlC
-
 func (rl *Shell) deleteChar() {
 	// Extract from bash documentation of readline:
 	// Delete the character at point.  If this function is bound
@@ -997,7 +976,27 @@ func (rl *Shell) reReadInitFile() {
 	}
 }
 
-func (rl *Shell) abort() {}
+func (rl *Shell) abort() {
+	// Reset any visual selection and iterations.
+	rl.iterations.Reset()
+	rl.selection.Reset()
+
+	// Cancel completions and/or incremental search.
+	rl.hint.Reset()
+	rl.completer.Cancel(true, true)
+	rl.completer.Reset(true)
+	rl.completer.IsearchStop()
+}
+
+// func (rl *Instance) errorCtrlC() error {
+// 	rl.keys = ""
+//
+// 	// Or return the current command line
+// 	rl.clearHelpers()
+// 	moveCursorDown(rl.fullY - rl.posY)
+// 	fmt.Print("\r\n")
+//
+// 	return ErrCtrlC
 
 func (rl *Shell) prefixMeta() {}
 

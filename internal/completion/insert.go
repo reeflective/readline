@@ -10,7 +10,7 @@ import (
 // TrimSuffix removes the last inserted completion's suffix if the required constraints
 // are satisfied, among which the index position, the suffix matching patterns, etc.
 func (e *Engine) TrimSuffix() {
-	if e.line.Len() == 0 || e.cursor.Pos() == 0 || len(e.comp) > 0 {
+	if e.line.Len() == 0 || e.cursor.Pos() == 0 || len(e.selected.Value) > 0 {
 		return
 	}
 
@@ -53,14 +53,16 @@ func (e *Engine) acceptCandidate() {
 		return
 	}
 
+	e.selected = cur.selected()
+
 	// Prepare the completion candidate, remove the
 	// prefix part and save its sufffixes for later.
 	completion := e.prepareSuffix()
-	inserted := []rune(completion[len(e.prefix):])
+	e.inserted = []rune(completion[len(e.prefix):])
 
 	// Insert it in the line.
-	e.line.Insert(e.cursor.Pos(), inserted...)
-	e.cursor.Move(len(inserted))
+	e.line.Insert(e.cursor.Pos(), e.inserted...)
+	e.cursor.Move(len(e.inserted))
 }
 
 // insertCandidate inserts a completion candidate into the virtual (completed) line.
@@ -70,14 +72,16 @@ func (e *Engine) insertCandidate() {
 		return
 	}
 
-	if len(grp.selected().Value) < len(e.prefix) {
+	e.selected = grp.selected()
+
+	if len(e.selected.Value) < len(e.prefix) {
 		return
 	}
 
 	// Prepare the completion candidate, remove the
 	// prefix part and save its sufffixes for later.
 	completion := e.prepareSuffix()
-	e.comp = []rune(completion[len(e.prefix):])
+	e.inserted = []rune(completion[len(e.prefix):])
 
 	// Copy the current (uncompleted) line/cursor.
 	completed := core.Line(string(*e.line))
@@ -87,8 +91,8 @@ func (e *Engine) insertCandidate() {
 	e.compCursor.Set(e.cursor.Pos())
 
 	// And insert it in the completed line.
-	e.completed.Insert(e.compCursor.Pos(), e.comp...)
-	e.compCursor.Move(len(e.comp))
+	e.completed.Insert(e.compCursor.Pos(), e.inserted...)
+	e.compCursor.Move(len(e.inserted))
 }
 
 // prepareSuffix caches any suffix matcher associated with the completion candidate
@@ -99,7 +103,8 @@ func (e *Engine) prepareSuffix() (comp string) {
 		return
 	}
 
-	comp = cur.selected().Value
+	comp = e.selected.Value
+	// comp = cur.selected().Value
 	prefix := len(e.prefix)
 
 	// When the completion has a size of 1, don't remove anything:
@@ -145,23 +150,6 @@ func (e *Engine) prepareSuffix() (comp string) {
 	// }
 
 	return comp
-}
-
-// remove any virtually inserted candidate.
-func (e *Engine) cutCandidate() {
-	if len(e.comp) == 0 {
-		return
-	}
-
-	bpos := e.cursor.Pos() - len(e.comp)
-	epos := e.cursor.Pos()
-
-	e.line.Cut(bpos, epos)
-	e.cursor.Set(bpos)
-	// e.cursor.Move(-1 * len(e.comp))
-
-	// e.completed.Cut(bpos, epos)
-	// e.compCursor.Move(-1 * len(e.comp))
 }
 
 func notMatcher(key rune, matchers string) bool {

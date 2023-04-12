@@ -157,8 +157,7 @@ func (e *Engine) refreshLine() {
 		return
 	}
 
-	grp := e.currentGroup()
-	if grp == nil {
+	if e.currentGroup() == nil {
 		return
 	}
 
@@ -170,23 +169,14 @@ func (e *Engine) refreshLine() {
 	}
 }
 
-func (e *Engine) dropInserted() {
+func (e *Engine) cancelCompletedLine() {
 	// The completed line includes any currently selected
 	// candidate, just overwrite it with the normal line.
 	e.completed.Set(*e.line...)
 	e.compCursor.Set(e.cursor.Pos())
 
 	// And no virtual candidate anymore.
-	e.comp = make([]rune, 0)
-}
-
-func (e *Engine) currentCandidate() (comp string) {
-	cur := e.currentGroup()
-	if cur == nil {
-		return
-	}
-
-	return cur.selected().Value
+	e.selected = Candidate{}
 }
 
 func (e *Engine) completionCount() (comps int, used int) {
@@ -254,8 +244,9 @@ func (e *Engine) noCompletions() bool {
 	return true
 }
 
-func (e *Engine) resetList(comps, cached bool) {
+func (e *Engine) resetValues(comps, cached bool) {
 	e.prefix = ""
+	e.selected = Candidate{}
 
 	// Drop the list of already generated/prepared completion candidates.
 	if comps {
@@ -290,16 +281,11 @@ func (e *Engine) needsAutoComplete() bool {
 	isCorrectMenu := e.keymaps.Main() != keymap.ViCmd &&
 		e.keymaps.Local() != keymap.Isearch
 
-	if needsComplete && isCorrectMenu && len(e.comp) == 0 {
+	if needsComplete && isCorrectMenu && len(e.selected.Value) == 0 {
 		return true
 	}
 
 	return false
-}
-
-func (e *Engine) isAutoCompleting() bool {
-	return e.opts.GetBool("autocomplete") &&
-		e.line.Len() > 0
 }
 
 func (e *Engine) getAbsPos() int {

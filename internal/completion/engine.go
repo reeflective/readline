@@ -18,12 +18,13 @@ type Engine struct {
 	hint   *ui.Hint        // The completions can feed hint/usage messages
 
 	// Completion parameters
-	groups []*group      // All of our suggestions tree is in here
-	suffix SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
-	prefix string        // The current tab completion prefix  against which to build candidates
-	comp   []rune        // The currently selected item, not yet a real part of the input line.
-	usedY  int           // Comprehensive offset of the currently built completions
-	auto   bool          // Is the engine autocompleting ?
+	groups   []*group      // All of our suggestions tree is in here
+	suffix   SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
+	selected Candidate     // The currently selected item, not yet a real part of the input line.
+	prefix   string        // The current tab completion prefix  against which to build candidates
+	inserted []rune        // The selected candidate (inserted in line) without prefix or suffix.
+	usedY    int           // Comprehensive offset of the currently built completions
+	auto     bool          // Is the engine autocompleting ?
 
 	// Line parameters
 	keys       *core.Keys      // The input keys reader
@@ -103,8 +104,8 @@ func (e *Engine) Select(row, column int) {
 
 	// If we already have an inserted candidate
 	// remove it before inserting the new one.
-	if len(e.comp) > 0 {
-		e.dropInserted()
+	if len(e.selected.Value) > 0 {
+		e.cancelCompletedLine()
 	}
 
 	defer e.refreshLine()
@@ -140,8 +141,8 @@ func (e *Engine) SelectTag(next bool) {
 
 	// If the completion candidate is not empty,
 	// it's also inserted in the line, so remove it.
-	if len(e.comp) > 0 {
-		e.dropInserted()
+	if len(e.selected.Value) > 0 {
+		e.cancelCompletedLine()
 	}
 
 	// In the end we will update the line with the
@@ -169,7 +170,7 @@ func (e *Engine) Update() {
 	// then deletes or types something in the input line, the list
 	// is still displayed to the user, otherwise it's removed.
 	// This does not apply when autocomplete is on.
-	choices := len(e.comp) != 0
+	choices := len(e.selected.Value) != 0
 	if !e.auto {
 		defer e.Reset(choices)
 	}
@@ -177,7 +178,8 @@ func (e *Engine) Update() {
 	// If autocomplete is on, we also drop the list of generated
 	// completions, because it will be recomputed shortly after.
 	// Do the same when using incremental search.
-	inserted := e.auto || e.keymaps.Local() == keymap.Isearch
+	// inserted := e.auto || e.keymaps.Local() == keymap.Isearch
+	inserted := e.keymaps.Local() == keymap.Isearch
 	e.Cancel(inserted, false)
 }
 
@@ -187,28 +189,22 @@ func (e *Engine) Update() {
 // This function does not exit the completion keymap,
 // so any active completion menu will still be kept.
 func (e *Engine) Cancel(inserted, cached bool) {
-	if len(e.comp) == 0 {
-		return
+	if cached {
+		e.cached = nil
 	}
 
-	cur := e.currentGroup()
-	if cur == nil {
+	if len(e.selected.Value) == 0 && !inserted {
 		return
 	}
 
 	// In the end, there is no completed line anymore.
-	defer e.dropInserted()
-
-	completion := cur.selected().Value
-
-	if completion == "" {
-		return
-	}
+	defer e.cancelCompletedLine()
 
 	// Either drop the inserted candidate.
 	if inserted {
-		e.completed.Set(*e.line...)
-		e.compCursor.Set(e.cursor.Pos())
+		cpos := e.cursor.Pos()
+		e.cursor.Move(-1 * len(e.inserted))
+		e.line.Cut(e.cursor.Pos(), cpos)
 
 		return
 	}
@@ -221,7 +217,7 @@ func (e *Engine) Cancel(inserted, cached bool) {
 // Reset exits the current completion keymap (if set) and clears the
 // current list of generated completions (if completions is true).
 func (e *Engine) Reset(completions bool) {
-	e.resetList(completions, false)
+	e.resetValues(completions, false)
 
 	if e.keymaps.Local() == keymap.MenuSelect {
 		e.keymaps.SetLocal("")
@@ -248,7 +244,7 @@ func (e *Engine) Matches() int {
 // the candidate. If no candidate is selected, the normal input line is returned.
 // When the line returned is the completed one, the corresponding, adjusted cursor.
 func (e *Engine) Line() (*core.Line, *core.Cursor) {
-	if len(e.comp) > 0 {
+	if len(e.selected.Value) > 0 {
 		return e.completed, e.compCursor
 	}
 
@@ -264,7 +260,7 @@ func (e *Engine) Autocomplete() {
 	// Clear the current completion list when we are at the
 	// beginning of the line, and not currently completing.
 	if e.auto || (!e.IsActive() && e.cursor.Pos() == 0) {
-		e.resetList(true, false)
+		e.resetValues(true, false)
 	}
 
 	// We are not auto when either: autocomplete is disabled,

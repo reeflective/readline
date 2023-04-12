@@ -10,6 +10,7 @@ var isearchKeys = map[string]string{}
 // those widgets, generally found in the main keymap, are the only
 // valid widgets to be used in the incremental search minibuffer.
 var IsearchCommands = []string{
+	"abort",
 	"accept-and-infer-next-history",
 	"accept-line",
 	"operate-and-get-next",
