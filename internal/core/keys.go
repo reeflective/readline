@@ -44,61 +44,6 @@ func (k *Keys) Read() {
 	k.stack = append(k.stack, keys...)
 }
 
-// GetCursorPos returns the current cursor position in the terminal.
-// This is normally safe to call even if the shell is reading input.
-func (k *Keys) GetCursorPos() (x, y int) {
-	defer func() {
-		k.paused = false
-	}()
-
-	disable := func() (int, int) {
-		os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
-		return -1, -1
-	}
-
-	var cursor string
-
-	// Notify pause if we are reading.
-	k.mutex.RLock()
-	k.paused = k.reading
-	k.mutex.RUnlock()
-
-	fmt.Print("\x1b[6n")
-
-	// Either read the output, or wait for
-	// the main reading routine to catch it.
-	if !k.reading {
-		buf := make([]byte, cursorPosBufLen)
-
-		read, err := os.Stdin.Read(buf)
-		if err != nil {
-			return disable()
-		}
-		cursor = string(buf[:read])
-	} else {
-		cursor = <-k.cursor
-	}
-
-	// Find it and return coordinates.
-	if !rxRcvCursorPos.MatchString(cursor) {
-		return disable()
-	}
-
-	match := rxRcvCursorPos.FindAllStringSubmatch(cursor, 1)
-
-	y, err := strconv.Atoi(match[0][1])
-	if err != nil {
-		return disable()
-	}
-
-	x, err = strconv.Atoi(match[0][2])
-	if err != nil {
-		return disable()
-	}
-
-	return x, y
-}
-
 // ReadArgument reads keys from stdin like Read(), but immediately
 // returns them instead of storing them in the stack, along with an
 // indication on whether this key is an escape/abort one.
@@ -222,8 +167,11 @@ func (k *Keys) FlushUsed() {
 	k.macroCalled = false
 
 	if k.matchedKeys == 0 {
+		// println("No matched keys")
 		return
 	}
+
+	// println("Keys before: " + strconv.QuoteToASCII(string(k.stack)))
 
 	switch {
 	case len(k.stack) < k.matchedKeys:
@@ -232,7 +180,12 @@ func (k *Keys) FlushUsed() {
 		k.stack = k.stack[k.matchedKeys:]
 	}
 
+	// println("Keys after: " + strconv.QuoteToASCII(string(k.stack)))
 	k.matchedKeys = 0
+
+	// if k.skipRead {
+	// 	os.Exit(0)
+	// }
 }
 
 // Flush returns all keys stored in the stack and clears it.
@@ -241,4 +194,59 @@ func (k *Keys) Flush() []rune {
 	k.stack = make([]rune, 0)
 
 	return []rune(keys)
+}
+
+// GetCursorPos returns the current cursor position in the terminal.
+// This is normally safe to call even if the shell is reading input.
+func (k *Keys) GetCursorPos() (x, y int) {
+	defer func() {
+		k.paused = false
+	}()
+
+	disable := func() (int, int) {
+		os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
+		return -1, -1
+	}
+
+	var cursor string
+
+	// Notify pause if we are reading.
+	k.mutex.RLock()
+	k.paused = k.reading
+	k.mutex.RUnlock()
+
+	fmt.Print("\x1b[6n")
+
+	// Either read the output, or wait for
+	// the main reading routine to catch it.
+	if !k.reading {
+		buf := make([]byte, cursorPosBufLen)
+
+		read, err := os.Stdin.Read(buf)
+		if err != nil {
+			return disable()
+		}
+		cursor = string(buf[:read])
+	} else {
+		cursor = <-k.cursor
+	}
+
+	// Find it and return coordinates.
+	if !rxRcvCursorPos.MatchString(cursor) {
+		return disable()
+	}
+
+	match := rxRcvCursorPos.FindAllStringSubmatch(cursor, 1)
+
+	y, err := strconv.Atoi(match[0][1])
+	if err != nil {
+		return disable()
+	}
+
+	x, err = strconv.Atoi(match[0][2])
+	if err != nil {
+		return disable()
+	}
+
+	return x, y
 }

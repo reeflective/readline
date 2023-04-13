@@ -261,6 +261,7 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 		if match.Action == "" && len(prefixed) == 0 {
 			prefix = false
 			cmd = m.resolveCommand(m.prefixed)
+			m.prefixed = inputrc.Bind{}
 
 			return
 		}
@@ -292,8 +293,14 @@ func (m *Modes) matchCommand(keys []rune, binds map[string]inputrc.Bind) (inputr
 	var prefixed []inputrc.Bind
 
 	for sequence, kbind := range binds {
+		// When convert-meta is on, any meta-prefixed bind should
+		// be stripped and replaced with an escape meta instead.
+		if m.opts.GetBool("convert-meta") {
+			sequence = m.convertMetaBind([]rune(sequence))
+		}
+
 		// If the keys are a prefix of the bind, keep the bind
-		if len(keys) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {
+		if len(string(keys)) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {
 			prefixed = append(prefixed, kbind)
 		}
 
@@ -304,6 +311,29 @@ func (m *Modes) matchCommand(keys []rune, binds map[string]inputrc.Bind) (inputr
 	}
 
 	return match, prefixed
+}
+
+func (m *Modes) convertMetaBind(sequence []rune) string {
+	if len(sequence) == 0 {
+		return string(sequence)
+	}
+
+	converted := make([]rune, 0)
+
+	for i := 0; i < len(sequence); i++ {
+		char := sequence[i]
+
+		if !inputrc.IsMeta(char) {
+			converted = append(converted, char)
+			continue
+		}
+
+		// Replace the key with esc prefix and add the demetafied key.
+		converted = append(converted, inputrc.Esc)
+		converted = append(converted, inputrc.Demeta(char))
+	}
+
+	return string(converted)
 }
 
 func (m *Modes) resolveCommand(bind inputrc.Bind) func() {
