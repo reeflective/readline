@@ -1149,7 +1149,7 @@ func (rl *Shell) viSelectSurround() {
 }
 
 //
-// Miscellaneous ---------------------------------------------------------------
+// Miscellaneous --------------------------------------------------------
 //
 
 func (rl *Shell) viEOFMaybe() {

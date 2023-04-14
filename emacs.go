@@ -228,7 +228,7 @@ func (rl *Shell) clearDisplay() {
 }
 
 //
-// Changing Text -----------------------------------------------------------------
+// Changing Text --------------------------------------------------------
 //
 
 func (rl *Shell) endOfFile() {
@@ -695,7 +695,7 @@ func (rl *Shell) keywordSwitch(increase bool) {
 }
 
 //
-// Killing & Yanking -------------------------------------------------------------
+// Killing & Yanking ----------------------------------------------------------
 //
 
 func (rl *Shell) killLine() {
@@ -996,7 +996,22 @@ func (rl *Shell) abort() {
 //
 // 	return ErrCtrlC
 
-func (rl *Shell) prefixMeta() {}
+func (rl *Shell) prefixMeta() {
+	rl.undo.SkipSave()
+
+	done := rl.keymaps.PendingCursor()
+	defer done()
+
+	keys, isAbort := rl.keys.ReadArgument()
+	if isAbort {
+		return
+	}
+
+	keys = append([]rune{inputrc.Esc}, keys...)
+
+	// And feed them back to be used on the next loop.
+	rl.keys.Feed(false, true, keys...)
+}
 
 func (rl *Shell) undoLast() {
 	rl.undo.Undo(rl.line, rl.cursor)
@@ -1025,6 +1040,26 @@ func (rl *Shell) setMark() {
 }
 
 func (rl *Shell) exchangePointAndMark() {
+	// Deactivate mark if out of bound
+	if rl.cursor.Mark() > rl.line.Len() {
+		rl.cursor.ResetMark()
+	}
+
+	// And set it to start if negative.
+	if rl.cursor.Mark() < 0 {
+		cpos := rl.cursor.Pos()
+		rl.cursor.Set(0)
+		rl.cursor.SetMark()
+		rl.cursor.Set(cpos)
+	} else {
+		mark := rl.cursor.Mark()
+
+		rl.cursor.SetMark()
+		rl.cursor.Set(mark)
+
+		rl.selection.MarkRange(rl.cursor.Mark(), rl.cursor.Pos())
+		rl.selection.Visual(false)
+	}
 }
 
 func (rl *Shell) characterSearch() {
@@ -1043,7 +1078,43 @@ func (rl *Shell) characterSearchBackward() {
 	}
 }
 
-func (rl *Shell) insertComment() {}
+func (rl *Shell) insertComment() {
+	arg := rl.iterations.Get()
+
+	comment := rl.opts.GetString("comment-begin")
+
+	switch arg {
+	case 1:
+		// Without numeric argument, insert comment at the beginning of the line.
+		cpos := rl.cursor.Pos()
+		rl.cursor.BeginningOfLine()
+		rl.line.Insert(rl.cursor.Pos(), []rune(comment)...)
+		rl.cursor.Set(cpos)
+
+	default:
+		// Or with one, toggle the current line commenting.
+		cpos := rl.cursor.Pos()
+		rl.cursor.BeginningOfLine()
+
+		bpos := rl.cursor.Pos()
+		epos := bpos + len(comment)
+
+		rl.cursor.Set(cpos)
+
+		commentFits := epos < rl.line.Len()
+
+		if commentFits && string((*rl.line)[bpos:epos]) == comment {
+			rl.line.Cut(bpos, epos)
+			rl.cursor.Move(-1 * len(comment))
+		} else {
+			rl.line.Insert(bpos, []rune(comment)...)
+			rl.cursor.Move(1 * len(comment))
+		}
+	}
+
+	// Either case, accept the line as it is.
+	rl.acceptLineWith(false, false)
+}
 
 func (rl *Shell) dumpFunctions() {
 	rl.display.ClearHelpers()
@@ -1127,8 +1198,6 @@ func (rl *Shell) dumpMacros() {
 		}
 	}
 }
-
-func (rl *Shell) magicSpace() {}
 
 func (rl *Shell) editAndExecuteCommand() {
 	buffer := *rl.line

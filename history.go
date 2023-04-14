@@ -64,6 +64,7 @@ func (rl *Shell) historyCommands() commands {
 		"history-substring-search-backward":      rl.historySubstringSearchBackward,
 		"yank-last-arg":                          rl.yankLastArg,
 		"yank-nth-arg":                           rl.yankNthArg,
+		"magic-space":                            rl.magicSpace,
 
 		"accept-and-hold":                   rl.acceptAndHold,
 		"accept-and-infer-next-history":     rl.acceptAndInferNextHistory,
@@ -232,6 +233,8 @@ func (rl *Shell) yankNthArg() {
 	rl.line.Insert(rl.line.Len(), []rune(lastArg)...)
 	rl.cursor.Move(len(lastArg))
 }
+
+func (rl *Shell) magicSpace() {}
 
 //
 // Added -------------------------------------------------------------------
