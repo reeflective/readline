@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"go/format"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -40,21 +39,21 @@ func run(out string, dump bool) error {
 		return err
 	}
 	if dump {
-		return ioutil.WriteFile(out, buf.Bytes(), 0o644)
+		return os.WriteFile(out, buf.Bytes(), 0o644)
 	}
 	b, err := format.Source(buf.Bytes())
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(out, b, 0o644)
+	return os.WriteFile(out, b, 0o644)
 }
 
 func loadVars(w io.Writer) error {
-	fmt.Ffmt.Println(w, "// DefaultVars are the default readline vars.")
-	fmt.Ffmt.Println(w, "//")
-	fmt.Ffmt.Println(w, "// see: INPUTRC=/dev/null bash -c 'bind -v'")
-	fmt.Ffmt.Println(w, "func DefaultVars() map[string]interface{} {")
-	fmt.Ffmt.Println(w, "\treturn map[string]interface{}{")
+	fmt.Fprintln(w, "// DefaultVars are the default readline vars.")
+	fmt.Fprintln(w, "//")
+	fmt.Fprintln(w, "// see: INPUTRC=/dev/null bash -c 'bind -v'")
+	fmt.Fprintln(w, "func DefaultVars() map[string]interface{} {")
+	fmt.Fprintln(w, "\treturn map[string]interface{}{")
 	s, err := load("bash", "-c", "bind -v")
 	if err != nil {
 		return err
@@ -75,8 +74,8 @@ func loadVars(w io.Writer) error {
 		}
 		fmt.Fprintf(w, "\t\t%q: %"+typ+",\n", v[1], val)
 	}
-	fmt.Ffmt.Println(w, "\t}")
-	fmt.Ffmt.Println(w, "}")
+	fmt.Fprintln(w, "\t}")
+	fmt.Fprintln(w, "}")
 	if err := s.Err(); err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
@@ -84,11 +83,11 @@ func loadVars(w io.Writer) error {
 }
 
 func loadKeymaps(w io.Writer) error {
-	fmt.Ffmt.Println(w, "// DefaultBinds are the default readline bind keymaps.")
-	fmt.Ffmt.Println(w, "//")
-	fmt.Ffmt.Println(w, "// see: INPUTRC=/dev/null bash -c 'bind -pm <keymap>'")
-	fmt.Ffmt.Println(w, "func DefaultBinds() map[string]map[string]Bind {")
-	fmt.Ffmt.Println(w, "\treturn map[string]map[string]Bind {")
+	fmt.Fprintln(w, "// DefaultBinds are the default readline bind keymaps.")
+	fmt.Fprintln(w, "//")
+	fmt.Fprintln(w, "// see: INPUTRC=/dev/null bash -c 'bind -pm <keymap>'")
+	fmt.Fprintln(w, "func DefaultBinds() map[string]map[string]Bind {")
+	fmt.Fprintln(w, "\treturn map[string]map[string]Bind {")
 	for _, keymap := range []string{
 		"emacs", "emacs-standard", "emacs-meta", "emacs-ctlx",
 		"vi", "vi-move", "vi-command", "vi-insert",
@@ -102,7 +101,7 @@ func loadKeymaps(w io.Writer) error {
 		for s.Scan() {
 			line := strings.TrimSpace(s.Text())
 			if strings.HasPrefix(line, "# ") {
-				fmt.Ffmt.Println(w, "\t\t\t// "+strings.TrimPrefix(line, "# "))
+				fmt.Fprintln(w, "\t\t\t// "+strings.TrimPrefix(line, "# "))
 				continue
 			}
 			v := strings.SplitN(line, `": `, 2)
@@ -125,10 +124,10 @@ func loadKeymaps(w io.Writer) error {
 		if err := s.Err(); err != nil && !errors.Is(err, io.EOF) {
 			return fmt.Errorf("unable to read keymap %s: %w", keymap, err)
 		}
-		fmt.Ffmt.Println(w, "\t\t},")
+		fmt.Fprintln(w, "\t\t},")
 	}
-	fmt.Ffmt.Println(w, "\t}")
-	fmt.Ffmt.Println(w, "}")
+	fmt.Fprintln(w, "\t}")
+	fmt.Fprintln(w, "}")
 	return nil
 }
 

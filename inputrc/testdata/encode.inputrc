@@ -17,8 +17,8 @@ binds:
     \C-F: "blah\a\b\f\t\n\r\v\"\'"
     \C-M: "\r"
     \C-R: "\C-X"
-    \C-Z: "\M-\C-i"
+    \C-Z: "\e\t"
+    \e\C-U: "\M-j"
     \C-?: "\d"
-    \M-\C-U: "\M-j"
-    \M-k: "\M-\C-0"
+    \M-k: "\e\C-P"
     \M-y: some-action

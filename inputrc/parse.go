@@ -474,22 +474,50 @@ func decodeKey(r []rune, i, end int) (string, int, error) {
 	default:
 		c, _ = utf8.DecodeRuneInString(s)
 	}
-	if control {
+	switch {
+	case control && meta:
+		return string([]rune{Esc, Encontrol(c)}), i, nil
+	case control:
 		c = Encontrol(c)
-	}
-	if meta {
+	case meta:
 		c = Enmeta(c)
 	}
 	return string(c), i, nil
 }
 
+/*
+// decodeRunes decodes runes.
+func decodeRunes(r []rune, i, end int) string {
+	r = []rune(unescapeRunes(r, i, end))
+	var s []rune
+	var c0, c1, c3 rune
+	for i, end = 0, len(r); i < end; i++ {
+		c0, c1, c3 = grab(r, i, end), grab(r, i+1, end), grab(r, i+2, end)
+		switch {
+		case c0 == Meta && c1 == Control, c0 == Control && c1 == Meta:
+			s = append(s, Esc, Encontrol(c3))
+			i += 2
+		case c0 == Control:
+			s = append(s, Encontrol(c1))
+			i++
+		case c0 == Meta:
+			s = append(s, Enmeta(c1))
+			i++
+		default:
+			s = append(s, c0)
+		}
+	}
+	return string(s)
+}
+*/
+
 // unescapeRunes decodes escaped string sequence.
 func unescapeRunes(r []rune, i, end int) string {
 	var s []rune
-	var c0, c1, c2, c3 rune
+	var c0, c1, c2, c3, c4, c5 rune
 	for ; i < end; i++ {
 		if c0 = r[i]; c0 == '\\' {
-			c1, c2, c3 = grab(r, i+1, end), grab(r, i+2, end), grab(r, i+3, end)
+			c1, c2, c3, c4, c5 = grab(r, i+1, end), grab(r, i+2, end), grab(r, i+3, end), grab(r, i+4, end), grab(r, i+5, end)
 			switch {
 			case c1 == 'a': // \a alert (bell)
 				s = append(s, Alert)
@@ -536,6 +564,12 @@ func unescapeRunes(r []rune, i, end int) string {
 			case octDigit(c1): // \n octal
 				s = append(s, c1-'0')
 				i += 1
+			case ((c1 == 'C' && c4 == 'M') || (c1 == 'M' && c4 == 'C')) && c2 == '-' && c3 == '\\' && c5 == '-':
+				// \C-\M- or \M-\C- control meta prefix
+				if c6 := grab(r, i+6, end); c6 != 0 {
+					s = append(s, Esc, Encontrol(c6))
+				}
+				i += 6
 			case c1 == 'C' && c2 == '-': // \C- control prefix
 				if c3 == '?' {
 					s = append(s, Delete)

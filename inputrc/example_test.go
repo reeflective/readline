@@ -5,7 +5,7 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/reeflective/readline/inputrc"
+	"github.com/xo/inputrc"
 )
 
 func Example() {
