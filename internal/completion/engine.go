@@ -37,10 +37,11 @@ type Engine struct {
 	keymaps    *keymap.Modes   // The main/local keymaps of the shell
 
 	// Incremental search
-	isearchBuf  *core.Line     // The isearch minibuffer
-	isearchCur  *core.Cursor   //
-	isearch     *regexp.Regexp // Holds the current search regex match
-	isearchName string         // What is being incrementally searched for.
+	isearchBuf    *core.Line     // The isearch minibuffer
+	isearchCur    *core.Cursor   // Cursor position in the minibuffer.
+	isearch       *regexp.Regexp // Holds the current search regex match
+	isearchName   string         // What is being incrementally searched for.
+	isearchInsert bool           // Whether to insert the first match in the line
 }
 
 // NewEngine initializes a new completion engine with the shell operating parameters.

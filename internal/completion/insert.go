@@ -27,22 +27,19 @@ func (e *Engine) TrimSuffix() {
 	// Special case when completing paths: if the comp is ended
 	// by a slash, only remove this slash if the inserted key is
 	// one of the suffix matchers, otherwise keep it.
-	if suf == '/' && key != ' ' && notMatcher(key, e.sm.string) {
+	if suf == '/' && key != inputrc.Space && notMatcher(key, e.sm.string) {
 		return
 	}
 
-	// Only remove the matcher if the key we inserted
-	// is not the same as the one we removed. This is
-	// so that if we just inserted a slash after an
-	// inserted directory, the net result is actually
-	// nil, so that a space then entered should still
-	// trigger the same behavior.
-	if e.sm.Matches(string(suf)) {
+	// Remove the suffix if either:
+	switch {
+	case e.sm.Matches(string(key)):
+		// The key to be inserted matches the suffix matcher.
 		e.line.CutRune(e.cursor.Pos())
 
-		if key != suf {
-			e.sm = SuffixMatcher{}
-		}
+	case e.sm.Matches(string(suf)) && key == inputrc.Space:
+		// The end of the completion matches the suffix and we are inserting a space.
+		e.line.CutRune(e.cursor.Pos())
 	}
 }
 
@@ -136,7 +133,6 @@ func (e *Engine) prepareSuffix() (comp string) {
 	}
 
 	comp = e.selected.Value
-	// comp = cur.selected().Value
 	prefix := len(e.prefix)
 
 	// When the completion has a size of 1, don't remove anything:
@@ -154,9 +150,9 @@ func (e *Engine) prepareSuffix() (comp string) {
 	e.sm = cur.noSpace
 	e.sm.pos = e.cursor.Pos() + len(comp) - prefix - 1
 
-	// Add a space to suffix matcher when empty.
-	// if cur.noSpace.string == "" {
-	if cur.noSpace.string == "" && !e.opts.GetBool("autocomplete") {
+	// Add a space to suffix matcher when empty and the comp ends with a space.
+	// if cur.noSpace.string == "" && !e.opts.GetBool("autocomplete") {
+	if cur.noSpace.string == "" && suffix == inputrc.Space {
 		cur.noSpace.Add([]rune{' '}...)
 	}
 

@@ -239,7 +239,7 @@ func (rl *Shell) menuIncrementalSearch() {
 		rl.completer.GenerateWith(rl.commandCompletion)
 	}
 
-	rl.completer.IsearchStart("completions")
+	rl.completer.IsearchStart("completions", false)
 }
 
 //
@@ -297,6 +297,6 @@ func (rl *Shell) historyCompletion(forward, filterLine bool) {
 		}
 
 		rl.completer.GenerateWith(completer)
-		rl.completer.IsearchStart(rl.histories.Name())
+		rl.completer.IsearchStart(rl.histories.Name(), true)
 	}
 }

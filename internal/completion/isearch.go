@@ -10,9 +10,10 @@ import (
 
 // IsearchStart starts incremental search (fuzzy-finding)
 // with values matching the isearch minibuffer as a regexp.
-func (e *Engine) IsearchStart(name string) {
+func (e *Engine) IsearchStart(name string, autoinsert bool) {
 	e.keymaps.SetLocal(keymap.Isearch)
 	e.auto = true
+	e.isearchInsert = autoinsert
 
 	e.isearchBuf = new(core.Line)
 	e.isearchCur = core.NewCursor(e.isearchBuf)
@@ -90,6 +91,11 @@ func (e *Engine) UpdateIsearch() {
 	isearchHint := color.Bold + color.FgCyan + e.isearchName +
 		" (isearch): " + color.Reset + color.Bold + string(*e.isearchBuf)
 	e.hint.Set(isearchHint)
+
+	// And update the inserted candidate if autoinsert is enabled.
+	if e.isearchInsert && e.Matches() > 0 && e.isearchBuf.Len() > 0 {
+		e.Select(1, 0)
+	}
 }
 
 // In history isearch, insert the first matching candidate.
