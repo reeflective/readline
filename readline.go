@@ -89,11 +89,18 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// so it knows which line and cursor we should work on.
 	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
-	command()               // Run the matched command
-	rl.keymaps.RunPending() // Run pending commands (vi-opp mode)
-	rl.keys.FlushUsed()     // Drop some or all keys (used ones)
-	rl.checkCursor()        // Ensure cursor position is correct.
-	rl.iterations.Reset()   // Drop iterations if deemed needed.
+	// Run the command
+	command()
+
+	// Only run pending-operator commands when the command we
+	// just executed has not had any influence on iterations.
+	if !rl.iterations.IsSet() {
+		rl.keymaps.RunPending()
+	}
+
+	rl.keys.FlushUsed()   // Drop some or all keys (used ones)
+	rl.checkCursor()      // Ensure cursor position is correct.
+	rl.iterations.Reset() // Drop iterations if deemed needed.
 
 	// If the command just run was using the incremental search
 	// buffer (acting on it), update the list of matches.
