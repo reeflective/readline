@@ -984,7 +984,7 @@ func (rl *Shell) viPutAfter() {
 		}
 
 		if rl.cursor.Pos() == rl.line.Len() {
-			buffer = append([]rune{'\n'}, buffer[:len(buffer)-2]...)
+			buffer = append([]rune{'\n'}, buffer[:len(buffer)-1]...)
 		}
 	}
 
@@ -995,8 +995,6 @@ func (rl *Shell) viPutAfter() {
 	for i := 1; i <= vii; i++ {
 		rl.line.Insert(pos, buffer...)
 	}
-
-	rl.cursor.Set(pos)
 }
 
 func (rl *Shell) viPutBefore() {
