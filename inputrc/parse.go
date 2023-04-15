@@ -591,12 +591,12 @@ func unescapeRunes(r []rune, i, end int) string {
 	return string(s)
 }
 
-// octDigit returns true when r is 0-7
+// octDigit returns true when r is 0-7.
 func octDigit(c rune) bool {
 	return '0' <= c && c <= '7'
 }
 
-// hexDigit returns true when r is 0-9A-Fa-f
+// hexDigit returns true when r is 0-9A-Fa-f.
 func hexDigit(c rune) bool {
 	return '0' <= c && c <= '9' || 'A' <= c && c <= 'F' || 'a' <= c && c <= 'f'
 }
