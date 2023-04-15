@@ -140,18 +140,26 @@ func (rl *Shell) emacsEditingMode() {
 
 func (rl *Shell) forwardChar() {
 	rl.undo.SkipSave()
-	rl.cursor.Inc()
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.cursor.Inc()
+	}
 }
 
 func (rl *Shell) backwardChar() {
 	rl.undo.SkipSave()
-	rl.cursor.Dec()
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.cursor.Dec()
+	}
 }
 
 func (rl *Shell) forwardWord() {
 	rl.undo.SkipSave()
-
 	vii := rl.iterations.Get()
+
 	for i := 1; i <= vii; i++ {
 		forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
 		rl.cursor.Move(forward + 1)
@@ -169,20 +177,28 @@ func (rl *Shell) backwardWord() {
 }
 
 func (rl *Shell) forwardShellWord() {
-	rl.selection.SelectAShellWord()
-	_, _, tepos, _ := rl.selection.Pop()
-	rl.cursor.Set(tepos)
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.selection.SelectAShellWord()
+		_, _, tepos, _ := rl.selection.Pop()
+		rl.cursor.Set(tepos)
+	}
 }
 
 func (rl *Shell) backwardShellWord() {
-	// First go the beginning of the blank word
-	startPos := rl.cursor.Pos()
-	backward := rl.line.Backward(rl.line.TokenizeSpace, startPos)
-	rl.cursor.Move(backward)
+	vii := rl.iterations.Get()
 
-	// Now try to find enclosing quotes from here.
-	bpos, _ := rl.selection.SelectAShellWord()
-	rl.cursor.Set(bpos)
+	for i := 1; i <= vii; i++ {
+		// First go the beginning of the blank word
+		startPos := rl.cursor.Pos()
+		backward := rl.line.Backward(rl.line.TokenizeSpace, startPos)
+		rl.cursor.Move(backward)
+
+		// Now try to find enclosing quotes from here.
+		bpos, _ := rl.selection.SelectAShellWord()
+		rl.cursor.Set(bpos)
+	}
 }
 
 func (rl *Shell) beginningOfLine() {
@@ -778,7 +794,6 @@ func (rl *Shell) shellKillWord() {
 
 	// select the shell word, and if the cursor position
 	// has changed, we delete the part after the initial one.
-	// rl.cursor.ToFirstNonSpace(true)
 	rl.viSelectAShellWord()
 
 	_, epos := rl.selection.Pos()
@@ -889,14 +904,23 @@ func (rl *Shell) copyForwardWord() {
 
 func (rl *Shell) yank() {
 	buf := rl.buffers.Get(rune(0))
-	rl.line.Insert(rl.cursor.Pos(), buf...)
-	rl.cursor.Move(len(buf))
+
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.line.Insert(rl.cursor.Pos(), buf...)
+		rl.cursor.Move(len(buf))
+	}
 }
 
 func (rl *Shell) yankPop() {
-	buf := rl.buffers.Pop()
-	rl.line.Insert(rl.cursor.Pos(), buf...)
-	rl.cursor.Move(len(buf))
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		buf := rl.buffers.Pop()
+		rl.line.Insert(rl.cursor.Pos(), buf...)
+		rl.cursor.Move(len(buf))
+	}
 }
 
 func (rl *Shell) copyPrevShellWord() {

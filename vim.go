@@ -226,18 +226,28 @@ func (rl *Shell) viForwardChar() {
 	// In vi-cmd-mode, we don't go further than the
 	// last character in the line, hence rl.line-1
 	if rl.keymaps.Main() != keymap.ViIns && rl.cursor.Pos() < rl.line.Len()-1 {
-		if (*rl.line)[rl.cursor.Pos()+1] != '\n' {
+		vii := rl.iterations.Get()
+
+		for i := 1; i <= vii; i++ {
+			if (*rl.line)[rl.cursor.Pos()+1] == '\n' {
+				break
+			}
+
 			rl.cursor.Inc()
 		}
-
-		return
 	}
 }
 
 func (rl *Shell) viBackwardChar() {
 	rl.undo.SkipSave()
 
-	if (*rl.line)[rl.cursor.Pos()-1] != '\n' {
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		if (*rl.line)[rl.cursor.Pos()-1] == '\n' {
+			break
+		}
+
 		rl.cursor.Dec()
 	}
 }
@@ -305,6 +315,7 @@ func (rl *Shell) viBackwardWordEnd() {
 func (rl *Shell) viForwardWordEnd() {
 	rl.undo.SkipSave()
 	vii := rl.iterations.Get()
+
 	for i := 1; i <= vii; i++ {
 		forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
 		rl.cursor.Move(forward)
@@ -329,6 +340,7 @@ func (rl *Shell) viBackwardBlankWordEnd() {
 func (rl *Shell) viForwardBlankWordEnd() {
 	rl.undo.SkipSave()
 	vii := rl.iterations.Get()
+
 	for i := 1; i <= vii; i++ {
 		rl.cursor.Move(rl.line.ForwardEnd(rl.line.TokenizeSpace, rl.cursor.Pos()))
 	}
@@ -1203,7 +1215,11 @@ func (rl *Shell) viCharSearch() {
 		skip = false
 	}
 
-	rl.viFindChar(forward, skip)
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.viFindChar(forward, skip)
+	}
 }
 
 func (rl *Shell) viSetMark() {
@@ -1240,19 +1256,35 @@ func (rl *Shell) viEditCommandLine() {
 }
 
 func (rl *Shell) viFindNextChar() {
-	rl.viFindChar(true, false)
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.viFindChar(true, false)
+	}
 }
 
 func (rl *Shell) viFindNextCharSkip() {
-	rl.viFindChar(true, true)
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.viFindChar(true, true)
+	}
 }
 
 func (rl *Shell) viFindPrevChar() {
-	rl.viFindChar(false, false)
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.viFindChar(false, false)
+	}
 }
 
 func (rl *Shell) viFindPrevCharSkip() {
-	rl.viFindChar(false, true)
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.viFindChar(false, true)
+	}
 }
 
 func (rl *Shell) viFindChar(forward, skip bool) {
