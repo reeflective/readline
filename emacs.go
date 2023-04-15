@@ -105,6 +105,7 @@ func (rl *Shell) standardCommands() commands {
 		// Miscellaneous
 		"re-read-init-file":         rl.reReadInitFile,
 		"abort":                     rl.abort,
+		"do-lowercase-version":      rl.doLowercaseVersion,
 		"prefix-meta":               rl.prefixMeta,
 		"undo":                      rl.undoLast,
 		"revert-line":               rl.revertLine,
@@ -1026,6 +1027,40 @@ func (rl *Shell) abort() {
 // 	fmt.Print("\r\n")
 //
 // 	return ErrCtrlC
+
+func (rl *Shell) doLowercaseVersion() {
+	rl.undo.SkipSave()
+
+	keys, empty := rl.keys.PeekAll()
+	if empty {
+		return
+	}
+
+	escapePrefix := false
+
+	// Get rid of the escape if it's a prefix
+	if len(keys) > 1 && keys[0] == inputrc.Esc {
+		escapePrefix = true
+		keys = keys[1:]
+	} else if len(keys) == 1 && inputrc.IsMeta(keys[0]) {
+		keys = []rune{inputrc.Demeta(keys[0])}
+	}
+
+	// Undefined behavior if the key is already lowercase.
+	if unicode.IsLower(keys[0]) {
+		return
+	}
+
+	keys[0] = unicode.ToLower(keys[0])
+
+	// Feed back the keys with meta prefix or encoding
+	if escapePrefix {
+		input := append([]rune{inputrc.Esc}, keys...)
+		rl.keys.Feed(false, true, input...)
+	} else {
+		rl.keys.Feed(false, true, inputrc.Enmeta(keys[0]))
+	}
+}
 
 func (rl *Shell) prefixMeta() {
 	rl.undo.SkipSave()
