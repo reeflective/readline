@@ -1,5 +1,7 @@
 package core
 
+import "github.com/reeflective/readline/inputrc"
+
 // LineHistory contains all the history modifications
 // for the current line, and manages all undo/redo actions.
 type LineHistory struct {
@@ -12,6 +14,7 @@ type LineHistory struct {
 
 	line *Line
 	cur  *Cursor
+	last inputrc.Bind
 }
 
 type undoItem struct {
@@ -69,6 +72,14 @@ func (lh *LineHistory) Save() {
 // SkipSave will not save the current line when the target command is done.
 func (lh *LineHistory) SkipSave() {
 	lh.skip = true
+}
+
+// SaveWithCommand is only meant to be called in the main readline loop of the shell,
+// and not from within commands themselves: it does the same job as Save(), but also
+// keeps the command that has just been executed.
+func (lh *LineHistory) SaveWithCommand(bind inputrc.Bind) {
+	lh.last = bind
+	lh.Save()
 }
 
 // Undo restores the line and cursor position to their last saved state.
@@ -154,6 +165,11 @@ func (lh *LineHistory) Redo(line *Line, cursor *Cursor) {
 	undo := lh.items[len(lh.items)-lh.pos]
 	line.Set([]rune(undo.line)...)
 	cursor.Set(undo.pos)
+}
+
+// Last returns the last command ran by the shell.
+func (lh *LineHistory) Last() inputrc.Bind {
+	return lh.last
 }
 
 // Pos returns the current position in the undo history, which is

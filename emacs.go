@@ -187,6 +187,13 @@ func (rl *Shell) backwardShellWord() {
 
 func (rl *Shell) beginningOfLine() {
 	rl.undo.SkipSave()
+
+	// Handle 0 as iteration to Vim.
+	if !rl.keymaps.IsEmacs() && rl.iterations.IsSet() {
+		rl.iterations.Add("0")
+		return
+	}
+
 	rl.cursor.BeginningOfLine()
 }
 
@@ -398,7 +405,7 @@ func (rl *Shell) transposeWords() {
 	// Then move some number of words.
 	// Either use words backward (if we are at end of line) or forward.
 	rl.cursor.Set(tbpos)
-	if tepos == rl.line.Len()-1 || tepos == rl.line.Len() || rl.iterations.Get() == 1 {
+	if tepos == rl.line.Len()-1 || tepos == rl.line.Len() || rl.iterations.IsSet() {
 		rl.backwardWord()
 	} else {
 		rl.forwardWord()
@@ -1023,7 +1030,7 @@ func (rl *Shell) revertLine() {
 
 func (rl *Shell) setMark() {
 	switch {
-	case rl.iterations.Get() == 1:
+	case rl.iterations.IsSet():
 		rl.cursor.SetMark()
 	default:
 		cpos := rl.cursor.Pos()
@@ -1079,12 +1086,10 @@ func (rl *Shell) characterSearchBackward() {
 }
 
 func (rl *Shell) insertComment() {
-	arg := rl.iterations.Get()
-
 	comment := rl.opts.GetString("comment-begin")
 
-	switch arg {
-	case 1:
+	switch {
+	case !rl.iterations.IsSet():
 		// Without numeric argument, insert comment at the beginning of the line.
 		cpos := rl.cursor.Pos()
 		rl.cursor.BeginningOfLine()
@@ -1125,7 +1130,7 @@ func (rl *Shell) dumpFunctions() {
 		rl.display.Refresh()
 	}()
 
-	inputrcFormat := rl.iterations.Get() != 1
+	inputrcFormat := rl.iterations.IsSet()
 	rl.keymaps.PrintBinds(inputrcFormat)
 }
 
@@ -1148,7 +1153,7 @@ func (rl *Shell) dumpVariables() {
 	sort.Strings(variables)
 
 	// Either print in inputrc format, or wordly one.
-	if rl.iterations.Get() != 1 {
+	if rl.iterations.IsSet() {
 		for _, variable := range variables {
 			value := rl.opts.Vars[variable]
 			fmt.Printf("set %s %v\n", variable, value)
@@ -1186,7 +1191,7 @@ func (rl *Shell) dumpMacros() {
 
 	sort.Strings(macroBinds)
 
-	if rl.iterations.Get() != 1 {
+	if rl.iterations.IsSet() {
 		for _, key := range macroBinds {
 			action := inputrc.Escape(binds[inputrc.Unescape(key)].Action)
 			fmt.Printf("\"%s\": \"%s\"\n", key, action)

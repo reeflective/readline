@@ -90,9 +90,10 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	command()               // Run the matched command
-	rl.keymaps.RunPending() // Run pending commands.
-	rl.checkCursor()        // Ensure cursor position is correct.
+	rl.keymaps.RunPending() // Run pending commands (vi-opp mode)
 	rl.keys.FlushUsed()     // Drop some or all keys (used ones)
+	rl.checkCursor()        // Ensure cursor position is correct.
+	rl.iterations.Reset()   // Drop iterations if deemed needed.
 
 	// If the command just run was using the incremental search
 	// buffer (acting on it), update the list of matches.
@@ -107,7 +108,7 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// checks if the line has been accepted (entered), in
 	// which case this will automatically write the history
 	// sources and set up errors/returned line values.
-	rl.undo.Save()
+	rl.undo.SaveWithCommand(bind)
 
 	return rl.histories.LineAccepted()
 }
