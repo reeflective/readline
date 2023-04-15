@@ -107,7 +107,7 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// checks if the line has been accepted (entered), in
 	// which case this will automatically write the history
 	// sources and set up errors/returned line values.
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	return rl.histories.LineAccepted()
 }

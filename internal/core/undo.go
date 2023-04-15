@@ -9,6 +9,9 @@ type LineHistory struct {
 	items   []undoItem
 	lineBuf string
 	linePos int
+
+	line *Line
+	cur  *Cursor
 }
 
 type undoItem struct {
@@ -16,15 +19,26 @@ type undoItem struct {
 	pos  int
 }
 
+// NewLineHistory is a required constructor of history of line state changes.
+func NewLineHistory(line *Line, cur *Cursor) *LineHistory {
+	return &LineHistory{
+		line: line,
+		cur:  cur,
+	}
+}
+
 // Save saves the current line and cursor position as an undo state item.
 // If this was called while the shell in the middle of its undo history
 // (eg. the caller has undone one or more times), all undone steps are dropped.
-func (lh *LineHistory) Save(line Line, cursor Cursor) {
+func (lh *LineHistory) Save() {
 	defer lh.Reset()
 
 	if lh.skip {
 		return
 	}
+
+	line := *lh.line
+	cursor := lh.cur
 
 	// When the line is identical to the previous undo, we just update
 	// the cursor position if it's a different one.
@@ -97,7 +111,7 @@ func (lh *LineHistory) Undo(line *Line, cursor *Cursor) {
 	cursor.Set(undo.pos)
 }
 
-// Revert goes back to the initial state of the line, with is what it was
+// Revert goes back to the initial state of the line, which is what it was
 // like when the shell started reading user input. Note that this state might
 // be a line that was inferred, accept-and-held from the previous readline run.
 func (lh *LineHistory) Revert(line *Line, cursor *Cursor) {

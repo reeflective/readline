@@ -86,6 +86,7 @@ func NewShell() *Shell {
 	keys := new(core.Keys)
 	line := new(core.Line)
 	cursor := core.NewCursor(line)
+	undo := core.NewLineHistory(line, cursor)
 	selection := core.NewSelection(line, cursor)
 	iterations := new(core.Iterations)
 
@@ -93,7 +94,7 @@ func NewShell() *Shell {
 	shell.line = line
 	shell.cursor = cursor
 	shell.selection = selection
-	shell.undo = new(core.LineHistory)
+	shell.undo = undo
 	shell.buffers = editor.NewBuffers()
 	shell.iterations = iterations
 
@@ -139,7 +140,7 @@ func (rl *Shell) init() {
 	rl.cursor.ResetMark()
 	rl.cursor.Set(0)
 	rl.line.Set([]rune{}...) // TODO: Wrong; if line was inferred this resets it while it should not.
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	// Reset/initialize user interface components.
 	rl.hint.Reset()

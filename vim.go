@@ -105,7 +105,7 @@ func (rl *Shell) viCommands() commands {
 		"vi-set-mark":                 rl.viSetMark,
 		"vi-edit-and-execute-command": rl.viEditAndExecuteCommand,
 		"vi-undo":                     rl.undoLast,
-		"vi-redo":                     rl.redo,
+		"vi-redo":                     rl.viRedo,
 
 		"vi-edit-command-line":   rl.viEditCommandLine,
 		"vi-find-next-char":      rl.viFindNextChar,
@@ -120,7 +120,7 @@ func (rl *Shell) viCommands() commands {
 //
 
 func (rl *Shell) viInsertMode() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	// Reset any visual selection and iterations.
 	rl.selection.Reset()
@@ -440,7 +440,7 @@ func (rl *Shell) viChangeTo() {
 		// twice in a row (eg. `cc`), so copy the entire current line.
 		rl.keymaps.CancelPending()
 
-		rl.undo.Save(*rl.line, *rl.cursor)
+		rl.undo.Save()
 		rl.undo.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
@@ -450,7 +450,7 @@ func (rl *Shell) viChangeTo() {
 
 	case rl.selection.Active():
 		// In visual mode, we have just have a selection to delete.
-		rl.undo.Save(*rl.line, *rl.cursor)
+		rl.undo.Save()
 		rl.undo.SkipSave()
 
 		cpos := rl.selection.Cursor()
@@ -485,12 +485,12 @@ func (rl *Shell) viDeleteTo() {
 		// twice in a row (eg. `dd`), so delete the entire current line.
 		rl.keymaps.CancelPending()
 
-		rl.undo.Save(*rl.line, *rl.cursor)
+		rl.undo.Save()
 		rl.undo.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
-		rl.cursor.Set(rl.selection.Cursor())
+		cpos := rl.selection.Cursor()
 
 		text := rl.selection.Cut()
 
@@ -500,9 +500,11 @@ func (rl *Shell) viDeleteTo() {
 		}
 		rl.buffers.Write([]rune(text)...)
 
+		rl.cursor.Set(cpos)
+
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just cut it.
-		rl.undo.Save(*rl.line, *rl.cursor)
+		rl.undo.Save()
 		rl.undo.SkipSave()
 
 		cpos := rl.selection.Cursor()
@@ -532,7 +534,7 @@ func (rl *Shell) viDeleteChar() {
 		return
 	}
 
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	cutBuf := make([]rune, 0)
 
@@ -547,7 +549,7 @@ func (rl *Shell) viDeleteChar() {
 }
 
 func (rl *Shell) viChangeChar() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	// We read a character to use first.
 	done := rl.keymaps.PendingCursor()
@@ -575,7 +577,7 @@ func (rl *Shell) viChangeChar() {
 func (rl *Shell) viReplace() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	// All replaced characters are stored, to be used with backspace
 	cache := make([]rune, 0)
@@ -663,7 +665,7 @@ func (rl *Shell) viDownCase() {
 	case rl.keymaps.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `uu`), so modify the entire current line.
-		rl.undo.Save(*rl.line, *rl.cursor)
+		rl.undo.Save()
 		rl.undo.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
@@ -690,7 +692,7 @@ func (rl *Shell) viUpCase() {
 	case rl.keymaps.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `uu`), so modify the entire current line.
-		rl.undo.Save(*rl.line, *rl.cursor)
+		rl.undo.Save()
 		rl.undo.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
@@ -731,7 +733,7 @@ func (rl *Shell) viSubstitute() {
 }
 
 func (rl *Shell) viChangeEol() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	rl.undo.SkipSave()
 
 	pos := rl.cursor.Pos()
@@ -758,14 +760,14 @@ func (rl *Shell) viAddSurround() {
 
 	bchar, echar := strutil.MatchSurround(rune(key[0]))
 
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	// Surround the selection
 	rl.selection.Surround(bchar, echar)
 }
 
 func (rl *Shell) viChangeSurround() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	rl.undo.SkipSave()
 
 	// Read a key as a rune to search for
@@ -800,7 +802,7 @@ func (rl *Shell) viChangeSurround() {
 		return
 	}
 
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	rchar := rune(key[0])
 
@@ -812,7 +814,7 @@ func (rl *Shell) viChangeSurround() {
 }
 
 func (rl *Shell) viOpenLineAbove() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	if !rl.cursor.OnEmptyLine() {
 		rl.beginningOfLine()
 	}
@@ -821,7 +823,7 @@ func (rl *Shell) viOpenLineAbove() {
 }
 
 func (rl *Shell) viOpenLineBelow() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	if !rl.cursor.OnEmptyLine() {
 		rl.endOfLine()
 	}
@@ -835,7 +837,7 @@ func (rl *Shell) viOpenLineBelow() {
 //
 
 func (rl *Shell) viKillEol() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	rl.undo.SkipSave()
 
 	pos := rl.cursor.Pos()
@@ -856,7 +858,7 @@ func (rl *Shell) viKillEol() {
 
 func (rl *Shell) viRubout() {
 	if rl.keymaps.Main() != keymap.ViIns {
-		rl.undo.Save(*rl.line, *rl.cursor)
+		rl.undo.Save()
 	}
 
 	vii := rl.iterations.Get()
@@ -890,13 +892,12 @@ func (rl *Shell) viYankTo() {
 		rl.selection.Visual(true)
 
 		// Get buffer and add newline if there isn't one at the end
-		text, _, _, cpos := rl.selection.Pop()
+		text, _, _, _ := rl.selection.Pop()
 		if len(text) > 0 && rune(text[len(text)-1]) != inputrc.Newline {
 			text += string(inputrc.Newline)
 		}
 
 		rl.buffers.Write([]rune(text)...)
-		rl.cursor.Set(cpos)
 
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just yank.
@@ -949,7 +950,7 @@ func (rl *Shell) viKillLine() {
 		return
 	}
 
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	rl.undo.SkipSave()
 
 	rl.selection.MarkRange(rl.cursor.Mark(), rl.line.Len())
@@ -972,7 +973,7 @@ func (rl *Shell) viPut() {
 }
 
 func (rl *Shell) viPutAfter() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	buffer := rl.buffers.Active()
 
@@ -999,7 +1000,7 @@ func (rl *Shell) viPutAfter() {
 }
 
 func (rl *Shell) viPutBefore() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	buffer := rl.buffers.Active()
 
@@ -1214,6 +1215,16 @@ func (rl *Shell) viSetMark() {
 
 func (rl *Shell) viEditAndExecuteCommand() {
 	rl.editAndExecuteCommand()
+}
+
+func (rl *Shell) viRedo() {
+	if rl.undo.Pos() > 0 {
+		rl.undo.Redo(rl.line, rl.cursor)
+		return
+	}
+
+	// Enter insert mode when no redo possible.
+	rl.viInsertMode()
 }
 
 func (rl *Shell) viEditCommandLine() {

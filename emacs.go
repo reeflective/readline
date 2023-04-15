@@ -248,7 +248,7 @@ func (rl *Shell) deleteChar() {
 	//
 	// TODO: We should match the same behavior here.
 
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	vii := rl.iterations.Get()
 
@@ -262,7 +262,7 @@ func (rl *Shell) backwardDeleteChar() {
 	if rl.keymaps.Main() == keymap.ViIns {
 		rl.undo.SkipSave()
 	} else {
-		rl.undo.Save(*rl.line, *rl.cursor)
+		rl.undo.Save()
 	}
 
 	rl.completer.Update()
@@ -385,7 +385,7 @@ func (rl *Shell) transposeChars() {
 }
 
 func (rl *Shell) transposeWords() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	startPos := rl.cursor.Pos()
 	rl.cursor.ToFirstNonSpace(true)
@@ -435,7 +435,7 @@ func (rl *Shell) transposeWords() {
 }
 
 func (rl *Shell) shellTransposeWords() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	startPos := rl.cursor.Pos()
 
@@ -471,7 +471,7 @@ func (rl *Shell) shellTransposeWords() {
 }
 
 func (rl *Shell) downCaseWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	startPos := rl.cursor.Pos()
 
@@ -489,7 +489,7 @@ func (rl *Shell) downCaseWord() {
 }
 
 func (rl *Shell) upCaseWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	startPos := rl.cursor.Pos()
 
@@ -507,7 +507,7 @@ func (rl *Shell) upCaseWord() {
 }
 
 func (rl *Shell) capitalizeWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	startPos := rl.cursor.Pos()
 
@@ -524,7 +524,7 @@ func (rl *Shell) capitalizeWord() {
 func (rl *Shell) overwriteMode() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	done := rl.keymaps.PendingCursor()
 	defer done()
@@ -561,7 +561,7 @@ func (rl *Shell) overwriteMode() {
 }
 
 func (rl *Shell) deleteHorizontalWhitespace() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	startPos := rl.cursor.Pos()
 
@@ -584,7 +584,7 @@ func (rl *Shell) deleteHorizontalWhitespace() {
 }
 
 func (rl *Shell) deleteWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	rl.selection.Mark(rl.cursor.Pos())
 	forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
@@ -594,7 +594,7 @@ func (rl *Shell) deleteWord() {
 }
 
 func (rl *Shell) quoteRegion() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	rl.selection.Surround('\'', '\'')
 	rl.cursor.Inc()
@@ -621,12 +621,12 @@ func (rl *Shell) quoteLine() {
 }
 
 func (rl *Shell) keywordIncrease() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	rl.keywordSwitch(true)
 }
 
 func (rl *Shell) keywordDecrease() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	rl.keywordSwitch(false)
 }
 
@@ -700,7 +700,7 @@ func (rl *Shell) keywordSwitch(increase bool) {
 
 func (rl *Shell) killLine() {
 	rl.iterations.Reset()
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	cut := []rune(*rl.line)[rl.cursor.Pos():]
 	rl.buffers.Write(cut...)
@@ -710,7 +710,7 @@ func (rl *Shell) killLine() {
 
 func (rl *Shell) backwardKillLine() {
 	rl.iterations.Reset()
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	cut := []rune(*rl.line)[:rl.cursor.Pos()]
 	rl.buffers.Write(cut...)
@@ -719,7 +719,7 @@ func (rl *Shell) backwardKillLine() {
 }
 
 func (rl *Shell) killWholeLine() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	if rl.line.Len() == 0 {
 		return
@@ -730,7 +730,7 @@ func (rl *Shell) killWholeLine() {
 }
 
 func (rl *Shell) killBuffer() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	if rl.line.Len() == 0 {
 		return
@@ -741,7 +741,7 @@ func (rl *Shell) killBuffer() {
 }
 
 func (rl *Shell) killWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	bpos := rl.cursor.Pos()
 
@@ -756,7 +756,7 @@ func (rl *Shell) killWord() {
 }
 
 func (rl *Shell) backwardKillWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 	rl.undo.SkipSave()
 
 	rl.selection.Mark(rl.cursor.Pos())
@@ -838,7 +838,7 @@ func (rl *Shell) shellBackwardKillWord() {
 }
 
 func (rl *Shell) killRegion() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	if !rl.selection.Active() {
 		return
@@ -859,7 +859,7 @@ func (rl *Shell) copyRegionAsKill() {
 }
 
 func (rl *Shell) copyBackwardWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	rl.selection.Mark(rl.cursor.Pos())
 	adjust := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
@@ -870,7 +870,7 @@ func (rl *Shell) copyBackwardWord() {
 }
 
 func (rl *Shell) copyForwardWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	rl.selection.Mark(rl.cursor.Pos())
 	adjust := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
@@ -893,7 +893,7 @@ func (rl *Shell) yankPop() {
 }
 
 func (rl *Shell) copyPrevShellWord() {
-	rl.undo.Save(*rl.line, *rl.cursor)
+	rl.undo.Save()
 
 	posInit := rl.cursor.Pos()
 
