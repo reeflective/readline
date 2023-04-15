@@ -2,7 +2,6 @@ package macro
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
@@ -36,7 +35,7 @@ func NewEngine(keys *core.Keys, hint *ui.Hint) *Engine {
 func (e *Engine) StartRecord() {
 	e.recording = true
 	e.status = color.Dim + "Recording macro: " + color.Bold
-	e.hint.Set(e.status)
+	e.hint.Persist(e.status)
 }
 
 // StopRecord stops using key input as part of a macro.
@@ -45,9 +44,7 @@ func (e *Engine) StopRecord() {
 	e.recording = false
 
 	// Remove the hint.
-	if strings.HasPrefix(e.hint.Text(), color.Dim+"Recording macro:") {
-		e.hint.Reset()
-	}
+	e.hint.ResetPersist()
 
 	if len(e.current) == 0 {
 		return
@@ -71,7 +68,7 @@ func (e *Engine) RecordKeys(bind inputrc.Bind) {
 	}
 
 	e.current = append(e.current, keys...)
-	e.hint.Set(e.status + inputrc.EscapeMacro(string(e.current)))
+	e.hint.Persist(e.status + inputrc.EscapeMacro(string(e.current)) + color.Reset)
 }
 
 // RunLastMacro feeds keys the last recorded macro to

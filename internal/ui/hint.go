@@ -7,20 +7,26 @@ import (
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
-	"github.com/reeflective/readline/internal/term"
+	"github.com/reeflective/readline/internal/strutil"
 )
 
 // Hint is in charge of printing the usage messages below the input line.
 // Various other UI components have access to it so that they can feed
 // specialized usage messages to it, like completions.
 type Hint struct {
-	text  []rune
-	usedY int
+	text       []rune
+	persistent []rune
 }
 
 // Set sets the hint message to the given text.
 func (h *Hint) Set(hint string) {
 	h.text = []rune(hint)
+}
+
+// Persist adds a hint message to be persistently
+// displayed until hint.ResetPersist() is called.
+func (h *Hint) Persist(hint string) {
+	h.persistent = []rune(hint)
 }
 
 // Text returns the current hint text.
@@ -39,95 +45,76 @@ func (h *Hint) Len() int {
 // Reset removes the hint message.
 func (h *Hint) Reset() {
 	h.text = make([]rune, 0)
-	h.usedY = 0
+}
+
+// ResetPersist drops the persistent hint.
+func (h *Hint) ResetPersist() {
+	h.persistent = make([]rune, 0)
 }
 
 // Display prints the hint section.
 func (h *Hint) Display() {
-	if len(h.text) == 0 {
-		h.usedY = 0
+	if len(h.text) == 0 && len(h.persistent) == 0 {
 		return
 	}
 
-	// Wraps the line, and counts the number of newlines
-	// in the string, adjusting the offset as well.
-	re := regexp.MustCompile(`\r?\n`)
-	newlines := re.Split(string(h.text), -1)
-	offset := len(newlines)
+	var text string
 
-	termWidth := term.GetWidth()
+	// Add the various hints.
+	if len(h.persistent) > 0 {
+		text += string(h.persistent) + "\n"
+	}
 
-	_, actual := wrapText(color.Strip(string(h.text)), termWidth)
-	wrapped, _ := wrapText(string(h.text), termWidth)
+	if len(h.text) > 0 {
+		text += string(h.text)
+	}
 
-	offset += actual
-	h.usedY = offset
+	text = strings.TrimSuffix(text, "\n")
 
-	if len(wrapped) > 0 {
-		fmt.Print("\r" + wrapped + string(inputrc.Newline) + color.Reset)
+	if len(text) > 0 {
+		fmt.Print("\r" + text + string(inputrc.Newline) + color.Reset)
 	}
 }
 
 // Coordinates returns the number of terminal rows used by the hint.
 func (h *Hint) Coordinates() int {
-	return h.usedY
-}
+	var text string
 
-// wrapText - Wraps a text given a specified width, and returns the formatted
-// string as well the number of lines it will occupy.
-func wrapText(text string, lineWidth int) (wrapped string, lines int) {
-	words := strings.Fields(text)
-	if len(words) == 0 {
-		return
+	// Add the various hints.
+	if len(h.persistent) > 0 {
+		text += string(h.persistent) + "\n"
 	}
 
-	wrapped = words[0]
-	spaceLeft := lineWidth - len(wrapped)
+	if len(h.text) > 0 {
+		text += string(h.text)
+	}
 
-	for _, word := range words[1:] {
-		if len(color.Strip(word))+1 > spaceLeft {
-			lines++
+	text = strings.TrimSuffix(text, "\n")
 
-			wrapped += "\n" + word
-			spaceLeft = lineWidth - len(word)
-		} else {
-			wrapped += " " + word
-			spaceLeft -= 1 + len(word)
+	if text == "" {
+		return 0
+	}
+
+	line := color.Strip(text)
+	line += string(inputrc.Newline)
+	nl := regexp.MustCompile(string(inputrc.Newline))
+
+	newlines := nl.FindAllStringIndex(line, -1)
+
+	bpos := 0
+	usedY := 0
+
+	for i, newline := range newlines {
+		bline := line[bpos:newline[0]]
+		bpos = newline[0]
+		_, y := strutil.LineSpan([]rune(bline), i, 0)
+
+		if y == 0 {
+			y++
 		}
+
+		usedY += y
 	}
 
-	return
+	return usedY
 }
-
-// func (rl *Shell) getHintText() {
-// 	// // Before entering this function, some completer might have
-// 	// // been called, which might have already populated the hint
-// 	// // area (with either an error, a usage, etc).
-// 	// // Some of the branchings below will overwrite it.
-// 	//
-// 	// // Use the user-provided hint by default, if not empty.
-// 	// if rl.HintText != nil {
-// 	// 	userHint := rl.HintText(rl.getCompletionLine())
-// 	// 	if len(userHint) > 0 {
-// 	// 		rl.hint = rl.HintText(rl.getCompletionLine())
-// 	// 	}
-// 	// }
-// 	//
-// 	// // When completing history, we have a special hint
-// 	// if len(rl.histHint) > 0 {
-// 	// 	rl.hint = append([]rune{}, rl.histHint...)
-// 	// }
-// 	//
-// 	// // But the local keymap, especially completions,
-// 	// // overwrites the user hint, since either:
-// 	// // - We have some completions, which are self-describing
-// 	// // - We didn't match any, thus we have a new error hint.
-// 	// switch rl.local {
-// 	// case isearch:
-// 	// 	rl.isearchHint()
-// 	// case menuselect:
-// 	// 	if rl.noCompletions() {
-// 	// 		rl.hintNoMatches()
-// 	// 	}
-// 	// }
-// }
