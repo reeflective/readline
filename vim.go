@@ -1202,16 +1202,6 @@ func (rl *Shell) viArgDigit() {
 	}
 
 	rl.iterations.Add(string(keys))
-
-	// If the last command was a digit argument,
-	// then our Vi iterations' length is not 0
-	// if len(*rl.iterations) > 0 {
-	// 	rl.iterations.Add("0")
-	// 	return
-	// }
-	//
-	// // Else we go the beginning of line.
-	// rl.beginningOfLine()
 }
 
 func (rl *Shell) viCharSearch() {

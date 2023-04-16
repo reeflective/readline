@@ -976,12 +976,6 @@ func (rl *Shell) copyPrevShellWord() {
 func (rl *Shell) digitArgument() {
 	rl.undo.SkipSave()
 
-	// If we were called in the middle of a pending
-	// operation, we should not yet trigger the caller.
-	// This boolean is recomputed at the next key read:
-	// This just postpones running the caller a little.
-	// rl.isViopp = false
-
 	keys, empty := rl.keys.PeekAll()
 	if empty {
 		return

@@ -109,7 +109,7 @@ func NewShell() *Shell {
 
 	// User interface
 	hint := new(ui.Hint)
-	prompt := ui.NewPrompt(keys, line, cursor, opts)
+	prompt := ui.NewPrompt(keys, line, cursor, keymaps, opts)
 	macros := macro.NewEngine(keys, hint)
 	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, opts)
 	completer.SetAutocompleter(shell.commandCompletion)

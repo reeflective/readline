@@ -2,10 +2,12 @@ package ui
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
+	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 )
@@ -33,19 +35,21 @@ type Prompt struct {
 	refreshing bool
 
 	// Shell parameters
-	keys   *core.Keys
-	line   *core.Line
-	cursor *core.Cursor
-	opts   *inputrc.Config
+	keys    *core.Keys
+	line    *core.Line
+	cursor  *core.Cursor
+	keymaps *keymap.Modes
+	opts    *inputrc.Config
 }
 
 // NewPrompt is a required constructor to initialize the prompt system.
-func NewPrompt(keys *core.Keys, line *core.Line, cursor *core.Cursor, opts *inputrc.Config) *Prompt {
+func NewPrompt(keys *core.Keys, line *core.Line, cursor *core.Cursor, keymaps *keymap.Modes, opts *inputrc.Config) *Prompt {
 	return &Prompt{
-		keys:   keys,
-		line:   line,
-		cursor: cursor,
-		opts:   opts,
+		keys:    keys,
+		line:    line,
+		cursor:  cursor,
+		keymaps: keymaps,
+		opts:    opts,
 	}
 }
 
@@ -98,19 +102,34 @@ func (p *Prompt) PrimaryPrint() {
 		return
 	}
 
-	// Print the prompt.
-	prompt := p.primaryF()
-	fmt.Print(prompt)
+	var prompt, lastPrompt string
 
-	// Save the number of lines used,
-	// and last line for line redisplay.
+	prompt = p.primaryF()
+
+	// Get all the lines but the last.
 	lines := strings.Split(prompt, "\n")
-	p.primaryRows = len(lines) - 1
 
-	// And save the current cursor X position.
+	if len(lines) > 1 {
+		prompt = strings.Join(lines[:len(lines)-1], "\n")
+		lastPrompt = lines[len(lines)-1]
+	} else {
+		lastPrompt, prompt = prompt, ""
+	}
+
+	// Format the last line with the editing status.
+	lastPrompt = p.formatLastPrompt(lastPrompt)
+
+	// Print the various lines.
+	if prompt != "" {
+		fmt.Println(prompt)
+	}
+
+	fmt.Print(lastPrompt)
+
+	// And compute coordinates
 	p.primaryCols, _ = p.keys.GetCursorPos()
 	if p.primaryCols == -1 {
-		p.primaryCols = len(lines[len(lines)-1])
+		p.primaryCols = strutil.RealLength(lastPrompt)
 	}
 }
 
@@ -140,11 +159,13 @@ func (p *Prompt) LastPrint() {
 		return
 	}
 
-	fmt.Print(lines[len(lines)-1])
+	prompt := p.formatLastPrompt(lines[len(lines)-1])
+
+	fmt.Print(prompt)
 
 	p.primaryCols, _ = p.keys.GetCursorPos()
 	if p.primaryCols == -1 {
-		p.primaryCols = len(lines[len(lines)-1])
+		p.primaryCols = strutil.RealLength(prompt)
 	}
 }
 
@@ -192,7 +213,6 @@ func (p *Prompt) TransientPrint() {
 
 	// Clean everything below where the prompt will be printed.
 	term.MoveCursorBackwards(term.GetWidth())
-	// moveCursorUp
 	promptLines := strings.Count(p.primaryF(), "\n")
 	term.MoveCursorUp(promptLines)
 	fmt.Print(term.ClearScreenBelow)
@@ -206,6 +226,42 @@ func (p *Prompt) TransientPrint() {
 // itself (at least the primary prompt), or false if not.
 func (p *Prompt) Refreshing() bool {
 	return p.refreshing
+}
+
+func (p *Prompt) formatLastPrompt(prompt string) string {
+	if !p.opts.GetBool("show-mode-in-prompt") {
+		return prompt
+	}
+
+	var status string
+
+	switch {
+	case p.keymaps.IsEmacs():
+		status = p.opts.GetString("emacs-mode-string")
+	case p.keymaps.Main() == keymap.ViCmd:
+		status = p.opts.GetString("vi-cmd-mode-string")
+	case p.keymaps.Main() == keymap.ViIns:
+		status = p.opts.GetString("vi-ins-mode-string")
+	}
+
+	// Fix parsing of inputrc which sometimes preserves quotes on some values.
+	if strings.HasPrefix(status, "\"") && strings.HasSuffix(status, "\"") {
+		status = strings.Trim(status, "\"")
+	}
+
+	// Remove bash readline begin/end non-printable delimiters.
+	begin := regexp.MustCompile(`\\1`)
+	end := regexp.MustCompile(`\\2`)
+
+	status = begin.ReplaceAllString(status, "")
+	status = end.ReplaceAllString(status, "")
+
+	// Remove ClearScreenBelow sequence to avoid flickering
+	prompt = strings.ReplaceAll(prompt, term.ClearScreenBelow, "")
+	prompt = strings.ReplaceAll(prompt, term.ClearLineAfter, "")
+	prompt = strings.ReplaceAll(prompt, term.ClearLine, "")
+
+	return status + prompt
 }
 
 func (p *Prompt) formatRightPrompt(rprompt string, startColumn int) (prompt string, canPrint bool) {
@@ -222,7 +278,7 @@ func (p *Prompt) formatRightPrompt(rprompt string, startColumn int) (prompt stri
 	// Check that we have room for a right/tooltip prompt.
 	canPrint = (startColumn+promptLen < termWidth) || startColumn == termWidth
 	if canPrint {
-		prompt = fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt) + term.ClearLineAfter
+		prompt = fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt) // + term.ClearLineAfter
 	}
 
 	return

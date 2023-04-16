@@ -78,13 +78,17 @@ func (e *Engine) Refresh() {
 	// prompt end (thus indentation), cursor positions, etc.
 	e.computeCoordinates(suggested)
 
+	term.MoveCursorBackwards(e.startAt)
+	e.prompt.LastPrint()
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorForwards(e.startAt)
+
 	// Print the line, right prompt, hints and completions.
 	e.displayLine(suggested)
 	e.prompt.RightPrint(e.lineCol, true)
 	e.displayHelpers()
 
 	// Go back to the start of the line, then to cursor.
-	// term.MoveCursorUp(e.lineRows)
 	e.CursorHintToLineStart()
 	e.LineStartToCursorPos()
 	fmt.Print(term.ShowCursor)

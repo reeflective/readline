@@ -19,7 +19,6 @@ func RealLength(s string) int {
 	tabs := strings.ReplaceAll(colors, "\t", "     ") // Remove spaces
 
 	return utf8.RuneCountInString(tabs)
-	// return utf8.RuneCountInString(colorStripped)
 }
 
 // LineSpan computes the number of columns and lines that are needed for a given line,
@@ -33,7 +32,7 @@ func LineSpan(line []rune, idx, indent int) (x, y int) {
 	cursorX := lineLen % termWidth
 
 	// Empty lines are still considered a line.
-	if cursorY == 0 && idx != 0 {
+	if idx != 0 {
 		cursorY++
 	}
 
