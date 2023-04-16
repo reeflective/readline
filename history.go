@@ -77,9 +77,13 @@ func (rl *Shell) historyCommands() commands {
 		"beginning-history-search-forward":  rl.beginningHistorySearchForward,
 		"beginning-history-search-backward": rl.beginningHistorySearchBackward,
 		"end-of-buffer-or-history":          rl.endOfBufferOrHistory,
-		// "history-autosuggest-insert":          rl.historyAutosuggestInsert,
-		"beginning-of-line-hist": rl.beginningOfLineHist,
-		"end-of-line-hist":       rl.endOfLineHist,
+		"beginning-of-line-hist":            rl.beginningOfLineHist,
+		"end-of-line-hist":                  rl.endOfLineHist,
+		"autosuggest-accept":                rl.autosuggestAccept,
+		"autosuggest-execute":               rl.autosuggestExecute,
+		"autosuggest-enable":                rl.autosuggestEnable,
+		"autosuggest-disable":               rl.autosuggestDisable,
+		"autosuggest-toggle":                rl.autosuggestToggle,
 	}
 
 	return widgets
@@ -362,6 +366,52 @@ func (rl *Shell) beginningHistorySearchBackward() {
 func (rl *Shell) beginningHistorySearchForward() {
 	// rl.historySearchLine(true)
 }
+
+func (rl *Shell) autosuggestAccept() {
+	suggested := rl.histories.Suggest(rl.line)
+
+	if suggested.Len() <= rl.line.Len() {
+		return
+	}
+
+	rl.line.Set(suggested...)
+	rl.cursor.Set(len(suggested))
+}
+
+func (rl *Shell) autosuggestExecute() {
+	suggested := rl.histories.Suggest(rl.line)
+
+	if suggested.Len() <= rl.line.Len() {
+		return
+	}
+
+	rl.line.Set(suggested...)
+	rl.cursor.Set(len(suggested))
+
+	rl.acceptLine()
+}
+
+func (rl *Shell) autosuggestToggle() {
+	if rl.opts.GetBool("history-autosuggest") {
+		rl.autosuggestDisable()
+	} else {
+		rl.autosuggestEnable()
+	}
+}
+
+func (rl *Shell) autosuggestEnable() {
+	rl.undo.SkipSave()
+	rl.opts.Vars["history-autosuggest"] = true
+}
+
+func (rl *Shell) autosuggestDisable() {
+	rl.undo.SkipSave()
+	rl.opts.Vars["history-autosuggest"] = false
+}
+
+//
+// Utils -------------------------------------------------------------------
+//
 
 func (rl *Shell) acceptLineWith(infer, hold bool) {
 	// Without multiline support, we always return the line.

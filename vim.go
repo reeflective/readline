@@ -62,8 +62,6 @@ func (rl *Shell) viCommands() commands {
 		"vi-change-char": rl.viChangeChar, // vi-replace-chars
 		"vi-replace":     rl.viReplace,    // vi-overstrike and vi-overstrike-delete
 		"vi-change-case": rl.viChangeCase, // vi-swap-case
-		"vi-down-case":   rl.viDownCase,
-		"vi-up-case":     rl.viUpCase,
 		"vi-subst":       rl.viSubstitute, // vi-substitute
 
 		"vi-change-eol":      rl.viChangeEol,
@@ -71,6 +69,8 @@ func (rl *Shell) viCommands() commands {
 		"vi-change-surround": rl.viChangeSurround,
 		"vi-open-line-above": rl.viOpenLineAbove,
 		"vi-open-line-below": rl.viOpenLineBelow,
+		"vi-down-case":       rl.viDownCase,
+		"vi-up-case":         rl.viUpCase,
 
 		// Kill and Yanking
 		"vi-kill-eol":         rl.viKillEol,
@@ -213,13 +213,12 @@ func (rl *Shell) viAddEol() {
 // Movement -------------------------------------------------------------
 //
 
-// TODO: autosuggestion insert.
 func (rl *Shell) viForwardChar() {
 	// Only exception where we actually don't forward a character.
-	// if rl.config.HistoryAutosuggest && len(rl.histSuggested) > 0 && rl.cursor.Pos() == rl.line.Len()-1 {
-	// 	rl.historyAutosuggestInsert()
-	// 	return
-	// }
+	if rl.opts.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
+		rl.autosuggestAccept()
+		return
+	}
 
 	rl.undo.SkipSave()
 
@@ -267,7 +266,23 @@ func (rl *Shell) viForwardWord() {
 
 	vii := rl.iterations.Get()
 	for i := 1; i <= vii; i++ {
-		forward := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
+		cpos := rl.cursor.Pos()
+
+		// When we have an autosuggested history and if we are at the end
+		// of the line, insert the next word from this suggested line.
+		if cpos == rl.line.Len()-1 {
+			if rl.opts.GetBool("history-autosuggest") {
+				suggested := rl.histories.Suggest(rl.line)
+				if suggested.Len() > rl.line.Len() {
+					rl.undo.Save()
+
+					forward := suggested.Forward(suggested.Tokenize, cpos)
+					rl.line.Insert(cpos+1, suggested[cpos+1:cpos+forward+1]...)
+				}
+			}
+		}
+
+		forward := rl.line.Forward(rl.line.Tokenize, cpos)
 		rl.cursor.Move(forward)
 	}
 }
@@ -670,60 +685,6 @@ func (rl *Shell) viChangeCase() {
 	}
 }
 
-func (rl *Shell) viDownCase() {
-	rl.undo.SkipSave()
-
-	switch {
-	case rl.keymaps.IsPending():
-		// In vi operator pending mode, it's that we've been called
-		// twice in a row (eg. `uu`), so modify the entire current line.
-		rl.undo.Save()
-		rl.undo.SkipSave()
-
-		rl.selection.Mark(rl.cursor.Pos())
-		rl.selection.Visual(true)
-		rl.selection.ReplaceWith(unicode.ToLower)
-		rl.viCommandMode()
-
-	case rl.selection.Active():
-		rl.selection.ReplaceWith(unicode.ToLower)
-		rl.viCommandMode()
-
-	default:
-		// Else if we are actually starting a yank action.
-		rl.undo.SkipSave()
-		rl.keymaps.Pending()
-		rl.selection.Mark(rl.cursor.Pos())
-	}
-}
-
-func (rl *Shell) viUpCase() {
-	rl.undo.SkipSave()
-
-	switch {
-	case rl.keymaps.IsPending():
-		// In vi operator pending mode, it's that we've been called
-		// twice in a row (eg. `uu`), so modify the entire current line.
-		rl.undo.Save()
-		rl.undo.SkipSave()
-
-		rl.selection.Mark(rl.cursor.Pos())
-		rl.selection.Visual(true)
-		rl.selection.ReplaceWith(unicode.ToUpper)
-		rl.viCommandMode()
-
-	case rl.selection.Active():
-		rl.selection.ReplaceWith(unicode.ToUpper)
-		rl.viCommandMode()
-
-	default:
-		// Else if we are actually starting a yank action.
-		rl.undo.SkipSave()
-		rl.keymaps.Pending()
-		rl.selection.Mark(rl.cursor.Pos())
-	}
-}
-
 func (rl *Shell) viSubstitute() {
 	switch {
 	case rl.selection.Active():
@@ -842,6 +803,60 @@ func (rl *Shell) viOpenLineBelow() {
 	rl.line.Insert(rl.cursor.Pos(), '\n')
 	rl.cursor.Inc()
 	rl.viInsertMode()
+}
+
+func (rl *Shell) viDownCase() {
+	rl.undo.SkipSave()
+
+	switch {
+	case rl.keymaps.IsPending():
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `uu`), so modify the entire current line.
+		rl.undo.Save()
+		rl.undo.SkipSave()
+
+		rl.selection.Mark(rl.cursor.Pos())
+		rl.selection.Visual(true)
+		rl.selection.ReplaceWith(unicode.ToLower)
+		rl.viCommandMode()
+
+	case rl.selection.Active():
+		rl.selection.ReplaceWith(unicode.ToLower)
+		rl.viCommandMode()
+
+	default:
+		// Else if we are actually starting a yank action.
+		rl.undo.SkipSave()
+		rl.keymaps.Pending()
+		rl.selection.Mark(rl.cursor.Pos())
+	}
+}
+
+func (rl *Shell) viUpCase() {
+	rl.undo.SkipSave()
+
+	switch {
+	case rl.keymaps.IsPending():
+		// In vi operator pending mode, it's that we've been called
+		// twice in a row (eg. `uu`), so modify the entire current line.
+		rl.undo.Save()
+		rl.undo.SkipSave()
+
+		rl.selection.Mark(rl.cursor.Pos())
+		rl.selection.Visual(true)
+		rl.selection.ReplaceWith(unicode.ToUpper)
+		rl.viCommandMode()
+
+	case rl.selection.Active():
+		rl.selection.ReplaceWith(unicode.ToUpper)
+		rl.viCommandMode()
+
+	default:
+		// Else if we are actually starting a yank action.
+		rl.undo.SkipSave()
+		rl.keymaps.Pending()
+		rl.selection.Mark(rl.cursor.Pos())
+	}
 }
 
 //

@@ -140,6 +140,12 @@ func (rl *Shell) emacsEditingMode() {
 //
 
 func (rl *Shell) forwardChar() {
+	// Only exception where we actually don't forward a character.
+	if rl.opts.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
+		rl.autosuggestAccept()
+		return
+	}
+
 	rl.undo.SkipSave()
 	vii := rl.iterations.Get()
 
@@ -162,7 +168,23 @@ func (rl *Shell) forwardWord() {
 	vii := rl.iterations.Get()
 
 	for i := 1; i <= vii; i++ {
-		forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
+		cpos := rl.cursor.Pos()
+
+		// When we have an autosuggested history and if we are at the end
+		// of the line, insert the next word from this suggested line.
+		if cpos == rl.line.Len()-1 {
+			if rl.opts.GetBool("history-autosuggest") {
+				suggested := rl.histories.Suggest(rl.line)
+				if suggested.Len() > rl.line.Len() {
+					rl.undo.Save()
+
+					forward := suggested.ForwardEnd(suggested.Tokenize, cpos)
+					rl.line.Insert(cpos+1, suggested[cpos:cpos+forward+1]...)
+				}
+			}
+		}
+
+		forward := rl.line.ForwardEnd(rl.line.Tokenize, cpos)
 		rl.cursor.Move(forward + 1)
 	}
 }

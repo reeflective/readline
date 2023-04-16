@@ -203,8 +203,13 @@ func (e *Engine) CursorHintToLineStart() {
 
 func (e *Engine) computeCoordinates(suggested core.Line) {
 	e.startAt = e.prompt.LastUsed()
-	e.lineCol, e.lineRows = suggested.Coordinates(e.startAt)
 	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startAt)
+
+	if e.opts.GetBool("history-autosuggest") {
+		e.lineCol, e.lineRows = suggested.Coordinates(e.startAt)
+	} else {
+		e.lineCol, e.lineRows = e.line.Coordinates(e.startAt)
+	}
 }
 
 func (e *Engine) displayLine(suggested core.Line) {
@@ -221,7 +226,7 @@ func (e *Engine) displayLine(suggested core.Line) {
 	line = ui.Highlight([]rune(line), *e.selection)
 
 	// Get the subset of the suggested line to print.
-	if len(suggested) > e.line.Len() {
+	if len(suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
 		line += color.FgBlackBright + string(suggested[e.line.Len():]) + color.Reset
 	}
 
