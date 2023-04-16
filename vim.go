@@ -402,21 +402,30 @@ func (rl *Shell) viMatchBracket() {
 	rl.cursor.Move(adjust)
 }
 
-// TODO: Finish.
 func (rl *Shell) viGotoColumn() {
-	// rl.undo.SkipSave()
-	// iterations := rl.iterations
-	// column := rl.iterations.Get()
-	//
-	// if iterations == "" {
-	// 	column = 0
-	// } else if column < 0 {
-	// 	column = rl.line.Len() + column
-	// }
-	//
-	//    // Get the width of the current line.
-	//
-	// rl.pos = column
+	rl.undo.SkipSave()
+
+	column := rl.iterations.Get()
+
+	if column < 0 {
+		return
+	}
+
+	cpos := rl.cursor.Pos()
+
+	rl.cursor.BeginningOfLine()
+	bpos := rl.cursor.Pos()
+	rl.cursor.EndOfLine()
+	epos := rl.cursor.Pos()
+
+	rl.cursor.Set(cpos)
+
+	switch {
+	case column > epos-cpos:
+		rl.cursor.Set(epos)
+	default:
+		rl.cursor.Set(bpos + column - 1)
+	}
 }
 
 func (rl *Shell) viEndOfLine() {
