@@ -111,29 +111,6 @@ func (e *Engine) ResetHelpers() {
 	e.completer.ClearMenu(true)
 }
 
-// displayHelpers renders the hint and completion sections.
-// It assumes that the cursor is on the last line of input,
-// and goes back to this same line after displaying this.
-func (e *Engine) displayHelpers() {
-	// Clear everything below the input line.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorDown(1)
-	fmt.Print(term.ClearScreenBelow)
-
-	// Recompute completions and hints if autocompletion is on.
-	e.completer.Autocomplete()
-
-	// Display hint and completions.
-	e.hint.Display()
-	e.completer.Display()
-	e.compRows = e.completer.Coordinates()
-
-	// Go back to the first line below the input line.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorUp(e.compRows)
-	term.MoveCursorUp(e.hint.Coordinates())
-}
-
 // AcceptLine redraws the current UI when the line has been accepted
 // and returned to the caller. After clearing various things such as
 // hints, completions and some right prompts, the shell will put the
@@ -242,4 +219,27 @@ func (e *Engine) displayLine(suggested core.Line) {
 	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
 		term.MoveCursorDown(1)
 	}
+}
+
+// displayHelpers renders the hint and completion sections.
+// It assumes that the cursor is on the last line of input,
+// and goes back to this same line after displaying this.
+func (e *Engine) displayHelpers() {
+	// Clear everything below the input line.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorDown(1)
+	fmt.Print(term.ClearScreenBelow)
+
+	// Recompute completions and hints if autocompletion is on.
+	e.completer.Autocomplete()
+
+	// Display hint and completions.
+	e.hint.Display()
+	e.completer.Display()
+	e.compRows = e.completer.Coordinates()
+
+	// Go back to the first line below the input line.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorUp(e.compRows)
+	term.MoveCursorUp(e.hint.Coordinates())
 }

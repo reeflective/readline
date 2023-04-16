@@ -436,3 +436,33 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	rl.line.Insert(rl.cursor.Pos(), '\n')
 	rl.cursor.Inc()
 }
+
+func (rl *Shell) insertAutosuggestPartial(emacs bool) {
+	cpos := rl.cursor.Pos()
+	if cpos < rl.line.Len()-1 {
+		return
+	}
+
+	if !rl.opts.GetBool("history-autosuggest") {
+		return
+	}
+
+	suggested := rl.histories.Suggest(rl.line)
+	if suggested.Len() > rl.line.Len() {
+		rl.undo.Save()
+
+		var forward int
+
+		if emacs {
+			forward = suggested.ForwardEnd(suggested.Tokenize, cpos)
+		} else {
+			forward = suggested.Forward(suggested.Tokenize, cpos)
+		}
+
+		if cpos+1+forward > suggested.Len() {
+			forward = suggested.Len() - cpos
+		}
+
+		rl.line.Insert(cpos+1, suggested[cpos+1:cpos+forward+1]...)
+	}
+}

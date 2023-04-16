@@ -266,23 +266,11 @@ func (rl *Shell) viForwardWord() {
 
 	vii := rl.iterations.Get()
 	for i := 1; i <= vii; i++ {
-		cpos := rl.cursor.Pos()
-
 		// When we have an autosuggested history and if we are at the end
 		// of the line, insert the next word from this suggested line.
-		if cpos == rl.line.Len()-1 {
-			if rl.opts.GetBool("history-autosuggest") {
-				suggested := rl.histories.Suggest(rl.line)
-				if suggested.Len() > rl.line.Len() {
-					rl.undo.Save()
+		rl.insertAutosuggestPartial(false)
 
-					forward := suggested.Forward(suggested.Tokenize, cpos)
-					rl.line.Insert(cpos+1, suggested[cpos+1:cpos+forward+1]...)
-				}
-			}
-		}
-
-		forward := rl.line.Forward(rl.line.Tokenize, cpos)
+		forward := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
 		rl.cursor.Move(forward)
 	}
 }

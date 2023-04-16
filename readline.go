@@ -98,9 +98,17 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 		rl.keymaps.RunPending()
 	}
 
-	rl.keys.FlushUsed()   // Drop some or all keys (used ones)
-	rl.checkCursor()      // Ensure cursor position is correct.
-	rl.iterations.Reset() // Drop iterations if deemed needed.
+	rl.keys.FlushUsed() // Drop some or all keys (used ones)
+	rl.checkCursor()    // Ensure cursor position is correct.
+
+	// Drop iterations if required, or show them in the hint.
+	hint, wasActive := rl.iterations.ResetPostCommand()
+
+	if hint != "" {
+		rl.hint.Persist(hint)
+	} else if wasActive {
+		rl.hint.ResetPersist()
+	}
 
 	// If the command just run was using the incremental search
 	// buffer (acting on it), update the list of matches.
