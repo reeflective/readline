@@ -22,6 +22,11 @@ type History = history.Source
 // returned from this call to the readline instance, with AddHistory().
 var NewHistoryFromFile = history.NewSourceFromFile
 
+// NewInMemoryHistory creates a new in-memory command history source.
+// The caller should bind the history source returned from this call
+// to the readline instance, with AddHistory().
+var NewInMemoryHistory = history.NewInMemoryHistory
+
 // AddHistoryFromFile adds a command history source from a file path.
 // The name is used when using/searching the history source.
 func (rl *Shell) AddHistoryFromFile(name, filepath string) {

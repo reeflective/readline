@@ -30,6 +30,11 @@ type memory struct {
 	items []string
 }
 
+// NewInMemoryHistory creates a new in-memory command history source.
+func NewInMemoryHistory() Source {
+	return new(memory)
+}
+
 // Write to history.
 func (h *memory) Write(s string) (int, error) {
 	h.items = append(h.items, s)
