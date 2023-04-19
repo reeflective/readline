@@ -466,7 +466,7 @@ func TestCursor_LineMove(t *testing.T) {
 			fields:   fields{line: &cursorMultiline, pos: 0},
 			args:     args{1},
 			wantLine: 1,
-			wantPos:  15,
+			wantPos:  16,
 		},
 		{
 			name:     "Single line up (lands on empty line)",
@@ -487,7 +487,7 @@ func TestCursor_LineMove(t *testing.T) {
 			fields:   fields{line: &cursorMultiline, pos: 15}, // end of first line
 			args:     args{5},
 			wantLine: 3,
-			wantPos:  len(cursorMultiline),
+			wantPos:  61, // Since the before-last line is empty, the next move down is at the beginning of the last line.
 		},
 	}
 

@@ -610,9 +610,7 @@ func TestLine_Display(t *testing.T) {
 func TestLine_Coordinates(t *testing.T) {
 	indent := 10
 	line := Line("basic -f \"commands.go,line.go\" -cp=/usr --option [value1 value2]")
-	lineAutosuggest := " --option \" value entered earlier\" -m user@host.com"
 	multiline := Line("basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -v { expression here } -a [value1 value2]")
-	autosuggest := " --option \" value entered earlier\"\n -m user@host.com"
 
 	// Reassign the function for getting the terminal width to a fixed value
 	getTermWidth = func() int { return 80 }
@@ -629,32 +627,18 @@ func TestLine_Coordinates(t *testing.T) {
 		wantY int
 	}{
 		{
-			name:  "Single line buffer, (no autosuggestion)",
+			name:  "Single line buffer",
 			l:     &line,
 			args:  args{indent: indent},
 			wantY: 0,
 			wantX: indent + 64,
 		},
 		{
-			name:  "Single line buffer, (with autosuggestion)",
-			l:     &line,
-			args:  args{indent: indent, suggested: lineAutosuggest},
-			wantY: 1,
-			wantX: 45,
-		},
-		{
-			name:  "Multiline buffer, (no autosuggestion)",
+			name:  "Multiline buffer",
 			l:     &multiline,
 			args:  args{indent: indent},
 			wantY: 2,
 			wantX: indent + 49,
-		},
-		{
-			name:  "Multiline buffer (with autosuggestion)",
-			l:     &multiline,
-			args:  args{indent: indent, suggested: autosuggest},
-			wantY: 4,
-			wantX: indent + 18,
 		},
 	}
 

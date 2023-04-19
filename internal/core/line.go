@@ -517,6 +517,10 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 		return nil, 0, 0
 	}
 
+	if cpos == l.Len() {
+		cpos--
+	}
+
 	line := *l
 
 	var (
