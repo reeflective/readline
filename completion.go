@@ -1,486 +1,302 @@
 package readline
 
 import (
-	"bufio"
 	"fmt"
-	"strings"
+
+	"github.com/reeflective/readline/internal/color"
+	"github.com/reeflective/readline/internal/completion"
+	"github.com/reeflective/readline/internal/keymap"
 )
+
+func (rl *Shell) completionCommands() commands {
+	return map[string]func(){
+		"complete":               rl.completeWord,        // complete-word
+		"possible-completions":   rl.possibleCompletions, // list-choices
+		"insert-completions":     rl.insertCompletions,
+		"menu-complete":          rl.menuComplete,
+		"menu-complete-backward": rl.menuCompleteBackward, // reverse-menu-complete
+		"delete-char-or-list":    rl.deleteCharOrList,
+
+		"expand-or-complete":        rl.expandOrComplete,
+		"menu-expand-or-complete":   rl.menuExpandOrComplete,
+		"menu-complete-next-tag":    rl.menuCompleteNextTag,
+		"menu-complete-prev-tag":    rl.menuCompletePrevTag,
+		"accept-and-menu-complete":  rl.acceptAndMenuComplete,
+		"accept-completion-or-line": rl.acceptCompletionOrLine,
+		"vi-registers-complete":     rl.viRegistersComplete,
+		"menu-incremental-search":   rl.menuIncrementalSearch,
+	}
+}
+
+//
+// Commands ---------------------------------------------------------------------------
+//
+
+func (rl *Shell) completeWord() {
+	rl.undo.SkipSave()
+
+	// This completion function should attempt to insert the first
+	// valid completion found, without printing the actual list.
+
+	// switch rl.local {
+	// case menuselect, isearch:
+	// 	rl.menuComplete()
+	// default:
+	// 	// rl.
+	// 	// rl.startMenuComplete(rl.normalCompletions)
+	//
+	// 	// In autocomplete mode, we already have completions
+	// 	// printed, so we automatically move to the first comp.
+	// 	if rl.isAutoCompleting() && rl.local == menuselect {
+	// 		rl.menuComplete()
+	// 	}
+	// }
+}
+
+func (rl *Shell) possibleCompletions() {
+	rl.undo.SkipSave()
+
+	// switch rl.local {
+	// case menuselect, isearch:
+	// 	rl.resetVirtualComp(false)
+	// }
+	//
+	// rl.local = menuselect
+	//
+	// // Call the completer to produce
+	// // all possible completions.
+	// rl.normalCompletions()
+	//
+	// // Cancel completion mode if
+	// // we don't have any candidates.
+	// if rl.noCompletions() {
+	// 	rl.resetCompletion()
+	// 	return
+	// }
+
+	rl.completer.Cancel(false, false)
+	rl.keymaps.SetLocal(keymap.MenuSelect)
+	rl.completer.GenerateWith(rl.commandCompletion)
+}
+
+func (rl *Shell) insertCompletions() {}
+
+func (rl *Shell) menuComplete() {
+	rl.undo.SkipSave()
+
+	// No completions are being printed yet, so simply generate the completions
+	// as if we just request them without immediately selecting a candidate.
+	if !rl.completer.IsActive() {
+		rl.startMenuComplete(rl.commandCompletion)
+	} else {
+		rl.completer.Select(1, 0)
+	}
+
+	// No completions are being printed yet, so simply generate the completions
+	// as if we just request them without immediately selecting a candidate.
+	// if rl.local != menuselect && rl.local != isearch && len(rl.histHint) == 0 {
+	// 	rl.startMenuComplete(rl.normalCompletions)
+	// }
+
+	// Some of the actions taken in the above switch might have exited
+	// completions, and if that is the case, we should not do anything.
+	// if rl.local != menuselect && rl.local != isearch && len(rl.histHint) == 0 {
+	// 	return
+	// }
+}
+
+func (rl *Shell) deleteCharOrList() {
+	switch {
+	case rl.cursor.Pos() < rl.line.Len():
+		rl.line.CutRune(rl.cursor.Pos())
+	default:
+		rl.possibleCompletions()
+	}
+}
+
+func (rl *Shell) expandOrComplete() {
+	// switch rl.local {
+	// case menuselect, isearch:
+	// 	rl.menuComplete()
+	// default:
+	// 	if rl.completer != nil {
+	// 		rl.startMenuComplete(rl.completer)
+	// 	} else {
+	// 		rl.startMenuComplete(rl.normalCompletions)
+	// 	}
+	//
+	// 	// In autocomplete mode, we already have completions
+	// 	// printed, so we automatically move to the first comp.
+	// 	if rl.isAutoCompleting() && rl.local == menuselect {
+	// 		rl.menuComplete()
+	// 	}
+	// }
+}
+
+func (rl *Shell) menuExpandOrComplete() {
+	// switch rl.local {
+	// case menuselect, isearch:
+	// 	rl.menuComplete()
+	// default:
+	// 	if rl.completer != nil {
+	// 		rl.startMenuComplete(rl.completer)
+	// 	} else {
+	// 		rl.startMenuComplete(rl.normalCompletions)
+	// 	}
+	//
+	// 	// In autocomplete mode, we already have completions
+	// 	// printed, so we automatically move to the first comp.
+	// 	if rl.isAutoCompleting() && rl.local == menuselect {
+	// 		rl.menuComplete()
+	// 	}
+	// }
+}
+
+func (rl *Shell) menuCompleteBackward() {
+	rl.undo.SkipSave()
+
+	// We don't do anything when not already completing.
+	if !rl.completer.IsActive() {
+		return
+	}
+
+	rl.completer.Select(-1, 0)
+}
+
+func (rl *Shell) menuCompleteNextTag() {
+	rl.undo.SkipSave()
+
+	if !rl.completer.IsActive() {
+		return
+	}
+
+	rl.completer.SelectTag(true)
+}
+
+func (rl *Shell) menuCompletePrevTag() {
+	rl.undo.SkipSave()
+
+	if !rl.completer.IsActive() {
+		return
+	}
+
+	rl.completer.SelectTag(false)
+}
+
+func (rl *Shell) acceptAndMenuComplete() {
+	rl.undo.SkipSave()
+
+	// // We don't do anything when not already completing.
+	// if rl.local != menuselect && rl.local != isearch {
+	// 	return
+	// }
+	//
+	// // Also return if no candidate
+	// if rl.currentCandidate() == "" {
+	// 	return
+	// }
+	//
+	// // First insert the current candidate
+	// rl.resetVirtualComp(false)
+	//
+	// // And cycle to the next one, without quiting our mode
+	// rl.updateSelector(1, 0)
+	// rl.updateVirtualComp()
+}
+
+func (rl *Shell) acceptCompletionOrLine() {
+	// switch rl.local {
+	// case menuselect, isearch:
+	// 	// If we have a completion, simply accept this candidate
+	// 	comp := rl.currentCandidate()
+	// 	if comp != "" {
+	// 		rl.resetVirtualComp(false)
+	// 		rl.resetCompletion()
+	//
+	// 		return
+	// 	}
+	//
+	// 	// Or accept the line.
+	// 	fallthrough
+	// default:
+	// 	rl.lineCarriageReturn()
+	// 	rl.accepted = true
+	// }
+}
+
+func (rl *Shell) viRegistersComplete() {
+	rl.keymaps.SetLocal(keymap.MenuSelect)
+	rl.undo.SkipSave()
+
+	registers := rl.buffers.Complete()
+	rl.completer.Generate(registers)
+}
+
+func (rl *Shell) menuIncrementalSearch() {
+	rl.undo.SkipSave()
+
+	if !rl.completer.IsActive() {
+		rl.completer.GenerateWith(rl.commandCompletion)
+	}
+
+	rl.completer.IsearchStart("completions", false)
+}
+
+//
+// Utilities --------------------------------------------------------------------------
+//
 
 // startMenuComplete generates a completion menu with completions
 // generated from a given completer, without selecting a candidate.
-func (rl *Instance) startMenuComplete(completer func()) {
-	rl.local = menuselect
-	rl.skipUndoAppend()
+func (rl *Shell) startMenuComplete(completer completion.Completer) {
+	rl.undo.SkipSave()
 
-	// Call the completer function to produce completions,
-	// and store it if it's going to be used by autocomplete.
-	completer()
-	rl.completer = completer
-
-	// Cancel completion mode if we don't have any candidates.
-	// The hint string will be provided in a separate step.
-	if rl.noCompletions() {
-		rl.resetCompletion()
-		rl.completer = nil
-
-		return
-	}
-
-	rl.currentGroup()
-
-	// When there is only candidate, automatically insert it
-	// and exit the completion mode, except in history completion.
-	if rl.hasUniqueCandidate() && len(rl.histHint) == 0 {
-		rl.undoSkipAppend = false
-		rl.insertCandidate()
-		rl.resetCompletion()
-		rl.resetHintText()
-	}
+	rl.keymaps.SetLocal(keymap.MenuSelect)
+	rl.completer.GenerateWith(rl.commandCompletion)
 }
 
-func (rl *Instance) normalCompletions() {
+func (rl *Shell) commandCompletion() completion.Values {
 	if rl.Completer == nil {
-		return
+		return completion.Values{}
 	}
 
-	rl.tcGroups = make([]*comps, 0)
+	line, cursor := rl.completer.Line()
+	comps := rl.Completer(*line, cursor.Pos())
 
-	// Get the correct line to be completed, and the current cursor position
-	compLine, compPos := rl.getCompletionLine()
-
-	// Generate the completions, setup the prefix and group the results.
-	comps := rl.Completer(compLine, compPos)
-	rl.groupCompletions(comps)
-	rl.setCompletionPrefix(comps)
+	return comps.convert()
 }
 
-func (rl *Instance) historyCompletion(forward, filterLine bool) {
-	switch rl.local {
-	case menuselect, isearch:
+func (rl *Shell) historyCompletion(forward, filterLine bool) {
+	switch rl.keymaps.Local() {
+	case keymap.MenuSelect, keymap.Isearch:
 		// If we are currently completing the last
 		// history source, cancel history completion.
-		if rl.historySourcePos == len(rl.histories)-1 {
-			rl.histHint = []rune{}
-			rl.nextHistorySource()
-			rl.resetCompletion()
-			rl.completer = nil
-			rl.local = ""
-			rl.resetHintText()
+		if rl.histories.OnLastSource() {
+			rl.histories.Cycle(true)
+			rl.completer.ResetForce()
+			rl.hint.Reset()
 
 			return
 		}
 
 		// Else complete the next history source.
-		rl.nextHistorySource()
+		rl.histories.Cycle(true)
 
 		fallthrough
 
 	default:
 		// Notify if we don't have history sources at all.
-		if rl.currentHistory() == nil {
-			noHistory := fmt.Sprintf("%s%s%s %s", seqDim, seqFgRed, "No command history source", seqReset)
-			rl.histHint = []rune(noHistory)
-
+		if rl.histories.Current() == nil {
+			rl.hint.Set(fmt.Sprintf("%s%s%s %s", color.Dim, color.FgRed, "No command history source", color.Reset))
 			return
 		}
 
 		// Generate the completions with specified behavior.
-		historyCompletion := func() {
-			rl.tcGroups = make([]*comps, 0)
-
-			// Either against the current line or not.
-			if filterLine {
-				rl.tcPrefix = string(rl.line)
-			}
-
-			comps := rl.completeHistory(forward)
-			comps = comps.DisplayList()
-			rl.groupCompletions(comps)
-			rl.setCompletionPrefix(comps)
+		completer := func() completion.Values {
+			return rl.histories.Complete(forward, filterLine)
 		}
 
-		// Else, generate the completions.
-		rl.startMenuComplete(historyCompletion)
-	}
-}
-
-func (rl *Instance) registerCompletion() {
-	rl.registersComplete = true
-	rl.tcGroups = make([]*comps, 0)
-	comps := rl.completeRegisters()
-	comps = comps.DisplayList("*")
-	rl.groupCompletions(comps)
-	rl.setCompletionPrefix(comps)
-}
-
-func (rl *Instance) groupCompletions(comps Completions) {
-	rl.hintCompletions(comps)
-
-	// Nothing else to do if no completions
-	if len(comps.values) == 0 {
-		return
-	}
-
-	comps.values.eachTag(func(tag string, values rawValues) {
-		// Separate the completions that have a description and
-		// those which don't, and devise if there are aliases.
-		vals, noDescVals, aliased := groupValues(values)
-
-		// Create a "first" group with the "first" grouped values
-		rl.newGroup(comps, tag, vals, aliased)
-
-		// If we have a remaining group of values without descriptions,
-		// we will print and use them in a separate, anonymous group.
-		if len(noDescVals) > 0 {
-			rl.newGroup(comps, "", noDescVals, false)
-		}
-	})
-}
-
-// groupValues separates values based on whether they have descriptions, or are aliases of each other.
-func groupValues(values rawValues) (vals, noDescVals rawValues, aliased bool) {
-	var descriptions []string
-
-	for _, val := range values {
-		// Ensure all values have a display string.
-		if val.Display == "" {
-			val.Display = val.Value
-		}
-
-		// Grid completions
-		if val.Description == "" {
-			noDescVals = append(noDescVals, val)
-
-			continue
-		}
-
-		// List/map completions.
-		if stringInSlice(val.Description, descriptions) {
-			aliased = true
-		}
-
-		descriptions = append(descriptions, val.Description)
-		vals = append(vals, val)
-	}
-
-	// if no candidates have a description, swap
-	if len(vals) == 0 {
-		vals = noDescVals
-		noDescVals = make(rawValues, 0)
-	}
-
-	return
-}
-
-func (rl *Instance) setCompletionPrefix(comps Completions) {
-	switch comps.PREFIX {
-	case "":
-		// When no prefix has been specified, use
-		// the current word up to the cursor position.
-		lineWords, _, _ := tokeniseSplitSpaces(rl.line, rl.pos)
-		if len(lineWords) > 0 {
-			last := lineWords[len(lineWords)-1]
-			if last[len(last)-1] != ' ' {
-				rl.tcPrefix = lineWords[len(lineWords)-1]
-			}
-		}
-
-		// Newlines should not be accounted for, as they are
-		// not printable: whether or not the completions provider
-		// replaced them with spaces or not, we must not count them
-		// as part of the prefix length, so not as part of the prefix.
-		if strings.Contains(rl.tcPrefix, "\n") {
-			rl.tcPrefix = strings.ReplaceAll(rl.tcPrefix, "\n", "")
-		}
-
-	default:
-		// When the prefix has been overridden, add it to all
-		// completions AND as a line prefix, for correct candidate insertion.
-		rl.tcPrefix = comps.PREFIX
-	}
-}
-
-func (rl *Instance) updateSelector(tabX, tabY int) {
-	grp := rl.currentGroup()
-
-	// If there is no current group, we
-	// leave any current completion mode.
-	if grp == nil || len(grp.values) == 0 {
-		return
-	}
-
-	done, next := grp.moveSelector(rl, tabX, tabY)
-	if !done {
-		return
-	}
-
-	var newGrp *comps
-
-	if next {
-		rl.cycleNextGroup()
-		newGrp = rl.currentGroup()
-		newGrp.firstCell()
-	} else {
-		rl.cyclePreviousGroup()
-		newGrp = rl.currentGroup()
-		newGrp.lastCell()
-	}
-}
-
-// printCompletions - Prints all completion groups and their items.
-func (rl *Instance) printCompletions() {
-	rl.tcUsedY = 0
-
-	// The final completions string to print.
-	var completions string
-
-	// Safecheck
-	if rl.local != menuselect && rl.local != isearch && !rl.needsAutoComplete() {
-		return
-	}
-
-	// In any case, we write the completions strings, trimmed for redundant
-	// newline occurrences that have been put at the end of each group.
-	for _, group := range rl.tcGroups {
-		completions += group.writeComps(rl)
-	}
-
-	// Crop the completions so that it fits within our MaxTabCompleterRows
-	completions, rl.tcUsedY = rl.cropCompletions(completions)
-
-	if completions != "" {
-		print("\n")
-		rl.tcUsedY++
-
-		// Because some completion groups might have more suggestions
-		// than what their MaxLength allows them to, cycling sometimes occur,
-		// but does not fully clears itself: some descriptions are messed up with.
-		// We always clear the screen as a result, between writings.
-		print(seqClearScreenBelow)
-	}
-
-	// Then we print all of them.
-	print(completions)
-}
-
-// cropCompletions - When the user cycles through a completion list longer
-// than the console MaxTabCompleterRows value, we crop the completions string
-// so that "global" cycling (across all groups) is printed correctly.
-func (rl *Instance) cropCompletions(comps string) (cropped string, usedY int) {
-	maxRows := rl.getCompletionMaxRows()
-
-	// Get the current absolute candidate position
-	absPos := rl.getAbsPos()
-
-	// Scan the completions for cutting them at newlines
-	scanner := bufio.NewScanner(strings.NewReader(comps))
-
-	// If absPos < MaxTabCompleterRows, cut below MaxTabCompleterRows and return
-	if absPos < maxRows {
-		return rl.cutCompletionsBelow(scanner, maxRows)
-	}
-
-	// If absolute > MaxTabCompleterRows, cut above and below and return
-	//      -> This includes de facto when we tabCompletionReverse
-	if absPos >= maxRows {
-		return rl.cutCompletionsAboveBelow(scanner, maxRows, absPos)
-	}
-
-	return
-}
-
-// this is called once and only if the local keymap has not
-// matched a given input key: that means no completion menu
-// helpers were used, so we need to update our completion
-// menu before actually editing/moving around the line.
-func (rl *Instance) updateCompletion() {
-	switch rl.local {
-	case isearch:
-		rl.resetVirtualComp(true)
-	default:
-		rl.resetVirtualComp(false)
-	}
-
-	rl.resetCompletion()
-}
-
-func (rl *Instance) cutCompletionsBelow(scanner *bufio.Scanner, maxRows int) (string, int) {
-	var count int
-	var cropped string
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if count < maxRows {
-			cropped += line + "\n"
-			count++
-		} else {
-			break
-		}
-	}
-
-	cropped = rl.excessCompletionsHint(cropped, maxRows, count)
-
-	return cropped, count
-}
-
-func (rl *Instance) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, absPos int) (string, int) {
-	cutAbove := absPos - maxRows + 1
-
-	var cropped string
-	var count int
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if count <= cutAbove {
-			count++
-
-			continue
-		}
-
-		if count > cutAbove && count <= absPos {
-			cropped += line + "\n"
-			count++
-		} else {
-			break
-		}
-	}
-
-	cropped = rl.excessCompletionsHint(cropped, maxRows, maxRows+cutAbove)
-	count--
-
-	return cropped, count - cutAbove
-}
-
-func (rl *Instance) excessCompletionsHint(cropped string, maxRows, offset int) string {
-	_, _, adjusted := rl.completionCount()
-	remain := adjusted - offset
-
-	if remain <= 0 || offset < maxRows {
-		return cropped
-	}
-
-	hint := fmt.Sprintf(seqDim+seqFgYellow+" %d more completion rows... (scroll down to show)"+seqReset, remain)
-
-	hinted := cropped + hint
-
-	return hinted
-}
-
-func (rl *Instance) resetCompletion() {
-	// When we have a history hint, that means we are
-	// currently completing history, potentially in
-	// autocomplete: don't exit the current menu.
-	if rl.local == menuselect && len(rl.histHint) == 0 {
-		rl.local = ""
-	}
-
-	rl.tcPrefix = ""
-	rl.tcUsedY = 0
-
-	// Don't persist registers completion.
-	if rl.registersComplete {
-		rl.completer = nil
-		rl.registersComplete = false
-	}
-
-	// Reset tab highlighting
-	if len(rl.tcGroups) > 0 {
-		for _, g := range rl.tcGroups {
-			g.isCurrent = false
-		}
-
-		rl.tcGroups[0].isCurrent = true
-	}
-}
-
-// Check if we have a single completion candidate.
-func (rl *Instance) hasUniqueCandidate() bool {
-	switch len(rl.tcGroups) {
-	case 0:
-		return false
-
-	case 1:
-		cur := rl.currentGroup()
-		if cur == nil {
-			return false
-		}
-
-		if len(cur.values) == 1 {
-			return len(cur.values[0]) == 1
-		}
-
-		return len(cur.values) == 1
-
-	default:
-		var count int
-
-	GROUPS:
-		for _, group := range rl.tcGroups {
-			for _, row := range group.values {
-				count++
-				for range row {
-					count++
-				}
-				if count > 1 {
-					break GROUPS
-				}
-			}
-		}
-
-		return count == 1
-	}
-}
-
-func (rl *Instance) needsAutoComplete() bool {
-	needsComplete := rl.config.AutoComplete &&
-		len(rl.line) > 0 &&
-		rl.local != menuselect &&
-		rl.local != isearch
-
-	isCorrectMenu := rl.main != vicmd && rl.local != isearch
-
-	// We might be at the beginning of line,
-	// but currently proposing history completion.
-	completingHistory := len(rl.histHint) > 0
-
-	// We always refresh history, except when
-	// currently having a candidate selection.
-	if completingHistory && isCorrectMenu && len(rl.comp) == 0 {
-		return true
-	}
-
-	if needsComplete && isCorrectMenu {
-		return true
-	}
-
-	return false
-}
-
-func (rl *Instance) isAutoCompleting() bool {
-	if rl.config.AutoComplete &&
-		len(rl.line) > 0 {
-		return true
-	}
-
-	return false
-}
-
-// autoComplete generates the correct completions in autocomplete mode.
-// We don't do it when we are currently in the completion keymap,
-// since that means completions have already been computed.
-func (rl *Instance) autoComplete() {
-	if !rl.needsAutoComplete() {
-		return
-	}
-
-	rl.resetCompletion()
-
-	// We either have a completer, or we use the normal
-	// if we are not currently completing the history.
-	if rl.completer != nil {
-		rl.completer()
-	} else if len(rl.histHint) == 0 {
-		rl.normalCompletions()
+		rl.completer.GenerateWith(completer)
+		rl.completer.IsearchStart(rl.histories.Name(), true)
 	}
 }

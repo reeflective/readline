@@ -1,393 +1,473 @@
 package readline
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
+
+	"github.com/reeflective/readline/internal/history"
+	"github.com/reeflective/readline/internal/strutil"
 )
 
-// History is an interface to allow you to write your own history logging
-// tools. eg sqlite backend instead of a file system.
-// By default readline will just use the dummyLineHistory interface which only
-// logs the history to memory ([]string to be precise).
-type History interface {
-	// Append takes the line and returns an updated number of lines or an error
-	Write(string) (int, error)
+//
+// API ----------------------------------------------------------------
+//
 
-	// GetLine takes the historic line number and returns the line or an error
-	GetLine(int) (string, error)
+// History is an interface to allow you to write your own history logging tools.
+// By default readline will just use an in-memory history satisfying this interface,
+// which only logs the history to memory ([]string to be precise).
+// Users who want an easy to use, file-based history should use NewHistoryFromFile().
+type History = history.Source
 
-	// Len returns the number of history lines
-	Len() int
+// NewHistoryFromFile creates a new command history source writing to
+// and reading from a file. The caller should bind the history source
+// returned from this call to the readline instance, with AddHistory().
+var NewHistoryFromFile = history.NewSourceFromFile
 
-	// Dump returns everything in readline. The return is an interface{} because
-	// not all LineHistory implementations will want to structure the history in
-	// the same way. And since Dump() is not actually used by the readline API
-	// internally, this methods return can be structured in whichever way is most
-	// convenient for your own applications (or even just create an empty
-	// function which returns `nil` if you don't require Dump() either)
-	Dump() interface{}
+// NewInMemoryHistory creates a new in-memory command history source.
+// The caller should bind the history source returned from this call
+// to the readline instance, with AddHistory().
+var NewInMemoryHistory = history.NewInMemoryHistory
+
+// AddHistoryFromFile adds a command history source from a file path.
+// The name is used when using/searching the history source.
+func (rl *Shell) AddHistoryFromFile(name, filepath string) {
+	rl.histories.AddFromFile(name, filepath)
 }
 
-// AddHistorySource adds a source of history lines bound to a given name
-// (printed above this source when used). All history sources can be used
-// when completing history, and repeatedly using the completion key will
-// cycle through them.
-// When only the default in-memory history is bound, it is replaced with
-// the provided ones. All following sources are added to the list.
-func (rl *Instance) AddHistorySource(name string, history History) {
-	if len(rl.histories) == 1 && rl.historyNames[0] == "local history" {
-		delete(rl.histories, "local history")
-		rl.historyNames = make([]string, 0)
-	}
-
-	rl.historyNames = append(rl.historyNames, name)
-	rl.histories[name] = history
+// Add adds a source of history lines bound to a given name (printed above
+// this source when used). When only the default in-memory history is bound,
+// it's replaced with the provided source. Following ones are added to the list.
+func (rl *Shell) AddHistory(name string, source history.Source) {
+	rl.histories.Add(name, source)
 }
 
-// New creates a new History populated from, and writing to
-// a file path passed as parameter.
-func NewHistoryFromFile(filename string) (History, error) {
-	h := new(fileHistory)
-	h.filename = filename
-	h.list, _ = openHist(filename)
-
-	return h, nil
-}
-
-// DeleteHistorySource deletes one or more history source by name.
+// Delete deletes one or more history source by name.
 // If no arguments are passed, all currently bound sources are removed.
-func (rl *Instance) DeleteHistorySource(sources ...string) {
-	defer rl.initHistory()
+func (rl *Shell) DeleteHistory(sources ...string) {
+	rl.histories.Delete(sources...)
+}
 
-	if len(sources) == 0 {
-		rl.histories = make(map[string]History)
-		rl.historyNames = make([]string, 0)
+// historyCommands returns all history commands.
+// Under each comment are gathered all commands related to the comment's
+// subject. When there are two subgroups separated by an empty line, the
+// second one comprises commands that are not legacy readline commands.
+func (rl *Shell) historyCommands() commands {
+	widgets := map[string]func(){
+		"accept-line":                            rl.acceptLine,
+		"next-history":                           rl.downHistory, // down-history
+		"previous-history":                       rl.upHistory,   // up-history
+		"beginning-of-history":                   rl.beginningOfHistory,
+		"end-of-history":                         rl.endOfHistory,
+		"operate-and-get-next":                   rl.acceptLineAndDownHistory, // accept-line-and-down-history
+		"fetch-history":                          rl.fetchHistory,
+		"forward-search-history":                 rl.historyIncrementalSearchForward,  // history-incremental-search-forward
+		"reverse-search-history":                 rl.historyIncrementalSearchBackward, // history-incremental-search-backward
+		"non-incremental-forward-search-history": rl.nonIncrementalForwardSearchHistory,
+		"non-incremental-reverse-search-history": rl.nonIncrementalReverseSearchHistory,
+		"history-search-forward":                 rl.historySearchForward,
+		"history-search-backward":                rl.historySearchBackward,
+		"history-substring-search-forward":       rl.historySubstringSearchForward,
+		"history-substring-search-backward":      rl.historySubstringSearchBackward,
+		"yank-last-arg":                          rl.yankLastArg,
+		"yank-nth-arg":                           rl.yankNthArg,
+		"magic-space":                            rl.magicSpace,
 
+		"accept-and-hold":                   rl.acceptAndHold,
+		"accept-and-infer-next-history":     rl.acceptAndInferNextHistory,
+		"down-line-or-history":              rl.downLineOrHistory,
+		"up-line-or-history":                rl.upLineOrHistory,
+		"up-line-or-search":                 rl.upLineOrSearch,
+		"down-line-or-search":               rl.downLineOrSearch,
+		"infer-next-history":                rl.inferNextHistory,
+		"beginning-of-buffer-or-history":    rl.beginningOfBufferOrHistory,
+		"beginning-history-search-forward":  rl.beginningHistorySearchForward,
+		"beginning-history-search-backward": rl.beginningHistorySearchBackward,
+		"end-of-buffer-or-history":          rl.endOfBufferOrHistory,
+		"beginning-of-line-hist":            rl.beginningOfLineHist,
+		"end-of-line-hist":                  rl.endOfLineHist,
+		"autosuggest-accept":                rl.autosuggestAccept,
+		"autosuggest-execute":               rl.autosuggestExecute,
+		"autosuggest-enable":                rl.autosuggestEnable,
+		"autosuggest-disable":               rl.autosuggestDisable,
+		"autosuggest-toggle":                rl.autosuggestToggle,
+	}
+
+	return widgets
+}
+
+//
+// Standard ----------------------------------------------------------------
+//
+
+func (rl *Shell) acceptLine() {
+	rl.acceptLineWith(false, false)
+}
+
+func (rl *Shell) downHistory() {
+	rl.undo.SkipSave()
+	rl.histories.Walk(-1)
+}
+
+func (rl *Shell) upHistory() {
+	rl.undo.SkipSave()
+	rl.histories.Walk(1)
+}
+
+func (rl *Shell) beginningOfHistory() {
+	rl.undo.SkipSave()
+
+	history := rl.histories.Current()
+	if history == nil {
 		return
 	}
 
-	for _, name := range sources {
-		delete(rl.histories, name)
-		for i, hname := range rl.historyNames {
-			if hname == name {
-				rl.historyNames = append(rl.historyNames[:i], rl.historyNames[i+1:]...)
-				break
-			}
+	rl.histories.Walk(history.Len())
+}
+
+func (rl *Shell) endOfHistory() {
+	history := rl.histories.Current()
+
+	if history == nil {
+		return
+	}
+
+	rl.histories.Walk(-history.Len() + 1)
+}
+
+func (rl *Shell) acceptLineAndDownHistory() {
+	// rl.inferLine = true // The next loop will retrieve a line by histPos.
+	// rl.acceptLine()
+}
+
+func (rl *Shell) fetchHistory() {}
+
+func (rl *Shell) historyIncrementalSearchForward() {
+	rl.undo.SkipSave()
+	rl.historyCompletion(true, false)
+}
+
+func (rl *Shell) historyIncrementalSearchBackward() {
+	rl.undo.SkipSave()
+	rl.historyCompletion(false, false)
+}
+
+func (rl *Shell) nonIncrementalForwardSearchHistory() {}
+func (rl *Shell) nonIncrementalReverseSearchHistory() {}
+
+func (rl *Shell) historySearchForward() {
+	rl.undo.SkipSave()
+
+	// And either roll to the next history source, or
+	// directly generate completions for the target history.
+	//
+	// Set the tab completion prefix as a filtering
+	// mechanism here: will be updated by the comps anyway.
+	// rl.historyCompletion(true, true)
+}
+
+func (rl *Shell) historySearchBackward() {
+	rl.undo.SkipSave()
+
+	// And either roll to the next history source, or
+	// directly generate completions for the target history.
+	//
+	// Set the tab completion prefix as a filtering
+	// mechanism here: will be updated by the comps anyway.
+	// rl.historyCompletion(false, true)
+}
+
+func (rl *Shell) historySubstringSearchForward()  {}
+func (rl *Shell) historySubstringSearchBackward() {}
+
+func (rl *Shell) yankLastArg() {
+	// Get the last history line.
+	last := rl.histories.GetLast()
+	if last == "" {
+		return
+	}
+
+	// Split it into words, and get the last one.
+	words, err := strutil.Split(last)
+	if err != nil || len(words) == 0 {
+		return
+	}
+
+	// Get the last word, and quote it if it contains spaces.
+	lastArg := words[len(words)-1]
+	if strings.ContainsAny(lastArg, " \t") {
+		if strings.Contains(lastArg, "\"") {
+			lastArg = "'" + lastArg + "'"
+		} else {
+			lastArg = "\"" + lastArg + "\""
 		}
 	}
+
+	// And append it to the end of the line.
+	rl.line.Insert(rl.cursor.Pos(), []rune(lastArg)...)
+	rl.cursor.Move(len(lastArg))
 }
 
-// MemoryHistory is an in memory history.
-// One such history is bound to the readline shell by default.
-type MemoryHistory struct {
-	items []string
-}
-
-// Write to history.
-func (h *MemoryHistory) Write(s string) (int, error) {
-	h.items = append(h.items, s)
-	return len(h.items), nil
-}
-
-// GetLine returns a line from history.
-func (h *MemoryHistory) GetLine(i int) (string, error) {
-	return h.items[i], nil
-}
-
-// Len returns the number of lines in history.
-func (h *MemoryHistory) Len() int {
-	return len(h.items)
-}
-
-// Dump returns the entire history.
-func (h *MemoryHistory) Dump() interface{} {
-	return h.items
-}
-
-// NullHistory is a null History interface for when you don't want line
-// entries remembered eg password input.
-type NullHistory struct{}
-
-// Write to history.
-func (h *NullHistory) Write(s string) (int, error) {
-	return 0, nil
-}
-
-// GetLine returns a line from history.
-func (h *NullHistory) GetLine(i int) (string, error) {
-	return "", nil
-}
-
-// Len returns the number of lines in history.
-func (h *NullHistory) Len() int {
-	return 0
-}
-
-// Dump returns the entire history.
-func (h *NullHistory) Dump() interface{} {
-	return []string{}
-}
-
-// initHistory is ran once at the beginning of an instance start.
-func (rl *Instance) initHistory() {
-	rl.historySourcePos = 0
-	rl.undoHistory = []undoItem{{line: "", pos: 0}}
-
-	// Only reset the history position when we don't
-	// need it to retrieve a line before anything else.
-	if !rl.inferLine {
-		rl.histPos = 0
-	}
-}
-
-// when the last widget invoked accepted a line with a supplementary
-// directive to retrieve a history line (by match or index), find it.
-func (rl *Instance) initHistoryLine() {
-	if !rl.inferLine {
+func (rl *Shell) yankNthArg() {
+	// Get the last history line.
+	last := rl.histories.GetLast()
+	if last == "" {
 		return
 	}
 
-	switch rl.histPos {
-	case -1:
-		rl.histPos = 0
-	case 0:
-		rl.inferNextHistory()
+	// Split it into words, and get the last one.
+	words, err := strutil.Split(last)
+	if err != nil || len(words) == 0 {
+		return
+	}
+
+	var lastArg string
+
+	// Abort if the required position is out of bounds.
+	argNth := rl.iterations.Get()
+	if len(words) < argNth {
+		return
+	} else {
+		lastArg = words[argNth-1]
+	}
+
+	// Quote if required.
+	if strings.ContainsAny(lastArg, " \t") {
+		if strings.Contains(lastArg, "\"") {
+			lastArg = "'" + lastArg + "'"
+		} else {
+			lastArg = "\"" + lastArg + "\""
+		}
+	}
+
+	// And append it to the end of the line.
+	rl.line.Insert(rl.line.Len(), []rune(lastArg)...)
+	rl.cursor.Move(len(lastArg))
+}
+
+func (rl *Shell) magicSpace() {}
+
+//
+// Added -------------------------------------------------------------------
+//
+
+func (rl *Shell) acceptAndHold() {
+	rl.acceptLineWith(true, false)
+}
+
+func (rl *Shell) acceptAndInferNextHistory() {
+	// rl.inferLine = true // The next loop will retrieve a line.
+	// rl.histPos = 0      // And will find it by trying to match one.
+	// rl.acceptLine()
+}
+
+func (rl *Shell) downLineOrHistory() {
+	rl.undo.SkipSave()
+
+	times := rl.iterations.Get()
+	linesDown := rl.line.Lines() - rl.cursor.Line()
+
+	// If we can go down some lines out of
+	// the available iterations, use them.
+	if linesDown > 0 {
+		rl.cursor.LineMove(times)
+		times -= linesDown
+	}
+
+	if times > 0 {
+		rl.histories.Walk(times * -1)
+	}
+}
+
+func (rl *Shell) upLineOrHistory() {
+	rl.undo.SkipSave()
+
+	times := rl.iterations.Get()
+	linesUp := rl.cursor.Line()
+
+	// If we can go down some lines out of
+	// the available iterations, use them.
+	if linesUp > 0 {
+		rl.cursor.LineMove(times * -1)
+		times -= linesUp
+	}
+
+	if times > 0 {
+		rl.histories.Walk(times)
+	}
+}
+
+func (rl *Shell) upLineOrSearch() {
+	rl.undo.SkipSave()
+	switch {
+	case rl.cursor.Line() > 0:
+		rl.cursor.LineMove(-1)
 	default:
-		rl.walkHistory(-1)
+		rl.historySearchBackward()
 	}
-
-	rl.inferLine = false
 }
 
-// writeHistoryLine writes the current buffer to all history sources.
-func (rl *Instance) writeHistoryLine() {
-	if !rl.config.HistoryAutoWrite || rl.inferLine {
+func (rl *Shell) downLineOrSearch() {
+	rl.undo.SkipSave()
+	switch {
+	case rl.cursor.Line() < rl.line.Lines():
+		rl.cursor.LineMove(1)
+	default:
+		rl.historySearchForward()
+	}
+}
+
+func (rl *Shell) inferNextHistory() {
+	rl.undo.SkipSave()
+	rl.histories.InferNext()
+}
+
+func (rl *Shell) beginningOfBufferOrHistory() {
+	rl.undo.SkipSave()
+
+	if rl.cursor.Pos() > 0 {
+		rl.cursor.Set(0)
 		return
 	}
 
-	var err error
-
-	for _, history := range rl.histories {
-		if history == nil {
-			continue
-		}
-
-		rl.histPos, err = history.Write(string(rl.line))
-		if err != nil {
-			print(err.Error() + "\r\n")
-		}
-	}
+	rl.beginningOfHistory()
 }
 
-func (rl *Instance) nextHistorySource() {
-	rl.historySourcePos++
+func (rl *Shell) endOfBufferOrHistory() {
+	rl.undo.SkipSave()
 
-	if rl.historySourcePos == len(rl.historyNames) {
-		rl.historySourcePos = 0
-	}
-}
-
-func (rl *Instance) prevHistorySource() {
-	rl.historySourcePos--
-
-	if rl.historySourcePos < 0 {
-		rl.historySourcePos = len(rl.historyNames) - 1
-	}
-}
-
-func (rl *Instance) currentHistory() History {
-	if len(rl.histories) == 0 {
-		return nil
-	}
-	return rl.histories[rl.historyNames[rl.historySourcePos]]
-}
-
-// walkHistory - Browse historic lines.
-func (rl *Instance) walkHistory(pos int) {
-	var (
-		next string
-		err  error
-	)
-
-	// Always use the main/first history.
-	rl.historySourcePos = 0
-	history := rl.currentHistory()
-
-	if history == nil || history.Len() == 0 {
+	if rl.cursor.Pos() < rl.line.Len()-1 {
+		rl.cursor.Set(rl.line.Len())
 		return
 	}
 
-	// When we are on the last/first item, don't do anything, as it would change
-	// things like cursor positions.
-	if (pos < 0 && rl.histPos == 0) || (pos > 0 && rl.histPos == history.Len()) {
-		return
-	}
+	rl.endOfHistory()
+}
 
-	// When we are exiting the current line buffer to move around
-	// the history, we make buffer the current line
-	if rl.histPos == 0 && (rl.histPos+pos) == 1 {
-		rl.lineBuf = string(rl.line)
-	}
-
-	rl.histPos += pos
+func (rl *Shell) beginningOfLineHist() {
+	rl.undo.SkipSave()
 
 	switch {
-	case rl.histPos > history.Len():
-		// The history is greater than the length of history: maintain
-		// it at the last index, to keep the same line in the buffer.
-		rl.histPos = history.Len()
-	case rl.histPos < 0:
-		// We can never go lower than the last history line, which is our current line.
-		rl.histPos = 0
-	case rl.histPos == 0:
-		// The 0 index is our current line
-		rl.line = []rune(rl.lineBuf)
-		rl.pos = len(rl.lineBuf)
-	}
-
-	// We now have the correct history index. Use it to find the history line.
-	// If the history position is not zero, we need to use a history line.
-	if rl.histPos > 0 {
-		next, err = history.GetLine(history.Len() - rl.histPos)
-		if err != nil {
-			rl.resetHelpers()
-			print("\r\n" + err.Error() + "\r\n")
-			// NOTE: Same here ? Should we print the prompt more properly ?
-			print(rl.Prompt.primary)
-			return
-		}
-
-		rl.lineClear()
-		rl.line = []rune(next)
-		rl.pos = len(rl.line)
+	// case rl.pos <= 0:
+	// 	rl.beginningOfLine()
+	default:
+		rl.histories.Walk(1)
 	}
 }
 
-// historySearchLine inserts the first line in the main history
-// that matches the current input line as a prefix.
-func (rl *Instance) historySearchLine(forward bool) {
-	if len(rl.histories) == 0 {
-		return
-	}
+func (rl *Shell) endOfLineHist() {
+	rl.undo.SkipSave()
 
-	history := rl.currentHistory()
-	if history == nil {
-		return
-	}
-
-	// Set up iteration clauses
-	var histPos int
-	var done func(i int) bool
-	var move func(inc int) int
-
-	if forward {
-		histPos = -1
-		done = func(i int) bool { return i < history.Len() }
-		move = func(pos int) int { return pos + 1 }
-	} else {
-		histPos = history.Len()
-		done = func(i int) bool { return i > 0 }
-		move = func(pos int) int { return pos - 1 }
-	}
-
-	for done(histPos) {
-		histPos = move(histPos)
-
-		histline, err := history.GetLine(histPos)
-		if err != nil {
-			return
-		}
-
-		// If too short
-		if len(histline) < len(rl.line) {
-			continue
-		}
-
-		// Or if not fully matching
-		if !strings.HasPrefix(string(rl.line), string(histline)) {
-			continue
-		}
-
-		// Else we have our new history index position.
-		rl.histPos = histPos
-		rl.lineBuf = string(rl.line)
-		rl.line = []rune(rl.lineBuf)
+	switch {
+	// case rl.cursor.Pos() < len(rl.line)-1:
+	// 	rl.endOfLine()
+	default:
+		rl.histories.Walk(-1)
 	}
 }
 
-// completeHistory - Populates a CompletionGroup with history and returns it the shell
-// we populate only one group, so as to pass it to the main completion engine.
-func (rl *Instance) completeHistory(forward bool) Completions {
-	if len(rl.histories) == 0 {
-		return Completions{}
+func (rl *Shell) beginningHistorySearchBackward() {
+	// rl.historySearchLine(false)
+}
+
+func (rl *Shell) beginningHistorySearchForward() {
+	// rl.historySearchLine(true)
+}
+
+func (rl *Shell) autosuggestAccept() {
+	suggested := rl.histories.Suggest(rl.line)
+
+	if suggested.Len() <= rl.line.Len() {
+		return
 	}
 
-	history := rl.currentHistory()
-	if history == nil {
-		return Completions{}
+	rl.line.Set(suggested...)
+	rl.cursor.Set(len(suggested))
+}
+
+func (rl *Shell) autosuggestExecute() {
+	suggested := rl.histories.Suggest(rl.line)
+
+	if suggested.Len() <= rl.line.Len() {
+		return
 	}
 
-	rl.histHint = []rune(rl.historyNames[rl.historySourcePos])
+	rl.line.Set(suggested...)
+	rl.cursor.Set(len(suggested))
 
-	// Set the hint line with everything
-	rl.histHint = []rune(seqBold + seqFgCyanBright + string(rl.histHint) + seqReset)
+	rl.acceptLine()
+}
 
-	compLines := make([]Completion, 0)
-
-	// Set up iteration clauses
-	var histPos int
-	var done func(i int) bool
-	var move func(inc int) int
-
-	if forward {
-		histPos = -1
-		done = func(i int) bool { return i < history.Len() }
-		move = func(pos int) int { return pos + 1 }
+func (rl *Shell) autosuggestToggle() {
+	if rl.opts.GetBool("history-autosuggest") {
+		rl.autosuggestDisable()
 	} else {
-		histPos = history.Len()
-		done = func(i int) bool { return i > 0 }
-		move = func(pos int) int { return pos - 1 }
+		rl.autosuggestEnable()
+	}
+}
+
+func (rl *Shell) autosuggestEnable() {
+	rl.undo.SkipSave()
+	rl.opts.Vars["history-autosuggest"] = true
+}
+
+func (rl *Shell) autosuggestDisable() {
+	rl.undo.SkipSave()
+	rl.opts.Vars["history-autosuggest"] = false
+}
+
+//
+// Utils -------------------------------------------------------------------
+//
+
+func (rl *Shell) acceptLineWith(infer, hold bool) {
+	// Without multiline support, we always return the line.
+	if rl.AcceptMultiline == nil {
+		rl.display.AcceptLine()
+		rl.histories.Accept(hold, infer, nil)
+		return
 	}
 
-	// And generate the completions.
-nextLine:
-	for done(histPos) {
-		histPos = move(histPos)
-
-		line, err := history.GetLine(histPos)
-		if err != nil {
-			continue
-		}
-
-		if !strings.HasPrefix(line, rl.tcPrefix) || strings.TrimSpace(line) == "" {
-			continue
-		}
-
-		display := strings.ReplaceAll(line, "\n", ``)
-
-		for _, comp := range compLines {
-			if comp.Display == line {
-				continue nextLine
-			}
-		}
-
-		// Proper pad for indexes
-		indexStr := strconv.Itoa(histPos)
-		pad := strings.Repeat(" ", len(strconv.Itoa(history.Len()))-len(indexStr))
-		display = fmt.Sprintf("%s%s %s%s", seqDim, indexStr+pad, seqDimReset, display)
-
-		value := Completion{
-			Display: display,
-			Value:   line,
-		}
-
-		compLines = append(compLines, value)
+	// Ask the caller if the line should be accepted
+	// as is, save the command line and accept it.
+	if rl.AcceptMultiline(*rl.line) {
+		rl.display.AcceptLine()
+		rl.histories.Accept(hold, infer, nil)
+		return
 	}
 
-	comps := CompleteRaw(compLines)
-	comps = comps.NoSort()
-	comps.PREFIX = string(rl.line)
+	// If not, we should start editing another line,
+	// and insert a newline where our cursor value is.
+	// This has the nice advantage of being able to work
+	// in multiline mode even in the middle of the buffer.
+	rl.line.Insert(rl.cursor.Pos(), '\n')
+	rl.cursor.Inc()
+}
 
-	return comps
+func (rl *Shell) insertAutosuggestPartial(emacs bool) {
+	cpos := rl.cursor.Pos()
+	if cpos < rl.line.Len()-1 {
+		return
+	}
+
+	if !rl.opts.GetBool("history-autosuggest") {
+		return
+	}
+
+	suggested := rl.histories.Suggest(rl.line)
+	if suggested.Len() > rl.line.Len() {
+		rl.undo.Save()
+
+		var forward int
+
+		if emacs {
+			forward = suggested.ForwardEnd(suggested.Tokenize, cpos)
+		} else {
+			forward = suggested.Forward(suggested.Tokenize, cpos)
+		}
+
+		if cpos+1+forward > suggested.Len() {
+			forward = suggested.Len() - cpos
+		}
+
+		rl.line.Insert(cpos+1, suggested[cpos+1:cpos+forward+1]...)
+	}
 }

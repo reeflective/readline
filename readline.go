@@ -2,130 +2,137 @@ package readline
 
 import (
 	"os"
+
+	"github.com/reeflective/readline/inputrc"
+	"github.com/reeflective/readline/internal/keymap"
+	"github.com/reeflective/readline/internal/term"
 )
 
 // Readline displays the readline prompt and reads for user input.
 // It can return from the call because of different several things:
 //
-// - When the user accepts the line (generally with Enter),
-//   in which case the input line is returned to the caller.
-// - If a particular keystroke mapping returns an error
-//   (like Ctrl-C, Ctrl-D, etc).
+//   - When the user accepts the line (generally with Enter).
+//   - If a particular keystroke mapping returns an error
+//     (like Ctrl-C, Ctrl-D, etc).
 //
-// In all cases, the current input line is returned along with any
-// potential error, and it is up to the caller to decide what to do
-// with the line result.
-func (rl *Instance) Readline() (string, error) {
-	fd := int(os.Stdin.Fd())
-	state, err := MakeRaw(fd)
+// In all cases, the current input line is returned along with any error,
+// and it is up to the caller to decide what to do with the line result.
+func (rl *Shell) Readline() (string, error) {
+	descriptor := int(os.Stdin.Fd())
+
+	state, err := term.MakeRaw(descriptor)
 	if err != nil {
 		return "", err
 	}
-	defer Restore(fd, state)
+	defer term.Restore(descriptor, state)
 
-	// Initialize all components for this new loop:
-	// line, prompts, helpers, history, keymaps, etc.
 	rl.init()
 
-	// If the prompt is set as transient, we will print it
-	// once our command line is returned to the caller.
-	defer rl.Prompt.printTransient(rl)
+	rl.prompt.PrimaryPrint()
+	defer rl.prompt.TransientPrint()
 
-	// Finally, print any hints or completions
-	// before starting monitoring for keystrokes.
-	rl.renderHelpers()
-
-	// Start handling keystrokes.
 	for {
-		// Readline actualization/initialization. ------------------------------
-		//
 		// Since we always update helpers after being asked to read
 		// for user input again, we do it before actually reading it.
-		rl.redisplay()
+		rl.display.Refresh()
 
-		// The last key might have modified both the local keymap mode or
-		// the global keymap (main), which is either emacs or viins/vicmd.
-		//
-		// These are the only keymaps that actually can be bound to main:
-		// If we are now in a viopp, or menu-select, or isearch, this main
-		// keymap reference does NOT change, so that any of its keys that
-		// are not hidden by the local keymap ones can still be used.
-		rl.updateKeymaps()
+		// Block and wait for user input.
+		rl.keys.Read()
 
-		// Read user key stroke(s) ---------------------------------------------
-		//
-		// Read the input from stdin if any, and upon successful
-		// readLen, convert the input into runes for better scanning.
-		buf, readLen, readErr := rl.readInput()
-		if readErr != nil {
-			return "", err
-		}
-
-		// Only keep the portion that has been read.
-		runesRead := []rune(string(buf))[:readLen]
-
-		// We store the key in our key stack. which is used
-		// when the key only matches some widgets as a prefix.
-		// We use a copy for the matches below, as some actions
-		// will reset/consume this stack.
-		rl.keys += string(runesRead)
-		keys := rl.keys
-
-		// Interrupt keys (CtrlC/CtrlD, etc) are caught before any keymap:
-		// These handlers adapt their behavior on their own, depending on
-		// the current state of the shell, keymap, etc.
-		if handler, yes := rl.isInterrupt(keys); yes && handler != nil {
-			err := handler()
-			if err != nil {
-				return string(rl.line), err
-			}
-		}
-
-		//
-		// Main dispatchers ----------------------------------------------------
-		//
-
-		// 1) First test the key against the local widget keymap, if any.
-		// - In emacs mode, this local keymap is empty, except when performing
-		//   completions or performing history/incremental search.
-		// - In Vim, this can be either 'visual', 'viopp', 'completion' or
-		//   'incremental' search.
-		// - When completing/searching, can be 'menuselect' or 'isearch'
-		widget, prefix := rl.matchKeymap(keys, rl.local)
-		if widget != nil {
-			forward := rl.run(widget, keys, rl.local)
-			if rl.accepted || rl.err != nil {
-				return string(rl.lineCompleted()), rl.err
-			}
-			if !forward {
-				continue
-			}
-		} else if prefix {
+		// 1 - Local keymap (completion/isearch/viopp)
+		bind, command, prefixed := rl.keymaps.MatchLocal()
+		if prefixed {
 			continue
 		}
 
-		// Past the local keymap, our actions have a direct effect on the line
-		// or on the cursor position, so we must first "reset" or accept any
-		// completion state we're in, if any, such as a virtually inserted candidate.
-		rl.updateCompletion()
+		accepted, line, err := rl.run(bind, command)
+		if accepted {
+			return line, err
+		}
 
-		// 2) If the key was not matched against any local widget, match it
-		// against the global keymap, which can never be nil.
-		// - In Emacs mode, this keymap is 'emacs'.
-		// - In Vim mode, this can be 'viins' (Insert) or 'vicmd' (Normal).
-		widget, prefix = rl.matchKeymap(keys, rl.main)
-		if widget != nil {
-			rl.run(widget, keys, rl.main)
-			if rl.accepted || rl.err != nil {
-				return string(rl.lineCompleted()), rl.err
-			}
-			continue
-		} else if prefix {
+		if command != nil {
 			continue
 		}
 
-		// If the key was not matched against any keymap (exact or by prefix)
-		// we discard the input stack, and exit some local keymaps (isearch)
-		rl.resetUndefinedKey()
+		// Past the local keymap, our actions have a direct effect
+		// on the line or on the cursor position, so we must first
+		// "reset" or accept any completion state we're in, if any,
+		// such as a virtually inserted candidate.
+		rl.completer.Update()
+
+		// 2 - Main keymap (vicmd/viins/emacs-*)
+		bind, command, prefixed = rl.keymaps.MatchMain()
+		if prefixed {
+			continue
+		}
+
+		accepted, line, err = rl.run(bind, command)
+		if accepted {
+			return line, err
+		}
+
+		rl.keys.FlushUsed()
+	}
+}
+
+func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
+	if command == nil {
+		return false, "", nil
+	}
+
+	// Whether or not the command is resolved, let the macro
+	// engine record the keys if currently recording a macro.
+	rl.macros.RecordKeys(bind)
+
+	// The completion system might have control of the
+	// input line and be using it with a virtual insertion,
+	// so it knows which line and cursor we should work on.
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
+
+	// Run the command
+	command()
+
+	// Only run pending-operator commands when the command we
+	// just executed has not had any influence on iterations.
+	if !rl.iterations.IsSet() {
+		rl.keymaps.RunPending()
+	}
+
+	rl.keys.FlushUsed() // Drop some or all keys (used ones)
+	rl.checkCursor()    // Ensure cursor position is correct.
+
+	// Drop iterations if required, or show them in the hint.
+	hint, wasActive := rl.iterations.ResetPostCommand()
+
+	if hint != "" {
+		rl.hint.Persist(hint)
+	} else if wasActive {
+		rl.hint.ResetPersist()
+	}
+
+	// If the command just run was using the incremental search
+	// buffer (acting on it), update the list of matches.
+	rl.completer.UpdateIsearch()
+
+	// Work is done: ask the completion system to
+	// return the correct input line and cursor.
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
+
+	// History: save the last action to the line history,
+	// and return with the call to the history system that
+	// checks if the line has been accepted (entered), in
+	// which case this will automatically write the history
+	// sources and set up errors/returned line values.
+	rl.undo.SaveWithCommand(bind)
+
+	return rl.histories.LineAccepted()
+}
+
+func (rl *Shell) checkCursor() {
+	switch rl.keymaps.Main() {
+	case keymap.ViCmd, keymap.ViMove, keymap.Vi:
+		rl.cursor.CheckCommand()
+	default:
+		rl.cursor.CheckAppend()
 	}
 }
