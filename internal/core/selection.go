@@ -246,12 +246,6 @@ func (s *Selection) Pop() (buf string, bpos, epos, cpos int) {
 		return "", -1, -1, 0
 	}
 
-	// End position is increased by one so
-	// that we capture the entire selection.
-	if !s.visualLine {
-		epos++
-	}
-
 	cpos = s.Cursor()
 	buf = string((*s.line)[bpos:epos])
 

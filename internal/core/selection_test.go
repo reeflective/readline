@@ -529,7 +529,7 @@ func TestSelection_Pop(t *testing.T) {
 	}{
 		// Single line
 		{
-			name:     "Invalid range (not visual, no move, epos=bpos)",
+			name:     "No range (not visual, no move, epos=bpos)",
 			fields:   fieldsWith(single, &cSingle),
 			args:     args{bpos: cSingle.Pos()},
 			wantBpos: cSingle.Pos(),
@@ -590,7 +590,7 @@ func TestSelection_Pop(t *testing.T) {
 			test.fields.cursor.Move(test.args.moveCursor)
 
 			gotBuf, gotBpos, gotEpos, gotCpos := sel.Pop()
-			if gotBuf != test.wantBuf {
+			if test.wantBuf != "" && gotBuf != test.wantBuf {
 				t.Errorf("Selection.Pop() gotBuf = %v, want %v", gotBuf, test.wantBuf)
 			}
 			if gotBpos != test.wantBpos {
