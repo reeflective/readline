@@ -267,7 +267,7 @@ nextValue:
 
 	if g.aliased {
 		g.maxX = len(g.columnsWidth)
-		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth)
+		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth) + 1
 	}
 
 	g.maxY = len(g.values)
@@ -473,7 +473,7 @@ func (g *group) writeComps(eng *Engine) (comp string) {
 	}
 
 	if g.tag != "" {
-		comp += fmt.Sprintf("%s%s%s %s\n", color.Bold, color.FgYellow, g.tag, color.Reset)
+		comp += fmt.Sprintf("%s%s%s %s\n", color.Bold, color.FgYellow, g.tag, color.Reset) + term.ClearLineAfter
 		eng.usedY++
 	}
 
@@ -484,7 +484,7 @@ func (g *group) writeComps(eng *Engine) (comp string) {
 		// Generate the completion string for this row (comp/aliases
 		// and/or descriptions), and apply any styles and isearch
 		// highlighting with pattern replacement,
-		comp += g.writeRow(eng, columns)
+		comp += g.writeRow(eng, columns) + term.ClearLineAfter
 
 		columns++
 		rows++
@@ -496,7 +496,7 @@ func (g *group) writeComps(eng *Engine) (comp string) {
 
 	// Always add a newline to the group if
 	// the end if not punctuated with one.
-	if !strings.HasSuffix(comp, "\n") {
+	if !strings.HasSuffix(strings.TrimSuffix(comp, term.ClearLineAfter), "\n") {
 		comp += "\n"
 	}
 
@@ -654,7 +654,11 @@ func (g *group) descriptionTrimmed(desc string) string {
 	g.maxDescWidth = termWidth - g.tcMaxLength - len(g.listSeparator) - 1
 
 	if len(desc) > g.maxDescWidth {
-		desc = desc[:g.maxDescWidth-4] + "..."
+		offset := 4
+		if !g.aliased {
+			offset++
+		}
+		desc = desc[:g.maxDescWidth-offset] + "..."
 	}
 
 	desc = sanitizer.Replace(desc)

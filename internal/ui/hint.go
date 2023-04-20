@@ -107,9 +107,10 @@ func (h *Hint) Coordinates() int {
 	for i, newline := range newlines {
 		bline := line[bpos:newline[0]]
 		bpos = newline[0]
-		_, y := strutil.LineSpan([]rune(bline), i, 0)
 
-		if y == 0 {
+		x, y := strutil.LineSpan([]rune(bline), i, 0)
+
+		if x != 0 || y == 0 {
 			y++
 		}
 
