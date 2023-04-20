@@ -17,7 +17,7 @@ func (rl *Shell) Prompt() *ui.Prompt {
 // Log prints a formatted string below the current line and redisplays the prompt
 // and input line (and possibly completions/hints if active) below the logged string.
 // A newline is added to the message so that the prompt is correctly refreshed below.
-func (rl *Shell) Log(msg string, args ...interface{}) {
+func (rl *Shell) Log(msg string, args ...any) (n int, err error) {
 	// First go back to the last line of the input line,
 	// and clear everything below (hints and completions).
 	rl.display.CursorBelowLine()
@@ -25,21 +25,24 @@ func (rl *Shell) Log(msg string, args ...interface{}) {
 	fmt.Print(term.ClearScreenBelow)
 
 	// Skip a line, and print the formatted message.
-	fmt.Printf(msg+"\n", args...)
+	n, err = fmt.Printf(msg+"\n", args...)
 
 	// Redisplay the prompt, input line and active helpers.
 	rl.prompt.PrimaryPrint()
 	rl.display.Refresh()
+
+	return
 }
 
 // LogTransient prints a formatted string in place of the current prompt and input
 // line, and then refreshes, or "pushes" the prompt/line below this printed message.
-func (rl *Shell) LogTransient(msg string, args ...interface{}) {
+func (rl *Shell) LogTransient(msg string, args ...any) (n int, err error) {
 	// First go back to the beginning of the line/prompt, and
 	// clear everything below (prompt/line/hints/completions).
 	if rl.Prompt().Refreshing() {
 		term.MoveCursorUp(1)
 	}
+
 	rl.display.CursorToLineStart()
 	term.MoveCursorBackwards(term.GetWidth())
 
@@ -47,9 +50,11 @@ func (rl *Shell) LogTransient(msg string, args ...interface{}) {
 	fmt.Print(term.ClearScreenBelow)
 
 	// Print the logged message.
-	fmt.Printf(msg+"\n", args...)
+	n, err = fmt.Printf(msg+"\n", args...)
 
 	// Redisplay the prompt, input line and active helpers.
 	rl.prompt.PrimaryPrint()
 	rl.display.Refresh()
+
+	return
 }
