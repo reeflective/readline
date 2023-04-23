@@ -134,8 +134,9 @@ func (e *Engine) AcceptLine() {
 	e.prompt.RightPrint(e.lineCol, false)
 
 	// Go below this non-suggested line and clear everything.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorDown(1)
+	fmt.Println()
+	// term.MoveCursorBackwards(term.GetWidth())
+	// term.MoveCursorDown(1)
 }
 
 // CursorBelowLine moves the cursor to the leftmost column
