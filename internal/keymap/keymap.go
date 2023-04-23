@@ -272,7 +272,19 @@ func (m *Modes) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 		return
 	}
 
-	return m.matchKeymap(binds)
+	bind, command, prefix = m.matchKeymap(binds)
+
+	// Similarly to the MatchMain() function, give a special treatment to the escape key
+	// (if it's alone): using escape in Viopp/menu-complete/isearch should cancel the
+	// current mode, thus we return either a Vim movement-mode command, or nothing.
+	if m.isEscapeKey() {
+		bind = inputrc.Bind{}
+		m.prefixed = inputrc.Bind{}
+
+		return bind, nil, false
+	}
+
+	return
 }
 
 func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
@@ -363,4 +375,21 @@ func (m *Modes) resolveCommand(bind inputrc.Bind) func() {
 	}
 
 	return m.commands[bind.Action]
+}
+
+func (m *Modes) isEscapeKey() bool {
+	keys, empty := m.keys.PeekAll()
+	if empty || len(keys) == 0 {
+		return false
+	}
+
+	if len(keys) > 1 {
+		return false
+	}
+
+	if keys[0] != inputrc.Esc {
+		return false
+	}
+
+	return true
 }
