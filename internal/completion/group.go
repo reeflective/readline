@@ -447,7 +447,7 @@ func (g *group) moveSelector(x, y int) (done, next bool) {
 	// the next column, if there is another one.
 	if g.posY > g.maxY-1 {
 		g.posY = 0
-		if g.posX < len(g.values[g.posY])-1 {
+		if g.posX < g.maxX {
 			g.posX++
 		} else {
 			return true, true
