@@ -3,8 +3,6 @@ package core
 import (
 	"testing"
 	"unicode"
-
-	"github.com/stretchr/testify/require"
 )
 
 type fields struct {
@@ -94,8 +92,13 @@ func TestSelection_Mark(t *testing.T) {
 			sel.Mark(test.args.pos)
 
 			bpos, epos := sel.Pos()
-			require.Equalf(t, test.wantBpos, bpos, "Bpos: '%d', want '%d'", bpos, test.wantBpos)
-			require.Equalf(t, test.wantEpos, epos, "Epos: '%d', want '%d'", epos, test.wantEpos)
+
+			if bpos != test.wantBpos {
+				t.Errorf("Bpos: '%d', want '%d'", bpos, test.wantBpos)
+			}
+			if epos != test.wantEpos {
+				t.Errorf("Epos: '%d', want '%d'", epos, test.wantEpos)
+			}
 		})
 	}
 }
@@ -157,8 +160,13 @@ func TestSelection_MarkMove(t *testing.T) {
 			cur.Move(test.moveCursor)
 
 			bpos, epos := sel.Pos()
-			require.Equalf(t, test.wantBpos, bpos, "Bpos: '%d', want '%d'", bpos, test.wantBpos)
-			require.Equalf(t, test.wantEpos, epos, "Epos: '%d', want '%d'", epos, test.wantEpos)
+
+			if bpos != test.wantBpos {
+				t.Errorf("Bpos: '%d', want '%d'", bpos, test.wantBpos)
+			}
+			if epos != test.wantEpos {
+				t.Errorf("Epos: '%d', want '%d'", epos, test.wantEpos)
+			}
 		})
 	}
 }
@@ -219,8 +227,13 @@ func TestSelection_MarkRange(t *testing.T) {
 			cur.Move(test.args.moveCursor)
 
 			bpos, epos := sel.Pos()
-			require.Equalf(t, test.wantBpos, bpos, "Bpos: '%d', want '%d'", bpos, test.wantBpos)
-			require.Equalf(t, test.wantEpos, epos, "Epos: '%d', want '%d'", epos, test.wantEpos)
+
+			if bpos != test.wantBpos {
+				t.Errorf("Bpos: '%d', want '%d'", bpos, test.wantBpos)
+			}
+			if epos != test.wantEpos {
+				t.Errorf("Epos: '%d', want '%d'", epos, test.wantEpos)
+			}
 		})
 	}
 }
@@ -265,8 +278,9 @@ func TestSelection_MarkSurround(t *testing.T) {
 
 			sel.MarkSurround(test.args.bpos, test.args.epos)
 
-			require.Lenf(t, sel.Surrounds(), test.wantSelections,
-				"Surround areas: '%d', want '%d'", sel.Surrounds(), test.wantSelections)
+			if len(sel.Surrounds()) != test.wantSelections {
+				t.Errorf("Surround areas: '%d', want '%d'", len(sel.Surrounds()), test.wantSelections)
+			}
 
 			if len(sel.Surrounds()) == 0 {
 				return
@@ -274,13 +288,21 @@ func TestSelection_MarkSurround(t *testing.T) {
 
 			// Surround 1
 			bpos, epos := sel.Surrounds()[0].Pos()
-			require.Equalf(t, test.wantBpos, bpos, "Bpos: '%d', want '%d'", bpos, test.wantBpos)
-			require.Equalf(t, test.wantEpos, epos, "Epos: '%d', want '%d'", epos, test.wantEpos)
+			if bpos != test.wantBpos {
+				t.Errorf("Bpos: '%d', want '%d'", bpos, test.wantBpos)
+			}
+			if epos != test.wantEpos {
+				t.Errorf("Epos: '%d', want '%d'", epos, test.wantEpos)
+			}
 
 			// Surround 2
 			bpos, epos = sel.Surrounds()[1].Pos()
-			require.Equalf(t, test.wantBposS2, bpos, "BposS2: '%d', want '%d'", bpos, test.wantBposS2)
-			require.Equalf(t, test.wantEposS2, epos, "EposS2: '%d', want '%d'", epos, test.wantEposS2)
+			if bpos != test.wantBposS2 {
+				t.Errorf("BposS2: '%d', want '%d'", bpos, test.wantBposS2)
+			}
+			if epos != test.wantEposS2 {
+				t.Errorf("EposS2: '%d', want '%d'", epos, test.wantEposS2)
+			}
 		})
 	}
 }
