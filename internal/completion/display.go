@@ -22,6 +22,7 @@ func (e *Engine) Display(lines int) {
 	// little more time. The engine itself is responsible for
 	// deleting those lists when it deems them useless.
 	if e.Matches() == 0 {
+		fmt.Print(term.ClearLineAfter)
 		return
 	}
 

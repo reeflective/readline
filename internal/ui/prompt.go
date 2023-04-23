@@ -127,6 +127,7 @@ func (p *Prompt) PrimaryPrint() {
 	fmt.Print(lastPrompt)
 
 	// And compute coordinates
+	p.primaryRows = len(strings.Split(prompt, "\n"))
 	p.primaryCols = strutil.RealLength(lastPrompt)
 }
 

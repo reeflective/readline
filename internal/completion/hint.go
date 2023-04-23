@@ -25,10 +25,7 @@ func (e *Engine) hintCompletions(comps Values) {
 		hint += fmt.Sprintf("%s\n", message)
 	}
 
-	// Remove the last newline
-	if len(hint) > 0 && hint[len(hint)-1] == '\n' {
-		hint = hint[:len(hint)-2]
-	}
+	hint = strings.TrimSuffix(hint, "\n")
 
 	// Add the hint to the shell.
 	e.hint.Set(hint)

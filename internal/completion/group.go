@@ -59,6 +59,8 @@ func (e *Engine) group(comps Values) {
 			e.newGroup(comps, "", noDescVals, false)
 		}
 	})
+
+	e.justifyCommandComps()
 }
 
 // groupValues separates values based on whether they have descriptions, or are aliases of each other.
@@ -104,6 +106,31 @@ func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals 
 	}
 
 	return vals, noDescVals, aliased
+}
+
+func (e *Engine) justifyCommandComps() {
+	commandGroups := make([]*group, 0)
+	maxCellLength := 0
+
+	for _, group := range e.groups {
+		if !strings.HasSuffix(group.tag, "commands") {
+			continue
+		}
+
+		if group.aliased || len(group.columnsWidth) > 1 {
+			continue
+		}
+
+		commandGroups = append(commandGroups, group)
+
+		if group.tcMaxLength > maxCellLength {
+			maxCellLength = group.tcMaxLength
+		}
+	}
+
+	for _, group := range commandGroups {
+		group.tcMaxLength = maxCellLength
+	}
 }
 
 func (e *Engine) newGroup(c Values, tag string, vals RawValues, aliased bool) {
@@ -162,6 +189,11 @@ func (g *group) setOptions(comps Values, tag string, vals RawValues) {
 		g.list = true
 	}
 
+	// Always list long commands when they have descriptions.
+	if strings.HasSuffix(g.tag, "commands") && len(vals) > 0 && vals[0].Description != "" {
+		g.list = true
+	}
+
 	// Description list separator
 	listSep, found := comps.ListSep[tag]
 	if !found {
@@ -202,9 +234,9 @@ func (g *group) computeCells(vals RawValues) {
 	// it is going to take in a row (including the description)
 	for _, val := range vals {
 		candidate := g.displayTrimmed(color.Strip(val.Display))
-		pad := g.tcMaxLength - len(candidate)
+		pad := strings.Repeat(" ", g.tcMaxLength-len(candidate))
 		desc := g.descriptionTrimmed(val.Description)
-		display := fmt.Sprintf("%s%s%s", candidate, strings.Repeat(" ", pad)+" ", desc)
+		display := fmt.Sprintf("%s%s%s", candidate, pad+" ", desc)
 		valLen := utf8.RuneCountInString(display)
 
 		if valLen > g.maxCellLength {
@@ -223,6 +255,15 @@ func (g *group) computeCells(vals RawValues) {
 
 	numColumns := termWidth / (g.maxCellLength)
 	if numColumns == 0 {
+		numColumns = 1
+	}
+
+	if numColumns > len(vals) {
+		numColumns = len(vals)
+	}
+
+	if g.list {
+		g.maxX = 1
 		numColumns = 1
 	}
 
@@ -511,7 +552,9 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 	writeDesc := func(val Candidate, x, y, pad int) string {
 		desc := g.highlightDescription(eng, val, y, x)
 		descPad := g.padDescription(current, val, pad)
-		desc = fmt.Sprintf("%s%s", desc, strings.Repeat(" ", descPad))
+		if descPad > 0 {
+			desc += strings.Repeat(" ", descPad)
+		}
 
 		return desc
 	}
@@ -557,7 +600,6 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 
 	default:
 		candidate = reset + candidate + color.Reset + cell
-		// candidate = reset + candidate + color.Reset
 	}
 
 	candidate += pad
@@ -583,9 +625,7 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 		desc = color.SGR(strconv.Itoa(255), false) + color.FgBlackBright + g.descriptionTrimmed(val.Description)
 	}
 
-	desc = color.Dim + g.listSeparator + " " + desc + color.Reset
-
-	return desc
+	return color.Dim + desc + color.Reset
 }
 
 func (g *group) padCandidate(row []Candidate, val Candidate, col int) (cell, pad string) {
@@ -661,7 +701,7 @@ func (g *group) descriptionTrimmed(desc string) string {
 		desc = desc[:g.maxDescWidth-offset] + "..."
 	}
 
-	desc = sanitizer.Replace(desc)
+	desc = g.listSeparator + " " + sanitizer.Replace(desc)
 
 	return desc
 }
