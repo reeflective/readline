@@ -75,6 +75,7 @@ func (e *Engine) UpdateIsearch() {
 
 	var err error
 	e.isearch, err = regexp.Compile(regexStr)
+
 	if err != nil {
 		e.hint.Set(color.FgRed + "Failed to compile i-search regexp")
 	}
@@ -97,16 +98,3 @@ func (e *Engine) UpdateIsearch() {
 		e.Select(1, 0)
 	}
 }
-
-// In history isearch, insert the first matching candidate.
-// This candidate will be cleared/replaced as soon as another
-// key/change is operated on the isearch buffer.
-// if len(rl.histHint) > 0 && len(rl.tcGroups) > 0 && len(rl.tcGroups[0].values) > 0 {
-// 	rl.resetVirtualComp(true)
-// 	cur := rl.currentGroup()
-// 	cur.tcPosY = 0
-// 	cur.tcPosX = 0
-// 	rl.updateVirtualComp()
-// 	cur.tcPosY = -1
-// 	cur.tcPosX = -1
-// }
