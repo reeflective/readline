@@ -50,7 +50,7 @@ func (m *Modes) PrintCursor(keymap Mode) {
 	var cursor CursorStyle
 
 	// Check for a configured cursor in .inputrc file.
-	modeSet := m.opts.GetString(string(keymap))
+	modeSet := m.config.GetString(string(keymap))
 	if modeSet != "" {
 		cursor = defaultCursors[Mode(modeSet)]
 	}
