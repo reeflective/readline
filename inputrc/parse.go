@@ -248,6 +248,7 @@ func (p *Parser) do(h Handler, a, b string) error {
 			eval = strings.TrimPrefix(b, "mode=") == p.mode
 		case strings.HasPrefix(b, "term="):
 			eval = strings.TrimPrefix(b, "term=") == p.term
+			// TODO: Should add a case for simple readline variable equality test.
 		default:
 			eval = strings.ToLower(b) == p.app
 		}
