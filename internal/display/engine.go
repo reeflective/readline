@@ -70,8 +70,7 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 func (e *Engine) Refresh() {
 	// Clear everything below the current input line.
 	fmt.Print(term.HideCursor)
-	e.CursorBelowLine()
-	e.CursorHintToLineStart()
+	e.CursorToLineStart()
 
 	// Get the new input line and auto-suggested one.
 	e.line, e.cursor = e.completer.Line()
@@ -135,8 +134,6 @@ func (e *Engine) AcceptLine() {
 
 	// Go below this non-suggested line and clear everything.
 	fmt.Println()
-	// term.MoveCursorBackwards(term.GetWidth())
-	// term.MoveCursorDown(1)
 }
 
 // PrintTransientPrompt clears the accepted line
@@ -149,8 +146,7 @@ func (e *Engine) PrintTransientPrompt() {
 	e.CursorToLineStart()
 	e.prompt.TransientPrint()
 
-	suggested := e.histories.Suggest(e.line)
-	e.displayLine(suggested)
+	e.displayLine(*e.line)
 	fmt.Println()
 }
 
@@ -159,7 +155,7 @@ func (e *Engine) PrintTransientPrompt() {
 func (e *Engine) CursorBelowLine() {
 	term.MoveCursorUp(e.cursorRow)
 	term.MoveCursorDown(e.lineRows)
-	term.MoveCursorDown(1)
+	fmt.Println()
 }
 
 // CursorToPos moves the cursor back to where the cursor is on the input line.
@@ -178,13 +174,6 @@ func (e *Engine) LineStartToCursorPos() {
 	term.MoveCursorDown(e.cursorRow)
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorForwards(e.cursorCol)
-}
-
-// CursorBelowHint moves the cursor to the leftmost
-// column of the first line after the hint section.
-func (e *Engine) CursorBelowHint() {
-	term.MoveCursorDown(e.lineRows - e.cursorRow)
-	term.MoveCursorBackwards(term.GetWidth())
 }
 
 // CursorToLineStart moves the cursor just after the primary prompt.
@@ -243,7 +232,7 @@ func (e *Engine) displayLine(suggested core.Line) {
 
 	// Adjust the cursor if the line fits exactly in the terminal width.
 	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
-		term.MoveCursorDown(1)
+		fmt.Println()
 	}
 }
 
@@ -251,9 +240,7 @@ func (e *Engine) displayLine(suggested core.Line) {
 // It assumes that the cursor is on the last line of input,
 // and goes back to this same line after displaying this.
 func (e *Engine) displayHelpers() {
-	// Clear everything below the input line.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorDown(1)
+	fmt.Println()
 
 	// Recompute completions and hints if autocompletion is on.
 	e.completer.Autocomplete()
