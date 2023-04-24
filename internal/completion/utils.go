@@ -154,9 +154,13 @@ func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
 	if row > 0 {
 		if cur.aliased && keys != term.ArrowRight && keys != term.ArrowDown {
 			row, column = 0, row
+		} else if keys == term.ArrowDown {
+			row, column = 0, row
 		}
 	} else {
 		if cur.aliased && keys != term.ArrowLeft && keys != term.ArrowUp {
+			row, column = 0, 1*row
+		} else if keys == term.ArrowUp {
 			row, column = 0, 1*row
 		}
 	}
