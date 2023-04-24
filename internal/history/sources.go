@@ -90,6 +90,8 @@ func (h *Sources) AddFromFile(name, file string) {
 	hist := new(fileHistory)
 	hist.file = file
 	hist.lines, _ = openHist(file)
+
+	h.Add(name, hist)
 }
 
 // Delete deletes one or more history source by name.
@@ -301,7 +303,7 @@ func (h *Sources) InsertMatch(forward bool) {
 		return
 	}
 
-	line, pos, found := h.matchFirst(forward)
+	line, pos, found := h.matchFirst(h.line, forward)
 	if !found {
 		return
 	}
@@ -324,7 +326,7 @@ func (h *Sources) InferNext() {
 		return
 	}
 
-	_, pos, found := h.matchFirst(false)
+	_, pos, found := h.matchFirst(h.line, false)
 	if !found {
 		return
 	}
@@ -358,11 +360,11 @@ func (h *Sources) Suggest(line *core.Line) core.Line {
 
 	// Don't autosuggest when the line is not
 	// the current input line: we are completing.
-	if line != h.line {
-		return *line
-	}
+	// if line != h.line {
+	// 	return *line
+	// }
 
-	suggested, _, found := h.matchFirst(false)
+	suggested, _, found := h.matchFirst(line, false)
 	if !found {
 		return *line
 	}
@@ -455,7 +457,7 @@ func (h *Sources) Name() string {
 	return h.names[h.sourcePos]
 }
 
-func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
+func (h *Sources) matchFirst(match *core.Line, forward bool) (line string, pos int, found bool) {
 	if len(h.list) == 0 {
 		return
 	}
@@ -489,12 +491,12 @@ func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
 		}
 
 		// If too short
-		if len(histline) < h.line.Len() {
+		if len(histline) < match.Len() {
 			continue
 		}
 
 		// Or if not fully matching
-		if !strings.HasPrefix(histline, string(*h.line)) {
+		if !strings.HasPrefix(histline, string(*match)) {
 			// if !strings.HasPrefix(string(*h.line), histline) {
 			continue
 		}

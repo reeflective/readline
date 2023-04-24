@@ -3,6 +3,8 @@ package readline
 import (
 	"strings"
 
+	"github.com/reeflective/readline/inputrc"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/strutil"
 )
@@ -243,7 +245,46 @@ func (rl *Shell) yankNthArg() {
 	rl.cursor.Move(len(lastArg))
 }
 
-func (rl *Shell) magicSpace() {}
+func (rl *Shell) magicSpace() {
+	cpos := rl.cursor.Pos()
+	lineLen := rl.line.Len()
+
+	// If no line, or the cursor is on a space, we can't perform.
+	if lineLen == 0 || (cpos == lineLen && (*rl.line)[cpos-1] == inputrc.Space) {
+		rl.selfInsert()
+		return
+	}
+
+	// Select the word around cursor.
+	rl.viSelectInBlankWord()
+	word, bpos, _, _ := rl.selection.Pop()
+	rl.cursor.Set(cpos)
+
+	// Fail if empty or not prefixed expandable.
+	if len(strings.TrimSpace(word)) == 0 {
+		rl.selfInsert()
+		return
+	}
+
+	if !strings.HasPrefix(word, "!") || word == "!" {
+		rl.selfInsert()
+		return
+	}
+
+	// Else, perform expansion on the remainder.
+	pattern := core.Line((*rl.line)[bpos+1:])
+	suggested := rl.histories.Suggest(&pattern)
+
+	if string(suggested) == string(pattern) {
+		rl.selfInsert()
+		return
+	}
+
+	rl.undo.Save()
+	rl.line.Cut(bpos, lineLen)
+	rl.line.Insert(bpos, suggested...)
+	rl.cursor.Set(bpos + suggested.Len())
+}
 
 //
 // Added -------------------------------------------------------------------
