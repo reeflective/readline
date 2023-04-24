@@ -3,7 +3,6 @@ package completion
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/reeflective/readline/internal/color"
@@ -12,8 +11,10 @@ import (
 
 // Display prints the current completion list to the screen,
 // respecting the current display and completion settings.
-func (e *Engine) Display() {
+func (e *Engine) Display(lines int) {
 	e.usedY = 0
+
+	defer fmt.Print(term.ClearScreenBelow)
 
 	// The completion engine might be inactive but still having
 	// a non-empty list of completions. This is on purpose, as
@@ -21,21 +22,21 @@ func (e *Engine) Display() {
 	// little more time. The engine itself is responsible for
 	// deleting those lists when it deems them useless.
 	if e.Matches() == 0 {
+		fmt.Print(term.ClearLineAfter)
 		return
 	}
 
 	// The final completions string to print.
-	var completions string
+	completions := term.ClearLineAfter
 
 	for _, group := range e.groups {
 		completions += group.writeComps(e)
 	}
 
 	// Crop the completions so that it fits within our terminal
-	completions, e.usedY = e.cropCompletions(completions)
+	completions, e.usedY = e.cropCompletions(completions, lines)
 
 	if completions != "" {
-		fmt.Print(term.ClearScreenBelow)
 		fmt.Print(completions)
 	}
 }
@@ -49,9 +50,7 @@ func (e *Engine) Coordinates() int {
 // cropCompletions - When the user cycles through a completion list longer
 // than the console MaxTabCompleterRows value, we crop the completions string
 // so that "global" cycling (across all groups) is printed correctly.
-func (e *Engine) cropCompletions(comps string) (cropped string, usedY int) {
-	maxRows := e.getCompletionMaxRows()
-
+func (e *Engine) cropCompletions(comps string, maxRows int) (cropped string, usedY int) {
 	// Get the current absolute candidate position
 	absPos := e.getAbsPos()
 
@@ -133,30 +132,4 @@ func (e *Engine) excessCompletionsHint(cropped string, maxRows, offset int) stri
 	hinted := cropped + hint
 
 	return hinted
-}
-
-// returns either the max number of completion rows configured
-// or a reasonable amount of rows so as not to bother the user.
-func (e *Engine) getCompletionMaxRows() (maxRows int) {
-	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
-
-	// Pause the key reading routine and query the terminal
-	_, cposY := e.keys.GetCursorPos()
-	if cposY == -1 {
-		if termHeight != -1 {
-			return termHeight / maxRowsRatio
-		}
-
-		return maxRows
-	}
-
-	spaceBelow := (termHeight - cposY) - 1
-
-	// Only return the space below if it's reasonably large.
-	if spaceBelow >= minRowsSpaceBelow {
-		return spaceBelow
-	}
-
-	// Otherwise return half the terminal.
-	return termHeight / maxRowsRatio
 }

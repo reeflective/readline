@@ -3,8 +3,6 @@ package core
 import (
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -58,7 +56,9 @@ func TestCursor_Set(t *testing.T) {
 				line: test.fields.line,
 			}
 			c.Set(test.args.pos)
-			require.Equalf(t, test.expected, c.pos, "Cursor position: %d, should be %d", c.pos, test.expected)
+			if c.pos != test.expected {
+				t.Errorf("Cursor position: %d, should be %d", c.pos, test.expected)
+			}
 		})
 	}
 }
@@ -271,7 +271,9 @@ func TestCursor_BeginningOfLine(t *testing.T) {
 				line: tt.fields.line,
 			}
 			c.BeginningOfLine()
-			require.Equalf(t, 0, c.pos, "Cursor: %d, should be 0", c.pos)
+			if c.pos != 0 {
+				t.Errorf("Cursor: %d, should be 0", c.pos)
+			}
 		})
 	}
 }
@@ -300,7 +302,9 @@ func TestCursor_EndOfLine(t *testing.T) {
 				line: test.fields.line,
 			}
 			c.EndOfLine()
-			require.Equalf(t, len(*test.fields.line)-1, c.pos, "Cursor: %d, should be %d", c.pos, len(*test.fields.line)-1)
+			if c.pos != len(*test.fields.line)-1 {
+				t.Errorf("Cursor: %d, should be %d", c.pos, len(*test.fields.line)-1)
+			}
 		})
 	}
 }
@@ -328,7 +332,9 @@ func TestCursor_EndOfLineAppend(t *testing.T) {
 				line: tt.fields.line,
 			}
 			c.EndOfLineAppend()
-			require.Equalf(t, len(*tt.fields.line), c.pos, "Cursor: %d, should be %d", c.pos, len(*tt.fields.line))
+			if c.pos != len(*tt.fields.line) {
+				t.Errorf("Cursor: %d, should be %d", c.pos, len(*tt.fields.line))
+			}
 		})
 	}
 }
@@ -359,8 +365,12 @@ func TestCursor_SetMark(t *testing.T) {
 				line: test.fields.line,
 			}
 			c.SetMark()
-			require.Equalf(t, test.expected, c.pos, "Mark: %d, should be %d", c.mark, test.expected)
-			require.Equalf(t, c.pos, c.mark, "Cpos: %d should be equal to mark: %d", c.pos, c.mark)
+			if c.pos != test.expected {
+				t.Errorf("Mark: %d, should be %d", c.mark, test.expected)
+			}
+			if c.pos != c.mark {
+				t.Errorf("Cpos: %d should be equal to mark: %d", c.pos, c.mark)
+			}
 		})
 	}
 }
@@ -390,8 +400,9 @@ func TestCursor_Mark(t *testing.T) {
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			c.Mark()
-			require.Equalf(t, c.Mark(), test.expected, "Mark: %d, should be %d", c.Mark(), test.expected)
+			if c.Mark() != test.expected {
+				t.Errorf("Mark: %d, should be %d", c.Mark(), test.expected)
+			}
 		})
 	}
 }
@@ -499,7 +510,9 @@ func TestCursor_LineMove(t *testing.T) {
 				line: test.fields.line,
 			}
 			c.LineMove(test.args.offset)
-			require.Equalf(t, test.wantPos, c.Pos(), "Cursor: %d, want %d", c.Pos(), test.wantPos)
+			if c.Pos() != test.wantPos {
+				t.Errorf("Cursor: %d, want %d", c.Pos(), test.wantPos)
+			}
 		})
 	}
 }

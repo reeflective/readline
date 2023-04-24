@@ -182,10 +182,35 @@ func (e *Engine) Update() {
 	// Do the same when using incremental search, except if the
 	// last key typed is an escape, in which case the user wants
 	// to quit incremental search but keeping any selected comp.
-	key, _ := e.keys.Peek()
-	inserted := e.keymaps.Local() == keymap.Isearch && key != inputrc.Esc
+	inserted := e.removeInserted()
 
 	e.Cancel(inserted, false)
+}
+
+func (e *Engine) removeInserted() bool {
+	// All other completion modes do not want
+	// the candidate to be removed from the line.
+	if e.keymaps.Local() != keymap.Isearch {
+		return false
+	}
+
+	// Normally, we should have a key.
+	key, empty := e.keys.Peek()
+	if empty {
+		return false
+	}
+
+	// Some keys trigger behavior different from the normal one:
+	// Ex: if the key is a letter, the isearch buffer is updated
+	// and the line-inserted match might be different, so remove.
+	// If the key is 'Enter', the line will likely be accepted
+	// with the currently inserted candidate.
+	switch key {
+	case inputrc.Esc, inputrc.Return:
+		return false
+	default:
+		return true
+	}
 }
 
 // Cancel exits the current completions with the following behavior:

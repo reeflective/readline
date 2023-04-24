@@ -114,7 +114,7 @@ func NewShell() *Shell {
 	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, opts)
 	completer.SetAutocompleter(shell.commandCompletion)
 	history := history.NewSources(line, cursor, hint)
-	display := display.NewEngine(selection, history, prompt, hint, completer, opts)
+	display := display.NewEngine(keys, selection, history, prompt, hint, completer, opts)
 
 	shell.opts = opts
 	shell.hint = hint

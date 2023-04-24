@@ -3,8 +3,6 @@ package core
 import (
 	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 // TODO: Add many more values to insert: Control characters,
@@ -46,7 +44,9 @@ func TestLine_Insert(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.l.Insert(tt.args.pos, tt.args.r...)
 		})
-		require.Equalf(t, tt.want, string(line), "Line: '%s', wanted '%s'", string(line), tt.want)
+		if string(line) != tt.want {
+			t.Errorf("Line: '%s', wanted '%s'", string(line), tt.want)
+		}
 	}
 }
 
@@ -95,7 +95,9 @@ func TestLine_InsertBetween(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.l.InsertBetween(tt.args.bpos, tt.args.epos, tt.args.r...)
 		})
-		require.Equalf(t, tt.want, string(line), "Line: '%s', wanted '%s'", string(line), tt.want)
+		if string(line) != tt.want {
+			t.Errorf("Line: '%s', wanted '%s'", string(line), tt.want)
+		}
 	}
 }
 
@@ -136,7 +138,9 @@ func TestLine_Cut(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.l.Cut(tt.args.bpos, tt.args.epos)
 		})
-		require.Equalf(t, tt.want, string(line), "Line: '%s', wanted '%s'", string(line), tt.want)
+		if string(line) != tt.want {
+			t.Errorf("Line: '%s', wanted '%s'", string(line), tt.want)
+		}
 	}
 }
 
@@ -176,7 +180,9 @@ func TestLine_CutRune(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.l.CutRune(tt.args.pos)
 		})
-		require.Equalf(t, tt.want, string(line), "Line: '%s', wanted '%s'", string(line), tt.want)
+		if string(line) != tt.want {
+			t.Errorf("Line: '%s', wanted '%s'", string(line), tt.want)
+		}
 	}
 }
 

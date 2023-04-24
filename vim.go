@@ -137,9 +137,12 @@ func (rl *Shell) viCommandMode() {
 	rl.iterations.Reset()
 	rl.selection.Reset()
 
-	// Cancel completions and hints if any.
+	// Cancel completions and hints if any, and reassign the
+	// current line/cursor/selection for the cursor check below
+	// to be effective. This is needed when in isearch mode.
 	rl.hint.Reset()
 	rl.completer.Reset()
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	// Only go back if not in insert mode
 	if rl.keymaps.Main() == keymap.ViIns && !rl.cursor.AtBeginningOfLine() {

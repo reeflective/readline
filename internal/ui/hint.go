@@ -8,6 +8,7 @@ import (
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/strutil"
+	"github.com/reeflective/readline/internal/term"
 )
 
 // Hint is in charge of printing the usage messages below the input line.
@@ -69,10 +70,10 @@ func (h *Hint) Display() {
 		text += string(h.text)
 	}
 
-	text = strings.TrimSuffix(text, "\n")
+	text = "\r" + strings.TrimSuffix(text, "\n") + term.ClearLineAfter + string(inputrc.Newline) + color.Reset
 
 	if len(text) > 0 {
-		fmt.Print("\r" + text + string(inputrc.Newline) + color.Reset)
+		fmt.Print(text)
 	}
 }
 
@@ -107,9 +108,10 @@ func (h *Hint) Coordinates() int {
 	for i, newline := range newlines {
 		bline := line[bpos:newline[0]]
 		bpos = newline[0]
-		_, y := strutil.LineSpan([]rune(bline), i, 0)
 
-		if y == 0 {
+		x, y := strutil.LineSpan([]rune(bline), i, 0)
+
+		if x != 0 || y == 0 {
 			y++
 		}
 

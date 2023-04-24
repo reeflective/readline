@@ -618,6 +618,8 @@ func (l *Line) Display(indent int) {
 			line += "\n"
 		}
 
+		line += term.ClearLineAfter
+
 		fmt.Print(line)
 	}
 }
