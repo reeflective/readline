@@ -29,7 +29,7 @@ func (rl *Shell) Readline() (string, error) {
 	rl.init()
 
 	rl.prompt.PrimaryPrint()
-	defer rl.prompt.TransientPrint()
+	defer rl.display.PrintTransientPrompt()
 
 	for {
 		// Since we always update helpers after being asked to read

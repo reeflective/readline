@@ -204,17 +204,13 @@ func (p *Prompt) TransientPrint() {
 		return
 	}
 
-	// _, lines := p.line.Coordinates()
-
 	// Clean everything below where the prompt will be printed.
 	term.MoveCursorBackwards(term.GetWidth())
-	promptLines := strings.Count(p.primaryF(), "\n")
-	term.MoveCursorUp(promptLines)
+	term.MoveCursorUp(p.primaryRows)
 	fmt.Print(term.ClearScreenBelow)
 
-	// And print the prompt and the accepted input line.
+	// And print the prompt
 	fmt.Print(p.transientF())
-	fmt.Println(string(*p.line))
 }
 
 // Refreshing returns true if the prompt is currently redisplaying

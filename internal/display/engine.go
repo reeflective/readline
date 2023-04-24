@@ -139,6 +139,21 @@ func (e *Engine) AcceptLine() {
 	// term.MoveCursorDown(1)
 }
 
+// PrintTransientPrompt clears the accepted line
+// and redisplays the transient prompt with line.
+func (e *Engine) PrintTransientPrompt() {
+	if !e.opts.GetBool("prompt-transient") {
+		return
+	}
+
+	e.CursorToLineStart()
+	e.prompt.TransientPrint()
+
+	suggested := e.histories.Suggest(e.line)
+	e.displayLine(suggested)
+	fmt.Println()
+}
+
 // CursorBelowLine moves the cursor to the leftmost column
 // of the first row after the last line of input.
 func (e *Engine) CursorBelowLine() {
