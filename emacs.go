@@ -3,8 +3,7 @@ package readline
 import (
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
+	"os/user"
 	"sort"
 	"strings"
 	"unicode"
@@ -141,7 +140,7 @@ func (rl *Shell) emacsEditingMode() {
 
 func (rl *Shell) forwardChar() {
 	// Only exception where we actually don't forward a character.
-	if rl.opts.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
+	if rl.config.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
 		rl.autosuggestAccept()
 		return
 	}
@@ -1002,13 +1001,13 @@ func (rl *Shell) printLastKeyboardMacro() {
 //
 
 func (rl *Shell) reReadInitFile() {
-	config := filepath.Join(os.Getenv("HOME"), ".inputrc")
+	user, _ := user.Current()
 
-	err := inputrc.ParseFile(config, rl.opts)
+	err := inputrc.UserDefault(user, rl.config, rl.opts...)
 	if err != nil {
 		rl.hint.Set(color.FgRed + "Inputrc reload error: " + err.Error())
 	} else {
-		rl.hint.Set(color.FgGreen + "Inputrc reloaded: " + config)
+		rl.hint.Set(color.FgGreen + "Inputrc reloaded")
 	}
 }
 
@@ -1149,7 +1148,7 @@ func (rl *Shell) characterSearchBackward() {
 }
 
 func (rl *Shell) insertComment() {
-	comment := rl.opts.GetString("comment-begin")
+	comment := rl.config.GetString("comment-begin")
 
 	switch {
 	case !rl.iterations.IsSet():
@@ -1209,7 +1208,7 @@ func (rl *Shell) dumpVariables() {
 	// Get all variables and their values, alphabetically sorted.
 	var variables []string
 
-	for variable := range rl.opts.Vars {
+	for variable := range rl.config.Vars {
 		variables = append(variables, variable)
 	}
 
@@ -1218,12 +1217,12 @@ func (rl *Shell) dumpVariables() {
 	// Either print in inputrc format, or wordly one.
 	if rl.iterations.IsSet() {
 		for _, variable := range variables {
-			value := rl.opts.Vars[variable]
+			value := rl.config.Vars[variable]
 			fmt.Printf("set %s %v\n", variable, value)
 		}
 	} else {
 		for _, variable := range variables {
-			value := rl.opts.Vars[variable]
+			value := rl.config.Vars[variable]
 			fmt.Printf("%s is set to `%v'\n", variable, value)
 		}
 	}
@@ -1239,7 +1238,7 @@ func (rl *Shell) dumpMacros() {
 	}()
 
 	// We print the macros bound to the current keymap only.
-	binds := rl.opts.Binds[string(rl.keymaps.Main())]
+	binds := rl.config.Binds[string(rl.keymaps.Main())]
 	if len(binds) == 0 {
 		return
 	}

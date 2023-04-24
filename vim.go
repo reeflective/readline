@@ -24,45 +24,47 @@ type commands map[string]func()
 // Miscellaneous.
 func (rl *Shell) viCommands() commands {
 	return map[string]func(){
-		// Modes enter/exit
-		"vi-append-mode":      rl.viAddNext,     // vi-add-next
-		"vi-append-eol":       rl.viAddEol,      // vi-add-eol
-		"vi-insertion-mode":   rl.viInsertMode,  // vi-insert-mode
-		"vi-insert-beg":       rl.viInsertBol,   // vi-insert-bol
-		"vi-movement-mode":    rl.viCommandMode, // vi-cmd-mode
-		"vi-visual-mode":      rl.viVisualMode,
+		// Modes
+		"vi-append-mode":    rl.viAddNext,
+		"vi-append-eol":     rl.viAddEol,
+		"vi-insertion-mode": rl.viInsertMode,
+		"vi-insert-beg":     rl.viInsertBol,
+		"vi-movement-mode":  rl.viCommandMode,
+		"vi-visual-mode":    rl.viVisualMode,
+		"vi-editing-mode":   rl.viInsertMode,
+
 		"vi-visual-line-mode": rl.viVisualLineMode,
-		"vi-editing-mode":     rl.viInsertMode,
 
 		// Movement
-		"vi-backward-char":    rl.viBackwardChar,        // TODO not multiline anymore
-		"vi-forward-char":     rl.viForwardChar,         // TODO not multiline anymore
-		"vi-prev-word":        rl.viBackwardWord,        // vi-backward-word
-		"vi-next-word":        rl.viForwardWord,         // vi-forward-word
-		"vi-backward-word":    rl.viBackwardWord,        // vi-backward-word
-		"vi-forward-word":     rl.viForwardWord,         // vi-forward-word
-		"vi-backward-bigword": rl.viBackwardBlankWord,   // vi-backward-blank-word
-		"vi-forward-bigword":  rl.viForwardBlankWord,    // vi-forward-blank-word
-		"vi-end-word":         rl.viForwardWordEnd,      // vi-forward-word-end
-		"vi-end-bigword":      rl.viForwardBlankWordEnd, // vi-forward-blank-word-end
-		"vi-match":            rl.viMatchBracket,        // vi-match-bracket
-		"vi-column":           rl.viGotoColumn,          // vi-goto-column
+		"vi-backward-char":    rl.viBackwardChar, // TODO not multiline anymore
+		"vi-forward-char":     rl.viForwardChar,
+		"vi-prev-word":        rl.viBackwardWord,
+		"vi-next-word":        rl.viForwardWord,
+		"vi-backward-word":    rl.viBackwardWord,
+		"vi-forward-word":     rl.viForwardWord,
+		"vi-backward-bigword": rl.viBackwardBlankWord,
+		"vi-forward-bigword":  rl.viForwardBlankWord,
+		"vi-end-word":         rl.viForwardWordEnd,
+		"vi-end-bigword":      rl.viForwardBlankWordEnd,
+		"vi-match":            rl.viMatchBracket,
+		"vi-column":           rl.viGotoColumn,
 		"vi-end-of-line":      rl.viEndOfLine,
 		"vi-back-to-indent":   rl.viBackToIndent,
 		"vi-first-print":      rl.viFirstPrint,
 		"vi-goto-mark":        rl.viGotoMark,
 
-		"vi-backward-end-word":    rl.viBackwardWordEnd,      // vi-backward-word-end
-		"vi-backward-end-bigword": rl.viBackwardBlankWordEnd, // vi-backward-blank-word-end
+		"vi-backward-end-word":    rl.viBackwardWordEnd,
+		"vi-backward-end-bigword": rl.viBackwardBlankWordEnd,
 
 		// Changing text
-		"vi-change-to":   rl.viChangeTo,   // vi-change
-		"vi-delete-to":   rl.viDeleteTo,   // vi-delete
-		"vi-delete":      rl.viDeleteChar, // vi-delete-chars
-		"vi-change-char": rl.viChangeChar, // vi-replace-chars
-		"vi-replace":     rl.viReplace,    // vi-overstrike and vi-overstrike-delete
-		"vi-change-case": rl.viChangeCase, // vi-swap-case
-		"vi-subst":       rl.viSubstitute, // vi-substitute
+		"vi-change-to":   rl.viChangeTo,
+		"vi-delete-to":   rl.viDeleteTo,
+		"vi-delete":      rl.viDeleteChar,
+		"vi-change-char": rl.viChangeChar,
+		"vi-replace":     rl.viReplace, // missing vi-overstrike-delete
+		"vi-overstrike":  rl.viReplace,
+		"vi-change-case": rl.viChangeCase,
+		"vi-subst":       rl.viSubstitute,
 
 		"vi-change-eol":      rl.viChangeEol,
 		"vi-add-surround":    rl.viAddSurround,
@@ -74,9 +76,9 @@ func (rl *Shell) viCommands() commands {
 
 		// Kill and Yanking
 		"vi-kill-eol":         rl.viKillEol,
-		"vi-unix-word-rubout": rl.backwardKillWord, // backward-kill-word
+		"vi-unix-word-rubout": rl.backwardKillWord,
 		"vi-rubout":           rl.viRubout,
-		"vi-yank-to":          rl.viYankTo, // vi-yank
+		"vi-yank-to":          rl.viYankTo,
 		"vi-yank-pop":         rl.yankPop,
 		"vi-yank-arg":         rl.yankLastArg,
 
@@ -100,7 +102,7 @@ func (rl *Shell) viCommands() commands {
 		"vi-eof-maybe": rl.viEOFMaybe,
 		// "vi-search"
 		// "vi-search-again"
-		"vi-arg-digit":                rl.viArgDigit, // vi-digit-or-beginning-of-line
+		"vi-arg-digit":                rl.viArgDigit,
 		"vi-char-search":              rl.viCharSearch,
 		"vi-set-mark":                 rl.viSetMark,
 		"vi-edit-and-execute-command": rl.viEditAndExecuteCommand,
@@ -218,7 +220,7 @@ func (rl *Shell) viAddEol() {
 
 func (rl *Shell) viForwardChar() {
 	// Only exception where we actually don't forward a character.
-	if rl.opts.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
+	if rl.config.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
 		rl.autosuggestAccept()
 		return
 	}

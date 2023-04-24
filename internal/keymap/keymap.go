@@ -2,12 +2,15 @@ package keymap
 
 import (
 	"fmt"
+	"os/user"
 	"sort"
 	"strings"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
 )
+
+var unescape = inputrc.Unescape
 
 // Modes is used to manage the main and local keymaps for the shell.
 type Modes struct {
@@ -21,35 +24,61 @@ type Modes struct {
 
 	keys       *core.Keys
 	iterations *core.Iterations
-	opts       *inputrc.Config
+	config     *inputrc.Config
 	commands   map[string]func()
 }
 
 // NewModes is a required constructor for the keymap modes manager.
 // It initializes the keymaps to their defaults or configured values.
-func NewModes(keys *core.Keys, i *core.Iterations, opts *inputrc.Config) *Modes {
+func NewModes(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Modes, *inputrc.Config) {
 	modes := &Modes{
 		main:       Emacs,
 		keys:       keys,
 		iterations: i,
-		opts:       opts,
+		config:     inputrc.NewDefaultConfig(),
 		commands:   make(map[string]func()),
+	}
+
+	// Builtin binds (in addition to default readline binds)
+	modes.loadBuiltinBinds()
+
+	// Parse user configurations.
+	// This will only overwrite binds that have been
+	// set in those configs, and leave the default ones
+	// (those just set above), so as to keep most of the
+	// default functionality working out of the box.
+	if user, err := user.Current(); err == nil {
+		err := inputrc.UserDefault(user, modes.config, opts...)
+		if err != nil {
+			fmt.Println("Inputrc error: " + err.Error())
+		}
 	}
 
 	defer modes.UpdateCursor()
 
-	switch modes.opts.GetString("editing-mode") {
+	// Startup editing mode
+	switch modes.config.GetString("editing-mode") {
 	case "emacs":
 		modes.main = Emacs
 	case "vi":
 		modes.main = ViIns
 	}
 
-	// Add additional default keymaps
-	modes.opts.Binds[string(Visual)] = visualKeys
-	modes.opts.Binds[string(ViOpp)] = vioppKeys
+	return modes, modes.config
+}
 
-	return modes
+func (m *Modes) loadBuiltinBinds() {
+	// Load default keymaps (main)
+	for seq, bind := range vicmdKeys {
+		m.config.Binds[string(ViCmd)][seq] = bind
+		m.config.Binds[string(ViMove)][seq] = bind
+		m.config.Binds[string(Vi)][seq] = bind
+	}
+
+	// Load default keymaps(local)
+	m.config.Binds[string(Visual)] = visualKeys
+	m.config.Binds[string(ViOpp)] = vioppKeys
+	m.config.Binds[string(MenuSelect)] = menuselectKeys
 }
 
 // Register adds commands to the list of available commands.
@@ -141,7 +170,7 @@ func (m *Modes) PrintBinds(inputrcFormat bool) {
 
 	sort.Strings(commands)
 
-	binds := m.opts.Binds[string(m.Main())]
+	binds := m.config.Binds[string(m.Main())]
 
 	// Make a list of all sequences bound to each command.
 	allBinds := make(map[string][]string)
@@ -159,49 +188,9 @@ func (m *Modes) PrintBinds(inputrcFormat bool) {
 	}
 
 	if inputrcFormat {
-		for _, command := range commands {
-			commandBinds := allBinds[command]
-			sort.Strings(commandBinds)
-
-			switch {
-			case len(commandBinds) == 0:
-				fmt.Printf("# %s (not bound)\n", command)
-			default:
-				for _, bind := range commandBinds {
-					fmt.Printf("\"%s\": %s\n", bind, command)
-				}
-			}
-		}
+		printBindsInputrc(commands, allBinds)
 	} else {
-		for _, command := range commands {
-			commandBinds := allBinds[command]
-			sort.Strings(commandBinds)
-
-			switch {
-			case len(commandBinds) == 0:
-				fmt.Printf("%s is not bound to any keys\n", command)
-
-			case len(commandBinds) > 5:
-				var firstBinds []string
-
-				for i := 0; i < 5; i++ {
-					firstBinds = append(firstBinds, "\""+commandBinds[i]+"\"")
-				}
-
-				bindsStr := strings.Join(firstBinds, ", ")
-				fmt.Printf("%s can be found on %s ...\n", command, bindsStr)
-
-			default:
-				var firstBinds []string
-
-				for _, bind := range commandBinds {
-					firstBinds = append(firstBinds, "\""+bind+"\"")
-				}
-
-				bindsStr := strings.Join(firstBinds, ", ")
-				fmt.Printf("%s can be found on %s\n", command, bindsStr)
-			}
-		}
+		printBindsReadable(commands, allBinds)
 	}
 }
 
@@ -237,7 +226,7 @@ func (m *Modes) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
 		return
 	}
 
-	binds := m.opts.Binds[string(m.main)]
+	binds := m.config.Binds[string(m.main)]
 	if len(binds) == 0 {
 		return
 	}
@@ -267,7 +256,7 @@ func (m *Modes) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 		return
 	}
 
-	binds := m.opts.Binds[string(m.local)]
+	binds := m.config.Binds[string(m.local)]
 	if len(binds) == 0 {
 		return
 	}
@@ -277,12 +266,12 @@ func (m *Modes) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 	// Similarly to the MatchMain() function, give a special treatment to the escape key
 	// (if it's alone): using escape in Viopp/menu-complete/isearch should cancel the
 	// current mode, thus we return either a Vim movement-mode command, or nothing.
-	if m.isEscapeKey() {
-		bind = inputrc.Bind{}
-		m.prefixed = inputrc.Bind{}
-
-		return bind, nil, false
-	}
+	// if m.isEscapeKey() {
+	// 	bind = inputrc.Bind{}
+	// 	m.prefixed = inputrc.Bind{}
+	//
+	// 	return bind, nil, false
+	// }
 
 	return
 }
@@ -347,7 +336,7 @@ func (m *Modes) matchCommand(keys []rune, binds map[string]inputrc.Bind) (inputr
 	for sequence, kbind := range binds {
 		// When convert-meta is on, any meta-prefixed bind should
 		// be stripped and replaced with an escape meta instead.
-		if m.opts.GetBool("convert-meta") {
+		if m.config.GetBool("convert-meta") {
 			sequence = m.ConvertMeta([]rune(sequence))
 		}
 
@@ -392,4 +381,52 @@ func (m *Modes) isEscapeKey() bool {
 	}
 
 	return true
+}
+
+func printBindsReadable(commands []string, all map[string][]string) {
+	for _, command := range commands {
+		commandBinds := all[command]
+		sort.Strings(commandBinds)
+
+		switch {
+		case len(commandBinds) == 0:
+			fmt.Printf("%s is not bound to any keys\n", command)
+
+		case len(commandBinds) > 5:
+			var firstBinds []string
+
+			for i := 0; i < 5; i++ {
+				firstBinds = append(firstBinds, "\""+commandBinds[i]+"\"")
+			}
+
+			bindsStr := strings.Join(firstBinds, ", ")
+			fmt.Printf("%s can be found on %s ...\n", command, bindsStr)
+
+		default:
+			var firstBinds []string
+
+			for _, bind := range commandBinds {
+				firstBinds = append(firstBinds, "\""+bind+"\"")
+			}
+
+			bindsStr := strings.Join(firstBinds, ", ")
+			fmt.Printf("%s can be found on %s\n", command, bindsStr)
+		}
+	}
+}
+
+func printBindsInputrc(commands []string, all map[string][]string) {
+	for _, command := range commands {
+		commandBinds := all[command]
+		sort.Strings(commandBinds)
+
+		switch {
+		case len(commandBinds) == 0:
+			fmt.Printf("# %s (not bound)\n", command)
+		default:
+			for _, bind := range commandBinds {
+				fmt.Printf("\"%s\": %s\n", bind, command)
+			}
+		}
+	}
 }

@@ -438,7 +438,7 @@ func (rl *Shell) autosuggestExecute() {
 }
 
 func (rl *Shell) autosuggestToggle() {
-	if rl.opts.GetBool("history-autosuggest") {
+	if rl.config.GetBool("history-autosuggest") {
 		rl.autosuggestDisable()
 	} else {
 		rl.autosuggestEnable()
@@ -447,12 +447,12 @@ func (rl *Shell) autosuggestToggle() {
 
 func (rl *Shell) autosuggestEnable() {
 	rl.undo.SkipSave()
-	rl.opts.Vars["history-autosuggest"] = true
+	rl.config.Vars["history-autosuggest"] = true
 }
 
 func (rl *Shell) autosuggestDisable() {
 	rl.undo.SkipSave()
-	rl.opts.Vars["history-autosuggest"] = false
+	rl.config.Vars["history-autosuggest"] = false
 }
 
 //
@@ -495,7 +495,7 @@ func (rl *Shell) insertAutosuggestPartial(emacs bool) {
 		return
 	}
 
-	if !rl.opts.GetBool("history-autosuggest") {
+	if !rl.config.GetBool("history-autosuggest") {
 		return
 	}
 

@@ -1,7 +1,7 @@
 package readline
 
 import (
-	"os/user"
+	"os"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/completion"
@@ -26,9 +26,11 @@ type Shell struct {
 	selection  *core.Selection   // The selection managees various visual/pending selections.
 	iterations *core.Iterations  // Digit arguments for repeating commands.
 	buffers    *editor.Buffers   // buffers (Vim registers) and methods use/manage/query them.
+	keymaps    *keymap.Modes     // Manages main/local keymaps and runs key matching.
 
 	// User interface
-	opts      *inputrc.Config    // Contains all keymaps, binds and per-application settings.
+	config    *inputrc.Config    // Contains all keymaps, binds and per-application settings.
+	opts      []inputrc.Option   // Configuration parsing options (app/term/values, etc)
 	prompt    *ui.Prompt         // The prompt engine computes and renders prompt strings.
 	hint      *ui.Hint           // Usage/hints for completion/isearch below the input line.
 	completer *completion.Engine // Completions generation and display.
@@ -36,20 +38,17 @@ type Shell struct {
 	macros    *macro.Engine      // Record, use and display macros.
 	display   *display.Engine    // Manages display refresh/update/clearing.
 
-	// Others
-	keymaps *keymap.Modes // Manages main/local keymaps and runs key matching.
-
 	// User-provided functions
-	//
+
 	// AcceptMultiline enables the caller to decide if the shell should keep reading
 	// for user input on a new line (therefore, with the secondary prompt), or if it
 	// should return the current line at the end of the `rl.Readline()` call.
 	// This function should return true if the line is deemed complete (thus asking
 	// the shell to return from its Readline() loop), or false if the shell should
-	// keep reading input.
+	// keep reading input on a newline (thus, insert a newline and read).
 	AcceptMultiline func(line []rune) (accept bool)
 
-	// SyntaxHighlight is a helper function to provide syntax highlighting.
+	// SyntaxHighlighter is a helper function to provide syntax highlighting.
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func(line []rune) string
 
@@ -60,12 +59,12 @@ type Shell struct {
 
 	// SyntaxCompletion is used to autocomplete code syntax (like braces and
 	// quotation marks). If you want to complete words or phrases then you might
-	// be better off using the TabCompletion function.
+	// be better off using the Completer function.
 	// SyntaxCompletion takes the line ([]rune) and cursor position, and returns
 	// the new line and cursor position.
 	SyntaxCompleter func(line []rune, cursor int) ([]rune, int)
 
-	// HintText is a helper function which displays hint text the prompt.
+	// HintText is a helper function which displays hint text below the line.
 	// HintText takes the line input from the promt and the cursor position.
 	// It returns the hint text to display.
 	HintText func(line []rune, cursor int) []rune
@@ -73,14 +72,10 @@ type Shell struct {
 
 // NewShell returns a readline shell instance initialized with a default
 // inputrc configuration and binds, and with an in-memory command history.
-func NewShell() *Shell {
+// The constructor accepts an optional list of inputrc configuration options,
+// which are used when parsing/loading and applying any inputrc configuration.
+func NewShell(opts ...inputrc.Option) *Shell {
 	shell := new(Shell)
-
-	// Configuration
-	opts := inputrc.NewDefaultConfig()
-	if user, err := user.Current(); err == nil {
-		inputrc.UserDefault(user, opts)
-	}
 
 	// Core editor
 	keys := new(core.Keys)
@@ -99,24 +94,29 @@ func NewShell() *Shell {
 	shell.iterations = iterations
 
 	// Keymaps and commands
-	keymaps := keymap.NewModes(keys, iterations, opts)
+	opts = append(opts, inputrc.WithTerm(os.Getenv("TERM")))
+
+	keymaps, config := keymap.NewModes(keys, iterations, opts...)
 	keymaps.Register(shell.standardCommands())
 	keymaps.Register(shell.viCommands())
 	keymaps.Register(shell.historyCommands())
 	keymaps.Register(shell.completionCommands())
 
 	shell.keymaps = keymaps
+	shell.config = config
+	shell.opts = opts
 
 	// User interface
 	hint := new(ui.Hint)
-	prompt := ui.NewPrompt(keys, line, cursor, keymaps, opts)
+	prompt := ui.NewPrompt(keys, line, cursor, keymaps, config)
 	macros := macro.NewEngine(keys, hint)
-	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, opts)
-	completer.SetAutocompleter(shell.commandCompletion)
+	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, config)
 	history := history.NewSources(line, cursor, hint)
-	display := display.NewEngine(keys, selection, history, prompt, hint, completer, opts)
+	display := display.NewEngine(keys, selection, history, prompt, hint, completer, config)
 
-	shell.opts = opts
+	completer.SetAutocompleter(shell.commandCompletion)
+
+	shell.config = config
 	shell.hint = hint
 	shell.prompt = prompt
 	shell.completer = completer
