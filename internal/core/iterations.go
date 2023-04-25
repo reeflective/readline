@@ -82,7 +82,6 @@ func (i *Iterations) ResetPostCommand() (hint string) {
 		return
 	}
 
-	// i.times = ""
 	i.active = false
 
 	return

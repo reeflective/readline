@@ -1006,6 +1006,10 @@ func (rl *Shell) viPutAfter() {
 
 	buffer := rl.buffers.Active()
 
+	if len(buffer) == 0 {
+		return
+	}
+
 	// Add newlines when pasting an entire line.
 	if buffer[len(buffer)-1] == '\n' {
 		if !rl.cursor.OnEmptyLine() {
@@ -1030,6 +1034,10 @@ func (rl *Shell) viPutBefore() {
 	rl.undo.Save()
 
 	buffer := rl.buffers.Active()
+
+	if len(buffer) == 0 {
+		return
+	}
 
 	if buffer[len(buffer)-1] == '\n' {
 		rl.cursor.BeginningOfLine()

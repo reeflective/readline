@@ -76,13 +76,21 @@ func (rl *Shell) Readline() (string, error) {
 }
 
 func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
-	if command == nil {
-		return false, "", nil
-	}
-
 	// Whether or not the command is resolved, let the macro
 	// engine record the keys if currently recording a macro.
 	rl.macros.RecordKeys(bind)
+
+	// If the resolved bind is a macro itself, reinject its
+	// bound sequence back to the key stack.
+	if bind.Macro {
+		macro := inputrc.Unescape(bind.Action)
+		rl.keys.Feed(false, true, []rune(macro)...)
+	}
+
+	// And don't do anything else if we don't have a command.
+	if command == nil {
+		return false, "", nil
+	}
 
 	// The completion system might have control of the
 	// input line and be using it with a virtual insertion,
