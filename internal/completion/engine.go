@@ -324,9 +324,10 @@ func (e *Engine) AutocompleteForce() {
 	e.autoForce = true
 }
 
-// IsAutoCompleting returns true if the completion engine is an
-// autocompletion mode: refreshing results on each input key.
-func (e *Engine) IsAutoCompleting() bool {
+// AutoCompleting returns true if the completion engine is an
+// autocompletion mode that has been triggered by a particular
+// command (like history-search-forward/backward).
+func (e *Engine) AutoCompleting() bool {
 	return e.autoForce
 }
 

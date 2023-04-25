@@ -168,7 +168,7 @@ func (rl *Shell) commandCompletion() completion.Values {
 
 func (rl *Shell) historyCompletion(forward, filterLine, incremental bool) {
 	switch {
-	case rl.keymaps.Local() == keymap.MenuSelect || rl.keymaps.Local() == keymap.Isearch || rl.completer.IsAutoCompleting():
+	case rl.keymaps.Local() == keymap.MenuSelect || rl.keymaps.Local() == keymap.Isearch || rl.completer.AutoCompleting():
 		// If we are currently completing the last
 		// history source, cancel history completion.
 		if rl.histories.OnLastSource() {

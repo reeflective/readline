@@ -50,13 +50,22 @@ func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint) *Sources {
 // at the start of each readline loop. If the last command asked
 // to infer a command line from the history, it is performed now.
 func (h *Sources) Init() {
-	h.sourcePos = 0
-	h.accepted = false
-	h.acceptErr = nil
-	h.acceptLine = nil
+	defer func() {
+		h.pos = 0
+		h.sourcePos = 0
+		h.accepted = false
+		h.acceptLine = nil
+		h.acceptErr = nil
+	}()
+
+	if h.acceptHold {
+		h.line.Set(h.acceptLine...)
+		h.cursor.Set(h.line.Len())
+
+		return
+	}
 
 	if !h.infer {
-		h.pos = 0
 		return
 	}
 
@@ -245,9 +254,9 @@ func (h *Sources) Write(infer bool) {
 		var err error
 
 		// Don't write the line if it's identical to the last one.
-		last, err := history.GetLine(0)
+		last, err := history.GetLine(history.Len() - 1)
 		if err == nil && last != "" && last == line {
-			continue
+			return
 		}
 
 		// Save the line and notify through hints if an error raised.

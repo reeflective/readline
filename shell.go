@@ -129,9 +129,6 @@ func NewShell(opts ...inputrc.Option) *Shell {
 
 // init gathers all steps to perform at the beginning of readline loop.
 func (rl *Shell) init() {
-	// Some components need the last accepted line.
-	rl.histories.Init()
-
 	// Reset core editor components.
 	rl.selection.Reset()
 	rl.buffers.Reset()
@@ -139,12 +136,15 @@ func (rl *Shell) init() {
 	rl.keys.Flush()
 	rl.cursor.ResetMark()
 	rl.cursor.Set(0)
-	rl.line.Set([]rune{}...) // TODO: Wrong; if line was inferred this resets it while it should not.
+	rl.line.Set([]rune{}...)
 	rl.undo.Save()
+
+	// Some components need the last accepted line.
+	rl.histories.Init()
 
 	// Reset/initialize user interface components.
 	rl.hint.Reset()
-	rl.completer.Cancel(true, true)
+	rl.completer.ResetForce()
 	rl.display.Init(rl.SyntaxHighlighter)
 
 	// Reset other components.

@@ -279,13 +279,11 @@ func (rl *Shell) magicSpace() {
 //
 
 func (rl *Shell) acceptAndHold() {
-	rl.acceptLineWith(true, false)
+	rl.acceptLineWith(false, true)
 }
 
 func (rl *Shell) acceptAndInferNextHistory() {
-	// rl.inferLine = true // The next loop will retrieve a line.
-	// rl.histPos = 0      // And will find it by trying to match one.
-	// rl.acceptLine()
+	rl.acceptLineWith(true, false)
 }
 
 func (rl *Shell) downLineOrHistory() {
