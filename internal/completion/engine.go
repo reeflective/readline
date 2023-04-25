@@ -286,6 +286,11 @@ func (e *Engine) IsActive() bool {
 		e.auto
 }
 
+// IsInserting returns true if a candidate is currently virtually inserted.
+func (e *Engine) IsInserting() bool {
+	return e.selected.Value != ""
+}
+
 // Matches returns the number of completion candidates
 // matching the current line/settings requirements.
 func (e *Engine) Matches() int {

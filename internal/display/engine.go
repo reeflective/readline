@@ -29,6 +29,7 @@ type Engine struct {
 	// UI components
 	keys      *core.Keys
 	line      *core.Line
+	suggested core.Line
 	cursor    *core.Cursor
 	selection *core.Selection
 	histories *history.Sources
@@ -57,12 +58,8 @@ func NewEngine(k *core.Keys, s *core.Selection, h *history.Sources, p *ui.Prompt
 func (e *Engine) Init(highlighter func([]rune) string) {
 	e.highlighter = highlighter
 
-	var line *core.Line
-
 	// Some coordinates must be available before all else.
-	line, e.cursor = e.completer.Line()
-	suggested := e.histories.Suggest(line)
-	e.computeCoordinates(suggested)
+	e.computeCoordinates()
 }
 
 // Refresh recomputes and redisplays the entire readline interface, except
@@ -72,13 +69,9 @@ func (e *Engine) Refresh() {
 	fmt.Print(term.HideCursor)
 	e.CursorToLineStart()
 
-	// Get the new input line and auto-suggested one.
-	e.line, e.cursor = e.completer.Line()
-	suggested := e.histories.Suggest(e.line)
-
 	// Get all positions required for the redisplay to come:
 	// prompt end (thus indentation), cursor positions, etc.
-	e.computeCoordinates(suggested)
+	e.computeCoordinates()
 
 	// term.MoveCursorBackwards(e.startCols)
 	// e.prompt.LastPrint()
@@ -86,7 +79,7 @@ func (e *Engine) Refresh() {
 	term.MoveCursorForwards(e.startCols)
 
 	// Print the line, right prompt, hints and completions.
-	e.displayLine(suggested)
+	e.displayLine()
 	e.prompt.RightPrint(e.lineCol, true)
 	e.displayHelpers()
 
@@ -120,8 +113,7 @@ func (e *Engine) ResetHelpers() {
 func (e *Engine) AcceptLine() {
 	e.CursorToLineStart()
 
-	line, _ := e.completer.Line()
-	e.computeCoordinates(*line)
+	e.computeCoordinates()
 
 	// Go back to the end of the non-suggested line.
 	term.MoveCursorBackwards(term.GetWidth())
@@ -146,7 +138,7 @@ func (e *Engine) PrintTransientPrompt() {
 	e.CursorToLineStart()
 	e.prompt.TransientPrint()
 
-	e.displayLine(*e.line)
+	e.displayLine()
 	fmt.Println()
 }
 
@@ -190,7 +182,15 @@ func (e *Engine) CursorHintToLineStart() {
 	e.CursorToLineStart()
 }
 
-func (e *Engine) computeCoordinates(suggested core.Line) {
+func (e *Engine) computeCoordinates() {
+	// Get the new input line and auto-suggested one.
+	e.line, e.cursor = e.completer.Line()
+	if e.completer.IsInserting() {
+		e.suggested = *e.line
+	} else {
+		e.suggested = e.histories.Suggest(e.line)
+	}
+
 	// Get the cursor position through terminal query:
 	// we have printed our prompt, and we are at the start pos.
 	e.startCols, e.startRows = e.keys.GetCursorPos()
@@ -202,13 +202,14 @@ func (e *Engine) computeCoordinates(suggested core.Line) {
 	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startCols)
 
 	if e.opts.GetBool("history-autosuggest") {
-		e.lineCol, e.lineRows = suggested.Coordinates(e.startCols)
+		e.lineCol, e.lineRows = e.suggested.Coordinates(e.startCols)
 	} else {
 		e.lineCol, e.lineRows = e.line.Coordinates(e.startCols)
 	}
 }
 
-func (e *Engine) displayLine(suggested core.Line) {
+func (e *Engine) displayLine() {
+	// func (e *Engine) displayLine(suggested core.Line) {
 	var line string
 
 	// Apply user-defined highlighter to the input line.
@@ -222,13 +223,13 @@ func (e *Engine) displayLine(suggested core.Line) {
 	line = ui.Highlight([]rune(line), *e.selection)
 
 	// Get the subset of the suggested line to print.
-	if len(suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
-		line += color.FgBlackBright + string(suggested[e.line.Len():]) + color.Reset
+	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
+		line += color.FgBlackBright + string(e.suggested[e.line.Len():]) + color.Reset
 	}
 
 	// And display the line.
-	suggested.Set([]rune(line)...)
-	suggested.Display(e.startCols)
+	e.suggested.Set([]rune(line)...)
+	e.suggested.Display(e.startCols)
 
 	// Adjust the cursor if the line fits exactly in the terminal width.
 	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
