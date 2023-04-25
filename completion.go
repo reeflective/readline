@@ -10,21 +10,18 @@ import (
 
 func (rl *Shell) completionCommands() commands {
 	return map[string]func(){
-		"complete":               rl.completeWord,        // complete-word
-		"possible-completions":   rl.possibleCompletions, // list-choices
+		"complete":               rl.completeWord,
+		"possible-completions":   rl.possibleCompletions,
 		"insert-completions":     rl.insertCompletions,
 		"menu-complete":          rl.menuComplete,
-		"menu-complete-backward": rl.menuCompleteBackward, // reverse-menu-complete
+		"menu-complete-backward": rl.menuCompleteBackward,
 		"delete-char-or-list":    rl.deleteCharOrList,
 
-		"expand-or-complete":        rl.expandOrComplete,
-		"menu-expand-or-complete":   rl.menuExpandOrComplete,
-		"menu-complete-next-tag":    rl.menuCompleteNextTag,
-		"menu-complete-prev-tag":    rl.menuCompletePrevTag,
-		"accept-and-menu-complete":  rl.acceptAndMenuComplete,
-		"accept-completion-or-line": rl.acceptCompletionOrLine,
-		"vi-registers-complete":     rl.viRegistersComplete,
-		"menu-incremental-search":   rl.menuIncrementalSearch,
+		"menu-complete-next-tag":   rl.menuCompleteNextTag,
+		"menu-complete-prev-tag":   rl.menuCompletePrevTag,
+		"accept-and-menu-complete": rl.acceptAndMenuComplete,
+		"vi-registers-complete":    rl.viRegistersComplete,
+		"menu-incremental-search":  rl.menuIncrementalSearch,
 	}
 }
 
@@ -37,42 +34,14 @@ func (rl *Shell) completeWord() {
 
 	// This completion function should attempt to insert the first
 	// valid completion found, without printing the actual list.
-
-	// switch rl.local {
-	// case menuselect, isearch:
-	// 	rl.menuComplete()
-	// default:
-	// 	// rl.
-	// 	// rl.startMenuComplete(rl.normalCompletions)
-	//
-	// 	// In autocomplete mode, we already have completions
-	// 	// printed, so we automatically move to the first comp.
-	// 	if rl.isAutoCompleting() && rl.local == menuselect {
-	// 		rl.menuComplete()
-	// 	}
-	// }
+	if !rl.completer.IsActive() {
+		rl.startMenuComplete(rl.commandCompletion)
+	}
+	rl.completer.Select(1, 0)
 }
 
 func (rl *Shell) possibleCompletions() {
 	rl.undo.SkipSave()
-
-	// switch rl.local {
-	// case menuselect, isearch:
-	// 	rl.resetVirtualComp(false)
-	// }
-	//
-	// rl.local = menuselect
-	//
-	// // Call the completer to produce
-	// // all possible completions.
-	// rl.normalCompletions()
-	//
-	// // Cancel completion mode if
-	// // we don't have any candidates.
-	// if rl.noCompletions() {
-	// 	rl.resetCompletion()
-	// 	return
-	// }
 
 	rl.completer.Cancel(false, false)
 	rl.keymaps.SetLocal(keymap.MenuSelect)
@@ -91,18 +60,6 @@ func (rl *Shell) menuComplete() {
 	} else {
 		rl.completer.Select(1, 0)
 	}
-
-	// No completions are being printed yet, so simply generate the completions
-	// as if we just request them without immediately selecting a candidate.
-	// if rl.local != menuselect && rl.local != isearch && len(rl.histHint) == 0 {
-	// 	rl.startMenuComplete(rl.normalCompletions)
-	// }
-
-	// Some of the actions taken in the above switch might have exited
-	// completions, and if that is the case, we should not do anything.
-	// if rl.local != menuselect && rl.local != isearch && len(rl.histHint) == 0 {
-	// 	return
-	// }
 }
 
 func (rl *Shell) deleteCharOrList() {
@@ -112,44 +69,6 @@ func (rl *Shell) deleteCharOrList() {
 	default:
 		rl.possibleCompletions()
 	}
-}
-
-func (rl *Shell) expandOrComplete() {
-	// switch rl.local {
-	// case menuselect, isearch:
-	// 	rl.menuComplete()
-	// default:
-	// 	if rl.completer != nil {
-	// 		rl.startMenuComplete(rl.completer)
-	// 	} else {
-	// 		rl.startMenuComplete(rl.normalCompletions)
-	// 	}
-	//
-	// 	// In autocomplete mode, we already have completions
-	// 	// printed, so we automatically move to the first comp.
-	// 	if rl.isAutoCompleting() && rl.local == menuselect {
-	// 		rl.menuComplete()
-	// 	}
-	// }
-}
-
-func (rl *Shell) menuExpandOrComplete() {
-	// switch rl.local {
-	// case menuselect, isearch:
-	// 	rl.menuComplete()
-	// default:
-	// 	if rl.completer != nil {
-	// 		rl.startMenuComplete(rl.completer)
-	// 	} else {
-	// 		rl.startMenuComplete(rl.normalCompletions)
-	// 	}
-	//
-	// 	// In autocomplete mode, we already have completions
-	// 	// printed, so we automatically move to the first comp.
-	// 	if rl.isAutoCompleting() && rl.local == menuselect {
-	// 		rl.menuComplete()
-	// 	}
-	// }
 }
 
 func (rl *Shell) menuCompleteBackward() {
@@ -186,50 +105,31 @@ func (rl *Shell) menuCompletePrevTag() {
 func (rl *Shell) acceptAndMenuComplete() {
 	rl.undo.SkipSave()
 
-	// // We don't do anything when not already completing.
-	// if rl.local != menuselect && rl.local != isearch {
-	// 	return
-	// }
-	//
-	// // Also return if no candidate
-	// if rl.currentCandidate() == "" {
-	// 	return
-	// }
-	//
-	// // First insert the current candidate
-	// rl.resetVirtualComp(false)
-	//
-	// // And cycle to the next one, without quiting our mode
-	// rl.updateSelector(1, 0)
-	// rl.updateVirtualComp()
-}
+	// We don't do anything when not already completing.
+	if !rl.completer.IsActive() {
+		return
+	}
 
-func (rl *Shell) acceptCompletionOrLine() {
-	// switch rl.local {
-	// case menuselect, isearch:
-	// 	// If we have a completion, simply accept this candidate
-	// 	comp := rl.currentCandidate()
-	// 	if comp != "" {
-	// 		rl.resetVirtualComp(false)
-	// 		rl.resetCompletion()
-	//
-	// 		return
-	// 	}
-	//
-	// 	// Or accept the line.
-	// 	fallthrough
-	// default:
-	// 	rl.lineCarriageReturn()
-	// 	rl.accepted = true
-	// }
+	// Also return if no candidate
+	if !rl.completer.IsInserting() {
+		return
+	}
+
+	// First insert the current candidate.
+	rl.completer.Cancel(false, false)
+
+	// And cycle to the next one.
+	rl.completer.Select(1, 0)
 }
 
 func (rl *Shell) viRegistersComplete() {
-	rl.keymaps.SetLocal(keymap.MenuSelect)
 	rl.undo.SkipSave()
 
-	registers := rl.buffers.Complete()
-	rl.completer.Generate(registers)
+	if !rl.completer.IsActive() {
+		rl.startMenuComplete(rl.buffers.Complete)
+	} else {
+		rl.completer.Select(1, 0)
+	}
 }
 
 func (rl *Shell) menuIncrementalSearch() {
@@ -252,7 +152,7 @@ func (rl *Shell) startMenuComplete(completer completion.Completer) {
 	rl.undo.SkipSave()
 
 	rl.keymaps.SetLocal(keymap.MenuSelect)
-	rl.completer.GenerateWith(rl.commandCompletion)
+	rl.completer.GenerateWith(completer)
 }
 
 func (rl *Shell) commandCompletion() completion.Values {
