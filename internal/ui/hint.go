@@ -17,6 +17,7 @@ import (
 type Hint struct {
 	text       []rune
 	persistent []rune
+	cleanup    bool
 }
 
 // Set sets the hint message to the given text.
@@ -50,12 +51,19 @@ func (h *Hint) Reset() {
 
 // ResetPersist drops the persistent hint.
 func (h *Hint) ResetPersist() {
+	h.cleanup = len(h.persistent) > 0
 	h.persistent = make([]rune, 0)
 }
 
 // Display prints the hint section.
 func (h *Hint) Display() {
 	if len(h.text) == 0 && len(h.persistent) == 0 {
+		if h.cleanup {
+			fmt.Print(term.ClearLineAfter)
+		}
+
+		h.cleanup = false
+
 		return
 	}
 

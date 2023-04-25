@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/reeflective/readline/internal/color"
-	"github.com/reeflective/readline/internal/term"
 )
 
 // Iterations manages iterations for commands.
@@ -49,6 +48,7 @@ func (i *Iterations) Get() int {
 	}
 
 	i.times = ""
+	i.reset = true
 
 	return times
 }
@@ -70,13 +70,13 @@ func (i *Iterations) Reset() {
 // If the reset operated on active iterations, this function returns true.
 func (i *Iterations) ResetPostCommand() (hint string, wasActive bool) {
 	if i.active {
-		termWidth := term.GetWidth()
-		padLen := termWidth - len(i.times)
-		hint = color.Dim + fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), i.times)
+		hint = color.Dim + fmt.Sprintf("(arg: %s)", i.times)
 	}
 
 	if i.set {
 		i.set = false
+		i.active = false
+
 		return
 	}
 

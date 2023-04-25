@@ -501,7 +501,6 @@ func (rl *Shell) insertAutosuggestPartial(emacs bool) {
 
 	suggested := rl.histories.Suggest(rl.line)
 	if suggested.Len() > rl.line.Len() {
-		rl.undo.Save()
 
 		var forward int
 

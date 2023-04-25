@@ -267,7 +267,7 @@ func (rl *Shell) viBackwardWord() {
 }
 
 func (rl *Shell) viForwardWord() {
-	rl.undo.SkipSave()
+	rl.undo.Save()
 
 	vii := rl.iterations.Get()
 	for i := 1; i <= vii; i++ {
