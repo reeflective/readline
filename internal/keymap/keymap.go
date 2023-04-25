@@ -376,6 +376,32 @@ func (m *Modes) isEscapeKey() bool {
 	return true
 }
 
+// handleEscape is used to override or change the matched command when the escape key has
+// been pressed: it might exit completion/isearch menus, use the vi-movement-mode, etc.
+func (m *Modes) handleEscape(main, prefix bool) (bind inputrc.Bind, cmd func(), pref bool) {
+	switch {
+	case prefix && m.prefixed.Action == "vi-movement-mode":
+		// The vi-movement-mode command always has precedence over
+		// other binds when we are currently using the main keymap.
+		bind = m.prefixed
+	case !main:
+		// When using the local keymap, we simply drop any prefixed
+		// or matched bind, so that the key will be matched against
+		// the main keymap: between both, completion/isearch menus
+		// will likely be cancelled.
+		bind = inputrc.Bind{}
+	}
+
+	// Drop what needs to, and resolve the command.
+	m.prefixed = inputrc.Bind{}
+
+	if bind.Action != "" && !bind.Macro {
+		cmd = m.resolveCommand(bind)
+	}
+
+	return
+}
+
 func printBindsReadable(commands []string, all map[string][]string) {
 	for _, command := range commands {
 		commandBinds := all[command]
@@ -422,30 +448,4 @@ func printBindsInputrc(commands []string, all map[string][]string) {
 			}
 		}
 	}
-}
-
-// handleEscape is used to override or change the matched command when the escape key has
-// been pressed: it might exit completion/isearch menus, use the vi-movement-mode, etc.
-func (m *Modes) handleEscape(main, prefix bool) (bind inputrc.Bind, cmd func(), pref bool) {
-	switch {
-	case prefix && m.prefixed.Action == "vi-movement-mode":
-		// The vi-movement-mode command always has precedence over
-		// other binds when we are currently using the main keymap.
-		bind = m.prefixed
-	case !main:
-		// When using the local keymap, we simply drop any prefixed
-		// or matched bind, so that the key will be matched against
-		// the main keymap: between both, completion/isearch menus
-		// will likely be cancelled.
-		bind = inputrc.Bind{}
-	}
-
-	// Drop what needs to, and resolve the command.
-	m.prefixed = inputrc.Bind{}
-
-	if bind.Action != "" && !bind.Macro {
-		cmd = m.resolveCommand(bind)
-	}
-
-	return
 }

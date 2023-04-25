@@ -247,8 +247,13 @@ func (e *Engine) displayHelpers() {
 	e.completer.Autocomplete()
 
 	// Compute the number of available lines we have for displaying completions.
+	// Use half the terminal if we currently have less than 1/3rd of it below.
 	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
 	compLines := termHeight - e.startRows - e.lineRows - e.hint.Coordinates() - 1
+
+	if compLines < (termHeight / 3) {
+		compLines = termHeight/2 - 1
+	}
 
 	// Display hint and completions.
 	e.hint.Display()
