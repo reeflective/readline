@@ -18,7 +18,7 @@ type Modes struct {
 	main     Mode
 	prefixed inputrc.Bind
 	active   inputrc.Bind
-	pending  []action
+	pending  []inputrc.Bind
 	skip     bool
 	isCaller bool
 
