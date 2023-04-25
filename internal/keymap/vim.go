@@ -37,6 +37,7 @@ var viinsKeys = map[string]inputrc.Bind{
 
 // viinsKeymaps are the default keymaps in Vim Command mode.
 var vicmdKeys = map[string]inputrc.Bind{
+	unescape(`\e`):      {Action: "vi-movement-mode"},
 	unescape(`\C-A`):    {Action: "switch-keyword"},
 	unescape(`\C-L`):    {Action: "clear-screen"},
 	unescape(`\C-M`):    {Action: "accept-line"},

@@ -280,6 +280,10 @@ func (e *Engine) needsAutoComplete() bool {
 		return true
 	}
 
+	if e.keymaps.Local() != keymap.MenuSelect && e.autoForce {
+		return true
+	}
+
 	return false
 }
 

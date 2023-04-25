@@ -18,14 +18,15 @@ type Engine struct {
 	hint   *ui.Hint        // The completions can feed hint/usage messages
 
 	// Completion parameters
-	groups   []*group      // All of our suggestions tree is in here
-	sm       SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
-	selected Candidate     // The currently selected item, not yet a real part of the input line.
-	prefix   string        // The current tab completion prefix against which to build candidates
-	suffix   string        // The current word suffix
-	inserted []rune        // The selected candidate (inserted in line) without prefix or suffix.
-	usedY    int           // Comprehensive offset of the currently built completions
-	auto     bool          // Is the engine autocompleting ?
+	groups    []*group      // All of our suggestions tree is in here
+	sm        SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
+	selected  Candidate     // The currently selected item, not yet a real part of the input line.
+	prefix    string        // The current tab completion prefix against which to build candidates
+	suffix    string        // The current word suffix
+	inserted  []rune        // The selected candidate (inserted in line) without prefix or suffix.
+	usedY     int           // Comprehensive offset of the currently built completions
+	auto      bool          // Is the engine autocompleting ?
+	autoForce bool
 
 	// Line parameters
 	keys       *core.Keys      // The input keys reader
@@ -185,6 +186,10 @@ func (e *Engine) Update() {
 	inserted := e.removeInserted()
 
 	e.Cancel(inserted, false)
+
+	if choices && e.autoForce && len(e.selected.Value) == 0 {
+		e.Reset()
+	}
 }
 
 // Cancel exits the current completions with the following behavior:
@@ -224,20 +229,22 @@ func (e *Engine) Cancel(inserted, cached bool) {
 // the incremental-search mode.
 // All those steps are performed whether or not the engine is active.
 func (e *Engine) ResetForce() {
-	e.Cancel(true, true)
+	e.Cancel(!e.autoForce, true)
 	e.ClearMenu(true)
 	e.IsearchStop()
+	e.autoForce = false
 }
 
 // Reset accepts the currently inserted candidate (if any), clears the current
 // list of completions and exits the incremental-search mode if active.
 // If the completion engine was not active to begin with, nothing will happen.
 func (e *Engine) Reset() {
+	e.autoForce = false
 	if !e.IsActive() {
 		return
 	}
 
-	e.Cancel(false, false)
+	e.Cancel(false, true)
 	e.ClearMenu(true)
 	e.IsearchStop()
 }
@@ -257,7 +264,7 @@ func (e *Engine) ClearMenu(completions bool) {
 func (e *Engine) IsActive() bool {
 	return e.keymaps.Local() == keymap.MenuSelect ||
 		e.keymaps.Local() == keymap.Isearch ||
-		e.auto
+		e.auto || e.autoForce
 }
 
 // IsInserting returns true if a candidate is currently virtually inserted.
@@ -304,9 +311,23 @@ func (e *Engine) Autocomplete() {
 	}
 
 	// Regenerate the completions.
-	if e.defaut != nil {
+	if e.cached != nil {
+		e.prepare(e.cached())
+	} else if e.defaut != nil {
 		e.prepare(e.defaut())
 	}
+}
+
+// Enable as-you-type autocomplete on the real input line,
+// even if the current cursor position is 0.
+func (e *Engine) AutocompleteForce() {
+	e.autoForce = true
+}
+
+// IsAutoCompleting returns true if the completion engine is an
+// autocompletion mode: refreshing results on each input key.
+func (e *Engine) IsAutoCompleting() bool {
+	return e.autoForce
 }
 
 // SetAutocompleter sets the default completer to use in autocomplete mode.

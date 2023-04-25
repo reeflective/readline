@@ -144,12 +144,12 @@ func (rl *Shell) fetchHistory() {}
 
 func (rl *Shell) historyIncrementalSearchForward() {
 	rl.undo.SkipSave()
-	rl.historyCompletion(true, false)
+	rl.historyCompletion(true, false, true)
 }
 
 func (rl *Shell) historyIncrementalSearchBackward() {
 	rl.undo.SkipSave()
-	rl.historyCompletion(false, false)
+	rl.historyCompletion(false, false, true)
 }
 
 func (rl *Shell) nonIncrementalForwardSearchHistory() {}
@@ -157,24 +157,12 @@ func (rl *Shell) nonIncrementalReverseSearchHistory() {}
 
 func (rl *Shell) historySearchForward() {
 	rl.undo.SkipSave()
-
-	// And either roll to the next history source, or
-	// directly generate completions for the target history.
-	//
-	// Set the tab completion prefix as a filtering
-	// mechanism here: will be updated by the comps anyway.
-	// rl.historyCompletion(true, true)
+	rl.historyCompletion(true, true, false)
 }
 
 func (rl *Shell) historySearchBackward() {
 	rl.undo.SkipSave()
-
-	// And either roll to the next history source, or
-	// directly generate completions for the target history.
-	//
-	// Set the tab completion prefix as a filtering
-	// mechanism here: will be updated by the comps anyway.
-	// rl.historyCompletion(false, true)
+	rl.historyCompletion(false, true, false)
 }
 
 func (rl *Shell) historySubstringSearchForward()  {}
@@ -387,8 +375,11 @@ func (rl *Shell) beginningOfLineHist() {
 	rl.undo.SkipSave()
 
 	switch {
-	// case rl.pos <= 0:
-	// 	rl.beginningOfLine()
+	case rl.cursor.Pos() > 0:
+		if rl.cursor.AtBeginningOfLine() {
+			rl.cursor.Dec()
+		}
+		rl.beginningOfLine()
 	default:
 		rl.histories.Walk(1)
 	}
@@ -398,19 +389,26 @@ func (rl *Shell) endOfLineHist() {
 	rl.undo.SkipSave()
 
 	switch {
-	// case rl.cursor.Pos() < len(rl.line)-1:
-	// 	rl.endOfLine()
+	case rl.cursor.Pos() < rl.line.Len()-1:
+		if rl.cursor.AtEndOfLine() {
+			rl.cursor.Inc()
+		}
+
+		rl.endOfLine()
+
 	default:
 		rl.histories.Walk(-1)
 	}
 }
 
 func (rl *Shell) beginningHistorySearchBackward() {
-	// rl.historySearchLine(false)
+	rl.undo.SkipSave()
+	rl.historyCompletion(false, true, false)
 }
 
 func (rl *Shell) beginningHistorySearchForward() {
-	// rl.historySearchLine(true)
+	rl.undo.SkipSave()
+	rl.historyCompletion(true, true, false)
 }
 
 func (rl *Shell) autosuggestAccept() {

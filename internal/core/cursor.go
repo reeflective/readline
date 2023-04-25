@@ -255,6 +255,24 @@ func (c *Cursor) AtBeginningOfLine() bool {
 	return false
 }
 
+// AtBeginningOfLine returns true if the cursor is either at the beginning
+// of the line buffer, or on the character right before the next newline.
+func (c *Cursor) AtEndOfLine() bool {
+	if c.pos >= c.line.Len()-1 {
+		return true
+	}
+	newlines := c.line.newlines()
+
+	for line := 0; line < len(newlines); line++ {
+		epos := newlines[line][0]
+		if epos == c.pos+1 {
+			return true
+		}
+	}
+
+	return false
+}
+
 // CheckAppend verifies that the current cursor position is neither negative,
 // nor greater than the length of the input line. If either is true, the
 // cursor will set its value as either 0, or the length of the line.

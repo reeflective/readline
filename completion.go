@@ -166,9 +166,9 @@ func (rl *Shell) commandCompletion() completion.Values {
 	return comps.convert()
 }
 
-func (rl *Shell) historyCompletion(forward, filterLine bool) {
-	switch rl.keymaps.Local() {
-	case keymap.MenuSelect, keymap.Isearch:
+func (rl *Shell) historyCompletion(forward, filterLine, incremental bool) {
+	switch {
+	case rl.keymaps.Local() == keymap.MenuSelect || rl.keymaps.Local() == keymap.Isearch || rl.completer.IsAutoCompleting():
 		// If we are currently completing the last
 		// history source, cancel history completion.
 		if rl.histories.OnLastSource() {
@@ -196,7 +196,13 @@ func (rl *Shell) historyCompletion(forward, filterLine bool) {
 			return rl.histories.Complete(forward, filterLine)
 		}
 
-		rl.completer.GenerateWith(completer)
-		rl.completer.IsearchStart(rl.histories.Name(), true)
+		if incremental {
+			rl.completer.GenerateWith(completer)
+			rl.completer.IsearchStart(rl.histories.Name(), true)
+		} else {
+			rl.startMenuComplete(completer)
+			// // rl.completer.GenerateWith(completer)
+			rl.completer.AutocompleteForce()
+		}
 	}
 }

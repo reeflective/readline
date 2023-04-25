@@ -28,6 +28,7 @@ func (e *Engine) IsearchStart(name string, autoinsert bool) {
 func (e *Engine) IsearchStop() {
 	e.keymaps.SetLocal("")
 	e.auto = false
+	e.autoForce = false
 	e.isearch = nil
 }
 
