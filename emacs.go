@@ -426,19 +426,21 @@ func (rl *Shell) transposeWords() {
 
 	// Save the current word and move the cursor to its beginning
 	rl.viSelectInWord()
+	rl.selection.Visual(false)
 	toTranspose, tbpos, tepos, _ := rl.selection.Pop()
 
 	// Then move some number of words.
 	// Either use words backward (if we are at end of line) or forward.
 	rl.cursor.Set(tbpos)
-	if tepos == rl.line.Len()-1 || tepos == rl.line.Len() || rl.iterations.IsSet() {
+	if tepos >= rl.line.Len()-1 || rl.iterations.IsSet() {
 		rl.backwardWord()
 	} else {
-		rl.forwardWord()
+		rl.viForwardWord()
 	}
 
 	// Save the word to transpose with
 	rl.viSelectInWord()
+	rl.selection.Visual(false)
 	transposeWith, wbpos, wepos, _ := rl.selection.Pop()
 
 	// We might be on the first word of the line,
