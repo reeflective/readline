@@ -94,7 +94,7 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 
 	// Only run pending-operator commands when the command we
 	// just executed has not had any influence on iterations.
-	if !rl.iterations.IsSet() {
+	if !rl.iterations.IsPending() {
 		rl.keymaps.RunPending()
 	}
 
@@ -102,11 +102,11 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	rl.checkCursor()    // Ensure cursor position is correct.
 
 	// Drop iterations if required, or show them in the hint.
-	hint, wasActive := rl.iterations.ResetPostCommand()
+	hint := rl.iterations.ResetPostCommand()
 
 	if hint != "" {
 		rl.hint.Persist(hint)
-	} else if wasActive {
+	} else {
 		rl.hint.ResetPersist()
 	}
 
