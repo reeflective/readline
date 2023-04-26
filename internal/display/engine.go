@@ -62,6 +62,8 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 
 // Refresh recomputes and redisplays the entire readline interface, except
 // the first lines of the primary prompt when the latter is a multiline one.
+//
+// Doc: Refresh the current line. By default, this is unbound.
 func (e *Engine) Refresh() {
 	// Clear everything below the current input line.
 	fmt.Print(term.HideCursor)
