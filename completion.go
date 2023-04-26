@@ -29,6 +29,8 @@ func (rl *Shell) completionCommands() commands {
 // Commands ---------------------------------------------------------------------------
 //
 
+// Attempt completion on the current word.
+// Currently identitical to menu-complete.
 func (rl *Shell) completeWord() {
 	rl.undo.SkipSave()
 
@@ -40,6 +42,7 @@ func (rl *Shell) completeWord() {
 	rl.completer.Select(1, 0)
 }
 
+// List possible completions for the current word.
 func (rl *Shell) possibleCompletions() {
 	rl.undo.SkipSave()
 
@@ -50,6 +53,7 @@ func (rl *Shell) possibleCompletions() {
 
 func (rl *Shell) insertCompletions() {}
 
+// Like complete-word, except that menu completion is used.
 func (rl *Shell) menuComplete() {
 	rl.undo.SkipSave()
 
@@ -62,6 +66,10 @@ func (rl *Shell) menuComplete() {
 	}
 }
 
+// Deletes the character under the cursor if not at the
+// beginning or end of the line (like delete-char).
+// If at the end of the line, behaves identically to
+// possible-completions.
 func (rl *Shell) deleteCharOrList() {
 	switch {
 	case rl.cursor.Pos() < rl.line.Len():
@@ -71,6 +79,9 @@ func (rl *Shell) deleteCharOrList() {
 	}
 }
 
+// Identical to menu-complete, but moves backward through the
+// list of possible completions, as if menu-complete had been
+// given a negative argument.
 func (rl *Shell) menuCompleteBackward() {
 	rl.undo.SkipSave()
 
@@ -82,6 +93,8 @@ func (rl *Shell) menuCompleteBackward() {
 	rl.completer.Select(-1, 0)
 }
 
+// In a menu completion, if there are several tags
+// of completions, go to the first result of the next tag.
 func (rl *Shell) menuCompleteNextTag() {
 	rl.undo.SkipSave()
 
@@ -92,6 +105,8 @@ func (rl *Shell) menuCompleteNextTag() {
 	rl.completer.SelectTag(true)
 }
 
+// In a menu completion, if there are several tags of
+// completions, go to the first result of the previous tag.
 func (rl *Shell) menuCompletePrevTag() {
 	rl.undo.SkipSave()
 
@@ -102,6 +117,8 @@ func (rl *Shell) menuCompletePrevTag() {
 	rl.completer.SelectTag(false)
 }
 
+// In a menu completion, insert the current completion
+// into the buffer, and advance to the next possible completion.
 func (rl *Shell) acceptAndMenuComplete() {
 	rl.undo.SkipSave()
 
@@ -122,6 +139,7 @@ func (rl *Shell) acceptAndMenuComplete() {
 	rl.completer.Select(1, 0)
 }
 
+// Open a completion menu (similar to menu-complete) with all currently populated Vim registers.
 func (rl *Shell) viRegistersComplete() {
 	rl.undo.SkipSave()
 
@@ -132,6 +150,14 @@ func (rl *Shell) viRegistersComplete() {
 	}
 }
 
+// In a menu completion (wether a candidate is selected or not), start incremental-search
+// (fuzzy search) on the results. Search backward incrementally for a specified string.
+// The search is case-insensitive if the search string does not have uppercase letters
+// and no numeric argument was given. The string may begin with ‘^’ to anchor the search
+// to the beginning of the line. A restricted set of editing functions is available in the
+// mini-buffer. Keys are looked up in the special isearch keymap, On each change in the
+// mini-buffer, any currently selected candidate is dropped from the line and the menu.
+// An interrupt signal, as defined by the stty setting, will stop the search and go back to the original line.
 func (rl *Shell) menuIncrementalSearch() {
 	rl.undo.SkipSave()
 
