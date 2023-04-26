@@ -91,6 +91,13 @@ func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
 	e.isearchName = name
 	e.isearchForward = forward
 	e.isearchSubstring = substring
+
+	// Adapt keymap if required.
+	e.isearchModeExit = e.keymaps.Main()
+
+	if !e.keymaps.IsEmacs() && e.keymaps.Main() != keymap.ViIns {
+		e.keymaps.SetMain(keymap.ViIns)
+	}
 }
 
 // NonIsearchStop exits the non-incremental search mode.
@@ -101,6 +108,19 @@ func (e *Engine) NonIsearchStop() {
 	e.isearchCur = nil
 	e.isearchForward = false
 	e.isearchSubstring = false
+
+	// Reset keymap if required.
+	if e.keymaps.Main() != e.isearchModeExit {
+		e.keymaps.SetMain(e.isearchModeExit)
+		e.isearchModeExit = ""
+	}
+
+	if e.keymaps.Main() == keymap.ViCmd {
+		e.cursor.CheckCommand()
+	}
+
+	// Reset helpers
+	e.hint.Reset()
 }
 
 // NonIncrementallySearching returns true if the completion engine

@@ -17,6 +17,15 @@ type Engine struct {
 	defaut Completer       // Completer used by things like autocomplete
 	hint   *ui.Hint        // The completions can feed hint/usage messages
 
+	// Line parameters
+	keys       *core.Keys      // The input keys reader
+	line       *core.Line      // The real input line of the shell.
+	cursor     *core.Cursor    // The cursor of the shell.
+	selection  *core.Selection // The line selection
+	completed  *core.Line      // A line that might include a virtually inserted candidate.
+	compCursor *core.Cursor    // The adjusted cursor.
+	keymaps    *keymap.Modes   // The main/local keymaps of the shell
+
 	// Completion parameters
 	groups    []*group      // All of our suggestions tree is in here
 	sm        SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
@@ -28,23 +37,15 @@ type Engine struct {
 	auto      bool          // Is the engine autocompleting ?
 	autoForce bool
 
-	// Line parameters
-	keys       *core.Keys      // The input keys reader
-	line       *core.Line      // The real input line of the shell.
-	cursor     *core.Cursor    // The cursor of the shell.
-	selection  *core.Selection // The line selection
-	completed  *core.Line      // A line that might include a virtually inserted candidate.
-	compCursor *core.Cursor    // The adjusted cursor.
-	keymaps    *keymap.Modes   // The main/local keymaps of the shell
-
 	// Incremental search
 	isearchBuf       *core.Line     // The isearch minibuffer
 	isearchCur       *core.Cursor   // Cursor position in the minibuffer.
 	isearch          *regexp.Regexp // Holds the current search regex match
 	isearchName      string         // What is being incrementally searched for.
 	isearchInsert    bool           // Whether to insert the first match in the line
-	isearchForward   bool
-	isearchSubstring bool
+	isearchForward   bool           // Match results in forward order, or backward.
+	isearchSubstring bool           // Match results as a substring (regex), or as a prefix.
+	isearchModeExit  keymap.Mode    // The main keymap to restore after exiting isearch
 }
 
 // NewEngine initializes a new completion engine with the shell operating parameters.
