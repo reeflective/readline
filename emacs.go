@@ -73,24 +73,24 @@ func (rl *Shell) standardCommands() commands {
 		"keyword-decrease": rl.keywordDecrease,
 
 		// Killing & yanking
-		"kill-line":                rl.killLine,
-		"backward-kill-line":       rl.backwardKillLine,
-		"unix-line-discard":        rl.backwardKillLine,
-		"kill-whole-line":          rl.killWholeLine,
-		"kill-word":                rl.killWord,
-		"backward-kill-word":       rl.backwardKillWord,
+		"kill-line":           rl.killLine,
+		"backward-kill-line":  rl.backwardKillLine,
+		"unix-line-discard":   rl.backwardKillLine,
+		"kill-whole-line":     rl.killWholeLine,
+		"kill-word":           rl.killWord,
+		"backward-kill-word":  rl.backwardKillWord,
+		"unix-word-rubout":    rl.backwardKillWord,
+		"kill-region":         rl.killRegion,
+		"copy-region-as-kill": rl.copyRegionAsKill,
+		"copy-backward-word":  rl.copyBackwardWord,
+		"copy-forward-word":   rl.copyForwardWord,
+		"yank":                rl.yank,
+		"yank-pop":            rl.yankPop,
+
+		"kill-buffer":              rl.killBuffer,
 		"shell-kill-word":          rl.shellKillWord,
 		"shell-backward-kill-word": rl.shellBackwardKillWord,
-		"unix-word-rubout":         rl.backwardKillWord,
-		"kill-region":              rl.killRegion,
-		"copy-region-as-kill":      rl.copyRegionAsKill,
-		"copy-backward-word":       rl.copyBackwardWord,
-		"copy-forward-word":        rl.copyForwardWord,
-		"yank":                     rl.yank,
-		"yank-pop":                 rl.yankPop,
-
-		"kill-buffer":          rl.killBuffer,
-		"copy-prev-shell-word": rl.copyPrevShellWord,
+		"copy-prev-shell-word":     rl.copyPrevShellWord,
 
 		// Numeric arguments
 		"digit-argument": rl.digitArgument,
@@ -130,6 +130,7 @@ func (rl *Shell) standardCommands() commands {
 // Modes ----------------------------------------------------------------
 //
 
+// When in vi command mode, this causes a switch to emacs editing mode.
 func (rl *Shell) emacsEditingMode() {
 	rl.keymaps.SetMain(keymap.Emacs)
 }
@@ -138,6 +139,7 @@ func (rl *Shell) emacsEditingMode() {
 // Movement -------------------------------------------------------------
 //
 
+// Move forward one character.
 func (rl *Shell) forwardChar() {
 	// Only exception where we actually don't forward a character.
 	if rl.config.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
@@ -153,6 +155,7 @@ func (rl *Shell) forwardChar() {
 	}
 }
 
+// Move backward one character.
 func (rl *Shell) backwardChar() {
 	rl.undo.SkipSave()
 	vii := rl.iterations.Get()
@@ -162,6 +165,8 @@ func (rl *Shell) backwardChar() {
 	}
 }
 
+// Move to the beginning of the next word. The editor’s idea
+// of a word is any sequence of alphanumeric characters.
 func (rl *Shell) forwardWord() {
 	rl.undo.SkipSave()
 	vii := rl.iterations.Get()
@@ -176,6 +181,8 @@ func (rl *Shell) forwardWord() {
 	}
 }
 
+// Move to the beginning of the current or previousword. The editor’s
+// idea of a word is any sequence of alphanumeric characters.
 func (rl *Shell) backwardWord() {
 	rl.undo.SkipSave()
 
@@ -186,6 +193,9 @@ func (rl *Shell) backwardWord() {
 	}
 }
 
+// Move forward to the beginning of the next word.
+// The editor's idea of a word is defined by classic sh-style word splitting:
+// any non-spaced sequence of characters, or a quoted sequence.
 func (rl *Shell) forwardShellWord() {
 	vii := rl.iterations.Get()
 
@@ -196,6 +206,9 @@ func (rl *Shell) forwardShellWord() {
 	}
 }
 
+// Move to the beginning of the current or previous word.
+// The editor's idea of a word is defined by classic sh-style word splitting:
+// any non-spaced sequence of characters, or a quoted sequence.
 func (rl *Shell) backwardShellWord() {
 	vii := rl.iterations.Get()
 
@@ -211,6 +224,8 @@ func (rl *Shell) backwardShellWord() {
 	}
 }
 
+// Move to the beginning of the line. If already at the beginning
+// of the line, move to the beginning of the previous line, if any.
 func (rl *Shell) beginningOfLine() {
 	rl.undo.SkipSave()
 
@@ -223,6 +238,8 @@ func (rl *Shell) beginningOfLine() {
 	rl.cursor.BeginningOfLine()
 }
 
+// Move to the end of the line. If already at the end
+// of the line, move to the end of the next line, if any.
 func (rl *Shell) endOfLine() {
 	rl.undo.SkipSave()
 	// If in Vim command mode, cursor
@@ -230,16 +247,20 @@ func (rl *Shell) endOfLine() {
 	rl.cursor.EndOfLineAppend()
 }
 
+// Move up one line if the current buffer has more than one line.
 func (rl *Shell) upLine() {
 	lines := rl.iterations.Get()
 	rl.cursor.LineMove(lines * -1)
 }
 
+// Move down one line if the current buffer has more than one line.
 func (rl *Shell) downLine() {
 	lines := rl.iterations.Get()
 	rl.cursor.LineMove(lines)
 }
 
+// Clear the current screen and redisplay the prompt and input line.
+// This does not clear the terminal's output buffer.
 func (rl *Shell) clearScreen() {
 	rl.undo.SkipSave()
 
@@ -250,6 +271,8 @@ func (rl *Shell) clearScreen() {
 	rl.display.CursorToPos()
 }
 
+// Clear the current screen and redisplay the prompt and input line.
+// This does clear the terminal's output buffer.
 func (rl *Shell) clearDisplay() {
 	rl.undo.SkipSave()
 
@@ -264,6 +287,11 @@ func (rl *Shell) clearDisplay() {
 // Changing Text --------------------------------------------------------
 //
 
+// The character indicating end-of-file as set, for example,
+// by “stty”.  If this character is read when there are no
+// characters on the line, and point is at the beginning of
+// the line, readline interprets it as the end of input and
+// returns EOF.
 func (rl *Shell) endOfFile() {
 	switch rl.line.Len() {
 	case 0:
@@ -274,6 +302,7 @@ func (rl *Shell) endOfFile() {
 	}
 }
 
+// Delete the character under the cursor.
 func (rl *Shell) deleteChar() {
 	// Extract from bash documentation of readline:
 	// Delete the character at point.  If this function is bound
@@ -291,6 +320,11 @@ func (rl *Shell) deleteChar() {
 	}
 }
 
+// Delete the character behind the cursor.
+// If the character to delete is a matching character
+// (quote/brackets/braces,etc) and that the character
+// under the cursor is its matching counterpart, this
+// character will also be deleted.
 func (rl *Shell) backwardDeleteChar() {
 	if rl.keymaps.Main() == keymap.ViIns {
 		rl.undo.SkipSave()
@@ -332,6 +366,8 @@ func (rl *Shell) backwardDeleteChar() {
 	}
 }
 
+// Delete the character under the cursor, unless the cursor is at the
+// end of the line, in which case the character behind the cursor is deleted.
 func (rl *Shell) forwardBackwardDeleteChar() {
 	switch rl.cursor.Pos() {
 	case rl.line.Len():
@@ -341,6 +377,8 @@ func (rl *Shell) forwardBackwardDeleteChar() {
 	}
 }
 
+// Add the next character that you type to the line verbatim.
+// This is how to insert characters like C-q, for example.
 func (rl *Shell) quotedInsert() {
 	rl.undo.SkipSave()
 	rl.completer.TrimSuffix()
@@ -366,6 +404,7 @@ func (rl *Shell) quotedInsert() {
 	rl.cursor.Move(len(quoted))
 }
 
+// Insert a tab character.
 func (rl *Shell) tabInsert() {
 	rl.undo.SkipSave()
 
@@ -374,6 +413,7 @@ func (rl *Shell) tabInsert() {
 	// rl.cursor.Move(1)
 }
 
+// Insert the character typed.
 func (rl *Shell) selfInsert() {
 	rl.undo.SkipSave()
 
@@ -397,6 +437,10 @@ func (rl *Shell) bracketedPasteBegin() {
 	fmt.Println(string(keys))
 }
 
+// Drag the character before point forward over the character
+// at point, moving point forward as well.  If point is at the
+// end of the line, then this transposes the two characters
+// before point.  Negative arguments have no effect.
 func (rl *Shell) transposeChars() {
 	if rl.cursor.Pos() < 2 || rl.line.Len() < 2 {
 		rl.undo.SkipSave()
@@ -417,6 +461,11 @@ func (rl *Shell) transposeChars() {
 	}
 }
 
+// Drag the word before point past the word after point,
+// moving point over that word as well.  If point is at the
+// end of the line, this transposes the last two words on the
+// line. If a numeric argument is given, the word to transpose
+// is chosen backward.
 func (rl *Shell) transposeWords() {
 	rl.undo.Save()
 
@@ -469,6 +518,10 @@ func (rl *Shell) transposeWords() {
 	rl.cursor.Set(tepos)
 }
 
+// Drag the shell word before point past the shell word after point,
+// moving point over that shell word as well. If point is at the
+// end of the line, this transposes the last two words on the line.
+// If a numeric argument is given, the word to transpose is chosen backward.
 func (rl *Shell) shellTransposeWords() {
 	rl.undo.Save()
 
@@ -505,6 +558,8 @@ func (rl *Shell) shellTransposeWords() {
 	rl.cursor.Set(tepos)
 }
 
+// Lowercase the current (or following) word. With a negative argument,
+// lowercase the previous word, but do not move point.
 func (rl *Shell) downCaseWord() {
 	rl.undo.Save()
 
@@ -523,6 +578,8 @@ func (rl *Shell) downCaseWord() {
 	rl.cursor.Set(startPos)
 }
 
+// Uppercase the current (or following) word.  With a negative argument,
+// uppercase the previous word, but do not move point.
 func (rl *Shell) upCaseWord() {
 	rl.undo.Save()
 
@@ -541,6 +598,8 @@ func (rl *Shell) upCaseWord() {
 	rl.cursor.Set(startPos)
 }
 
+// Capitalize the current (or following) word.  With a negative argument,
+// capitalize the previous word, but do not move point.
 func (rl *Shell) capitalizeWord() {
 	rl.undo.Save()
 
@@ -556,6 +615,10 @@ func (rl *Shell) capitalizeWord() {
 	rl.cursor.Set(startPos)
 }
 
+// Toggle overwrite mode. In overwrite mode, characters bound to
+// self-insert replace the text at point rather than pushing the
+// text to the right.  Characters bound to backward-delete-char
+// replace the character before point with a space.
 func (rl *Shell) overwriteMode() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
@@ -564,37 +627,57 @@ func (rl *Shell) overwriteMode() {
 	done := rl.keymaps.PendingCursor()
 	defer done()
 
+	// All replaced characters are stored, to be used with backspace
+	cache := make([]rune, 0)
+
+	// Don't use the delete cache past the end of the line
+	lineStart := rl.line.Len()
+
 	// The replace mode is quite special in that it does escape back
 	// to the main readline loop: it keeps reading characters and inserts
 	// them as long as the escape key is not pressed.
 	for {
-		// Read a new key
-		keys, esc := rl.keys.ReadArgument()
-		if esc {
-			return
+		// We read a character to use first.
+		keys, isAbort := rl.keys.ReadArgument()
+		if isAbort {
+			break
 		}
 
 		key := keys[0]
 
 		// If the key is a backspace, we go back one character
-		if key == inputrc.Backspace {
-			rl.backwardDeleteChar()
+		if string(key) == inputrc.Unescape(string(`\C-?`)) {
+			if rl.cursor.Pos() > lineStart {
+				rl.backwardDeleteChar()
+			} else if rl.cursor.Pos() > 0 {
+				rl.cursor.Dec()
+			}
+
+			// And recover the last replaced character
+			if len(cache) > 0 && rl.cursor.Pos() < lineStart {
+				key = cache[len(cache)-1]
+				cache = cache[:len(cache)-1]
+				(*rl.line)[rl.cursor.Pos()] = key
+			}
 		} else {
 			// If the cursor is at the end of the line,
 			// we insert the character instead of replacing.
-			if rl.cursor.Pos() == rl.line.Len() {
+			if rl.line.Len() == rl.cursor.Pos() {
 				rl.line.Insert(rl.cursor.Pos(), key)
 			} else {
+				cache = append(cache, (*rl.line)[rl.cursor.Pos()])
 				(*rl.line)[rl.cursor.Pos()] = key
 			}
 
 			rl.cursor.Inc()
 		}
 
+		// Update the line
 		rl.display.Refresh()
 	}
 }
 
+// Delete all spaces and tabs around point.
 func (rl *Shell) deleteHorizontalWhitespace() {
 	rl.undo.Save()
 
@@ -618,6 +701,7 @@ func (rl *Shell) deleteHorizontalWhitespace() {
 	rl.cursor.Set(bpos)
 }
 
+// Delete the current word from the cursor point up to the end of it.
 func (rl *Shell) deleteWord() {
 	rl.undo.Save()
 
@@ -628,6 +712,7 @@ func (rl *Shell) deleteWord() {
 	rl.selection.Cut()
 }
 
+// Quote the region from the cursor to the mark.
 func (rl *Shell) quoteRegion() {
 	rl.undo.Save()
 
@@ -635,6 +720,7 @@ func (rl *Shell) quoteRegion() {
 	rl.cursor.Inc()
 }
 
+// Quote the entire line buffer.
 func (rl *Shell) quoteLine() {
 	if rl.line.Len() == 0 {
 		return
@@ -655,33 +741,32 @@ func (rl *Shell) quoteLine() {
 	rl.line.Insert(rl.line.Len(), '\'')
 }
 
+// Modifies the current word under the cursor, increasing it.
+// The following word types can be incremented/decremented:
+//
+//	Booleans: true|false, t|f, on|off, yes|no, y|n.
+//	Operators: &&|||, ++|--, ==|!=, ===| !==, +| -, -| *, *| /, /| +, and| or.
+//	Hex digits 0xDe => 0xdf, 0xdE => 0xDF, 0xde0 => 0xddf, 0xffffffffffffffff => 0x0000000000000000.
+//	Binary digits: 0b1 => 0b10, 0B0 => 0B1, etc.
+//	Integers.
 func (rl *Shell) keywordIncrease() {
 	rl.undo.Save()
 	rl.keywordSwitch(true)
 }
 
+// Modifies the current word under the cursor, decreasing it.
+// The following word types can be incremented/decremented:
+//
+//	Booleans: true|false, t|f, on|off, yes|no, y|n.
+//	Operators: &&|||, ++|--, ==|!=, ===| !==, +| -, -| *, *| /, /| +, and| or.
+//	Hex digits 0xDe => 0xdf, 0xdE => 0xDF, 0xde0 => 0xddf, 0xffffffffffffffff => 0x0000000000000000.
+//	Binary digits: 0b1 => 0b10, 0B0 => 0B1, etc.
+//	Integers.
 func (rl *Shell) keywordDecrease() {
 	rl.undo.Save()
 	rl.keywordSwitch(false)
 }
 
-// Cursor position cases:
-//
-// 1. Cursor on symbol:
-// 2+2   => +
-// 2-2   => -
-// 2 + 2 => +
-// 2 +2  => +2
-// 2 -2  => -2
-// 2 -a  => -a
-//
-// 2. Cursor on number or alpha:
-// 2+2   => +2
-// 2-2   => -2
-// 2 + 2 => 2
-// 2 +2  => +2
-// 2 -2  => -2
-// 2 -a  => -a.
 func (rl *Shell) keywordSwitch(increase bool) {
 	cpos := strutil.AdjustNumberOperatorPos(rl.cursor.Pos(), *rl.line)
 
@@ -733,26 +818,45 @@ func (rl *Shell) keywordSwitch(increase bool) {
 // Killing & Yanking ----------------------------------------------------------
 //
 
+// Kill from the cursor to the end of the line. If already
+// on the end of the line, kill the newline character.
 func (rl *Shell) killLine() {
 	rl.iterations.Reset()
 	rl.undo.Save()
 
-	cut := []rune(*rl.line)[rl.cursor.Pos():]
-	rl.buffers.Write(cut...)
+	if rl.line.Len() == 0 {
+		return
+	}
 
-	rl.line.Cut(rl.cursor.Pos(), rl.line.Len())
+	cpos := rl.cursor.Pos()
+	rl.cursor.EndOfLineAppend()
+
+	rl.selection.MarkRange(cpos, rl.cursor.Pos())
+	text := rl.selection.Cut()
+
+	rl.buffers.Write([]rune(text)...)
+	rl.cursor.Set(cpos)
 }
 
+// Kill backward to the beginning of the line.
 func (rl *Shell) backwardKillLine() {
 	rl.iterations.Reset()
 	rl.undo.Save()
 
-	cut := []rune(*rl.line)[:rl.cursor.Pos()]
-	rl.buffers.Write(cut...)
+	if rl.line.Len() == 0 {
+		return
+	}
 
-	rl.line.Cut(0, rl.cursor.Pos())
+	cpos := rl.cursor.Pos()
+	rl.cursor.BeginningOfLine()
+
+	rl.selection.MarkRange(rl.cursor.Pos(), cpos)
+	text := rl.selection.Cut()
+
+	rl.buffers.Write([]rune(text)...)
 }
 
+// Kill all characters on the current line, no matter where point is.
 func (rl *Shell) killWholeLine() {
 	rl.undo.Save()
 
@@ -764,6 +868,7 @@ func (rl *Shell) killWholeLine() {
 	rl.line.Cut(0, rl.line.Len())
 }
 
+// Kill the entire buffer.
 func (rl *Shell) killBuffer() {
 	rl.undo.Save()
 
@@ -775,6 +880,7 @@ func (rl *Shell) killBuffer() {
 	rl.line.Cut(0, rl.line.Len())
 }
 
+// Kill the current word from the cursor point up to the end of it.
 func (rl *Shell) killWord() {
 	rl.undo.Save()
 
@@ -790,6 +896,8 @@ func (rl *Shell) killWord() {
 	rl.cursor.Set(bpos)
 }
 
+// Kill the word behind point. Word boundaries
+// are the same as those used by backward-word.
 func (rl *Shell) backwardKillWord() {
 	rl.undo.Save()
 	rl.undo.SkipSave()
@@ -801,6 +909,82 @@ func (rl *Shell) backwardKillWord() {
 	rl.buffers.Write([]rune(rl.selection.Cut())...)
 }
 
+// Kill the text between the point and mark (saved cursor
+// position).  This text is referred to as the region.
+func (rl *Shell) killRegion() {
+	rl.undo.Save()
+
+	if !rl.selection.Active() {
+		return
+	}
+
+	rl.buffers.Write([]rune(rl.selection.Cut())...)
+}
+
+// Copy the text in the region to the kill buffer.
+func (rl *Shell) copyRegionAsKill() {
+	rl.undo.SkipSave()
+
+	if !rl.selection.Active() {
+		return
+	}
+
+	rl.buffers.Write([]rune(rl.selection.Text())...)
+	rl.selection.Reset()
+}
+
+// Copy the word before point to the kill buffer.
+// The word boundaries are the same as backward-word.
+func (rl *Shell) copyBackwardWord() {
+	rl.undo.Save()
+
+	rl.selection.Mark(rl.cursor.Pos())
+	adjust := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(adjust)
+
+	rl.buffers.Write([]rune(rl.selection.Text())...)
+	rl.selection.Reset()
+}
+
+// Copy the word following point to the kill buffer.
+// The word boundaries are the same as forward-word.
+func (rl *Shell) copyForwardWord() {
+	rl.undo.Save()
+
+	rl.selection.Mark(rl.cursor.Pos())
+	adjust := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
+	rl.cursor.Move(adjust + 1)
+
+	rl.buffers.Write([]rune(rl.selection.Text())...)
+	rl.selection.Reset()
+}
+
+// Yank the top of the kill ring into the buffer at point.
+func (rl *Shell) yank() {
+	buf := rl.buffers.Get(rune(0))
+
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		rl.line.Insert(rl.cursor.Pos(), buf...)
+		rl.cursor.Move(len(buf))
+	}
+}
+
+// Rotate the kill ring, and yank the new top.
+// Only works following yank or yank-pop.
+func (rl *Shell) yankPop() {
+	vii := rl.iterations.Get()
+
+	for i := 1; i <= vii; i++ {
+		buf := rl.buffers.Pop()
+		rl.line.Insert(rl.cursor.Pos(), buf...)
+		rl.cursor.Move(len(buf))
+	}
+}
+
+// Kill the shell word behind point. Word boundaries
+// are the same as those used by backward-word.
 func (rl *Shell) shellKillWord() {
 	startPos := rl.cursor.Pos()
 
@@ -817,6 +1001,7 @@ func (rl *Shell) shellKillWord() {
 	rl.selection.Reset()
 }
 
+// Kill the shell word behind point.
 func (rl *Shell) shellBackwardKillWord() {
 	startPos := rl.cursor.Pos()
 
@@ -871,70 +1056,9 @@ func (rl *Shell) shellBackwardKillWord() {
 	rl.selection.Reset()
 }
 
-func (rl *Shell) killRegion() {
-	rl.undo.Save()
-
-	if !rl.selection.Active() {
-		return
-	}
-
-	rl.buffers.Write([]rune(rl.selection.Cut())...)
-}
-
-func (rl *Shell) copyRegionAsKill() {
-	rl.undo.SkipSave()
-
-	if !rl.selection.Active() {
-		return
-	}
-
-	rl.buffers.Write([]rune(rl.selection.Text())...)
-	rl.selection.Reset()
-}
-
-func (rl *Shell) copyBackwardWord() {
-	rl.undo.Save()
-
-	rl.selection.Mark(rl.cursor.Pos())
-	adjust := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
-	rl.cursor.Move(adjust)
-
-	rl.buffers.Write([]rune(rl.selection.Text())...)
-	rl.selection.Reset()
-}
-
-func (rl *Shell) copyForwardWord() {
-	rl.undo.Save()
-
-	rl.selection.Mark(rl.cursor.Pos())
-	adjust := rl.line.Forward(rl.line.Tokenize, rl.cursor.Pos())
-	rl.cursor.Move(adjust + 1)
-
-	rl.buffers.Write([]rune(rl.selection.Text())...)
-	rl.selection.Reset()
-}
-
-func (rl *Shell) yank() {
-	buf := rl.buffers.Get(rune(0))
-
-	vii := rl.iterations.Get()
-
-	for i := 1; i <= vii; i++ {
-		rl.line.Insert(rl.cursor.Pos(), buf...)
-		rl.cursor.Move(len(buf))
-	}
-}
-
-func (rl *Shell) yankPop() {
-	vii := rl.iterations.Get()
-
-	for i := 1; i <= vii; i++ {
-		buf := rl.buffers.Pop()
-		rl.line.Insert(rl.cursor.Pos(), buf...)
-		rl.cursor.Move(len(buf))
-	}
-}
-
+// Like copy-prev-word, but the word is found by using shell parsing,
+// whereas copy-prev-word looks for blanks. This makes a difference
+// when the word is quoted and contains spaces.
 func (rl *Shell) copyPrevShellWord() {
 	rl.undo.Save()
 
@@ -977,18 +1101,24 @@ func (rl *Shell) digitArgument() {
 // Macros ----------------------------------------------------------------------
 //
 
+// Begin saving the characters typed into the current keyboard macro.
 func (rl *Shell) startKeyboardMacro() {
 	rl.macros.StartRecord()
 }
 
+// Stop saving the characters typed into the current
+// keyboard macro and store the definition.
 func (rl *Shell) endKeyboardMacro() {
 	rl.macros.StopRecord()
 }
 
+// Re-execute the last keyboard macro defined, by making the
+// characters in the macro appear as if typed at the keyboard.
 func (rl *Shell) callLastKeyboardMacro() {
 	rl.macros.RunLastMacro()
 }
 
+// Print the last keyboard macro defined in a format suitable for the inputrc file.
 func (rl *Shell) printLastKeyboardMacro() {
 	rl.display.ClearHelpers()
 
@@ -1002,6 +1132,8 @@ func (rl *Shell) printLastKeyboardMacro() {
 // Miscellaneous ---------------------------------------------------------------
 //
 
+// Read in the contents of the inputrc file, and incorporate
+// any bindings or variable assignments found there.
 func (rl *Shell) reReadInitFile() {
 	user, _ := user.Current()
 
@@ -1013,6 +1145,7 @@ func (rl *Shell) reReadInitFile() {
 	}
 }
 
+// Abort the current editing command.
 func (rl *Shell) abort() {
 	// Reset any visual selection and iterations.
 	rl.iterations.Reset()
@@ -1033,6 +1166,9 @@ func (rl *Shell) abort() {
 //
 // 	return ErrCtrlC
 
+// If the metafied character x is uppercase, run the command
+// that is bound to the corresponding metafied lowercase character.
+// The behavior is undefined if x is already lowercase.
 func (rl *Shell) doLowercaseVersion() {
 	rl.undo.SkipSave()
 
@@ -1067,6 +1203,7 @@ func (rl *Shell) doLowercaseVersion() {
 	}
 }
 
+// Metafy the next character typed.  ESC f is equivalent to Meta-f.
 func (rl *Shell) prefixMeta() {
 	rl.undo.SkipSave()
 
@@ -1084,14 +1221,23 @@ func (rl *Shell) prefixMeta() {
 	rl.keys.Feed(false, true, keys...)
 }
 
+// Incrementally undo the last text modification.
+// Note that when invoked from vi command mode, the full
+// prior change made in insert mode is reverted, the changes
+// having been merged when command mode was selected.
 func (rl *Shell) undoLast() {
 	rl.undo.Undo(rl.line, rl.cursor)
 }
 
+// Undo all changes made to this line.
+// This is like executing the undo command enough
+// times to return the line to its initial state.
 func (rl *Shell) revertLine() {
 	rl.undo.Revert(rl.line, rl.cursor)
 }
 
+// Set the mark to the point. If a numeric argument is
+// supplied, the mark is set to that position.
 func (rl *Shell) setMark() {
 	switch {
 	case rl.iterations.IsSet():
@@ -1110,6 +1256,9 @@ func (rl *Shell) setMark() {
 	}
 }
 
+// Swap the point with the mark.  The current cursor position
+// is set to the saved position, and the old cursor position
+// is saved as the mark.
 func (rl *Shell) exchangePointAndMark() {
 	// Deactivate mark if out of bound
 	if rl.cursor.Mark() > rl.line.Len() {
@@ -1133,6 +1282,9 @@ func (rl *Shell) exchangePointAndMark() {
 	}
 }
 
+// A character is read and point is moved to the next
+// occurrence of that character.  A negative argument
+// searches for previous occurrences.
 func (rl *Shell) characterSearch() {
 	if rl.iterations.Get() < 0 {
 		rl.viFindChar(false, false)
@@ -1141,6 +1293,9 @@ func (rl *Shell) characterSearch() {
 	}
 }
 
+// A character is read and point is moved to the previous
+// occurrence of that character.  A negative argument
+// searches for subsequent occurrences.
 func (rl *Shell) characterSearchBackward() {
 	if rl.iterations.Get() < 0 {
 		rl.viFindChar(true, false)
@@ -1149,6 +1304,18 @@ func (rl *Shell) characterSearchBackward() {
 	}
 }
 
+// Without a numeric argument, the value of the readline
+// comment-begin variable is inserted at the beginning of the
+// current line.  If a numeric argument is supplied, this
+// command acts as a toggle: if the characters at the
+// beginning of the line do not match the value of
+// comment-begin, the value is inserted, otherwise the
+// characters in comment-begin are deleted from the beginning
+// of the line.  In either case, the line is accepted as if a
+// newline had been typed.  The default value of
+// comment-begin makes the current line a shell comment.
+// If a numeric argument causes the comment character to be
+// removed, the line will be executed by the shell.
 func (rl *Shell) insertComment() {
 	comment := rl.config.GetString("comment-begin")
 
@@ -1185,6 +1352,10 @@ func (rl *Shell) insertComment() {
 	rl.acceptLineWith(false, false)
 }
 
+// Print all of the functions and their key bindings to the
+// readline output stream.  If a numeric argument is
+// supplied, the output is formatted in such a way that it
+// can be made part of an inputrc file.
 func (rl *Shell) dumpFunctions() {
 	rl.display.ClearHelpers()
 	fmt.Println()
@@ -1198,6 +1369,10 @@ func (rl *Shell) dumpFunctions() {
 	rl.keymaps.PrintBinds(inputrcFormat)
 }
 
+// Print all of the settable variables and their values to
+// the readline output stream.  If a numeric argument is
+// supplied, the output is formatted in such a way that it
+// can be made part of an inputrc file.
 func (rl *Shell) dumpVariables() {
 	rl.display.ClearHelpers()
 	fmt.Println()
@@ -1230,6 +1405,10 @@ func (rl *Shell) dumpVariables() {
 	}
 }
 
+// Print all of the readline key sequences bound to macros
+// and the strings they output.  If a numeric argument is
+// supplied, the output is formatted in such a way that it
+// can be made part of an inputrc file.
 func (rl *Shell) dumpMacros() {
 	rl.display.ClearHelpers()
 	fmt.Println()
@@ -1268,6 +1447,8 @@ func (rl *Shell) dumpMacros() {
 	}
 }
 
+// Invoke an editor on the current command line, and execute the result as shell commands.
+// Readline attempts to invoke $VISUAL, $EDITOR, and emacs as the editor, in that order.
 func (rl *Shell) editAndExecuteCommand() {
 	buffer := *rl.line
 
@@ -1289,6 +1470,8 @@ func (rl *Shell) editAndExecuteCommand() {
 	rl.histories.Accept(false, false, nil)
 }
 
+// Invoke an editor on the current command line.
+// Readline attempts to invoke $VISUAL, $EDITOR, and emacs as the editor, in that order.
 func (rl *Shell) editCommandLine() {
 	buffer := *rl.line
 	keymapCur := rl.keymaps.Main()
@@ -1315,6 +1498,7 @@ func (rl *Shell) editCommandLine() {
 	}
 }
 
+// Incrementally redo undone text modifications.
 func (rl *Shell) redo() {
 	rl.undo.Redo(rl.line, rl.cursor)
 }
