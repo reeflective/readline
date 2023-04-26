@@ -26,10 +26,10 @@ func (rl *Shell) Readline() (string, error) {
 	}
 	defer term.Restore(descriptor, state)
 
-	rl.init()
-
 	rl.prompt.PrimaryPrint()
 	defer rl.display.PrintTransientPrompt()
+
+	rl.init()
 
 	for {
 		// Since we always update helpers after being asked to read

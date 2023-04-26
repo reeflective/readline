@@ -57,9 +57,7 @@ func NewEngine(k *core.Keys, s *core.Selection, h *history.Sources, p *ui.Prompt
 // have bound it after instantiating a new shell instance.
 func (e *Engine) Init(highlighter func([]rune) string) {
 	e.highlighter = highlighter
-
-	// Some coordinates must be available before all else.
-	e.computeCoordinates()
+	// e.computeCoordinates()
 }
 
 // Refresh recomputes and redisplays the entire readline interface, except

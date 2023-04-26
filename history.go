@@ -55,14 +55,14 @@ func (rl *Shell) DeleteHistory(sources ...string) {
 func (rl *Shell) historyCommands() commands {
 	widgets := map[string]func(){
 		"accept-line":                            rl.acceptLine,
-		"next-history":                           rl.downHistory, // down-history
-		"previous-history":                       rl.upHistory,   // up-history
+		"next-history":                           rl.downHistory,
+		"previous-history":                       rl.upHistory,
 		"beginning-of-history":                   rl.beginningOfHistory,
 		"end-of-history":                         rl.endOfHistory,
-		"operate-and-get-next":                   rl.acceptLineAndDownHistory, // accept-line-and-down-history
+		"operate-and-get-next":                   rl.acceptLineAndDownHistory,
 		"fetch-history":                          rl.fetchHistory,
-		"forward-search-history":                 rl.historyIncrementalSearchForward,  // history-incremental-search-forward
-		"reverse-search-history":                 rl.historyIncrementalSearchBackward, // history-incremental-search-backward
+		"forward-search-history":                 rl.historyIncrementalSearchForward,
+		"reverse-search-history":                 rl.historyIncrementalSearchBackward,
 		"non-incremental-forward-search-history": rl.nonIncrementalForwardSearchHistory,
 		"non-incremental-reverse-search-history": rl.nonIncrementalReverseSearchHistory,
 		"history-search-forward":                 rl.historySearchForward,
@@ -136,11 +136,16 @@ func (rl *Shell) endOfHistory() {
 }
 
 func (rl *Shell) acceptLineAndDownHistory() {
-	// rl.inferLine = true // The next loop will retrieve a line by histPos.
-	// rl.acceptLine()
+	rl.acceptLineWith(true, false)
 }
 
-func (rl *Shell) fetchHistory() {}
+func (rl *Shell) fetchHistory() {
+	if rl.iterations.IsSet() {
+		rl.histories.Fetch(rl.iterations.Get())
+	} else {
+		rl.histories.Fetch(0)
+	}
+}
 
 func (rl *Shell) historyIncrementalSearchForward() {
 	rl.undo.SkipSave()
@@ -165,8 +170,13 @@ func (rl *Shell) historySearchBackward() {
 	rl.historyCompletion(false, true, false)
 }
 
-func (rl *Shell) historySubstringSearchForward()  {}
-func (rl *Shell) historySubstringSearchBackward() {}
+func (rl *Shell) historySubstringSearchForward() {
+	rl.histories.InsertMatchSubstring(true)
+}
+
+func (rl *Shell) historySubstringSearchBackward() {
+	rl.histories.InsertMatchSubstring(false)
+}
 
 func (rl *Shell) yankLastArg() {
 	// Get the last history line.

@@ -138,15 +138,14 @@ func (rl *Shell) init() {
 	rl.cursor.Set(0)
 	rl.line.Set([]rune{}...)
 	rl.undo.Save()
+	rl.iterations.Reset()
 
-	// Some components need the last accepted line.
+	// Some accept-* command must fetch a specific
+	// line outright, or keep the accepted one.
 	rl.histories.Init()
 
 	// Reset/initialize user interface components.
 	rl.hint.Reset()
 	rl.completer.ResetForce()
 	rl.display.Init(rl.SyntaxHighlighter)
-
-	// Reset other components.
-	rl.iterations.Reset()
 }

@@ -51,7 +51,6 @@ func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint) *Sources {
 // to infer a command line from the history, it is performed now.
 func (h *Sources) Init() {
 	defer func() {
-		h.pos = 0
 		h.sourcePos = 0
 		h.accepted = false
 		h.acceptLine = nil
@@ -59,6 +58,7 @@ func (h *Sources) Init() {
 	}()
 
 	if h.acceptHold {
+		h.pos = 0
 		h.line.Set(h.acceptLine...)
 		h.cursor.Set(h.line.Len())
 
@@ -66,6 +66,7 @@ func (h *Sources) Init() {
 	}
 
 	if !h.infer {
+		h.pos = 0
 		return
 	}
 
@@ -177,6 +178,29 @@ func (h *Sources) Walk(pos int) {
 	}
 
 	h.line.Set([]rune(next)...)
+	h.cursor.Set(h.line.Len())
+}
+
+// Fetch fetches the history event at the provided
+// index position and makes it the current buffer.
+func (h *Sources) Fetch(pos int) {
+	history := h.Current()
+
+	if history == nil || history.Len() == 0 {
+		return
+	}
+
+	if pos < 0 || pos >= history.Len() {
+		return
+	}
+
+	line, err := history.GetLine(pos)
+	if err != nil {
+		h.hint.Set(color.FgRed + "history error: " + err.Error())
+		return
+	}
+
+	h.line.Set([]rune(line)...)
 	h.cursor.Set(h.line.Len())
 }
 
@@ -312,7 +336,29 @@ func (h *Sources) InsertMatch(forward bool) {
 		return
 	}
 
-	line, pos, found := h.matchFirst(h.line, forward)
+	line, pos, found := h.matchFirst(h.line, forward, false)
+	if !found {
+		return
+	}
+
+	h.pos = pos
+	h.buf = string(*h.line)
+	h.line.Set([]rune(line)...)
+	h.cursor.Set(h.line.Len())
+}
+
+// InsertMatchSubstring replaces the line buffer with the first history line
+// substring-matching the buffer between its beginning and the cursor position.
+func (h *Sources) InsertMatchSubstring(forward bool) {
+	if len(h.list) == 0 {
+		return
+	}
+
+	if h.Current() == nil {
+		return
+	}
+
+	line, pos, found := h.matchFirst(h.line, forward, true)
 	if !found {
 		return
 	}
@@ -335,7 +381,7 @@ func (h *Sources) InferNext() {
 		return
 	}
 
-	_, pos, found := h.matchFirst(h.line, false)
+	_, pos, found := h.matchFirst(h.line, false, false)
 	if !found {
 		return
 	}
@@ -373,7 +419,7 @@ func (h *Sources) Suggest(line *core.Line) core.Line {
 	// 	return *line
 	// }
 
-	suggested, _, found := h.matchFirst(line, false)
+	suggested, _, found := h.matchFirst(line, false, false)
 	if !found {
 		return *line
 	}
@@ -466,7 +512,7 @@ func (h *Sources) Name() string {
 	return h.names[h.sourcePos]
 }
 
-func (h *Sources) matchFirst(match *core.Line, forward bool) (line string, pos int, found bool) {
+func (h *Sources) matchFirst(match *core.Line, forward, substring bool) (line string, pos int, found bool) {
 	if len(h.list) == 0 {
 		return
 	}
@@ -492,6 +538,7 @@ func (h *Sources) matchFirst(match *core.Line, forward bool) (line string, pos i
 	}
 
 	for done(histPos) {
+		// Set index and fetch the line
 		histPos = move(histPos)
 
 		histline, err := history.GetLine(histPos)
@@ -499,15 +546,29 @@ func (h *Sources) matchFirst(match *core.Line, forward bool) (line string, pos i
 			return
 		}
 
-		// If too short
-		if len(histline) < match.Len() {
-			continue
-		}
+		// Matching: either as substring (regex) or since beginning.
+		switch {
+		case substring:
+			line := string(*match)
+			if h.cursor.Pos() < match.Len() {
+				line = line[:h.cursor.Pos()]
+			}
 
-		// Or if not fully matching
-		if !strings.HasPrefix(histline, string(*match)) {
-			// if !strings.HasPrefix(string(*h.line), histline) {
-			continue
+			regexLine, err := regexp.Compile(regexp.QuoteMeta(line))
+			if err != nil {
+				continue
+			}
+
+			// Go to next line if not matching as a substring.
+			if !regexLine.MatchString(histline) {
+				continue
+			}
+
+		default:
+			// If too short or if not fully matching
+			if len(histline) < match.Len() || !strings.HasPrefix(histline, string(*match)) {
+				continue
+			}
 		}
 
 		// Else we have our history match.
