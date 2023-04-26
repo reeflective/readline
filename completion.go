@@ -46,12 +46,28 @@ func (rl *Shell) completeWord() {
 func (rl *Shell) possibleCompletions() {
 	rl.undo.SkipSave()
 
-	rl.completer.Cancel(false, false)
-	rl.keymaps.SetLocal(keymap.MenuSelect)
-	rl.completer.GenerateWith(rl.commandCompletion)
+	rl.startMenuComplete(rl.commandCompletion)
 }
 
-func (rl *Shell) insertCompletions() {}
+func (rl *Shell) insertCompletions() {
+	rl.undo.Save()
+
+	// Generate all possible completions
+	if !rl.completer.IsActive() {
+		rl.startMenuComplete(rl.commandCompletion)
+	}
+
+	// Insert each match, cancel insertion with preserving
+	// the candidate just inserted in the line, for each.
+	for i := 0; i < rl.completer.Matches(); i++ {
+		rl.completer.Select(1, 0)
+		rl.completer.Cancel(false, false)
+	}
+
+	// Clear the completion menu.
+	rl.completer.Cancel(false, false)
+	rl.completer.ClearMenu(true)
+}
 
 // Like complete-word, except that menu completion is used.
 func (rl *Shell) menuComplete() {
