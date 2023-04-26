@@ -86,6 +86,8 @@ var vicmdKeys = map[string]inputrc.Bind{
 	unescape("l"):       {Action: "vi-forward-char"},
 	unescape("j"):       {Action: "down-line-or-history"},
 	unescape("k"):       {Action: "up-line-or-history"},
+	unescape("n"):       {Action: "vi-search-again"},
+	unescape("N"):       {Action: "vi-search-again"},
 	unescape("O"):       {Action: "vi-open-line-above"},
 	unescape("o"):       {Action: "vi-open-line-below"},
 	unescape("p"):       {Action: "vi-put-after"},
