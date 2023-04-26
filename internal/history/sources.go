@@ -325,9 +325,9 @@ func (h *Sources) LineAccepted() (bool, string, error) {
 	return true, line, h.acceptErr
 }
 
-// InsertMatch replaces the line buffer with the first history line
-// in the active source that matches the input line as a prefix.
-func (h *Sources) InsertMatch(forward bool) {
+// InsertMatch replaces the buffer with the first history line matching the provided buffer,
+// between its beginning and the cursor position, either as a substring, or as a prefix.
+func (h *Sources) InsertMatch(line *core.Line, cur *core.Cursor, usePos, fwd, regexp bool) {
 	if len(h.list) == 0 {
 		return
 	}
@@ -336,36 +336,13 @@ func (h *Sources) InsertMatch(forward bool) {
 		return
 	}
 
-	line, pos, found := h.matchFirst(h.line, forward, false)
+	match, pos, found := h.match(line, cur, usePos, fwd, regexp)
 	if !found {
 		return
 	}
 
-	h.pos = pos
-	h.buf = string(*h.line)
-	h.line.Set([]rune(line)...)
-	h.cursor.Set(h.line.Len())
-}
-
-// InsertMatchSubstring replaces the line buffer with the first history line
-// substring-matching the buffer between its beginning and the cursor position.
-func (h *Sources) InsertMatchSubstring(forward bool) {
-	if len(h.list) == 0 {
-		return
-	}
-
-	if h.Current() == nil {
-		return
-	}
-
-	line, pos, found := h.matchFirst(h.line, forward, true)
-	if !found {
-		return
-	}
-
-	h.pos = pos
-	h.buf = string(*h.line)
-	h.line.Set([]rune(line)...)
+	h.pos = h.Current().Len() - pos
+	h.line.Set([]rune(match)...)
 	h.cursor.Set(h.line.Len())
 }
 
@@ -381,7 +358,7 @@ func (h *Sources) InferNext() {
 		return
 	}
 
-	_, pos, found := h.matchFirst(h.line, false, false)
+	_, pos, found := h.match(h.line, nil, false, false, false)
 	if !found {
 		return
 	}
@@ -413,13 +390,7 @@ func (h *Sources) Suggest(line *core.Line) core.Line {
 		return *line
 	}
 
-	// Don't autosuggest when the line is not
-	// the current input line: we are completing.
-	// if line != h.line {
-	// 	return *line
-	// }
-
-	suggested, _, found := h.matchFirst(line, false, false)
+	suggested, _, found := h.match(line, nil, false, false, false)
 	if !found {
 		return *line
 	}
@@ -512,7 +483,7 @@ func (h *Sources) Name() string {
 	return h.names[h.sourcePos]
 }
 
-func (h *Sources) matchFirst(match *core.Line, forward, substring bool) (line string, pos int, found bool) {
+func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex bool) (line string, pos int, found bool) {
 	if len(h.list) == 0 {
 		return
 	}
@@ -527,7 +498,7 @@ func (h *Sources) matchFirst(match *core.Line, forward, substring bool) (line st
 	var done func(i int) bool
 	var move func(inc int) int
 
-	if forward {
+	if fwd {
 		histPos = -1
 		done = func(i int) bool { return i < history.Len() }
 		move = func(pos int) int { return pos + 1 }
@@ -535,6 +506,10 @@ func (h *Sources) matchFirst(match *core.Line, forward, substring bool) (line st
 		histPos = history.Len()
 		done = func(i int) bool { return i > 0 }
 		move = func(pos int) int { return pos - 1 }
+	}
+
+	if usePos && h.pos > 0 {
+		histPos = history.Len() - h.pos
 	}
 
 	for done(histPos) {
@@ -548,10 +523,10 @@ func (h *Sources) matchFirst(match *core.Line, forward, substring bool) (line st
 
 		// Matching: either as substring (regex) or since beginning.
 		switch {
-		case substring:
+		case regex:
 			line := string(*match)
-			if h.cursor.Pos() < match.Len() {
-				line = line[:h.cursor.Pos()]
+			if cur.Pos() < match.Len() {
+				line = line[:cur.Pos()]
 			}
 
 			regexLine, err := regexp.Compile(regexp.QuoteMeta(line))

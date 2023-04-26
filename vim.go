@@ -99,9 +99,9 @@ func (rl *Shell) viCommands() commands {
 		"vi-select-surround":   rl.viSelectSurround,
 
 		// Miscellaneous
-		"vi-eof-maybe": rl.viEOFMaybe,
-		// "vi-search"
-		// "vi-search-again"
+		"vi-eof-maybe":                rl.viEOFMaybe,
+		"vi-search":                   rl.viSearch,
+		"vi-search-again":             rl.viSearchAgain,
 		"vi-arg-digit":                rl.viArgDigit,
 		"vi-char-search":              rl.viCharSearch,
 		"vi-set-mark":                 rl.viSetMark,
@@ -1191,8 +1191,19 @@ func (rl *Shell) viSelectSurround() {
 func (rl *Shell) viEOFMaybe() {
 	rl.endOfFile()
 }
-func (rl *Shell) viSearch()      {}
-func (rl *Shell) viSearchAgain() {}
+
+func (rl *Shell) viSearch() {
+	rl.completer.NonIsearchStart(rl.histories.Name()+" /", false, false, true)
+}
+
+func (rl *Shell) viSearchAgain() {
+	rl.completer.NonIsearchStart(rl.histories.Name()+" /", true, false, true)
+
+	line, cursor, _ := rl.completer.GetBuffer()
+
+	rl.histories.InsertMatch(line, cursor, true, false, true)
+	rl.completer.NonIsearchStop()
+}
 
 func (rl *Shell) viArgDigit() {
 	rl.undo.SkipSave()

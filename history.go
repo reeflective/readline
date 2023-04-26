@@ -157,8 +157,13 @@ func (rl *Shell) historyIncrementalSearchBackward() {
 	rl.historyCompletion(false, false, true)
 }
 
-func (rl *Shell) nonIncrementalForwardSearchHistory() {}
-func (rl *Shell) nonIncrementalReverseSearchHistory() {}
+func (rl *Shell) nonIncrementalForwardSearchHistory() {
+	rl.completer.NonIsearchStart(rl.histories.Name(), false, true, true)
+}
+
+func (rl *Shell) nonIncrementalReverseSearchHistory() {
+	rl.completer.NonIsearchStart(rl.histories.Name(), false, false, true)
+}
 
 func (rl *Shell) historySearchForward() {
 	rl.undo.SkipSave()
@@ -171,11 +176,11 @@ func (rl *Shell) historySearchBackward() {
 }
 
 func (rl *Shell) historySubstringSearchForward() {
-	rl.histories.InsertMatchSubstring(true)
+	rl.histories.InsertMatch(rl.line, rl.cursor, true, true, true)
 }
 
 func (rl *Shell) historySubstringSearchBackward() {
-	rl.histories.InsertMatchSubstring(false)
+	rl.histories.InsertMatch(rl.line, rl.cursor, true, false, true)
 }
 
 func (rl *Shell) yankLastArg() {
@@ -470,12 +475,29 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	// we should cancel this mode so as to run the rest of this
 	// function on (with) the input line itself, not the minibuffer.
 	rl.completer.Reset()
+
+	// Non-incremental search modes are the only mode not cancelled
+	// by the completion engine. If it's active, match the line result
+	// and return without returning the line to the readline caller.
+	searching, forward, substring := rl.completer.NonIncrementallySearching()
+	if searching {
+		defer rl.completer.NonIsearchStop()
+
+		line, cursor, _ := rl.completer.GetBuffer()
+
+		rl.histories.InsertMatch(line, cursor, true, forward, substring)
+
+		return
+	}
+
+	// Use the correct buffer for the rest of the function.
 	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	// Without multiline support, we always return the line.
 	if rl.AcceptMultiline == nil {
 		rl.display.AcceptLine()
 		rl.histories.Accept(hold, infer, nil)
+
 		return
 	}
 
@@ -484,6 +506,7 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	if rl.AcceptMultiline(*rl.line) {
 		rl.display.AcceptLine()
 		rl.histories.Accept(hold, infer, nil)
+
 		return
 	}
 

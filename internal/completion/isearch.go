@@ -26,17 +26,20 @@ func (e *Engine) IsearchStart(name string, autoinsert bool) {
 // IsearchStop exists the incremental search mode,
 // and drops the currently used regexp matcher.
 func (e *Engine) IsearchStop() {
+	// We keep the isearch minibuffer,
+	// for commands like vi-search-again.
 	e.keymaps.SetLocal("")
 	e.auto = false
 	e.autoForce = false
 	e.isearch = nil
+	e.isearchCur = nil
 }
 
 // GetBuffer returns either the current input line when incremental
 // search is not running, or the incremental minibuffer.
 func (e *Engine) GetBuffer() (*core.Line, *core.Cursor, *core.Selection) {
 	// Incremental search buffer
-	if e.keymaps.Local() == keymap.Isearch {
+	if e.isearchCur != nil {
 		selection := core.NewSelection(e.isearchBuf, e.isearchCur)
 
 		return e.isearchBuf, e.isearchCur, selection
@@ -54,7 +57,7 @@ func (e *Engine) GetBuffer() (*core.Line, *core.Cursor, *core.Selection) {
 // UpdateIsearch recompiles the isearch as a regex and
 // filters matching candidates in the available completions.
 func (e *Engine) UpdateIsearch() {
-	if e.keymaps.Local() != keymap.Isearch {
+	if e.keymaps.Local() != keymap.Isearch && e.isearchCur == nil {
 		return
 	}
 
@@ -66,7 +69,51 @@ func (e *Engine) UpdateIsearch() {
 		return
 	}
 
-	// Otherwise, recompute and refresh the matches.
+	// Update helpers depending on the search/minibuffer mode.
+	if e.keymaps.Local() == keymap.Isearch {
+		e.updateIncrementalSearch()
+	} else {
+		e.updateNonIncrementalSearch()
+	}
+}
+
+// NonIsearchStart starts a non-incremental, fake search mode:
+// it does not produce or tries to match against completions,
+// but uses a minibuffer similarly to incremental search mode.
+func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
+	if !repeat || e.isearchBuf == nil {
+		e.isearchBuf = new(core.Line)
+	}
+
+	e.isearchCur = core.NewCursor(e.isearchBuf)
+	e.isearchCur.Set(e.isearchBuf.Len())
+
+	e.isearchName = name
+	e.isearchForward = forward
+	e.isearchSubstring = substring
+}
+
+// NonIsearchStop exits the non-incremental search mode.
+func (e *Engine) NonIsearchStop() {
+	// We keep the isearch minibuffer,
+	// for commands like vi-search-again.
+	e.isearch = nil
+	e.isearchCur = nil
+	e.isearchForward = false
+	e.isearchSubstring = false
+}
+
+// NonIncrementallySearching returns true if the completion engine
+// is currently using a minibuffer for non-incremental search mode.
+func (e *Engine) NonIncrementallySearching() (searching, forward, substring bool) {
+	searching = e.isearchCur != nil && e.keymaps.Local() != keymap.Isearch
+	forward = e.isearchForward
+	substring = e.isearchSubstring
+
+	return
+}
+
+func (e *Engine) updateIncrementalSearch() {
 	var regexStr string
 	if hasUpper(*e.isearchBuf) {
 		regexStr = string(*e.isearchBuf)
@@ -91,11 +138,17 @@ func (e *Engine) UpdateIsearch() {
 
 	// Update the hint section.
 	isearchHint := color.Bold + color.FgCyan + e.isearchName +
-		" (isearch): " + color.Reset + color.Bold + string(*e.isearchBuf)
+		" (inc-search): " + color.Reset + color.Bold + string(*e.isearchBuf)
 	e.hint.Set(isearchHint)
 
 	// And update the inserted candidate if autoinsert is enabled.
 	if e.isearchInsert && e.Matches() > 0 && e.isearchBuf.Len() > 0 {
 		e.Select(1, 0)
 	}
+}
+
+func (e *Engine) updateNonIncrementalSearch() {
+	isearchHint := color.Bold + color.FgCyan + e.isearchName +
+		" (non-inc-search): " + color.Reset + color.Bold + string(*e.isearchBuf)
+	e.hint.Set(isearchHint)
 }

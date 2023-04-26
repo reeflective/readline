@@ -155,6 +155,7 @@ func (rl *Shell) startMenuComplete(completer completion.Completer) {
 	rl.completer.GenerateWith(completer)
 }
 
+// commandCompletion generates the completions for commands/args/flags.
 func (rl *Shell) commandCompletion() completion.Values {
 	if rl.Completer == nil {
 		return completion.Values{}
@@ -166,6 +167,9 @@ func (rl *Shell) commandCompletion() completion.Values {
 	return comps.convert()
 }
 
+// historyCompletion manages the various completion/isearch modes related
+// to history control. It can start the history completions, stop them, cycle
+// through sources if more than one, and adjust the completion/isearch behavior.
 func (rl *Shell) historyCompletion(forward, filterLine, incremental bool) {
 	switch {
 	case rl.keymaps.Local() == keymap.MenuSelect || rl.keymaps.Local() == keymap.Isearch || rl.completer.AutoCompleting():
@@ -201,7 +205,6 @@ func (rl *Shell) historyCompletion(forward, filterLine, incremental bool) {
 			rl.completer.IsearchStart(rl.histories.Name(), true)
 		} else {
 			rl.startMenuComplete(completer)
-			// // rl.completer.GenerateWith(completer)
 			rl.completer.AutocompleteForce()
 		}
 	}
