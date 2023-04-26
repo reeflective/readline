@@ -108,7 +108,7 @@ func (rl *Shell) standardCommands() commands {
 		"prefix-meta":               rl.prefixMeta,
 		"undo":                      rl.undoLast,
 		"revert-line":               rl.revertLine,
-		"set-mark":                  rl.setMark, // set-mark-command
+		"set-mark":                  rl.setMark,
 		"exchange-point-and-mark":   rl.exchangePointAndMark,
 		"character-search":          rl.characterSearch,
 		"character-search-backward": rl.characterSearchBackward,

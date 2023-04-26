@@ -36,7 +36,7 @@ func (rl *Shell) viCommands() commands {
 		"vi-visual-line-mode": rl.viVisualLineMode,
 
 		// Movement
-		"vi-backward-char":    rl.viBackwardChar, // TODO not multiline anymore
+		"vi-backward-char":    rl.viBackwardChar,
 		"vi-forward-char":     rl.viForwardChar,
 		"vi-prev-word":        rl.viBackwardWord,
 		"vi-next-word":        rl.viForwardWord,
