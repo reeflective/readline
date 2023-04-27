@@ -51,6 +51,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestUserDefault(t *testing.T) {
+	// Adapt directories/filenames with OS
 	tests := []struct {
 		dir string
 		exp string
@@ -58,6 +59,7 @@ func TestUserDefault(t *testing.T) {
 		{"/home/ken", "ken.inputrc"},
 		{"/home/bob", "default.inputrc"},
 	}
+
 	for _, testinfo := range tests {
 		test := readTest(t, path.Join("testdata", testinfo.exp))
 		cfg, m := newConfig()
@@ -182,6 +184,7 @@ func readTest(t *testing.T, name string) [][]byte {
 
 func check(t *testing.T, exp []byte, cfg *Config, m map[string][]string, err error) {
 	res := buildResult(t, exp, cfg, m, err)
+
 	if !cmp.Equal(res, exp) {
 		t.Errorf("result does not equal expected:\n%s", cmp.Diff(string(exp), string(res)))
 	}
@@ -313,12 +316,19 @@ func parseBool(t *testing.T, buf []byte) bool {
 
 func readTestdata(name string) ([]byte, error) {
 	switch name {
+	// UNIX
 	case "/home/ken/.inputrc":
 		name = "ken.inputrc"
 	case "/etc/inputrc":
 		name = "default.inputrc"
+
+		// Windows
+	case "\\home\\ken\\_inputrc":
+		name = "ken.inputrc"
+	case "\\home\\bob\\_inputrc":
+		name = "default.inputrc"
 	}
-	buf, err := testdata.ReadFile(filepath.Join("testdata", name))
+	buf, err := testdata.ReadFile(path.Join("testdata", name))
 	if err != nil {
 		return nil, err
 	}
