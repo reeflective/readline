@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"testing"
 	"unicode"
 
@@ -17,7 +18,10 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-const delimiter = "####----####\n"
+const (
+	delimiter        = "####----####\n"
+	delimiterWindows = "####----####\r\n"
+)
 
 func TestConfig(t *testing.T) {
 	var _ Handler = NewDefaultConfig()
@@ -178,6 +182,9 @@ func readTest(t *testing.T, name string) [][]byte {
 	buf, err := testdata.ReadFile(name)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
+	}
+	if runtime.GOOS == "windows" {
+		return bytes.Split(buf, []byte(delimiterWindows))
 	}
 	return bytes.Split(buf, []byte(delimiter))
 }
