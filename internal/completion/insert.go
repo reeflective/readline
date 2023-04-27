@@ -60,6 +60,7 @@ func (e *Engine) refreshLine() {
 	if e.hasUniqueCandidate() {
 		e.acceptCandidate()
 		e.ClearMenu(true)
+		e.ResetForce()
 	} else {
 		e.insertCandidate()
 	}
