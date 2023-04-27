@@ -42,7 +42,7 @@ func TestParse(t *testing.T) {
 		t.Run(filepath.Base(n), func(t *testing.T) {
 			test := readTest(t, n)
 			if len(test) != 3 {
-				t.Fatalf("len(test) != 3: %d => %s", len(test), test)
+				t.Fatalf("len(test) != 3: %d", len(test))
 			}
 			cfg, m := newConfig()
 			check(t, test[2], cfg, m, ParseBytes(test[1], cfg, buildOpts(t, test[0])...))
@@ -51,7 +51,6 @@ func TestParse(t *testing.T) {
 }
 
 func TestUserDefault(t *testing.T) {
-	// Adapt directories/filenames with OS
 	tests := []struct {
 		dir string
 		exp string
