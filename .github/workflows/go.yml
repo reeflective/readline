@@ -46,8 +46,8 @@ jobs:
 
     - name: Build
       run: go build -v ./...
-      shell: pwsh
+      shell: powershell
 
     - name: Run coverage
       run: go test -v ./...
-      shell: pwsh
+      shell: powershell
