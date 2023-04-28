@@ -231,6 +231,13 @@ func (m *Modes) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
 		return
 	}
 
+	// When we are in incremental-search mode (local keymap),
+	// the set of valid commands is restricted: filter out the
+	// binds down to those.
+	if m.Local() == Isearch {
+		binds = m.IsearchCommands(m.Main())
+	}
+
 	bind, command, prefix = m.matchKeymap(binds)
 
 	// Adjusting for the ESC key: when convert-meta is enabled,

@@ -392,6 +392,9 @@ func (rl *Shell) quotedInsert() {
 
 	for _, key := range keys {
 		switch {
+		case inputrc.IsMeta(key):
+			quoted = append(quoted, '^', '[')
+			quoted = append(quoted, inputrc.Demeta(key))
 		case inputrc.IsControl(key):
 			quoted = append(quoted, '^')
 			quoted = append(quoted, inputrc.Decontrol(key))
@@ -425,10 +428,21 @@ func (rl *Shell) selfInsert() {
 		return
 	}
 
-	// Insert the unescaped version of the key, and update cursor position.
-	unescaped := inputrc.Unescape(string(key))
-	rl.line.Insert(rl.cursor.Pos(), []rune(unescaped)...)
-	rl.cursor.Move(len(unescaped))
+	inserted := []rune{}
+
+	switch {
+	case inputrc.IsMeta(key):
+		inserted = append(inserted, '^', '[')
+		inserted = append(inserted, inputrc.Demeta(key))
+	case inputrc.IsControl(key):
+		inserted = append(inserted, '^')
+		inserted = append(inserted, inputrc.Decontrol(key))
+	default:
+		inserted = []rune(inputrc.Unescape(string(key)))
+	}
+
+	rl.line.Insert(rl.cursor.Pos(), inserted...)
+	rl.cursor.Move(len(inserted))
 }
 
 func (rl *Shell) bracketedPasteBegin() {
@@ -961,7 +975,7 @@ func (rl *Shell) copyForwardWord() {
 
 // Yank the top of the kill ring into the buffer at point.
 func (rl *Shell) yank() {
-	buf := rl.buffers.Get(rune(0))
+	buf := rl.buffers.Active()
 
 	vii := rl.iterations.Get()
 

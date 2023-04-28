@@ -212,7 +212,7 @@ func (rl *Shell) commandCompletion() completion.Values {
 // historyCompletion manages the various completion/isearch modes related
 // to history control. It can start the history completions, stop them, cycle
 // through sources if more than one, and adjust the completion/isearch behavior.
-func (rl *Shell) historyCompletion(forward, filterLine, incremental bool) {
+func (rl *Shell) historyCompletion(forward, filterLine, substring bool) {
 	switch {
 	case rl.keymaps.Local() == keymap.MenuSelect || rl.keymaps.Local() == keymap.Isearch || rl.completer.AutoCompleting():
 		// If we are currently completing the last
@@ -242,7 +242,7 @@ func (rl *Shell) historyCompletion(forward, filterLine, incremental bool) {
 			return rl.histories.Complete(forward, filterLine)
 		}
 
-		if incremental {
+		if substring {
 			rl.completer.GenerateWith(completer)
 			rl.completer.IsearchStart(rl.histories.Name(), true)
 		} else {

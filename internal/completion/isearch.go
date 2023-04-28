@@ -158,7 +158,7 @@ func (e *Engine) updateIncrementalSearch() {
 
 	// Update the hint section.
 	isearchHint := color.Bold + color.FgCyan + e.isearchName +
-		" (inc-search): " + color.Reset + color.Bold + string(*e.isearchBuf)
+		" (inc-search): " + color.Reset + color.Bold + string(*e.isearchBuf) + color.Reset + "_"
 	e.hint.Set(isearchHint)
 
 	// And update the inserted candidate if autoinsert is enabled.
@@ -169,6 +169,6 @@ func (e *Engine) updateIncrementalSearch() {
 
 func (e *Engine) updateNonIncrementalSearch() {
 	isearchHint := color.Bold + color.FgCyan + e.isearchName +
-		" (non-inc-search): " + color.Reset + color.Bold + string(*e.isearchBuf)
+		" (non-inc-search): " + color.Reset + color.Bold + string(*e.isearchBuf) + color.Reset + "_"
 	e.hint.Set(isearchHint)
 }

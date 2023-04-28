@@ -61,8 +61,8 @@ func (rl *Shell) historyCommands() commands {
 		"end-of-history":                         rl.endOfHistory,
 		"operate-and-get-next":                   rl.acceptLineAndDownHistory,
 		"fetch-history":                          rl.fetchHistory,
-		"forward-search-history":                 rl.historyIncrementalSearchForward,
-		"reverse-search-history":                 rl.historyIncrementalSearchBackward,
+		"forward-search-history":                 rl.forwardSearchHistory,
+		"reverse-search-history":                 rl.reverseSearchHistory,
 		"non-incremental-forward-search-history": rl.nonIncrementalForwardSearchHistory,
 		"non-incremental-reverse-search-history": rl.nonIncrementalReverseSearchHistory,
 		"history-search-forward":                 rl.historySearchForward,
@@ -73,22 +73,24 @@ func (rl *Shell) historyCommands() commands {
 		"yank-nth-arg":                           rl.yankNthArg,
 		"magic-space":                            rl.magicSpace,
 
-		"accept-and-hold":                rl.acceptAndHold,
-		"accept-and-infer-next-history":  rl.acceptAndInferNextHistory,
-		"down-line-or-history":           rl.downLineOrHistory,
-		"up-line-or-history":             rl.upLineOrHistory,
-		"up-line-or-search":              rl.upLineOrSearch,
-		"down-line-or-search":            rl.downLineOrSearch,
-		"infer-next-history":             rl.inferNextHistory,
-		"beginning-of-buffer-or-history": rl.beginningOfBufferOrHistory,
-		"end-of-buffer-or-history":       rl.endOfBufferOrHistory,
-		"beginning-of-line-hist":         rl.beginningOfLineHist,
-		"end-of-line-hist":               rl.endOfLineHist,
-		"autosuggest-accept":             rl.autosuggestAccept,
-		"autosuggest-execute":            rl.autosuggestExecute,
-		"autosuggest-enable":             rl.autosuggestEnable,
-		"autosuggest-disable":            rl.autosuggestDisable,
-		"autosuggest-toggle":             rl.autosuggestToggle,
+		"accept-and-hold":                    rl.acceptAndHold,
+		"accept-and-infer-next-history":      rl.acceptAndInferNextHistory,
+		"down-line-or-history":               rl.downLineOrHistory,
+		"up-line-or-history":                 rl.upLineOrHistory,
+		"up-line-or-search":                  rl.upLineOrSearch,
+		"down-line-or-search":                rl.downLineOrSearch,
+		"infer-next-history":                 rl.inferNextHistory,
+		"beginning-of-buffer-or-history":     rl.beginningOfBufferOrHistory,
+		"end-of-buffer-or-history":           rl.endOfBufferOrHistory,
+		"beginning-of-line-hist":             rl.beginningOfLineHist,
+		"end-of-line-hist":                   rl.endOfLineHist,
+		"incremental-forward-search-history": rl.incrementalForwardSearchHistory,
+		"incremental-reverse-search-history": rl.incrementalReverseSearchHistory,
+		"autosuggest-accept":                 rl.autosuggestAccept,
+		"autosuggest-execute":                rl.autosuggestExecute,
+		"autosuggest-enable":                 rl.autosuggestEnable,
+		"autosuggest-disable":                rl.autosuggestDisable,
+		"autosuggest-toggle":                 rl.autosuggestToggle,
 	}
 
 	return widgets
@@ -157,7 +159,7 @@ func (rl *Shell) fetchHistory() {
 // Search forward starting at the current line and moving `down' through
 // the history as necessary.  This is an incremental search, opening and
 // showing matching completions.
-func (rl *Shell) historyIncrementalSearchForward() {
+func (rl *Shell) forwardSearchHistory() {
 	rl.undo.SkipSave()
 	rl.historyCompletion(true, false, true)
 }
@@ -165,7 +167,7 @@ func (rl *Shell) historyIncrementalSearchForward() {
 // Search backward starting at the current line and moving `up' through
 // the history as necessary.  This is an incremental search, opening and
 // showing matching completions.
-func (rl *Shell) historyIncrementalSearchBackward() {
+func (rl *Shell) reverseSearchHistory() {
 	rl.undo.SkipSave()
 	rl.historyCompletion(false, false, true)
 }
@@ -187,8 +189,11 @@ func (rl *Shell) nonIncrementalReverseSearchHistory() {
 // string must match at the beginning of a history line.
 // This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchForward() {
-	rl.undo.SkipSave()
-	rl.historyCompletion(true, true, false)
+	rl.undo.Save()
+
+	cpos := rl.cursor.Pos()
+	rl.histories.InsertMatch(rl.line, rl.cursor, true, true, false)
+	rl.cursor.Set(cpos)
 }
 
 // Search backward through the history for the string of characters
@@ -196,8 +201,11 @@ func (rl *Shell) historySearchForward() {
 // string must match at the beginning of a history line.
 // This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchBackward() {
-	rl.undo.SkipSave()
-	rl.historyCompletion(false, true, false)
+	rl.undo.Save()
+
+	cpos := rl.cursor.Pos()
+	rl.histories.InsertMatch(rl.line, rl.cursor, true, false, false)
+	rl.cursor.Set(cpos)
 }
 
 // Search forward through the history for the string of characters
@@ -494,6 +502,20 @@ func (rl *Shell) endOfLineHist() {
 	}
 }
 
+// Start an forward history autocompletion mode, starting at the
+// current line and moving `down' through the history as necessary.
+func (rl *Shell) incrementalForwardSearchHistory() {
+	rl.undo.SkipSave()
+	rl.historyCompletion(true, true, false)
+}
+
+// Start an backward history autocompletion mode, starting at the
+// current line and moving `down' through the history as necessary.
+func (rl *Shell) incrementalReverseSearchHistory() {
+	rl.undo.SkipSave()
+	rl.historyCompletion(false, true, false)
+}
+
 // If a line is currently autoggested, make it the buffer.
 func (rl *Shell) autosuggestAccept() {
 	suggested := rl.histories.Suggest(rl.line)
@@ -619,7 +641,7 @@ func (rl *Shell) insertAutosuggestPartial(emacs bool) {
 		}
 
 		if cpos+1+forward > suggested.Len() {
-			forward = suggested.Len() - cpos
+			forward = suggested.Len() - cpos - 1
 		}
 
 		rl.line.Insert(cpos+1, suggested[cpos+1:cpos+forward+1]...)

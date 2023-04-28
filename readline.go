@@ -72,6 +72,11 @@ func (rl *Shell) Readline() (string, error) {
 		}
 
 		rl.keys.FlushUsed()
+
+		// Reaching this point means the last key/sequence has not
+		// been dispatched down to a command: therefore this key is
+		// undefined for the current local/main keymaps.
+		rl.handleUndefined(bind, command)
 	}
 }
 
@@ -142,5 +147,19 @@ func (rl *Shell) checkCursor() {
 		rl.cursor.CheckCommand()
 	default:
 		rl.cursor.CheckAppend()
+	}
+}
+
+// handleUndefined is in charge of all actions to take when the
+// last key/sequence was not dispatched down to a readline command.
+func (rl *Shell) handleUndefined(bind inputrc.Bind, cmd func()) {
+	if bind.Action != "" || cmd != nil {
+		return
+	}
+
+	// Undefined keys incremental-search mode cancels it.
+	if rl.keymaps.Local() == keymap.Isearch {
+		rl.hint.Reset()
+		rl.completer.Reset()
 	}
 }
