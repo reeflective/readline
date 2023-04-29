@@ -469,6 +469,60 @@ func (s *Selection) Cut() (buf string) {
 	return
 }
 
+// HighlightMatchers adds highlighting to matching
+// parens when the cursor is on one of them.
+func (s *Selection) HighlightMatchers() {
+	cpos := s.cursor.Pos()
+
+	if s.line.Len() == 0 || cpos == s.line.Len() {
+		return
+	}
+
+	if strutil.IsBracket((*s.line)[cpos]) {
+		var adjust, ppos int
+
+		split, index, pos := s.line.TokenizeBlock(cpos)
+
+		switch {
+		case len(split) == 0:
+			return
+		case pos == 0:
+			adjust = len(split[index])
+		default:
+			adjust = pos * -1
+		}
+
+		ppos = cpos + adjust
+
+		s.surrounds = append(s.surrounds, Selection{
+			stype:  "matcher",
+			active: true,
+			visual: true,
+			bpos:   ppos,
+			epos:   ppos,
+			bg:     color.SGR("240", false),
+			line:   s.line,
+			cursor: s.cursor,
+		})
+	}
+}
+
+// ResetMatchers is meant to be used by the display engine
+// (and only it), to reset matching parens highlighting regions.
+func (s *Selection) ResetMatchers() {
+	var surrounds []Selection
+
+	for _, surround := range s.surrounds {
+		if surround.stype == "matcher" {
+			continue
+		}
+
+		surrounds = append(surrounds, surround)
+	}
+
+	s.surrounds = surrounds
+}
+
 // Surrounds returns all surround-selected regions contained by the selection.
 func (s *Selection) Surrounds() []Selection {
 	return s.surrounds
@@ -489,7 +543,19 @@ func (s *Selection) Reset() {
 	s.epos = -1
 	s.fg = ""
 	s.bg = ""
-	s.surrounds = make([]Selection, 0)
+
+	// Get rid of all surround regions but matcher ones.
+	surrounds := make([]Selection, 0)
+
+	for _, surround := range s.surrounds {
+		if surround.stype != "matcher" {
+			continue
+		}
+
+		surrounds = append(surrounds, surround)
+	}
+
+	s.surrounds = surrounds
 }
 
 func (s *Selection) checkRange(bpos, epos int) (int, int, bool) {
