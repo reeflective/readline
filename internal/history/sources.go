@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
@@ -29,15 +30,17 @@ type Sources struct {
 	line   *core.Line
 	cursor *core.Cursor
 	hint   *ui.Hint
+	opts   *inputrc.Config
 }
 
 // NewSources is a required constructor for the history sources manager type.
-func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint) *Sources {
+func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint, opts *inputrc.Config) *Sources {
 	sources := &Sources{
 		list:   make(map[string]Source),
 		line:   line,
 		cursor: cur,
 		hint:   hint,
+		opts:   opts,
 	}
 
 	sources.names = append(sources.names, defaultSourceName)
@@ -317,10 +320,14 @@ func (h *Sources) LineAccepted() (bool, string, error) {
 		return false, "", nil
 	}
 
+	line := string(h.acceptLine)
+
 	// Remove all comments before returning the line to the caller.
-	// TODO: Replace # with configured comment sign
-	commentsMatch := regexp.MustCompile(`(^|\s)#.*`)
-	line := commentsMatch.ReplaceAllString(string(h.acceptLine), "")
+	comment := strings.Trim(h.opts.GetString("comment-begin"), "\"")
+	commentPattern := fmt.Sprintf(`(^|\s)%s.*`, comment)
+	if commentsMatch, err := regexp.Compile(commentPattern); err == nil {
+		line = commentsMatch.ReplaceAllString(line, "")
+	}
 
 	return true, line, h.acceptErr
 }

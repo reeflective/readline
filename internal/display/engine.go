@@ -227,7 +227,7 @@ func (e *Engine) displayLine() {
 	}
 
 	// Apply visual selections highlighting if any.
-	line = ui.Highlight([]rune(line), *e.selection)
+	line = ui.Highlight([]rune(line), *e.selection, e.opts)
 
 	// Get the subset of the suggested line to print.
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {

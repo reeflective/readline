@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/core"
 )
@@ -12,7 +14,7 @@ import (
 // Highlight applies visual/selection highlighting to a line.
 // The provided line might already have been highlighted by a user-provided
 // highlighter: this function accounts for any embedded color sequences.
-func Highlight(line []rune, selection core.Selection) string {
+func Highlight(line []rune, selection core.Selection, config *inputrc.Config) string {
 	// Sort regions and extract colors/positions.
 	sorted := sortHighlights(selection)
 	colors := getHighlights(line, sorted)
@@ -29,9 +31,12 @@ func Highlight(line []rune, selection core.Selection) string {
 	}
 
 	// Finally, highlight comments using a regex.
-	// TODO: Replace # with configured comment sign
-	commentsMatch := regexp.MustCompile(`(^|\s)#.*`)
-	highlighted = commentsMatch.ReplaceAllString(highlighted, fmt.Sprintf("%s${0}%s", color.FgBlackBright, color.Reset))
+	comment := strings.Trim(config.GetString("comment-begin"), "\"")
+	commentPattern := fmt.Sprintf(`(^|\s)%s.*`, comment)
+
+	if commentsMatch, err := regexp.Compile(commentPattern); err == nil {
+		highlighted = commentsMatch.ReplaceAllString(highlighted, fmt.Sprintf("%s${0}%s", color.FgBlackBright, color.Reset))
+	}
 
 	highlighted += color.Reset
 
