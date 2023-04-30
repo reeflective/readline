@@ -17,6 +17,7 @@ import (
 type Sources struct {
 	list       map[string]Source // Sources of history lines
 	names      []string          // Names of histories stored in rl.histories
+	maxEntries int               // Inputrc configured maximum number of entries.
 	sourcePos  int               // The index of the currently used history
 	buf        string            // The current line saved when we are on another history line
 	pos        int               // Index used for navigating the history lines with arrows/j/k
@@ -29,6 +30,7 @@ type Sources struct {
 	// Shell parameters
 	line   *core.Line
 	cursor *core.Cursor
+	cpos   int
 	hint   *ui.Hint
 	opts   *inputrc.Config
 }
@@ -39,12 +41,23 @@ func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint, opts *inputrc.
 		list:   make(map[string]Source),
 		line:   line,
 		cursor: cur,
+		cpos:   -1,
 		hint:   hint,
 		opts:   opts,
 	}
 
 	sources.names = append(sources.names, defaultSourceName)
 	sources.list[defaultSourceName] = new(memory)
+
+	// Inputrc settings.
+	sources.maxEntries = opts.GetInt("history-size")
+	sizeSet := opts.GetString("history-size") != ""
+
+	if sources.maxEntries == 0 && !sizeSet {
+		sources.maxEntries = -1
+	} else if sources.maxEntries == 0 && sizeSet {
+		sources.maxEntries = 500
+	}
 
 	return sources
 }
@@ -58,6 +71,7 @@ func (h *Sources) Init() {
 		h.accepted = false
 		h.acceptLine = nil
 		h.acceptErr = nil
+		h.cpos = -1
 	}()
 
 	if h.acceptHold {
@@ -138,8 +152,6 @@ func (h *Sources) Delete(sources ...string) {
 // If at the end of the history, the last history line is kept.
 // If going back to the beginning of it, the saved line buffer is restored.
 func (h *Sources) Walk(pos int) {
-	// We used to force using the main history.
-	// h.historySourcePos = 0
 	history := h.Current()
 
 	if history == nil || history.Len() == 0 {
@@ -180,8 +192,8 @@ func (h *Sources) Walk(pos int) {
 		return
 	}
 
-	h.line.Set([]rune(next)...)
-	h.cursor.Set(h.line.Len())
+	// Update line buffer and cursor position.
+	h.setLineCursorMatch(next)
 }
 
 // Fetch fetches the history event at the provided
@@ -275,6 +287,12 @@ func (h *Sources) Write(infer bool) {
 
 	for _, history := range h.list {
 		if history == nil {
+			continue
+		}
+
+		// Don't write it if the history source has reached
+		// the maximum number of lines allowed (inputrc)
+		if h.maxEntries == 0 || h.maxEntries >= history.Len() {
 			continue
 		}
 
@@ -559,4 +577,20 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 
 	// We should have returned a match from the loop.
 	return "", 0, false
+}
+
+func (h *Sources) setLineCursorMatch(next string) {
+	// Save the current cursor position when not saved before.
+	if h.cpos == -1 && h.line.Len() > 0 && h.cursor.Pos() < h.line.Len()-1 {
+		h.cpos = h.cursor.Pos()
+	}
+
+	h.line.Set([]rune(next)...)
+
+	// Set cursor depending on inputrc options and line length.
+	if h.opts.GetBool("history-preserve-point") && h.line.Len() > h.cpos && h.cpos != -1 {
+		h.cursor.Set(h.cpos)
+	} else {
+		h.cursor.Set(h.line.Len())
+	}
 }
