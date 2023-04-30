@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/reeflective/readline/inputrc"
@@ -17,7 +18,7 @@ import (
 func Highlight(line []rune, selection core.Selection, config *inputrc.Config) string {
 	// Sort regions and extract colors/positions.
 	sorted := sortHighlights(selection)
-	colors := getHighlights(line, sorted)
+	colors := getHighlights(line, sorted, config)
 
 	var highlighted string
 
@@ -77,7 +78,7 @@ func sortHighlights(vhl core.Selection) []core.Selection {
 	return sorted
 }
 
-func getHighlights(line []rune, sorted []core.Selection) map[int][]rune {
+func getHighlights(line []rune, sorted []core.Selection, config *inputrc.Config) map[int][]rune {
 	highlights := make(map[int][]rune)
 
 	// Find any highlighting already applied on the line,
@@ -125,8 +126,8 @@ func getHighlights(line []rune, sorted []core.Selection) map[int][]rune {
 		}
 
 		// Add new colors if any, and reset if some are done.
-		regions, posHl = hlAdd(regions, posHl, pos)
-		posHl = hlReset(regions, newHl, posHl)
+		regions, posHl = hlReset(regions, posHl, pos, config)
+		posHl = hlAdd(regions, newHl, posHl, config)
 
 		// Add to the line, with the raw index since
 		// we must take into account embedded colors.
@@ -138,10 +139,11 @@ func getHighlights(line []rune, sorted []core.Selection) map[int][]rune {
 	return highlights
 }
 
-func hlAdd(regions []core.Selection, line []rune, pos int) ([]core.Selection, []rune) {
+func hlReset(regions []core.Selection, line []rune, pos int, config *inputrc.Config) ([]core.Selection, []rune) {
 	for i, reg := range regions {
 		_, epos := reg.Pos()
 		foreground, background := reg.Highlights()
+		matcher := reg.Type == "matcher"
 
 		if epos == pos {
 			regions = append(regions[:i], regions[i+1:]...)
@@ -151,7 +153,11 @@ func hlAdd(regions []core.Selection, line []rune, pos int) ([]core.Selection, []
 			}
 
 			if background != "" {
-				line = append(line, []rune(color.BgDefault)...)
+				if background, _ = strconv.Unquote(config.GetString("active-region-end-color")); background == "" && !matcher {
+					line = append(line, []rune(color.ReverseReset)...)
+				} else {
+					line = append(line, []rune(color.BgDefault)...)
+				}
 			}
 		}
 	}
@@ -159,17 +165,32 @@ func hlAdd(regions []core.Selection, line []rune, pos int) ([]core.Selection, []
 	return regions, line
 }
 
-func hlReset(regions []core.Selection, newHl core.Selection, line []rune) []rune {
+func hlAdd(regions []core.Selection, newHl core.Selection, line []rune, config *inputrc.Config) []rune {
+	var (
+		fg, bg  string
+		matcher bool
+		hl      core.Selection
+	)
+
 	if newHl.Active() {
-		fg, bg := newHl.Highlights()
-		line = append(line, []rune(bg)...)
-		line = append(line, []rune(fg)...)
+		hl = newHl
 	} else if len(regions) > 0 {
-		backHl := regions[len(regions)-1]
-		fg, bg := backHl.Highlights()
-		line = append(line, []rune(bg)...)
-		line = append(line, []rune(fg)...)
+		hl = regions[len(regions)-1]
 	}
+
+	fg, bg = hl.Highlights()
+	matcher = hl.Type == "matcher"
+
+	// Update the highlighting with inputrc settings if any.
+	if bg != "" && !matcher {
+		if bg, _ = strconv.Unquote(config.GetString("active-region-start-color")); bg == "" {
+			bg = color.Reverse
+		}
+	}
+
+	// Add highlightings
+	line = append(line, []rune(bg)...)
+	line = append(line, []rune(fg)...)
 
 	return line
 }

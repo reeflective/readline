@@ -12,12 +12,14 @@ var (
 	Dim        = "\x1b[2m"
 	Underscore = "\x1b[4m"
 	Blink      = "\x1b[5m"
+	Reverse    = "\x1b[7m"
 
 	// Effects reset.
 	BoldReset       = "\x1b[21m"
 	DimReset        = "\x1b[22m"
 	UnderscoreReset = "\x1b[24m"
 	BlinkReset      = "\x1b[25m"
+	ReverseReset    = "\x1b[27m"
 )
 
 // Text colours.

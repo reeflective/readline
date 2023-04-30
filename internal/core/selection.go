@@ -11,7 +11,7 @@ import (
 // with the default cursor mark and position, and contains a list of additional surround
 // selections used to change/select multiple parts of the line at once.
 type Selection struct {
-	stype      string
+	Type       string
 	active     bool
 	visual     bool
 	visualLine bool
@@ -56,7 +56,7 @@ func (s *Selection) MarkRange(bpos, epos int) {
 		return
 	}
 
-	s.stype = "visual"
+	s.Type = "visual"
 	s.active = true
 	s.bpos = bpos
 	s.epos = epos
@@ -73,7 +73,7 @@ func (s *Selection) MarkSurround(bpos, epos int) {
 
 	for _, pos := range []int{bpos, epos} {
 		s.surrounds = append(s.surrounds, Selection{
-			stype:  "surround",
+			Type:   "surround",
 			active: true,
 			visual: true,
 			bpos:   pos,
@@ -495,7 +495,7 @@ func (s *Selection) HighlightMatchers() {
 		ppos = cpos + adjust
 
 		s.surrounds = append(s.surrounds, Selection{
-			stype:  "matcher",
+			Type:   "matcher",
 			active: true,
 			visual: true,
 			bpos:   ppos,
@@ -513,7 +513,7 @@ func (s *Selection) ResetMatchers() {
 	var surrounds []Selection
 
 	for _, surround := range s.surrounds {
-		if surround.stype == "matcher" {
+		if surround.Type == "matcher" {
 			continue
 		}
 
@@ -535,7 +535,7 @@ func (s *Selection) Highlights() (fg, bg string) {
 
 // Reset makes the current selection inactive, resetting all of its values.
 func (s *Selection) Reset() {
-	s.stype = ""
+	s.Type = ""
 	s.active = false
 	s.visual = false
 	s.visualLine = false
@@ -548,7 +548,7 @@ func (s *Selection) Reset() {
 	surrounds := make([]Selection, 0)
 
 	for _, surround := range s.surrounds {
-		if surround.stype != "matcher" {
+		if surround.Type != "matcher" {
 			continue
 		}
 

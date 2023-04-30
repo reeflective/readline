@@ -36,7 +36,7 @@ func fieldsWith(l Line, c *Cursor) fields {
 
 func newTestSelection(fields fields) *Selection {
 	return &Selection{
-		stype:     fields.stype,
+		Type:      fields.stype,
 		active:    fields.active,
 		bpos:      fields.bpos,
 		epos:      fields.epos,
@@ -671,7 +671,7 @@ func TestSelection_InsertAt(t *testing.T) {
 			test.fields.line, test.fields.cursor = &line, &cur
 
 			sel := &Selection{
-				stype:     test.fields.stype,
+				Type:      test.fields.stype,
 				active:    test.fields.active,
 				bpos:      test.fields.bpos,
 				epos:      test.fields.epos,
