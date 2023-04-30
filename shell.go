@@ -111,7 +111,7 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	prompt := ui.NewPrompt(keys, line, cursor, keymaps, config)
 	macros := macro.NewEngine(keys, hint)
 	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, config)
-	history := history.NewSources(line, cursor, hint)
+	history := history.NewSources(line, cursor, hint, config)
 	display := display.NewEngine(keys, selection, history, prompt, hint, completer, config)
 
 	completer.SetAutocompleter(shell.commandCompletion)

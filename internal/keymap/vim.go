@@ -114,9 +114,11 @@ var vicmdKeys = map[string]inputrc.Bind{
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode.
 var vioppKeys = map[string]inputrc.Bind{
 	unescape(`\e`): {Action: "vi-movement-mode"},
+	unescape("a"):  {Action: "vi-select-surround"},
 	unescape("aW"): {Action: "select-a-blank-word"},
 	unescape("aa"): {Action: "select-a-shell-word"},
 	unescape("aw"): {Action: "select-a-word"},
+	unescape("i"):  {Action: "vi-select-surround"},
 	unescape("iW"): {Action: "select-in-blank-word"},
 	unescape("ia"): {Action: "select-in-shell-word"},
 	unescape("iw"): {Action: "select-in-word"},

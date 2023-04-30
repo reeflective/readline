@@ -520,8 +520,10 @@ func (rl *Shell) viChangeTo() {
 		rl.undo.Save()
 		rl.undo.SkipSave()
 
+		rl.adjustSelectionPending()
 		cpos := rl.selection.Cursor()
-		rl.selection.Cut()
+		cut := rl.selection.Cut()
+		rl.buffers.Write([]rune(cut)...)
 		rl.cursor.Set(cpos)
 
 		rl.viInsertMode()
@@ -535,10 +537,6 @@ func (rl *Shell) viChangeTo() {
 		case 'c':
 			rl.keymaps.Pending()
 			rl.selection.Mark(rl.cursor.Pos())
-			// isSurround := action == "vi-select-surround"
-			// if isSurround {
-			// 	rl.keys = key
-			// }
 		case 'C':
 			rl.viChangeEol()
 		}
@@ -568,8 +566,8 @@ func (rl *Shell) viDeleteTo() {
 		if len(text) > 0 && rune(text[len(text)-1]) != inputrc.Newline {
 			text += string(inputrc.Newline)
 		}
-		rl.buffers.Write([]rune(text)...)
 
+		rl.buffers.Write([]rune(text)...)
 		rl.cursor.Set(cpos)
 
 	case rl.selection.Active():
@@ -577,6 +575,7 @@ func (rl *Shell) viDeleteTo() {
 		rl.undo.Save()
 		rl.undo.SkipSave()
 
+		rl.adjustSelectionPending()
 		cpos := rl.selection.Cursor()
 		cut := rl.selection.Cut()
 		rl.buffers.Write([]rune(cut)...)
@@ -994,6 +993,7 @@ func (rl *Shell) viYankTo() {
 
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just yank.
+		rl.adjustSelectionPending()
 		text, _, _, cpos := rl.selection.Pop()
 
 		rl.buffers.Write([]rune(text)...)
@@ -1260,7 +1260,8 @@ func (rl *Shell) viSelectSurround() {
 
 	// Select the range and return: the caller will decide what
 	// to do with the cursor position and the selection itself.
-	rl.selection.MarkRange(bpos, epos)
+	rl.selection.Mark(bpos)
+	rl.cursor.Set(epos)
 }
 
 //
@@ -1498,4 +1499,36 @@ func (rl *Shell) viSearchAgainBackward() {
 
 	rl.histories.InsertMatch(line, cursor, true, false, true)
 	rl.completer.NonIsearchStop()
+}
+
+//
+// Utils ---------------------------------------------------------------
+//
+
+// Some commands accepting a pending operator command (yw/de... etc), must
+// either encompass the character under cursor into the selection, or not.
+// Note that when this command while a yank/delete command has been called
+// in visual mode, no adjustments will take place, since the active command
+// is not one of those in the below switch statement.
+func (rl *Shell) adjustSelectionPending() {
+	if !rl.selection.Active() {
+		return
+	}
+
+	switch rl.keymaps.ActiveCommand().Action {
+	// Movements
+	case "vi-end-word", "vi-end-bigword":
+		rl.selection.Visual(false)
+
+		// Modifiers
+	case "vi-change-to":
+		rl.selection.Visual(false)
+
+		// Selectors
+	case "select-in-word", "select-a-word",
+		"select-in-blank-word", "select-a-blank-word",
+		"select-in-shell-word", "select-a-shell-word",
+		"vi-select-surround":
+		rl.selection.Visual(false)
+	}
 }

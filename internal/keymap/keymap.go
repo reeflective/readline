@@ -219,6 +219,11 @@ func (m *Modes) ConvertMeta(keys []rune) string {
 	return string(converted)
 }
 
+// ActiveCommand returns the sequence/command currently being ran.
+func (m *Modes) ActiveCommand() inputrc.Bind {
+	return m.active
+}
+
 // MatchMain incrementally attempts to match cached input keys against the local keymap.
 // Returns the bind if matched, the corresponding command, and if we only matched by prefix.
 func (m *Modes) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
@@ -245,7 +250,7 @@ func (m *Modes) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
 	// commands like vi-movement-mode unreachable, so if the bind
 	// is vi-movement-mode, we return it to be ran regardless of
 	// the other binds matching by prefix.
-	if m.isEscapeKey() {
+	if m.isEscapeKey() && !m.IsEmacs() {
 		bind, command, prefix = m.handleEscape(true, prefix)
 	}
 
@@ -292,6 +297,10 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 			return
 		}
 
+		// If keys are metafied, replace them with the appropriate
+		// sequence so that they can match eight-bit binds (generally
+		// self-insert additional latin characters).
+
 		keys = append(keys, key)
 
 		// Find binds (actions/macros) matching by prefix or perfectly.
@@ -302,6 +311,7 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 		if match.Action == "" && len(prefixed) == 0 {
 			prefix = false
 			cmd = m.resolveCommand(m.prefixed)
+			m.active = m.prefixed
 			m.prefixed = inputrc.Bind{}
 
 			return
