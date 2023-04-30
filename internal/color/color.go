@@ -15,7 +15,7 @@ var (
 	Reverse    = "\x1b[7m"
 
 	// Effects reset.
-	BoldReset       = "\x1b[21m"
+	BoldReset       = "\x1b[22m" // 21 actually causes underline instead
 	DimReset        = "\x1b[22m"
 	UnderscoreReset = "\x1b[24m"
 	BlinkReset      = "\x1b[25m"

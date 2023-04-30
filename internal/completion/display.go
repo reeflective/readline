@@ -21,7 +21,7 @@ func (e *Engine) Display(lines int) {
 	// sometimes it's better to keep completions printed for a
 	// little more time. The engine itself is responsible for
 	// deleting those lists when it deems them useless.
-	if e.Matches() == 0 {
+	if e.Matches() == 0 || e.skipDisplay {
 		fmt.Print(term.ClearLineAfter)
 		return
 	}

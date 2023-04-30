@@ -27,15 +27,16 @@ type Engine struct {
 	keymaps    *keymap.Modes   // The main/local keymaps of the shell
 
 	// Completion parameters
-	groups    []*group      // All of our suggestions tree is in here
-	sm        SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
-	selected  Candidate     // The currently selected item, not yet a real part of the input line.
-	prefix    string        // The current tab completion prefix against which to build candidates
-	suffix    string        // The current word suffix
-	inserted  []rune        // The selected candidate (inserted in line) without prefix or suffix.
-	usedY     int           // Comprehensive offset of the currently built completions
-	auto      bool          // Is the engine autocompleting ?
-	autoForce bool
+	groups      []*group      // All of our suggestions tree is in here
+	sm          SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
+	selected    Candidate     // The currently selected item, not yet a real part of the input line.
+	prefix      string        // The current tab completion prefix against which to build candidates
+	suffix      string        // The current word suffix
+	inserted    []rune        // The selected candidate (inserted in line) without prefix or suffix.
+	usedY       int           // Comprehensive offset of the currently built completions
+	auto        bool          // Is the engine autocompleting ?
+	autoForce   bool          // Special autocompletion mode (isearch-style)
+	skipDisplay bool          // Don't display completions if there are some.
 
 	// Incremental search
 	isearchBuf       *core.Line     // The isearch minibuffer
@@ -90,6 +91,12 @@ func (e *Engine) GenerateWith(completer Completer) {
 	// Call the provided/cached completer
 	// and use the completions as normal
 	e.Generate(e.cached())
+}
+
+// SkipDisplay avoids printing completions below the
+// input line, but still enables cycling through them.
+func (e *Engine) SkipDisplay() {
+	e.skipDisplay = true
 }
 
 // Select moves the completion selector by some X or Y value,
@@ -255,6 +262,8 @@ func (e *Engine) Reset() {
 // ClearMenu exits the current completion keymap (if set) and clears
 // the current list of generated completions (if completions is true).
 func (e *Engine) ClearMenu(completions bool) {
+	e.skipDisplay = false
+
 	e.resetValues(completions, false)
 
 	if e.keymaps.Local() == keymap.MenuSelect {

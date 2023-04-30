@@ -2,6 +2,7 @@ package completion
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -153,7 +154,7 @@ func (e *Engine) newGroup(c Values, tag string, vals RawValues, aliased bool) {
 
 	// Keep computing/devising some parameters and constraints.
 	// This does not do much when we have aliased completions.
-	grp.computeCells(vals)
+	grp.computeCells(e, vals)
 
 	// Rearrange all candidates into a matrix of completions,
 	// based on most parameters computed above.
@@ -217,7 +218,7 @@ func (g *group) setOptions(comps Values, tag string, vals RawValues) {
 	}
 }
 
-func (g *group) computeCells(vals RawValues) {
+func (g *group) computeCells(eng *Engine, vals RawValues) {
 	// Aliases will compute themselves individually, later.
 	if g.aliased {
 		return
@@ -227,7 +228,6 @@ func (g *group) computeCells(vals RawValues) {
 		return
 	}
 
-	termWidth := term.GetWidth()
 	g.tcMaxLength = g.columnsWidth[0]
 
 	// Each value first computes the total amount of space
@@ -244,31 +244,53 @@ func (g *group) computeCells(vals RawValues) {
 		}
 	}
 
-	g.maxX = termWidth / (g.maxCellLength)
+	// Adapt the maximum cell size based on inputrc settings.
+	compDisplayWidth := g.setMaxCellLength(eng)
+
+	// We now have the length of the longest completion for this group,
+	// so we devise how many columns we can use to display completions.
+	g.setColumnsWidth(&vals, compDisplayWidth)
+}
+
+func (g *group) setMaxCellLength(eng *Engine) int {
+	termWidth := term.GetWidth()
+
+	compDisplayWidth := eng.opts.GetInt("completion-display-width")
+	if compDisplayWidth > termWidth {
+		compDisplayWidth = -1
+	}
+
+	if compDisplayWidth > 0 && compDisplayWidth < termWidth {
+		if g.maxCellLength < compDisplayWidth {
+			g.maxCellLength = compDisplayWidth
+		} else {
+			g.maxCellLength = termWidth
+		}
+	}
+
+	return compDisplayWidth
+}
+
+func (g *group) setColumnsWidth(vals *RawValues, compDisplayWidth int) {
+	g.maxX = term.GetWidth() / (g.maxCellLength)
 	if g.maxX < 1 {
 		g.maxX = 1 // avoid a divide by zero error
 	}
 
-	if g.maxX > len(vals) {
-		g.maxX = len(vals)
+	if g.maxX > len(*vals) {
+		g.maxX = len(*vals)
 	}
 
-	numColumns := termWidth / (g.maxCellLength)
-	if numColumns == 0 {
-		numColumns = 1
-	}
-
-	if numColumns > len(vals) {
-		numColumns = len(vals)
-	}
-
-	if g.list {
+	if g.list || compDisplayWidth == 0 {
 		g.maxX = 1
-		numColumns = 1
+	}
+
+	if g.maxX > compDisplayWidth && compDisplayWidth > 0 {
+		g.maxX = compDisplayWidth
 	}
 
 	// We also have the width for each column
-	g.columnsWidth = make([]int, numColumns)
+	g.columnsWidth = make([]int, g.maxX)
 	for i := 0; i < g.maxX; i++ {
 		g.columnsWidth[i] = g.maxCellLength
 	}
@@ -373,7 +395,7 @@ func (g *group) updateIsearch(eng *Engine) {
 
 	// And perform the usual initialization routines.
 	vals = g.checkDisplays(vals)
-	g.computeCells(vals)
+	g.computeCells(eng, vals)
 	g.makeMatrix(vals)
 }
 
@@ -577,16 +599,13 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 	return
 }
 
-// TODO: After checking works, remove commented lines.
 func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string, selected bool) (candidate string) {
 	reset := color.SGR(val.Style, true)
 	candidate = g.displayTrimmed(val.Display)
-	// candidate = g.displayTrimmed(val.Display) + cell
 
 	if eng.isearch != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.isearch.FindString(candidate)
 		match = color.BgBlackBright + match + color.Reset + cell + reset
-		// match = color.BgBlackBright + match + color.Reset + reset
 		candidate = eng.isearch.ReplaceAllLiteralString(candidate, match)
 	}
 
@@ -599,6 +618,13 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 		}
 
 	default:
+		// Highlight the prefix if any and configured for it.
+		if eng.opts.GetBool("colored-completion-prefix") && eng.prefix != "" {
+			if prefixMatch, err := regexp.Compile(fmt.Sprintf("^%s", eng.prefix)); err == nil {
+				candidate = prefixMatch.ReplaceAllString(candidate, color.Bold+color.FgBlue+eng.prefix+color.BoldReset+reset)
+			}
+		}
+
 		candidate = reset + candidate + color.Reset + cell
 	}
 

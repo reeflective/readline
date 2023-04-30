@@ -38,8 +38,14 @@ func (rl *Shell) completeWord() {
 	// valid completion found, without printing the actual list.
 	if !rl.completer.IsActive() {
 		rl.startMenuComplete(rl.commandCompletion)
+
+		if rl.config.GetBool("menu-complete-display-prefix") {
+			return
+		}
 	}
+
 	rl.completer.Select(1, 0)
+	rl.completer.SkipDisplay()
 }
 
 // List possible completions for the current word.
@@ -77,9 +83,13 @@ func (rl *Shell) menuComplete() {
 	// as if we just request them without immediately selecting a candidate.
 	if !rl.completer.IsActive() {
 		rl.startMenuComplete(rl.commandCompletion)
-	} else {
-		rl.completer.Select(1, 0)
+
+		// Immediately select only if not asked to display first.
+		if rl.config.GetBool("menu-complete-display-prefix") {
+			return
+		}
 	}
+	rl.completer.Select(1, 0)
 }
 
 // Deletes the character under the cursor if not at the
