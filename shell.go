@@ -19,14 +19,13 @@ import (
 // captures without having to repeatedly unload configuration.
 type Shell struct {
 	// Core editor
-	keys       *core.Keys        // Keys read user input keys and manage them.
-	line       *core.Line        // The input line buffer and its management methods.
-	cursor     *core.Cursor      // The cursor and its medhods.
-	undo       *core.LineHistory // Line undo/redo history.
-	selection  *core.Selection   // The selection managees various visual/pending selections.
-	iterations *core.Iterations  // Digit arguments for repeating commands.
-	buffers    *editor.Buffers   // buffers (Vim registers) and methods use/manage/query them.
-	keymaps    *keymap.Modes     // Manages main/local keymaps and runs key matching.
+	keys       *core.Keys       // Keys read user input keys and manage them.
+	line       *core.Line       // The input line buffer and its management methods.
+	cursor     *core.Cursor     // The cursor and its medhods.
+	selection  *core.Selection  // The selection managees various visual/pending selections.
+	iterations *core.Iterations // Digit arguments for repeating commands.
+	buffers    *editor.Buffers  // buffers (Vim registers) and methods use/manage/query them.
+	keymaps    *keymap.Modes    // Manages main/local keymaps and runs key matching.
 
 	// User interface
 	config    *inputrc.Config    // Contains all keymaps, binds and per-application settings.
@@ -81,7 +80,6 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	keys := new(core.Keys)
 	line := new(core.Line)
 	cursor := core.NewCursor(line)
-	undo := core.NewLineHistory(line, cursor)
 	selection := core.NewSelection(line, cursor)
 	iterations := new(core.Iterations)
 
@@ -89,7 +87,6 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	shell.line = line
 	shell.cursor = cursor
 	shell.selection = selection
-	shell.undo = undo
 	shell.buffers = editor.NewBuffers()
 	shell.iterations = iterations
 
@@ -132,12 +129,12 @@ func (rl *Shell) init() {
 	// Reset core editor components.
 	rl.selection.Reset()
 	rl.buffers.Reset()
-	rl.undo.Reset()
+	rl.histories.Reset()
 	rl.keys.Flush()
 	rl.cursor.ResetMark()
 	rl.cursor.Set(0)
 	rl.line.Set([]rune{}...)
-	rl.undo.Save()
+	rl.histories.Save()
 	rl.iterations.Reset()
 
 	// Some accept-* command must fetch a specific

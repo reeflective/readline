@@ -107,19 +107,19 @@ func (rl *Shell) acceptLine() {
 
 // Move to the next event in the history list.
 func (rl *Shell) downHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.histories.Walk(-1)
 }
 
 // Move to the previous event in the history list.
 func (rl *Shell) upHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.histories.Walk(1)
 }
 
 // Move to the first event in the history list.
 func (rl *Shell) beginningOfHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	history := rl.histories.Current()
 	if history == nil {
@@ -160,7 +160,7 @@ func (rl *Shell) fetchHistory() {
 // the history as necessary.  This is an incremental search, opening and
 // showing matching completions.
 func (rl *Shell) forwardSearchHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.historyCompletion(true, false, true)
 }
 
@@ -168,7 +168,7 @@ func (rl *Shell) forwardSearchHistory() {
 // the history as necessary.  This is an incremental search, opening and
 // showing matching completions.
 func (rl *Shell) reverseSearchHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.historyCompletion(false, false, true)
 }
 
@@ -189,7 +189,7 @@ func (rl *Shell) nonIncrementalReverseSearchHistory() {
 // string must match at the beginning of a history line.
 // This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchForward() {
-	rl.undo.Save()
+	rl.histories.Save()
 
 	cpos := rl.cursor.Pos()
 	rl.histories.InsertMatch(rl.line, rl.cursor, true, true, false)
@@ -201,7 +201,7 @@ func (rl *Shell) historySearchForward() {
 // string must match at the beginning of a history line.
 // This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchBackward() {
-	rl.undo.Save()
+	rl.histories.Save()
 
 	cpos := rl.cursor.Pos()
 	rl.histories.InsertMatch(rl.line, rl.cursor, true, false, false)
@@ -347,7 +347,7 @@ func (rl *Shell) magicSpace() {
 		return
 	}
 
-	rl.undo.Save()
+	rl.histories.Save()
 	rl.line.Cut(bpos, lineLen)
 	rl.line.Insert(bpos, suggested...)
 	rl.cursor.Set(bpos + suggested.Len())
@@ -372,7 +372,7 @@ func (rl *Shell) acceptAndInferNextHistory() {
 // Move down a line in the buffer, or if already at the
 // bottom line, move to the next event in the history list.
 func (rl *Shell) downLineOrHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	times := rl.iterations.Get()
 	linesDown := rl.line.Lines() - rl.cursor.Line()
@@ -392,7 +392,7 @@ func (rl *Shell) downLineOrHistory() {
 // Move up a line in the buffer, or if already at the top
 // line, move to the previous event in the history list.
 func (rl *Shell) upLineOrHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	times := rl.iterations.Get()
 	linesUp := rl.cursor.Line()
@@ -412,7 +412,7 @@ func (rl *Shell) upLineOrHistory() {
 // If the cursor is on the first line of the buffer, start an incremental
 // search backward on the history lines. Otherwise, move up a line in the buffer.
 func (rl *Shell) upLineOrSearch() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	switch {
 	case rl.cursor.Line() > 0:
 		rl.cursor.LineMove(-1)
@@ -424,7 +424,7 @@ func (rl *Shell) upLineOrSearch() {
 // If the cursor is on the last line of the buffer, start an incremental
 // search forward on the history lines. Otherwise, move up a line in the buffer.
 func (rl *Shell) downLineOrSearch() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	switch {
 	case rl.cursor.Line() < rl.line.Lines():
 		rl.cursor.LineMove(1)
@@ -436,14 +436,14 @@ func (rl *Shell) downLineOrSearch() {
 // Attempt to find a line in history matching the current line buffer as a prefix,
 // and if one is found, fetch the next history event and make it the current buffer.
 func (rl *Shell) inferNextHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.histories.InferNext()
 }
 
 // If the cursor is not at the beginning of the buffer, go to it.
 // Otherwise, go to the beginning of history.
 func (rl *Shell) beginningOfBufferOrHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	if rl.cursor.Pos() > 0 {
 		rl.cursor.Set(0)
@@ -456,7 +456,7 @@ func (rl *Shell) beginningOfBufferOrHistory() {
 // If the cursor is not at the end of the buffer, go to it.
 // Otherwise, go to the end of history.
 func (rl *Shell) endOfBufferOrHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	if rl.cursor.Pos() < rl.line.Len()-1 {
 		rl.cursor.Set(rl.line.Len())
@@ -470,7 +470,7 @@ func (rl *Shell) endOfBufferOrHistory() {
 // If at the beginning of the line, attempt to move one line up.
 // If at the beginning of the buffer, move up one history line.
 func (rl *Shell) beginningOfLineHist() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	switch {
 	case rl.cursor.Pos() > 0:
@@ -487,7 +487,7 @@ func (rl *Shell) beginningOfLineHist() {
 // If at the end of the line, attempt to move one line down.
 // If at the end of the buffer, move up one history line.
 func (rl *Shell) endOfLineHist() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	switch {
 	case rl.cursor.Pos() < rl.line.Len()-1:
@@ -505,14 +505,14 @@ func (rl *Shell) endOfLineHist() {
 // Start an forward history autocompletion mode, starting at the
 // current line and moving `down' through the history as necessary.
 func (rl *Shell) incrementalForwardSearchHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.historyCompletion(true, true, false)
 }
 
 // Start an backward history autocompletion mode, starting at the
 // current line and moving `down' through the history as necessary.
 func (rl *Shell) incrementalReverseSearchHistory() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.historyCompletion(false, true, false)
 }
 
@@ -557,13 +557,13 @@ func (rl *Shell) autosuggestToggle() {
 // will insert it in the real input line.
 // The forward-char* commands, if at the end of the line, will accept it.
 func (rl *Shell) autosuggestEnable() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.config.Vars["history-autosuggest"] = true
 }
 
 // Disable history line autoggestions.
 func (rl *Shell) autosuggestDisable() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 	rl.config.Vars["history-autosuggest"] = false
 }
 

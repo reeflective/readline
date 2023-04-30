@@ -15,17 +15,24 @@ import (
 
 // Sources manages and serves all history sources for the current shell.
 type Sources struct {
+	// History sources
 	list       map[string]Source // Sources of history lines
 	names      []string          // Names of histories stored in rl.histories
 	maxEntries int               // Inputrc configured maximum number of entries.
 	sourcePos  int               // The index of the currently used history
 	buf        string            // The current line saved when we are on another history line
-	pos        int               // Index used for navigating the history lines with arrows/j/k
+	hpos       int               // Index used for navigating the history lines with arrows/j/k
 	infer      bool              // If the last command ran needs to infer the history line.
 	accepted   bool              // The line has been accepted and must be returned.
 	acceptHold bool              // Should we reuse the same accepted line on the next loop.
 	acceptLine core.Line         // The line to return to the caller.
 	acceptErr  error             // An error to return to the caller.
+
+	// Line history
+	skip    bool
+	undoing bool
+	last    inputrc.Bind
+	lines   map[string]map[int]*lineHistory
 
 	// Shell parameters
 	line   *core.Line
@@ -38,7 +45,11 @@ type Sources struct {
 // NewSources is a required constructor for the history sources manager type.
 func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint, opts *inputrc.Config) *Sources {
 	sources := &Sources{
-		list:   make(map[string]Source),
+		// History sourcces
+		list: make(map[string]Source),
+		// Line history
+		lines: make(map[string]map[int]*lineHistory),
+		// Shell parameters
 		line:   line,
 		cursor: cur,
 		cpos:   -1,
@@ -75,7 +86,7 @@ func (h *Sources) Init() {
 	}()
 
 	if h.acceptHold {
-		h.pos = 0
+		h.hpos = 0
 		h.line.Set(h.acceptLine...)
 		h.cursor.Set(h.line.Len())
 
@@ -83,13 +94,13 @@ func (h *Sources) Init() {
 	}
 
 	if !h.infer {
-		h.pos = 0
+		h.hpos = 0
 		return
 	}
 
-	switch h.pos {
+	switch h.hpos {
 	case -1:
-		h.pos = 0
+		h.hpos = 0
 	case 0:
 		h.InferNext()
 	default:
@@ -144,7 +155,7 @@ func (h *Sources) Delete(sources ...string) {
 
 	h.sourcePos = 0
 	if !h.infer {
-		h.pos = 0
+		h.hpos = 0
 	}
 }
 
@@ -160,40 +171,45 @@ func (h *Sources) Walk(pos int) {
 
 	// When we are on the last/first item, don't do anything,
 	// as it would change things like cursor positions.
-	if (pos < 0 && h.pos == 0) || (pos > 0 && h.pos == history.Len()) {
+	if (pos < 0 && h.hpos == 0) || (pos > 0 && h.hpos == history.Len()) {
 		return
 	}
 
 	// Save the current line buffer if we are leaving it.
-	if h.pos == 0 && (h.pos+pos) == 1 {
+	if h.hpos == 0 && (h.hpos+pos) == 1 {
 		h.buf = string(*h.line)
 	}
 
-	h.pos += pos
+	h.hpos += pos
 
 	switch {
-	case h.pos > history.Len():
-		h.pos = history.Len()
-	case h.pos < 0:
-		h.pos = 0
-	case h.pos == 0:
+	case h.hpos > history.Len():
+		h.hpos = history.Len()
+	case h.hpos < 0:
+		h.hpos = 0
+	case h.hpos == 0:
 		h.line.Set([]rune(h.buf)...)
 		h.cursor.Set(h.line.Len())
 	}
 
-	if h.pos == 0 {
+	if h.hpos == 0 {
 		return
 	}
 
-	// We now have the correct history index, fetch the line.
-	next, err := history.GetLine(history.Len() - h.pos)
-	if err != nil {
+	var line string
+	var err error
+
+	// When there is an available change history for
+	// this line, use it instead of the fetched line.
+	if hist := h.getLineHistory(); hist != nil && len(hist.items) > 0 {
+		line = hist.items[len(hist.items)-1].line
+	} else if line, err = history.GetLine(history.Len() - h.hpos); err != nil {
 		h.hint.Set(color.FgRed + "history error: " + err.Error())
 		return
 	}
 
 	// Update line buffer and cursor position.
-	h.setLineCursorMatch(next)
+	h.setLineCursorMatch(line)
 }
 
 // Fetch fetches the history event at the provided
@@ -305,7 +321,7 @@ func (h *Sources) Write(infer bool) {
 		}
 
 		// Save the line and notify through hints if an error raised.
-		h.pos, err = history.Write(line)
+		h.hpos, err = history.Write(line)
 		if err != nil {
 			h.hint.Set(color.FgRed + err.Error())
 		}
@@ -347,6 +363,13 @@ func (h *Sources) LineAccepted() (bool, string, error) {
 		line = commentsMatch.ReplaceAllString(line, "")
 	}
 
+	// Revert all state changes to all lines.
+	if h.opts.GetBool("revert-all-at-newline") {
+		for source := range h.lines {
+			h.lines[source] = make(map[int]*lineHistory)
+		}
+	}
+
 	return true, line, h.acceptErr
 }
 
@@ -366,7 +389,7 @@ func (h *Sources) InsertMatch(line *core.Line, cur *core.Cursor, usePos, fwd, re
 		return
 	}
 
-	h.pos = h.Current().Len() - pos
+	h.hpos = h.Current().Len() - pos
 	h.line.Set([]rune(match)...)
 	h.cursor.Set(h.line.Len())
 }
@@ -533,8 +556,8 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 		move = func(pos int) int { return pos - 1 }
 	}
 
-	if usePos && h.pos > 0 {
-		histPos = history.Len() - h.pos
+	if usePos && h.hpos > 0 {
+		histPos = history.Len() - h.hpos
 	}
 
 	for done(histPos) {

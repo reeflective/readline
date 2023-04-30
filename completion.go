@@ -32,7 +32,7 @@ func (rl *Shell) completionCommands() commands {
 // Attempt completion on the current word.
 // Currently identitical to menu-complete.
 func (rl *Shell) completeWord() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	// This completion function should attempt to insert the first
 	// valid completion found, without printing the actual list.
@@ -44,13 +44,13 @@ func (rl *Shell) completeWord() {
 
 // List possible completions for the current word.
 func (rl *Shell) possibleCompletions() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	rl.startMenuComplete(rl.commandCompletion)
 }
 
 func (rl *Shell) insertCompletions() {
-	rl.undo.Save()
+	rl.histories.Save()
 
 	// Generate all possible completions
 	if !rl.completer.IsActive() {
@@ -71,7 +71,7 @@ func (rl *Shell) insertCompletions() {
 
 // Like complete-word, except that menu completion is used.
 func (rl *Shell) menuComplete() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	// No completions are being printed yet, so simply generate the completions
 	// as if we just request them without immediately selecting a candidate.
@@ -99,7 +99,7 @@ func (rl *Shell) deleteCharOrList() {
 // list of possible completions, as if menu-complete had been
 // given a negative argument.
 func (rl *Shell) menuCompleteBackward() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	// We don't do anything when not already completing.
 	if !rl.completer.IsActive() {
@@ -112,7 +112,7 @@ func (rl *Shell) menuCompleteBackward() {
 // In a menu completion, if there are several tags
 // of completions, go to the first result of the next tag.
 func (rl *Shell) menuCompleteNextTag() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	if !rl.completer.IsActive() {
 		return
@@ -124,7 +124,7 @@ func (rl *Shell) menuCompleteNextTag() {
 // In a menu completion, if there are several tags of
 // completions, go to the first result of the previous tag.
 func (rl *Shell) menuCompletePrevTag() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	if !rl.completer.IsActive() {
 		return
@@ -136,7 +136,7 @@ func (rl *Shell) menuCompletePrevTag() {
 // In a menu completion, insert the current completion
 // into the buffer, and advance to the next possible completion.
 func (rl *Shell) acceptAndMenuComplete() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	// We don't do anything when not already completing.
 	if !rl.completer.IsActive() {
@@ -157,7 +157,7 @@ func (rl *Shell) acceptAndMenuComplete() {
 
 // Open a completion menu (similar to menu-complete) with all currently populated Vim registers.
 func (rl *Shell) viRegistersComplete() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	if !rl.completer.IsActive() {
 		rl.startMenuComplete(rl.buffers.Complete)
@@ -175,7 +175,7 @@ func (rl *Shell) viRegistersComplete() {
 // mini-buffer, any currently selected candidate is dropped from the line and the menu.
 // An interrupt signal, as defined by the stty setting, will stop the search and go back to the original line.
 func (rl *Shell) menuIncrementalSearch() {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	if !rl.completer.IsActive() {
 		rl.completer.GenerateWith(rl.commandCompletion)
@@ -191,7 +191,7 @@ func (rl *Shell) menuIncrementalSearch() {
 // startMenuComplete generates a completion menu with completions
 // generated from a given completer, without selecting a candidate.
 func (rl *Shell) startMenuComplete(completer completion.Completer) {
-	rl.undo.SkipSave()
+	rl.histories.SkipSave()
 
 	rl.keymaps.SetLocal(keymap.MenuSelect)
 	rl.completer.GenerateWith(completer)

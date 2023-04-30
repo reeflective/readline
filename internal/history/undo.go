@@ -1,20 +1,17 @@
-package core
+package history
 
-import "github.com/reeflective/readline/inputrc"
+import (
+	"github.com/reeflective/readline/inputrc"
+	"github.com/reeflective/readline/internal/core"
+)
 
-// LineHistory contains all the history modifications
-// for the current line, and manages all undo/redo actions.
-type LineHistory struct {
+// lineHistory contains all state changes for a given input line,
+// whether it is the current input line or one of the history ones.
+type lineHistory struct {
 	pos     int
-	skip    bool
-	undoing bool
-	items   []undoItem
 	lineBuf string
 	linePos int
-
-	line *Line
-	cur  *Cursor
-	last inputrc.Bind
+	items   []undoItem
 }
 
 type undoItem struct {
@@ -22,31 +19,26 @@ type undoItem struct {
 	pos  int
 }
 
-// NewLineHistory is a required constructor of history of line state changes.
-func NewLineHistory(line *Line, cur *Cursor) *LineHistory {
-	return &LineHistory{
-		line: line,
-		cur:  cur,
-	}
-}
-
 // Save saves the current line and cursor position as an undo state item.
 // If this was called while the shell in the middle of its undo history
 // (eg. the caller has undone one or more times), all undone steps are dropped.
-func (lh *LineHistory) Save() {
-	defer lh.Reset()
+func (h *Sources) Save() {
+	defer h.Reset()
 
-	if lh.skip {
+	if h.skip {
 		return
 	}
 
-	line := *lh.line
-	cursor := lh.cur
+	// Get the undo states for the current line.
+	lh := h.getLineHistory()
+	if lh == nil {
+		return
+	}
 
 	// When the line is identical to the previous undo, we just update
 	// the cursor position if it's a different one.
-	if len(lh.items) > 0 && lh.items[len(lh.items)-1].line == string(line) {
-		lh.items[len(lh.items)-1].pos = cursor.Pos()
+	if len(lh.items) > 0 && lh.items[len(lh.items)-1].line == string(*h.line) {
+		lh.items[len(lh.items)-1].pos = h.cursor.Pos()
 		return
 	}
 
@@ -55,46 +47,43 @@ func (lh *LineHistory) Save() {
 	if lh.pos > len(lh.items) {
 		lh.pos = len(lh.items)
 	}
+
 	lh.items = lh.items[:len(lh.items)-lh.pos]
 
 	// Make a copy of the cursor and ensure its position.
-	cur := NewCursor(&line)
-	cur.Set(cursor.Pos())
+	cur := core.NewCursor(h.line)
+	cur.Set(h.cursor.Pos())
 	cur.CheckCommand()
 
 	// And save the item.
 	lh.items = append(lh.items, undoItem{
-		line: string(line),
+		line: string(*h.line),
 		pos:  cur.Pos(),
 	})
 }
 
 // SkipSave will not save the current line when the target command is done.
-func (lh *LineHistory) SkipSave() {
-	lh.skip = true
+func (h *Sources) SkipSave() {
+	h.skip = true
 }
 
 // SaveWithCommand is only meant to be called in the main readline loop of the shell,
 // and not from within commands themselves: it does the same job as Save(), but also
 // keeps the command that has just been executed.
-func (lh *LineHistory) SaveWithCommand(bind inputrc.Bind) {
-	lh.last = bind
-	lh.Save()
+func (h *Sources) SaveWithCommand(bind inputrc.Bind) {
+	h.last = bind
+	h.Save()
 }
 
 // Undo restores the line and cursor position to their last saved state.
-func (lh *LineHistory) Undo(line *Line, cursor *Cursor) {
-	lh.skip = true
-	lh.undoing = true
+func (h *Sources) Undo() {
+	h.skip = true
+	h.undoing = true
 
-	if len(lh.items) == 0 {
+	// Get the undo states for the current line.
+	lh := h.getLineHistory()
+	if lh == nil || len(lh.items) == 0 {
 		return
-	}
-
-	// Keep the current line buffer
-	if lh.pos == 0 {
-		lh.lineBuf = string(*line)
-		lh.linePos = cursor.Pos()
 	}
 
 	var undo undoItem
@@ -112,43 +101,46 @@ func (lh *LineHistory) Undo(line *Line, cursor *Cursor) {
 
 		// Break as soon as we find a non-matching line.
 		undo = lh.items[len(lh.items)-lh.pos]
-		if undo.line != string(*line) {
+		if undo.line != string(*h.line) {
 			break
 		}
 	}
 
 	// Use the undo we found
-	line.Set([]rune(undo.line)...)
-	cursor.Set(undo.pos)
+	h.line.Set([]rune(undo.line)...)
+	h.cursor.Set(undo.pos)
 }
 
 // Revert goes back to the initial state of the line, which is what it was
 // like when the shell started reading user input. Note that this state might
 // be a line that was inferred, accept-and-held from the previous readline run.
-func (lh *LineHistory) Revert(line *Line, cursor *Cursor) {
-	if len(lh.items) == 0 {
+func (h *Sources) Revert() {
+	lh := h.getLineHistory()
+	if lh == nil || len(lh.items) == 0 {
 		return
 	}
 
 	// Reuse the first saved state.
 	undo := lh.items[0]
 
-	line.Set([]rune(undo.line)...)
-	cursor.Set(undo.pos)
+	h.line.Set([]rune(undo.line)...)
+	h.cursor.Set(undo.pos)
 
 	// And reset everything
 	lh.items = make([]undoItem, 0)
-	lh.Reset()
+
+	h.Reset()
 }
 
 // Redo cancels an undo action if any has been made, or if
 // at the begin of the undo history, restores the original
 // line's contents as their were before starting undoing.
-func (lh *LineHistory) Redo(line *Line, cursor *Cursor) {
-	lh.skip = true
-	lh.undoing = true
+func (h *Sources) Redo() {
+	h.skip = true
+	h.undoing = true
 
-	if len(lh.items) == 0 {
+	lh := h.getLineHistory()
+	if lh == nil || len(lh.items) == 0 {
 		return
 	}
 
@@ -156,36 +148,70 @@ func (lh *LineHistory) Redo(line *Line, cursor *Cursor) {
 
 	if lh.pos < 1 {
 		lh.pos = 0
-		line.Set([]rune(lh.lineBuf)...)
-		cursor.Set(lh.linePos)
+		h.line.Set([]rune(lh.lineBuf)...)
+		h.cursor.Set(lh.linePos)
 
 		return
 	}
 
 	undo := lh.items[len(lh.items)-lh.pos]
-	line.Set([]rune(undo.line)...)
-	cursor.Set(undo.pos)
+	h.line.Set([]rune(undo.line)...)
+	h.cursor.Set(undo.pos)
 }
 
 // Last returns the last command ran by the shell.
-func (lh *LineHistory) Last() inputrc.Bind {
-	return lh.last
+func (h *Sources) Last() inputrc.Bind {
+	return h.last
 }
 
 // Pos returns the current position in the undo history, which is
 // equal to its length minus the number of previous undo calls.
-func (lh *LineHistory) Pos() int {
+func (h *Sources) Pos() int {
+	lh := h.getLineHistory()
+	if lh == nil {
+		return 0
+	}
+
 	return lh.pos
 }
 
 // Reset will reset the current position in the list
 // of undo items, but will not delete any of them.
-func (lh *LineHistory) Reset() {
-	lh.skip = false
+func (h *Sources) Reset() {
+	h.skip = false
 
-	if !lh.undoing {
+	lh := h.getLineHistory()
+	if lh == nil {
+		return
+	}
+
+	if !h.undoing {
 		lh.pos = 0
 	}
 
-	lh.undoing = false
+	h.undoing = false
+}
+
+func (h *Sources) getLineHistory() *lineHistory {
+	history := h.Current()
+	if history == nil {
+		return nil
+	}
+
+	// Get the state changes of all history lines
+	// for the current history source.
+	source := h.names[h.sourcePos]
+
+	hist := h.lines[source]
+	if hist == nil {
+		h.lines[source] = make(map[int]*lineHistory)
+		hist = h.lines[source]
+	}
+
+	if hist[h.hpos] == nil {
+		hist[h.hpos] = &lineHistory{}
+	}
+
+	// Return the state changes of the current line.
+	return hist[h.hpos]
 }
