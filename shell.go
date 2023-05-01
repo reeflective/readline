@@ -95,7 +95,7 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	// Keymaps and commands
 	opts = append(opts, inputrc.WithTerm(os.Getenv("TERM")))
 
-	keymaps, config := keymap.NewModes(keys, iterations, opts...)
+	keymaps, config := keymap.NewEngine(keys, iterations, opts...)
 	keymaps.Register(shell.standardCommands())
 	keymaps.Register(shell.viCommands())
 	keymaps.Register(shell.historyCommands())
@@ -107,7 +107,7 @@ func NewShell(opts ...inputrc.Option) *Shell {
 
 	// User interface
 	hint := new(ui.Hint)
-	prompt := ui.NewPrompt(keys, line, cursor, keymaps, config)
+	prompt := ui.NewPrompt(line, cursor, keymaps, config)
 	macros := macro.NewEngine(keys, hint)
 	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, config)
 	history := history.NewSources(line, cursor, hint, config)
