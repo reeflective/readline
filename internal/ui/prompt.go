@@ -12,8 +12,6 @@ import (
 	"github.com/reeflective/readline/internal/term"
 )
 
-const transientEnableOption = "prompt-transient"
-
 // Prompt stores all prompt rendering/generation functions and is
 // in charge of displaying them, as well as computing their offsets.
 type Prompt struct {
@@ -35,7 +33,6 @@ type Prompt struct {
 	refreshing bool
 
 	// Shell parameters
-	keys    *core.Keys
 	line    *core.Line
 	cursor  *core.Cursor
 	keymaps *keymap.Engine
@@ -43,9 +40,8 @@ type Prompt struct {
 }
 
 // NewPrompt is a required constructor to initialize the prompt system.
-func NewPrompt(keys *core.Keys, line *core.Line, cursor *core.Cursor, keymaps *keymap.Engine, opts *inputrc.Config) *Prompt {
+func NewPrompt(line *core.Line, cursor *core.Cursor, keymaps *keymap.Engine, opts *inputrc.Config) *Prompt {
 	return &Prompt{
-		keys:    keys,
 		line:    line,
 		cursor:  cursor,
 		keymaps: keymaps,
@@ -129,6 +125,9 @@ func (p *Prompt) PrimaryPrint() {
 	// And compute coordinates
 	p.primaryRows = len(strings.Split(prompt, "\n"))
 	p.primaryCols = strutil.RealLength(lastPrompt)
+	if p.primaryCols > 0 {
+		p.primaryCols--
+	}
 }
 
 // PrimaryUsed returns the number of terminal rows on which
@@ -162,6 +161,9 @@ func (p *Prompt) LastPrint() {
 	fmt.Print(prompt)
 
 	p.primaryCols = strutil.RealLength(prompt)
+	if p.primaryCols > 0 {
+		p.primaryCols--
+	}
 }
 
 // LastUsed returns the number of terminal columns used by the last
@@ -169,7 +171,26 @@ func (p *Prompt) LastPrint() {
 // This, in effect, returns the X coordinate at which the input line
 // should be printed, and indentation for subsequent lines if several.
 func (p *Prompt) LastUsed() int {
-	return p.primaryCols - 1
+	if p.primaryF == nil {
+		return 0
+	}
+
+	// Only display the last line, but overwrite the number of
+	// rows used since any redisplay of all lines but the last
+	// will trigger their  own recomputation.
+	lines := strings.Split(p.primaryF(), "\n")
+	if len(lines) == 0 {
+		return 0
+	}
+
+	prompt := p.formatLastPrompt(lines[len(lines)-1])
+	p.primaryCols = strutil.RealLength(prompt)
+
+	if p.primaryCols > 0 {
+		p.primaryCols--
+	}
+
+	return p.primaryCols
 }
 
 // RightPrint prints the right-sided prompt strings, which might be either
@@ -200,7 +221,7 @@ func (p *Prompt) RightPrint(startColumn int, force bool) {
 
 // TransientPrint prints the transient prompt if it is enabled.
 func (p *Prompt) TransientPrint() {
-	if p.transientF == nil || !p.opts.GetBool(transientEnableOption) {
+	if p.transientF == nil {
 		return
 	}
 
@@ -235,12 +256,10 @@ func (p *Prompt) formatLastPrompt(prompt string) string {
 		status = p.opts.GetString("vi-ins-mode-string")
 	}
 
-	// Fix parsing of inputrc which sometimes preserves quotes on some values.
-	if strings.HasPrefix(status, "\"") && strings.HasSuffix(status, "\"") {
-		status = strings.Trim(status, "\"")
-	}
+	// Fix parsing of inputrc which sometimes preserves quotes on some
+	// values, and remove bash readline begin/end non-printable delimiters.
+	status = strings.Trim(status, "\"")
 
-	// Remove bash readline begin/end non-printable delimiters.
 	begin := regexp.MustCompile(`\\1`)
 	end := regexp.MustCompile(`\\2`)
 

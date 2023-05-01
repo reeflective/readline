@@ -157,7 +157,8 @@ func hlAdd(regions []core.Selection, newHl core.Selection, line []rune, config *
 
 	// Update the highlighting with inputrc settings if any.
 	if bg != "" && !matcher {
-		if bg, _ = strconv.Unquote(config.GetString("active-region-start-color")); bg == "" {
+		background := strings.ReplaceAll(config.GetString("active-region-start-color"), `\e`, "\x1b")
+		if bg, _ = strconv.Unquote(background); bg == "" {
 			bg = color.Reverse
 		}
 	}
@@ -184,7 +185,8 @@ func hlReset(regions []core.Selection, line []rune, pos int, config *inputrc.Con
 
 			if background != "" {
 				background, _ := strconv.Unquote(config.GetString("active-region-end-color"))
-				foreground, _ := strconv.Unquote(config.GetString("active-region-start-color"))
+				foreground := config.GetString("active-region-start-color")
+
 				if background == "" && foreground == "" && !matcher {
 					line = append(line, []rune(color.ReverseReset)...)
 				} else {

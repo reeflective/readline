@@ -66,20 +66,22 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 //
 // Doc: Refresh the current line. By default, this is unbound.
 func (e *Engine) Refresh() {
-	// Clear everything below the current input line.
 	fmt.Print(term.HideCursor)
+
+	// Go back to the first column, and if the primary prompt
+	// was not printed yet, back up to the line's beginning row.
+	term.MoveCursorBackwards(term.GetWidth())
+
 	if !e.primaryPrinted {
-		e.CursorToLineStart()
+		term.MoveCursorUp(e.cursorRow)
 	}
+
+	// Print either all or the last line of the prompt.
+	e.prompt.LastPrint()
 
 	// Get all positions required for the redisplay to come:
 	// prompt end (thus indentation), cursor positions, etc.
 	e.computeCoordinates()
-
-	term.MoveCursorBackwards(e.startCols)
-	e.prompt.LastPrint()
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.startCols)
 
 	// Print the line, right prompt, hints and completions.
 	e.displayLine()
@@ -155,7 +157,7 @@ func (e *Engine) PrintTransientPrompt() {
 func (e *Engine) CursorToLineStart() {
 	term.MoveCursorBackwards(e.cursorCol)
 	term.MoveCursorUp(e.cursorRow)
-	term.MoveCursorForwards(e.startCols - 1)
+	term.MoveCursorForwards(e.startCols)
 }
 
 // cursorToPos moves the cursor back to where the cursor is on the input line.
@@ -202,16 +204,22 @@ func (e *Engine) computeCoordinates() {
 		e.suggested = e.histories.Suggest(e.line)
 	}
 
-	// Get the cursor position through terminal query:
-	// we have printed our prompt, and we are at the start pos.
+	// Get the position of the line's beginning by querying
+	// the terminal for the cursor position.
 	e.startCols, e.startRows = e.keys.GetCursorPos()
 
+	if e.startCols > 0 {
+		e.startCols--
+	}
+
+	// Cursor position might be misleading if invalid (negative).
 	if e.startCols == -1 {
 		e.startCols = e.prompt.LastUsed()
 	}
 
 	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startCols)
 
+	// Get the number of rows used by the line, and the last X pos.
 	if e.opts.GetBool("history-autosuggest") {
 		e.lineCol, e.lineRows = e.suggested.Coordinates(e.startCols)
 	} else {
