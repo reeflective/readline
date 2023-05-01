@@ -24,7 +24,7 @@ type Engine struct {
 	selection  *core.Selection // The line selection
 	completed  *core.Line      // A line that might include a virtually inserted candidate.
 	compCursor *core.Cursor    // The adjusted cursor.
-	keymaps    *keymap.Modes   // The main/local keymaps of the shell
+	keymaps    *keymap.Engine  // The main/local keymaps of the shell
 
 	// Completion parameters
 	groups      []*group      // All of our suggestions tree is in here
@@ -50,7 +50,7 @@ type Engine struct {
 }
 
 // NewEngine initializes a new completion engine with the shell operating parameters.
-func NewEngine(k *core.Keys, l *core.Line, c *core.Cursor, s *core.Selection, h *ui.Hint, km *keymap.Modes, o *inputrc.Config) *Engine {
+func NewEngine(k *core.Keys, l *core.Line, c *core.Cursor, s *core.Selection, h *ui.Hint, km *keymap.Engine, o *inputrc.Config) *Engine {
 	return &Engine{
 		opts:       o,
 		keys:       k,

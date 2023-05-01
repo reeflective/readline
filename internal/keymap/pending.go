@@ -14,7 +14,7 @@ type action struct {
 
 // AddPending registers a command as waiting for another command to run first,
 // such as yank/delete/change actions, which accept/require a movement command.
-func (m *Modes) Pending() {
+func (m *Engine) Pending() {
 	m.SetLocal(ViOpp)
 	m.skip = true
 
@@ -25,7 +25,7 @@ func (m *Modes) Pending() {
 // CancelPending is used by commands that have been registering themselves
 // as waiting for a pending operator, but have actually been called twice
 // in a row (eg. dd/yy in Vim mode). This removes those commands from queue.
-func (m *Modes) CancelPending() {
+func (m *Engine) CancelPending() {
 	if len(m.pending) == 0 {
 		return
 	}
@@ -39,7 +39,7 @@ func (m *Modes) CancelPending() {
 
 // IsPending returns true when invoked from within the command
 // that also happens to be the next in line of pending commands.
-func (m *Modes) IsPending() bool {
+func (m *Engine) IsPending() bool {
 	if len(m.pending) == 0 {
 		return false
 	}
@@ -48,7 +48,7 @@ func (m *Modes) IsPending() bool {
 }
 
 // RunPending runs any command with pending execution.
-func (m *Modes) RunPending() {
+func (m *Engine) RunPending() {
 	if len(m.pending) == 0 {
 		return
 	}

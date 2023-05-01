@@ -38,12 +38,12 @@ type Prompt struct {
 	keys    *core.Keys
 	line    *core.Line
 	cursor  *core.Cursor
-	keymaps *keymap.Modes
+	keymaps *keymap.Engine
 	opts    *inputrc.Config
 }
 
 // NewPrompt is a required constructor to initialize the prompt system.
-func NewPrompt(keys *core.Keys, line *core.Line, cursor *core.Cursor, keymaps *keymap.Modes, opts *inputrc.Config) *Prompt {
+func NewPrompt(keys *core.Keys, line *core.Line, cursor *core.Cursor, keymaps *keymap.Engine, opts *inputrc.Config) *Prompt {
 	return &Prompt{
 		keys:    keys,
 		line:    line,

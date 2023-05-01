@@ -139,32 +139,6 @@ func getHighlights(line []rune, sorted []core.Selection, config *inputrc.Config)
 	return highlights
 }
 
-func hlReset(regions []core.Selection, line []rune, pos int, config *inputrc.Config) ([]core.Selection, []rune) {
-	for i, reg := range regions {
-		_, epos := reg.Pos()
-		foreground, background := reg.Highlights()
-		matcher := reg.Type == "matcher"
-
-		if epos == pos {
-			regions = append(regions[:i], regions[i+1:]...)
-
-			if foreground != "" {
-				line = append(line, []rune(color.FgDefault)...)
-			}
-
-			if background != "" {
-				if background, _ = strconv.Unquote(config.GetString("active-region-end-color")); background == "" && !matcher {
-					line = append(line, []rune(color.ReverseReset)...)
-				} else {
-					line = append(line, []rune(color.BgDefault)...)
-				}
-			}
-		}
-	}
-
-	return regions, line
-}
-
 func hlAdd(regions []core.Selection, newHl core.Selection, line []rune, config *inputrc.Config) []rune {
 	var (
 		fg, bg  string
@@ -193,4 +167,32 @@ func hlAdd(regions []core.Selection, newHl core.Selection, line []rune, config *
 	line = append(line, []rune(fg)...)
 
 	return line
+}
+
+func hlReset(regions []core.Selection, line []rune, pos int, config *inputrc.Config) ([]core.Selection, []rune) {
+	for i, reg := range regions {
+		_, epos := reg.Pos()
+		foreground, background := reg.Highlights()
+		matcher := reg.Type == "matcher"
+
+		if epos == pos {
+			regions = append(regions[:i], regions[i+1:]...)
+
+			if foreground != "" {
+				line = append(line, []rune(color.FgDefault)...)
+			}
+
+			if background != "" {
+				background, _ := strconv.Unquote(config.GetString("active-region-end-color"))
+				foreground, _ := strconv.Unquote(config.GetString("active-region-start-color"))
+				if background == "" && foreground == "" && !matcher {
+					line = append(line, []rune(color.ReverseReset)...)
+				} else {
+					line = append(line, []rune(color.BgDefault)...)
+				}
+			}
+		}
+	}
+
+	return regions, line
 }

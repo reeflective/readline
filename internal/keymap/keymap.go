@@ -12,8 +12,8 @@ import (
 
 var unescape = inputrc.Unescape
 
-// Modes is used to manage the main and local keymaps for the shell.
-type Modes struct {
+// Engine is used to manage the main and local keymaps for the shell.
+type Engine struct {
 	local    Mode
 	main     Mode
 	prefixed inputrc.Bind
@@ -30,8 +30,8 @@ type Modes struct {
 
 // NewModes is a required constructor for the keymap modes manager.
 // It initializes the keymaps to their defaults or configured values.
-func NewModes(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Modes, *inputrc.Config) {
-	modes := &Modes{
+func NewModes(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Engine, *inputrc.Config) {
+	modes := &Engine{
 		main:       Emacs,
 		keys:       keys,
 		iterations: i,
@@ -39,7 +39,7 @@ func NewModes(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Mod
 		commands:   make(map[string]func()),
 	}
 
-	// Builtin binds (in addition to default readline binds)
+	// Builtin Go binds (in addition to default readline binds)
 	modes.loadBuiltinBinds()
 
 	// Parse user configurations.
@@ -67,7 +67,10 @@ func NewModes(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Mod
 	return modes, modes.config
 }
 
-func (m *Modes) loadBuiltinBinds() {
+// loadBuiltinBinds adds additional command mappins that are not part
+// of the standard C readline configuration: those binds therefore can
+// reference commands or keymaps only implemented/used in this library.
+func (m *Engine) loadBuiltinBinds() {
 	// Load default keymaps (main)
 	for seq, bind := range vicmdKeys {
 		m.config.Binds[string(ViCmd)][seq] = bind
@@ -87,42 +90,42 @@ func (m *Modes) loadBuiltinBinds() {
 }
 
 // Register adds commands to the list of available commands.
-func (m *Modes) Register(commands map[string]func()) {
+func (m *Engine) Register(commands map[string]func()) {
 	for name, command := range commands {
 		m.commands[name] = command
 	}
 }
 
 // SetMain sets the main keymap of the shell.
-func (m *Modes) SetMain(keymap Mode) {
+func (m *Engine) SetMain(keymap Mode) {
 	m.main = keymap
 	m.UpdateCursor()
 }
 
 // Main returns the local keymap.
-func (m *Modes) Main() Mode {
+func (m *Engine) Main() Mode {
 	return m.main
 }
 
 // SetLocal sets the local keymap of the shell.
-func (m *Modes) SetLocal(keymap Mode) {
+func (m *Engine) SetLocal(keymap Mode) {
 	m.local = keymap
 	m.UpdateCursor()
 }
 
 // Local returns the local keymap.
-func (m *Modes) Local() Mode {
+func (m *Engine) Local() Mode {
 	return m.local
 }
 
 // ResetLocal deactivates the local keymap of the shell.
-func (m *Modes) ResetLocal() {
+func (m *Engine) ResetLocal() {
 	m.local = ""
 	m.UpdateCursor()
 }
 
 // UpdateCursor reprints the cursor corresponding to the current keymaps.
-func (m *Modes) UpdateCursor() {
+func (m *Engine) UpdateCursor() {
 	switch m.local {
 	case ViOpp:
 		m.PrintCursor(ViOpp)
@@ -145,7 +148,7 @@ func (m *Modes) UpdateCursor() {
 
 // PendingCursor changes the cursor to pending mode,
 // and returns a function to call once done with it.
-func (m *Modes) PendingCursor() func() {
+func (m *Engine) PendingCursor() (restore func()) {
 	m.PrintCursor(ViOpp)
 
 	return func() {
@@ -154,7 +157,7 @@ func (m *Modes) PendingCursor() func() {
 }
 
 // IsEmacs returns true if the main keymap is one of the emacs modes.
-func (m *Modes) IsEmacs() bool {
+func (m *Engine) IsEmacs() bool {
 	switch m.main {
 	case Emacs, EmacsStandard, EmacsMeta, EmacsCtrlX:
 		return true
@@ -166,7 +169,7 @@ func (m *Modes) IsEmacs() bool {
 // PrintBinds displays a list of currently bound commands (and their sequences)
 // to the screen. If inputrcFormat is true, it displays it formatted such that
 // the output can be reused in an .inputrc file.
-func (m *Modes) PrintBinds(inputrcFormat bool) {
+func (m *Engine) PrintBinds(inputrcFormat bool) {
 	var commands []string
 
 	for command := range m.commands {
@@ -201,7 +204,7 @@ func (m *Modes) PrintBinds(inputrcFormat bool) {
 
 // ConvertMeta recursively searches for metafied keys in a sequence,
 // and replaces them with an esc prefix and their unmeta equivalent.
-func (m *Modes) ConvertMeta(keys []rune) string {
+func (m *Engine) ConvertMeta(keys []rune) string {
 	if len(keys) == 0 {
 		return string(keys)
 	}
@@ -227,7 +230,7 @@ func (m *Modes) ConvertMeta(keys []rune) string {
 // InputIsTerminator returns true when current input keys are one of
 // the configured or builtin "terminators", which can be configured
 // in .inputrc with the isearch-terminators variable.
-func (m *Modes) InputIsTerminator() bool {
+func (m *Engine) InputIsTerminator() bool {
 	// Make a special list of binds with a unique command.
 	terminators := []string{
 		inputrc.Unescape(`\C-G`),
@@ -246,13 +249,13 @@ func (m *Modes) InputIsTerminator() bool {
 }
 
 // ActiveCommand returns the sequence/command currently being ran.
-func (m *Modes) ActiveCommand() inputrc.Bind {
+func (m *Engine) ActiveCommand() inputrc.Bind {
 	return m.active
 }
 
 // MatchMain incrementally attempts to match cached input keys against the local keymap.
 // Returns the bind if matched, the corresponding command, and if we only matched by prefix.
-func (m *Modes) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
+func (m *Engine) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
 	if m.main == "" {
 		return
 	}
@@ -285,7 +288,7 @@ func (m *Modes) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
 
 // MatchMain incrementally attempts to match cached input keys against the main keymap.
 // Returns the bind if matched, the corresponding command, and if we only matched by prefix.
-func (m *Modes) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
+func (m *Engine) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 	if m.local == "" {
 		return
 	}
@@ -307,7 +310,7 @@ func (m *Modes) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 	return
 }
 
-func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
+func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
 	var keys []rune
 
 	// Important to wrap in a defer function,
@@ -365,7 +368,7 @@ func (m *Modes) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, c
 	}
 }
 
-func (m *Modes) matchCommand(keys []rune, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
+func (m *Engine) matchCommand(keys []rune, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
 	var match inputrc.Bind
 	var prefixed []inputrc.Bind
 
@@ -390,7 +393,7 @@ func (m *Modes) matchCommand(keys []rune, binds map[string]inputrc.Bind) (inputr
 	return match, prefixed
 }
 
-func (m *Modes) resolveCommand(bind inputrc.Bind) func() {
+func (m *Engine) resolveCommand(bind inputrc.Bind) func() {
 	if bind.Macro {
 		return nil
 	}
@@ -402,7 +405,7 @@ func (m *Modes) resolveCommand(bind inputrc.Bind) func() {
 	return m.commands[bind.Action]
 }
 
-func (m *Modes) isEscapeKey() bool {
+func (m *Engine) isEscapeKey() bool {
 	keys, empty := m.keys.PeekAll()
 	if empty || len(keys) == 0 {
 		return false
@@ -421,7 +424,7 @@ func (m *Modes) isEscapeKey() bool {
 
 // handleEscape is used to override or change the matched command when the escape key has
 // been pressed: it might exit completion/isearch menus, use the vi-movement-mode, etc.
-func (m *Modes) handleEscape(main, prefix bool) (bind inputrc.Bind, cmd func(), pref bool) {
+func (m *Engine) handleEscape(main, prefix bool) (bind inputrc.Bind, cmd func(), pref bool) {
 	switch {
 	case prefix && m.prefixed.Action == "vi-movement-mode":
 		// The vi-movement-mode command always has precedence over

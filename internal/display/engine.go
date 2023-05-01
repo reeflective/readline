@@ -17,14 +17,15 @@ import (
 // interface and stores the necessary offsets of each components.
 type Engine struct {
 	// Operating parameters
-	highlighter func(line []rune) string
-	startCols   int
-	startRows   int
-	lineCol     int
-	lineRows    int
-	cursorRow   int
-	cursorCol   int
-	compRows    int
+	highlighter    func(line []rune) string
+	startCols      int
+	startRows      int
+	lineCol        int
+	lineRows       int
+	cursorRow      int
+	cursorCol      int
+	compRows       int
+	primaryPrinted bool
 
 	// UI components
 	keys      *core.Keys
@@ -67,7 +68,9 @@ func (e *Engine) Init(highlighter func([]rune) string) {
 func (e *Engine) Refresh() {
 	// Clear everything below the current input line.
 	fmt.Print(term.HideCursor)
-	e.CursorToLineStart()
+	if !e.primaryPrinted {
+		e.CursorToLineStart()
+	}
 
 	// Get all positions required for the redisplay to come:
 	// prompt end (thus indentation), cursor positions, etc.
@@ -84,9 +87,15 @@ func (e *Engine) Refresh() {
 	e.displayHelpers()
 
 	// Go back to the start of the line, then to cursor.
-	e.CursorHintToLineStart()
-	e.LineStartToCursorPos()
+	e.cursorHintToLineStart()
+	e.lineStartToCursorPos()
 	fmt.Print(term.ShowCursor)
+}
+
+// PrintPrimaryPrompt redraws the primary prompt.
+func (e *Engine) PrintPrimaryPrompt() {
+	e.prompt.PrimaryPrint()
+	e.primaryPrinted = true
 }
 
 // ClearHelpers clears and resets the hint and completion sections.
@@ -142,6 +151,22 @@ func (e *Engine) PrintTransientPrompt() {
 	fmt.Println()
 }
 
+// CursorToLineStart moves the cursor just after the primary prompt.
+func (e *Engine) CursorToLineStart() {
+	term.MoveCursorBackwards(e.cursorCol)
+	term.MoveCursorUp(e.cursorRow)
+	term.MoveCursorForwards(e.startCols - 1)
+}
+
+// cursorToPos moves the cursor back to where the cursor is on the input line.
+func (e *Engine) cursorToPos() {
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorForwards(e.cursorCol)
+
+	term.MoveCursorUp(e.lineRows)
+	term.MoveCursorDown(e.cursorRow)
+}
+
 // CursorBelowLine moves the cursor to the leftmost column
 // of the first row after the last line of input.
 func (e *Engine) CursorBelowLine() {
@@ -150,33 +175,17 @@ func (e *Engine) CursorBelowLine() {
 	fmt.Println()
 }
 
-// CursorToPos moves the cursor back to where the cursor is on the input line.
-func (e *Engine) CursorToPos() {
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.cursorCol)
-
-	term.MoveCursorUp(e.lineRows)
-	term.MoveCursorDown(e.cursorRow)
-}
-
-// LineStartToCursorPos can be used if the cursor is currently
+// lineStartToCursorPos can be used if the cursor is currently
 // at the very start of the input line, that is just after the
 // last character of the prompt.
-func (e *Engine) LineStartToCursorPos() {
+func (e *Engine) lineStartToCursorPos() {
 	term.MoveCursorDown(e.cursorRow)
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorForwards(e.cursorCol)
-}
-
-// CursorToLineStart moves the cursor just after the primary prompt.
-func (e *Engine) CursorToLineStart() {
-	term.MoveCursorBackwards(e.cursorCol)
-	term.MoveCursorUp(e.cursorRow)
-	term.MoveCursorForwards(e.startCols - 1)
 }
 
 // cursor is on the line below the last line of input.
-func (e *Engine) CursorHintToLineStart() {
+func (e *Engine) cursorHintToLineStart() {
 	term.MoveCursorUp(1)
 	term.MoveCursorUp(e.lineRows - e.cursorRow)
 	e.CursorToLineStart()
@@ -208,6 +217,8 @@ func (e *Engine) computeCoordinates() {
 	} else {
 		e.lineCol, e.lineRows = e.line.Coordinates(e.startCols)
 	}
+
+	e.primaryPrinted = false
 }
 
 func (e *Engine) displayLine() {

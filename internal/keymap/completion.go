@@ -47,7 +47,7 @@ var IsearchCommands = []string{
 
 // IsearchCommands returns all commands that are available in incremental-search mode.
 // These commands are a restricted set of edit/movement/history functions.
-func (m *Modes) IsearchCommands(mode Mode) map[string]inputrc.Bind {
+func (m *Engine) IsearchCommands(mode Mode) map[string]inputrc.Bind {
 	isearch := make(map[string]inputrc.Bind)
 
 	for seq, command := range m.config.Binds[string(mode)] {
