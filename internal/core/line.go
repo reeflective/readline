@@ -83,6 +83,26 @@ func (l *Line) InsertBetween(bpos, epos int, chars ...rune) {
 	}
 }
 
+// Quoted translates one rune in its printable version,
+// which might be different for Control/Meta characters.
+// Returns the "translated" string and new length. (eg 0x04 => ^C = len:2).
+func (l *Line) Quote(char rune) (res []rune, length int) {
+	var inserted []rune
+
+	switch {
+	case inputrc.IsMeta(char):
+		inserted = append(inserted, '^', '[')
+		inserted = append(inserted, inputrc.Demeta(char))
+	case inputrc.IsControl(char):
+		inserted = append(inserted, '^')
+		inserted = append(inserted, inputrc.Decontrol(char))
+	default:
+		inserted = []rune(inputrc.Unescape(string(char)))
+	}
+
+	return inserted, len(inserted)
+}
+
 // Cut deletes a slice of runes between a beginning and end position on the line.
 // If the begin/end pos is negative/greater than the line, all runes located on
 // valid indexes in the given range are removed.

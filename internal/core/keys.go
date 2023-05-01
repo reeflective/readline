@@ -167,11 +167,8 @@ func (k *Keys) FlushUsed() {
 	k.macroCalled = false
 
 	if k.matchedKeys == 0 {
-		// println("No matched keys")
 		return
 	}
-
-	// println("Keys before: " + strconv.QuoteToASCII(string(k.stack)))
 
 	switch {
 	case len(k.stack) < k.matchedKeys:
@@ -180,12 +177,7 @@ func (k *Keys) FlushUsed() {
 		k.stack = k.stack[k.matchedKeys:]
 	}
 
-	// println("Keys after: " + strconv.QuoteToASCII(string(k.stack)))
 	k.matchedKeys = 0
-
-	// if k.skipRead {
-	// 	os.Exit(0)
-	// }
 }
 
 // Flush returns all keys stored in the stack and clears it.

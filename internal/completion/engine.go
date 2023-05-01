@@ -340,7 +340,7 @@ func (e *Engine) AutocompleteForce() {
 // autocompletion mode that has been triggered by a particular
 // command (like history-search-forward/backward).
 func (e *Engine) AutoCompleting() bool {
-	return e.autoForce
+	return e.keymaps.Local() == keymap.Isearch || e.autoForce
 }
 
 // SetAutocompleter sets the default completer to use in autocomplete mode.
