@@ -89,6 +89,12 @@ func (l *Line) InsertBetween(bpos, epos int, chars ...rune) {
 func (l *Line) Quote(char rune) (res []rune, length int) {
 	var inserted []rune
 
+	// Special cases for keys that should not be quoted
+	if char == inputrc.Tab {
+		inserted = append(inserted, char)
+		return inserted, len(inserted)
+	}
+
 	switch {
 	case inputrc.IsMeta(char):
 		inserted = append(inserted, '^', '[')

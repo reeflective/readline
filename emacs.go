@@ -3,7 +3,6 @@ package readline
 import (
 	"fmt"
 	"io"
-	"os/user"
 	"regexp"
 	"sort"
 	"strings"
@@ -401,9 +400,8 @@ func (rl *Shell) quotedInsert() {
 func (rl *Shell) tabInsert() {
 	rl.History.SkipSave()
 
-	// tab := fmt.Sprint("\t")
-	// rl.line.Insert(rl.cursor.Pos(), '\t')
-	// rl.cursor.Move(1)
+	rl.line.Insert(rl.cursor.Pos(), '\t')
+	rl.cursor.Move(1)
 }
 
 // Insert the character typed.
@@ -1131,14 +1129,30 @@ func (rl *Shell) printLastKeyboardMacro() {
 // Read in the contents of the inputrc file, and incorporate
 // any bindings or variable assignments found there.
 func (rl *Shell) reReadInitFile() {
-	user, _ := user.Current()
+	main := rl.Keymap.Main()
 
-	err := inputrc.UserDefault(user, rl.Config, rl.Opts...)
+	err := rl.Keymap.ReloadConfig(rl.Opts...)
 	if err != nil {
 		rl.Hint.Set(color.FgRed + "Inputrc reload error: " + err.Error())
-	} else {
-		rl.Hint.Set(color.FgGreen + "Inputrc reloaded")
+		return
 	}
+
+	// Reload keymap settings and cursor
+	newMain := rl.Keymap.Main()
+
+	if main != newMain {
+		switch newMain {
+		case keymap.Emacs, keymap.EmacsStandard, keymap.EmacsMeta, keymap.EmacsCtrlX:
+			rl.emacsEditingMode()
+		case keymap.Vi, keymap.ViCmd, keymap.ViMove:
+			rl.viCommandMode()
+		case keymap.ViIns:
+			rl.viInsertMode()
+		}
+	}
+
+	// Notify successfully reloaded
+	rl.Hint.Set(color.FgGreen + "Inputrc reloaded")
 }
 
 // Abort the current editing command.
@@ -1528,6 +1542,12 @@ func (rl *Shell) selectKeywordNext() {
 	match := matches[0]
 	rl.selection.MarkRange(bpos+match[0], bpos+match[1])
 	rl.selection.Visual(false)
+
+	//     ipv6_regex := `^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$`
+	// ipv4_regex := `^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4})`
+	// domain_regex := `^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$`
+	//
+	// match, _ := regexp.MatchString(ipv4_regex+`|`+ipv6_regex+`|`+domain_regex, host)
 }
 
 func (rl *Shell) selectKeywordPrev() {}

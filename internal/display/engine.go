@@ -9,6 +9,7 @@ import (
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
+	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/reeflective/readline/internal/ui"
 )
@@ -85,7 +86,7 @@ func (e *Engine) Refresh() {
 
 	// Print the line, right prompt, hints and completions.
 	e.displayLine()
-	e.prompt.RightPrint(e.lineCol, true)
+	// e.prompt.RightPrint(e.lineCol, true)
 	e.displayHelpers()
 
 	// Go back to the start of the line, then to cursor.
@@ -230,7 +231,6 @@ func (e *Engine) computeCoordinates() {
 }
 
 func (e *Engine) displayLine() {
-	// func (e *Engine) displayLine(suggested core.Line) {
 	var line string
 
 	// Apply user-defined highlighter to the input line.
@@ -245,8 +245,11 @@ func (e *Engine) displayLine() {
 		e.selection.HighlightMatchers()
 	}
 
-	// Apply visual selections highlighting if any.
+	// Apply visual selections highlighting if any
 	line = ui.Highlight([]rune(line), *e.selection, e.opts)
+
+	// Format tabs as spaces, for consistent display
+	line = strutil.FormatTabs(line)
 
 	// Get the subset of the suggested line to print.
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {

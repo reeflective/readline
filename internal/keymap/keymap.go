@@ -28,9 +28,9 @@ type Engine struct {
 	commands   map[string]func()
 }
 
-// NewModes is a required constructor for the keymap modes manager.
+// NewEngine is a required constructor for the keymap modes manager.
 // It initializes the keymaps to their defaults or configured values.
-func NewModes(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Engine, *inputrc.Config) {
+func NewEngine(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Engine, *inputrc.Config) {
 	modes := &Engine{
 		main:       Emacs,
 		keys:       keys,
@@ -39,8 +39,17 @@ func NewModes(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Eng
 		commands:   make(map[string]func()),
 	}
 
+	// Load the inputrc configurations and set up related things.
+	modes.ReloadConfig(opts...)
+
+	return modes, modes.config
+}
+
+// ReloadConfig parses all valid .inputrc configurations and immediately
+// updates/reloads all related settings (editing mode, variables behavior, etc.)
+func (m *Engine) ReloadConfig(opts ...inputrc.Option) (err error) {
 	// Builtin Go binds (in addition to default readline binds)
-	modes.loadBuiltinBinds()
+	m.loadBuiltinBinds()
 
 	// Parse user configurations.
 	// This will only overwrite binds that have been
@@ -48,45 +57,27 @@ func NewModes(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*Eng
 	// (those just set above), so as to keep most of the
 	// default functionality working out of the box.
 	if user, err := user.Current(); err == nil {
-		err := inputrc.UserDefault(user, modes.config, opts...)
+		err := inputrc.UserDefault(user, m.config, opts...)
 		if err != nil {
-			fmt.Println("Inputrc error: " + err.Error())
+			return err
 		}
 	}
 
-	defer modes.UpdateCursor()
+	// Some configuration variables might have an
+	// effect on our various keymaps and bindings.
+	m.overrideBindsSpecial()
+
+	defer m.UpdateCursor()
 
 	// Startup editing mode
-	switch modes.config.GetString("editing-mode") {
+	switch m.config.GetString("editing-mode") {
 	case "emacs":
-		modes.main = Emacs
+		m.main = Emacs
 	case "vi":
-		modes.main = ViIns
+		m.main = ViIns
 	}
 
-	return modes, modes.config
-}
-
-// loadBuiltinBinds adds additional command mappins that are not part
-// of the standard C readline configuration: those binds therefore can
-// reference commands or keymaps only implemented/used in this library.
-func (m *Engine) loadBuiltinBinds() {
-	// Load default keymaps (main)
-	for seq, bind := range vicmdKeys {
-		m.config.Binds[string(ViCmd)][seq] = bind
-		m.config.Binds[string(ViMove)][seq] = bind
-		m.config.Binds[string(Vi)][seq] = bind
-	}
-
-	// Load default keymaps(local)
-	m.config.Binds[string(Visual)] = visualKeys
-	m.config.Binds[string(ViOpp)] = vioppKeys
-	m.config.Binds[string(MenuSelect)] = menuselectKeys
-
-	// Default TTY binds
-	for _, keymap := range m.config.Binds {
-		keymap[inputrc.Unescape(`\C-C`)] = inputrc.Bind{Action: "abort"}
-	}
+	return nil
 }
 
 // Register adds commands to the list of available commands.
@@ -246,6 +237,14 @@ func (m *Engine) InputIsTerminator() bool {
 	bind, cmd, _ := m.matchKeymap(binds)
 
 	return bind.Action == "abort" && cmd != nil
+}
+
+// Commands returns the map of all command functions available to the shell.
+// This includes the builtin commands (emacs/Vim/history/completion/etc), as
+// well as any functions added by the user through Keymap.Register().
+// The keys of this map are the names of each corresponding command function.
+func (m *Engine) Commands() map[string]func() {
+	return m.commands
 }
 
 // ActiveCommand returns the sequence/command currently being ran.
@@ -491,6 +490,43 @@ func printBindsInputrc(commands []string, all map[string][]string) {
 		default:
 			for _, bind := range commandBinds {
 				fmt.Printf("\"%s\": %s\n", bind, command)
+			}
+		}
+	}
+}
+
+// loadBuiltinBinds adds additional command mappins that are not part
+// of the standard C readline configuration: those binds therefore can
+// reference commands or keymaps only implemented/used in this library.
+func (m *Engine) loadBuiltinBinds() {
+	// Load default keymaps (main)
+	for seq, bind := range vicmdKeys {
+		m.config.Binds[string(ViCmd)][seq] = bind
+		m.config.Binds[string(ViMove)][seq] = bind
+		m.config.Binds[string(Vi)][seq] = bind
+	}
+
+	// Load default keymaps(local)
+	m.config.Binds[string(Visual)] = visualKeys
+	m.config.Binds[string(ViOpp)] = vioppKeys
+	m.config.Binds[string(MenuSelect)] = menuselectKeys
+
+	// Default TTY binds
+	for _, keymap := range m.config.Binds {
+		keymap[inputrc.Unescape(`\C-C`)] = inputrc.Bind{Action: "abort"}
+	}
+}
+
+// overrideBindsSpecial overwrites some binds as dictated by the configuration variables.
+func (m *Engine) overrideBindsSpecial() {
+	// Disable completion functions if required
+	if m.config.GetBool("disable-completion") {
+		for _, keymap := range m.config.Binds {
+			for seq, bind := range keymap {
+				switch bind.Action {
+				case "complete", "menu-complete", "possible-completions":
+					keymap[seq] = inputrc.Bind{Action: "self-insert"}
+				}
 			}
 		}
 	}
