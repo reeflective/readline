@@ -26,21 +26,21 @@ func (rl *Shell) Readline() (string, error) {
 	}
 	defer term.Restore(descriptor, state)
 
-	rl.prompt.PrimaryPrint()
-	defer rl.display.PrintTransientPrompt()
+	rl.Prompt.PrimaryPrint()
+	defer rl.Display.PrintTransientPrompt()
 
 	rl.init()
 
 	for {
 		// Since we always update helpers after being asked to read
 		// for user input again, we do it before actually reading it.
-		rl.display.Refresh()
+		rl.Display.Refresh()
 
 		// Block and wait for user input.
-		rl.keys.Read()
+		rl.Keys.Read()
 
 		// 1 - Local keymap (completion/isearch/viopp)
-		bind, command, prefixed := rl.keymaps.MatchLocal()
+		bind, command, prefixed := rl.Keymap.MatchLocal()
 		if prefixed {
 			continue
 		}
@@ -58,10 +58,10 @@ func (rl *Shell) Readline() (string, error) {
 		// on the line or on the cursor position, so we must first
 		// "reset" or accept any completion state we're in, if any,
 		// such as a virtually inserted candidate.
-		rl.completer.Update()
+		rl.Completions.Update()
 
 		// 2 - Main keymap (vicmd/viins/emacs-*)
-		bind, command, prefixed = rl.keymaps.MatchMain()
+		bind, command, prefixed = rl.Keymap.MatchMain()
 		if prefixed {
 			continue
 		}
@@ -71,7 +71,7 @@ func (rl *Shell) Readline() (string, error) {
 			return line, err
 		}
 
-		rl.keys.FlushUsed()
+		rl.Keys.FlushUsed()
 
 		// Reaching this point means the last key/sequence has not
 		// been dispatched down to a command: therefore this key is
@@ -80,16 +80,41 @@ func (rl *Shell) Readline() (string, error) {
 	}
 }
 
+// init gathers all steps to perform at the beginning of readline loop.
+func (rl *Shell) init() {
+	// Reset core editor components.
+	rl.selection.Reset()
+	rl.Buffers.Reset()
+	rl.History.Reset()
+	rl.Keys.Flush()
+	rl.cursor.ResetMark()
+	rl.cursor.Set(0)
+	rl.line.Set([]rune{}...)
+	rl.History.Save()
+	rl.Iterations.Reset()
+
+	// Some accept-* command must fetch a specific
+	// line outright, or keep the accepted one.
+	rl.History.Init()
+
+	// Reset/initialize user interface components.
+	rl.Hint.Reset()
+	rl.Completions.ResetForce()
+	rl.Display.Init(rl.SyntaxHighlighter)
+}
+
+// run wraps the execution of a target command/sequence with various pre/post actions
+// and setup steps (buffers setup, cursor checks, iterations, key flushing, etc...)
 func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// Whether or not the command is resolved, let the macro
 	// engine record the keys if currently recording a macro.
-	rl.macros.RecordKeys(bind)
+	rl.Macros.RecordKeys(bind)
 
 	// If the resolved bind is a macro itself, reinject its
 	// bound sequence back to the key stack.
 	if bind.Macro {
 		macro := inputrc.Unescape(bind.Action)
-		rl.keys.Feed(false, true, []rune(macro)...)
+		rl.Keys.Feed(false, true, []rune(macro)...)
 	}
 
 	// And don't do anything else if we don't have a command.
@@ -100,49 +125,53 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// The completion system might have control of the
 	// input line and be using it with a virtual insertion,
 	// so it knows which line and cursor we should work on.
-	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
+	rl.line, rl.cursor, rl.selection = rl.Completions.GetBuffer()
 
-	// Run the command
-	command()
+	// The line and cursor are ready, we can run the command
+	// along with any pending ones, and reset iterations.
+	rl.execute(command)
 
-	// Only run pending-operator commands when the command we
-	// just executed has not had any influence on iterations.
-	if !rl.iterations.IsPending() {
-		rl.keymaps.RunPending()
-	}
-
-	rl.keys.FlushUsed() // Drop some or all keys (used ones)
-	rl.checkCursor()    // Ensure cursor position is correct.
-
-	// Drop iterations if required, or show them in the hint.
-	hint := rl.iterations.ResetPostCommand()
+	// When iterations are active, show them in hint section.
+	hint := rl.Iterations.ResetPostCommand()
 
 	if hint != "" {
-		rl.hint.Persist(hint)
+		rl.Hint.Persist(hint)
 	} else {
-		rl.hint.ResetPersist()
+		rl.Hint.ResetPersist()
 	}
 
 	// If the command just run was using the incremental search
 	// buffer (acting on it), update the list of matches.
-	rl.completer.UpdateIsearch()
+	rl.Completions.UpdateIsearch()
 
 	// Work is done: ask the completion system to
 	// return the correct input line and cursor.
-	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
+	rl.line, rl.cursor, rl.selection = rl.Completions.GetBuffer()
 
 	// History: save the last action to the line history,
 	// and return with the call to the history system that
 	// checks if the line has been accepted (entered), in
 	// which case this will automatically write the history
 	// sources and set up errors/returned line values.
-	rl.histories.SaveWithCommand(bind)
+	rl.History.SaveWithCommand(bind)
 
-	return rl.histories.LineAccepted()
+	return rl.History.LineAccepted()
 }
 
-func (rl *Shell) checkCursor() {
-	switch rl.keymaps.Main() {
+func (rl *Shell) execute(command func()) {
+	command()
+
+	// Only run pending-operator commands when the command we
+	// just executed has not had any influence on iterations.
+	if !rl.Iterations.IsPending() {
+		rl.Keymap.RunPending()
+	}
+
+	// Flush the keys used to match against the command.
+	rl.Keys.FlushUsed()
+
+	// Update/check cursor positions after run.
+	switch rl.Keymap.Main() {
 	case keymap.ViCmd, keymap.ViMove, keymap.Vi:
 		rl.cursor.CheckCommand()
 	default:
@@ -158,8 +187,8 @@ func (rl *Shell) handleUndefined(bind inputrc.Bind, cmd func()) {
 	}
 
 	// Undefined keys incremental-search mode cancels it.
-	if rl.keymaps.Local() == keymap.Isearch {
-		rl.hint.Reset()
-		rl.completer.Reset()
+	if rl.Keymap.Local() == keymap.Isearch {
+		rl.Hint.Reset()
+		rl.Completions.Reset()
 	}
 }
