@@ -32,64 +32,64 @@ func (rl *Shell) completionCommands() commands {
 // Attempt completion on the current word.
 // Currently identitical to menu-complete.
 func (rl *Shell) completeWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// This completion function should attempt to insert the first
 	// valid completion found, without printing the actual list.
-	if !rl.completer.IsActive() {
+	if !rl.Completions.IsActive() {
 		rl.startMenuComplete(rl.commandCompletion)
 
-		if rl.config.GetBool("menu-complete-display-prefix") {
+		if rl.Config.GetBool("menu-complete-display-prefix") {
 			return
 		}
 	}
 
-	rl.completer.Select(1, 0)
-	rl.completer.SkipDisplay()
+	rl.Completions.Select(1, 0)
+	rl.Completions.SkipDisplay()
 }
 
 // List possible completions for the current word.
 func (rl *Shell) possibleCompletions() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	rl.startMenuComplete(rl.commandCompletion)
 }
 
 func (rl *Shell) insertCompletions() {
-	rl.histories.Save()
+	rl.History.Save()
 
 	// Generate all possible completions
-	if !rl.completer.IsActive() {
+	if !rl.Completions.IsActive() {
 		rl.startMenuComplete(rl.commandCompletion)
 	}
 
 	// Insert each match, cancel insertion with preserving
 	// the candidate just inserted in the line, for each.
-	for i := 0; i < rl.completer.Matches(); i++ {
-		rl.completer.Select(1, 0)
-		rl.completer.Cancel(false, false)
+	for i := 0; i < rl.Completions.Matches(); i++ {
+		rl.Completions.Select(1, 0)
+		rl.Completions.Cancel(false, false)
 	}
 
 	// Clear the completion menu.
-	rl.completer.Cancel(false, false)
-	rl.completer.ClearMenu(true)
+	rl.Completions.Cancel(false, false)
+	rl.Completions.ClearMenu(true)
 }
 
 // Like complete-word, except that menu completion is used.
 func (rl *Shell) menuComplete() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// No completions are being printed yet, so simply generate the completions
 	// as if we just request them without immediately selecting a candidate.
-	if !rl.completer.IsActive() {
+	if !rl.Completions.IsActive() {
 		rl.startMenuComplete(rl.commandCompletion)
 
 		// Immediately select only if not asked to display first.
-		if rl.config.GetBool("menu-complete-display-prefix") {
+		if rl.Config.GetBool("menu-complete-display-prefix") {
 			return
 		}
 	}
-	rl.completer.Select(1, 0)
+	rl.Completions.Select(1, 0)
 }
 
 // Deletes the character under the cursor if not at the
@@ -109,70 +109,70 @@ func (rl *Shell) deleteCharOrList() {
 // list of possible completions, as if menu-complete had been
 // given a negative argument.
 func (rl *Shell) menuCompleteBackward() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// We don't do anything when not already completing.
-	if !rl.completer.IsActive() {
+	if !rl.Completions.IsActive() {
 		return
 	}
 
-	rl.completer.Select(-1, 0)
+	rl.Completions.Select(-1, 0)
 }
 
 // In a menu completion, if there are several tags
 // of completions, go to the first result of the next tag.
 func (rl *Shell) menuCompleteNextTag() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	if !rl.completer.IsActive() {
+	if !rl.Completions.IsActive() {
 		return
 	}
 
-	rl.completer.SelectTag(true)
+	rl.Completions.SelectTag(true)
 }
 
 // In a menu completion, if there are several tags of
 // completions, go to the first result of the previous tag.
 func (rl *Shell) menuCompletePrevTag() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	if !rl.completer.IsActive() {
+	if !rl.Completions.IsActive() {
 		return
 	}
 
-	rl.completer.SelectTag(false)
+	rl.Completions.SelectTag(false)
 }
 
 // In a menu completion, insert the current completion
 // into the buffer, and advance to the next possible completion.
 func (rl *Shell) acceptAndMenuComplete() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// We don't do anything when not already completing.
-	if !rl.completer.IsActive() {
+	if !rl.Completions.IsActive() {
 		return
 	}
 
 	// Also return if no candidate
-	if !rl.completer.IsInserting() {
+	if !rl.Completions.IsInserting() {
 		return
 	}
 
 	// First insert the current candidate.
-	rl.completer.Cancel(false, false)
+	rl.Completions.Cancel(false, false)
 
 	// And cycle to the next one.
-	rl.completer.Select(1, 0)
+	rl.Completions.Select(1, 0)
 }
 
 // Open a completion menu (similar to menu-complete) with all currently populated Vim registers.
 func (rl *Shell) viRegistersComplete() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	if !rl.completer.IsActive() {
-		rl.startMenuComplete(rl.buffers.Complete)
+	if !rl.Completions.IsActive() {
+		rl.startMenuComplete(rl.Buffers.Complete)
 	} else {
-		rl.completer.Select(1, 0)
+		rl.Completions.Select(1, 0)
 	}
 }
 
@@ -185,13 +185,13 @@ func (rl *Shell) viRegistersComplete() {
 // mini-buffer, any currently selected candidate is dropped from the line and the menu.
 // An interrupt signal, as defined by the stty setting, will stop the search and go back to the original line.
 func (rl *Shell) menuIncrementalSearch() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	if !rl.completer.IsActive() {
-		rl.completer.GenerateWith(rl.commandCompletion)
+	if !rl.Completions.IsActive() {
+		rl.Completions.GenerateWith(rl.commandCompletion)
 	}
 
-	rl.completer.IsearchStart("completions", false)
+	rl.Completions.IsearchStart("completions", false)
 }
 
 //
@@ -201,10 +201,10 @@ func (rl *Shell) menuIncrementalSearch() {
 // startMenuComplete generates a completion menu with completions
 // generated from a given completer, without selecting a candidate.
 func (rl *Shell) startMenuComplete(completer completion.Completer) {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	rl.keymaps.SetLocal(keymap.MenuSelect)
-	rl.completer.GenerateWith(completer)
+	rl.Keymap.SetLocal(keymap.MenuSelect)
+	rl.Completions.GenerateWith(completer)
 }
 
 // commandCompletion generates the completions for commands/args/flags.
@@ -213,7 +213,7 @@ func (rl *Shell) commandCompletion() completion.Values {
 		return completion.Values{}
 	}
 
-	line, cursor := rl.completer.Line()
+	line, cursor := rl.Completions.Line()
 	comps := rl.Completer(*line, cursor.Pos())
 
 	return comps.convert()
@@ -224,40 +224,40 @@ func (rl *Shell) commandCompletion() completion.Values {
 // through sources if more than one, and adjust the completion/isearch behavior.
 func (rl *Shell) historyCompletion(forward, filterLine, substring bool) {
 	switch {
-	case rl.keymaps.Local() == keymap.MenuSelect || rl.keymaps.Local() == keymap.Isearch || rl.completer.AutoCompleting():
+	case rl.Keymap.Local() == keymap.MenuSelect || rl.Keymap.Local() == keymap.Isearch || rl.Completions.AutoCompleting():
 		// If we are currently completing the last
 		// history source, cancel history completion.
-		if rl.histories.OnLastSource() {
-			rl.histories.Cycle(true)
-			rl.completer.ResetForce()
-			rl.hint.Reset()
+		if rl.History.OnLastSource() {
+			rl.History.Cycle(true)
+			rl.Completions.ResetForce()
+			rl.Hint.Reset()
 
 			return
 		}
 
 		// Else complete the next history source.
-		rl.histories.Cycle(true)
+		rl.History.Cycle(true)
 
 		fallthrough
 
 	default:
 		// Notify if we don't have history sources at all.
-		if rl.histories.Current() == nil {
-			rl.hint.Set(fmt.Sprintf("%s%s%s %s", color.Dim, color.FgRed, "No command history source", color.Reset))
+		if rl.History.Current() == nil {
+			rl.Hint.Set(fmt.Sprintf("%s%s%s %s", color.Dim, color.FgRed, "No command history source", color.Reset))
 			return
 		}
 
 		// Generate the completions with specified behavior.
 		completer := func() completion.Values {
-			return rl.histories.Complete(forward, filterLine)
+			return rl.History.Complete(forward, filterLine)
 		}
 
 		if substring {
-			rl.completer.GenerateWith(completer)
-			rl.completer.IsearchStart(rl.histories.Name(), true)
+			rl.Completions.GenerateWith(completer)
+			rl.Completions.IsearchStart(rl.History.Name(), true)
 		} else {
 			rl.startMenuComplete(completer)
-			rl.completer.AutocompleteForce()
+			rl.Completions.AutocompleteForce()
 		}
 	}
 }

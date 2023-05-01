@@ -127,78 +127,78 @@ func (rl *Shell) viCommands() commands {
 
 // Enter Vim insertion mode.
 func (rl *Shell) viInsertMode() {
-	rl.histories.Save()
+	rl.History.Save()
 
 	// Reset any visual selection and iterations.
 	rl.selection.Reset()
-	rl.iterations.Reset()
+	rl.Iterations.Reset()
 
 	// Change the keymap and mark the insertion point.
-	rl.keymaps.SetLocal("")
-	rl.keymaps.SetMain(keymap.ViIns)
+	rl.Keymap.SetLocal("")
+	rl.Keymap.SetMain(keymap.ViIns)
 	rl.cursor.SetMark()
 }
 
 // Enter Vim command mode.
 func (rl *Shell) viCommandMode() {
 	// Reset any visual selection and iterations.
-	rl.iterations.Reset()
+	rl.Iterations.Reset()
 	rl.selection.Reset()
 
 	// Cancel completions and hints if any, and reassign the
 	// current line/cursor/selection for the cursor check below
 	// to be effective. This is needed when in isearch mode.
-	rl.hint.Reset()
-	rl.completer.Reset()
-	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
+	rl.Hint.Reset()
+	rl.Completions.Reset()
+	rl.line, rl.cursor, rl.selection = rl.Completions.GetBuffer()
 
 	// Only go back if not in insert mode
-	if rl.keymaps.Main() == keymap.ViIns && !rl.cursor.AtBeginningOfLine() {
+	if rl.Keymap.Main() == keymap.ViIns && !rl.cursor.AtBeginningOfLine() {
 		rl.cursor.Dec()
 	}
 
 	// Update the cursor position, keymap and insertion point.
 	rl.cursor.CheckCommand()
-	rl.keymaps.SetLocal("")
-	rl.keymaps.SetMain(keymap.ViCmd)
+	rl.Keymap.SetLocal("")
+	rl.Keymap.SetMain(keymap.ViCmd)
 }
 
 // Enter Vim visual mode.
 func (rl *Shell) viVisualMode() {
-	rl.histories.SkipSave()
-	rl.iterations.Reset()
+	rl.History.SkipSave()
+	rl.Iterations.Reset()
 
 	// Cancel completions and hints if any.
-	rl.hint.Reset()
-	rl.completer.Reset()
+	rl.Hint.Reset()
+	rl.Completions.Reset()
 
 	// Mark the selection as visual at the current cursor position.
 	rl.selection.Mark(rl.cursor.Pos())
 	rl.selection.Visual(false)
-	rl.keymaps.SetLocal(keymap.Visual)
+	rl.Keymap.SetLocal(keymap.Visual)
 }
 
 // Enter Vim visual mode, selecting the entire
 // line on which the cursor is currently.
 func (rl *Shell) viVisualLineMode() {
-	rl.histories.SkipSave()
-	rl.iterations.Reset()
+	rl.History.SkipSave()
+	rl.Iterations.Reset()
 
-	rl.hint.Reset()
-	rl.completer.Reset()
+	rl.Hint.Reset()
+	rl.Completions.Reset()
 
 	// Mark the selection as visual at the current
 	// cursor position, in visual line mode.
 	rl.selection.Mark(rl.cursor.Pos())
 	rl.selection.Visual(true)
-	rl.keymaps.SetLocal(keymap.Visual)
+	rl.Keymap.SetLocal(keymap.Visual)
 
-	rl.keymaps.PrintCursor(keymap.Visual)
+	rl.Keymap.PrintCursor(keymap.Visual)
 }
 
 // Go to the beginning of the current line, and enter Vim insert mode.
 func (rl *Shell) viInsertBol() {
-	rl.iterations.Reset()
+	rl.Iterations.Reset()
 	rl.beginningOfLine()
 	rl.viInsertMode()
 }
@@ -214,9 +214,9 @@ func (rl *Shell) viAddNext() {
 
 // Go to the end of the current line, and enter insert mode.
 func (rl *Shell) viAddEol() {
-	rl.iterations.Reset()
+	rl.Iterations.Reset()
 
-	if rl.keymaps.Local() == keymap.Visual {
+	if rl.Keymap.Local() == keymap.Visual {
 		rl.cursor.Inc()
 		rl.viInsertMode()
 		return
@@ -233,17 +233,17 @@ func (rl *Shell) viAddEol() {
 // Move forward one character, without changing lines.
 func (rl *Shell) viForwardChar() {
 	// Only exception where we actually don't forward a character.
-	if rl.config.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
+	if rl.Config.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
 		rl.autosuggestAccept()
 		return
 	}
 
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// In vi-cmd-mode, we don't go further than the
 	// last character in the line, hence rl.line-1
-	if rl.keymaps.Main() != keymap.ViIns && rl.cursor.Pos() < rl.line.Len()-1 {
-		vii := rl.iterations.Get()
+	if rl.Keymap.Main() != keymap.ViIns && rl.cursor.Pos() < rl.line.Len()-1 {
+		vii := rl.Iterations.Get()
 
 		for i := 1; i <= vii; i++ {
 			if (*rl.line)[rl.cursor.Pos()+1] == '\n' {
@@ -257,9 +257,9 @@ func (rl *Shell) viForwardChar() {
 
 // Move backward one character, without changing lines.
 func (rl *Shell) viBackwardChar() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	if rl.cursor.Pos() == 0 {
 		return
@@ -276,9 +276,9 @@ func (rl *Shell) viBackwardChar() {
 
 // Move to the beginning of the previous word, vi-style.
 func (rl *Shell) viBackwardWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 	for i := 1; i <= vii; i++ {
 		backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
 		rl.cursor.Move(backward)
@@ -287,9 +287,9 @@ func (rl *Shell) viBackwardWord() {
 
 // Move to the beginning of the next word.
 func (rl *Shell) viForwardWord() {
-	rl.histories.Save()
+	rl.History.Save()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 	for i := 1; i <= vii; i++ {
 		// When we have an autosuggested history and if we are at the end
 		// of the line, insert the next word from this suggested line.
@@ -302,9 +302,9 @@ func (rl *Shell) viForwardWord() {
 
 // Move backward one word, where a word is defined as a series of non-blank characters.
 func (rl *Shell) viBackwardBlankWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 	for i := 1; i <= vii; i++ {
 		backward := rl.line.Backward(rl.line.TokenizeSpace, rl.cursor.Pos())
 		rl.cursor.Move(backward)
@@ -313,9 +313,9 @@ func (rl *Shell) viBackwardBlankWord() {
 
 // Move forward one word, where a word is defined as a series of non-blank characters.
 func (rl *Shell) viForwardBlankWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 	for i := 1; i <= vii; i++ {
 		forward := rl.line.Forward(rl.line.TokenizeSpace, rl.cursor.Pos())
 		rl.cursor.Move(forward)
@@ -324,9 +324,9 @@ func (rl *Shell) viForwardBlankWord() {
 
 // Move to the end of the previous word, vi-style.
 func (rl *Shell) viBackwardWordEnd() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		rl.cursor.Inc()
@@ -344,8 +344,8 @@ func (rl *Shell) viBackwardWordEnd() {
 }
 
 func (rl *Shell) viForwardWordEnd() {
-	rl.histories.SkipSave()
-	vii := rl.iterations.Get()
+	rl.History.SkipSave()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		forward := rl.line.ForwardEnd(rl.line.Tokenize, rl.cursor.Pos())
@@ -355,9 +355,9 @@ func (rl *Shell) viForwardWordEnd() {
 
 // Move to the end of the previous word, where a word is defined as a series of non-blank characters.
 func (rl *Shell) viBackwardBlankWordEnd() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		rl.cursor.Inc()
@@ -373,8 +373,8 @@ func (rl *Shell) viBackwardBlankWordEnd() {
 // of the current word, to the end of the next word, where
 // a word is defined as a series of non-blank characters.
 func (rl *Shell) viForwardBlankWordEnd() {
-	rl.histories.SkipSave()
-	vii := rl.iterations.Get()
+	rl.History.SkipSave()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		rl.cursor.Move(rl.line.ForwardEnd(rl.line.TokenizeSpace, rl.cursor.Pos()))
@@ -385,7 +385,7 @@ func (rl *Shell) viForwardBlankWordEnd() {
 // the cursor. If the cursor is not on a bracket character, move forward without
 // going past the end of the line to find one, and then go to the matching bracket.
 func (rl *Shell) viMatchBracket() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	nextPos := rl.cursor.Pos()
 	found := false
@@ -427,9 +427,9 @@ func (rl *Shell) viMatchBracket() {
 
 // Move to the column specified by the numeric argument.
 func (rl *Shell) viGotoColumn() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	column := rl.iterations.Get()
+	column := rl.Iterations.Get()
 
 	if column < 0 {
 		return
@@ -454,7 +454,7 @@ func (rl *Shell) viGotoColumn() {
 
 // Move to the end of the line, vi-style.
 func (rl *Shell) viEndOfLine() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 	// We use append so that any y$ / d$
 	// will include the last character.
 	rl.cursor.EndOfLineAppend()
@@ -502,13 +502,13 @@ func (rl *Shell) viGotoMark() {
 // If the command is vi-change, change the current line.
 func (rl *Shell) viChangeTo() {
 	switch {
-	case rl.keymaps.IsPending():
+	case rl.Keymap.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `cc`), so copy the entire current line.
-		rl.keymaps.CancelPending()
+		rl.Keymap.CancelPending()
 
-		rl.histories.Save()
-		rl.histories.SkipSave()
+		rl.History.Save()
+		rl.History.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -517,13 +517,13 @@ func (rl *Shell) viChangeTo() {
 
 	case rl.selection.Active():
 		// In visual mode, we have just have a selection to delete.
-		rl.histories.Save()
-		rl.histories.SkipSave()
+		rl.History.Save()
+		rl.History.SkipSave()
 
 		rl.adjustSelectionPending()
 		cpos := rl.selection.Cursor()
 		cut := rl.selection.Cut()
-		rl.buffers.Write([]rune(cut)...)
+		rl.Buffers.Write([]rune(cut)...)
 		rl.cursor.Set(cpos)
 
 		rl.viInsertMode()
@@ -531,11 +531,11 @@ func (rl *Shell) viChangeTo() {
 	default:
 		// Since we must emulate the default readline behavior,
 		// we vary our behavior depending on the caller key.
-		key, _ := rl.keys.Peek()
+		key, _ := rl.Keys.Peek()
 
 		switch key {
 		case 'c':
-			rl.keymaps.Pending()
+			rl.Keymap.Pending()
 			rl.selection.Mark(rl.cursor.Pos())
 		case 'C':
 			rl.viChangeEol()
@@ -548,13 +548,13 @@ func (rl *Shell) viChangeTo() {
 // kill the current line.
 func (rl *Shell) viDeleteTo() {
 	switch {
-	case rl.keymaps.IsPending():
+	case rl.Keymap.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `dd`), so delete the entire current line.
-		rl.keymaps.CancelPending()
+		rl.Keymap.CancelPending()
 
-		rl.histories.Save()
-		rl.histories.SkipSave()
+		rl.History.Save()
+		rl.History.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -567,18 +567,18 @@ func (rl *Shell) viDeleteTo() {
 			text += string(inputrc.Newline)
 		}
 
-		rl.buffers.Write([]rune(text)...)
+		rl.Buffers.Write([]rune(text)...)
 		rl.cursor.Set(cpos)
 
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just cut it.
-		rl.histories.Save()
-		rl.histories.SkipSave()
+		rl.History.Save()
+		rl.History.SkipSave()
 
 		rl.adjustSelectionPending()
 		cpos := rl.selection.Cursor()
 		cut := rl.selection.Cut()
-		rl.buffers.Write([]rune(cut)...)
+		rl.Buffers.Write([]rune(cut)...)
 		rl.cursor.Set(cpos)
 
 		rl.viCommandMode()
@@ -586,11 +586,11 @@ func (rl *Shell) viDeleteTo() {
 	default:
 		// Since we must emulate the default readline behavior,
 		// we vary our behavior depending on the caller key.
-		key, _ := rl.keys.Peek()
+		key, _ := rl.Keys.Peek()
 
 		switch key {
 		case 'd':
-			rl.keymaps.Pending()
+			rl.Keymap.Pending()
 			rl.selection.Mark(rl.cursor.Pos())
 		case 'D':
 			rl.viKillEol()
@@ -604,31 +604,31 @@ func (rl *Shell) viDeleteChar() {
 		return
 	}
 
-	rl.histories.Save()
+	rl.History.Save()
 
 	cutBuf := make([]rune, 0)
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		cutBuf = append(cutBuf, (*rl.line)[rl.cursor.Pos()])
 		rl.line.CutRune(rl.cursor.Pos())
 	}
 
-	rl.buffers.Write(cutBuf...)
+	rl.Buffers.Write(cutBuf...)
 }
 
 // Replace the character under the cursor with a character read from the keyboard.
 func (rl *Shell) viChangeChar() {
-	rl.histories.Save()
+	rl.History.Save()
 
 	// We read a character to use first.
-	done := rl.keymaps.PendingCursor()
+	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.keys.ReadArgument()
+	key, isAbort := rl.Keys.ReadArgument()
 	if isAbort || len(key) == 0 {
-		rl.histories.SkipSave()
+		rl.History.SkipSave()
 		return
 	}
 
@@ -649,7 +649,7 @@ func (rl *Shell) viChangeChar() {
 func (rl *Shell) viReplace() {
 	// We store the current line as an undo item first, but will not
 	// store any intermediate changes (in the loop below) as undo items.
-	rl.histories.Save()
+	rl.History.Save()
 
 	// All replaced characters are stored, to be used with backspace
 	cache := make([]rune, 0)
@@ -657,7 +657,7 @@ func (rl *Shell) viReplace() {
 	// Don't use the delete cache past the end of the line
 	lineStart := rl.line.Len()
 
-	done := rl.keymaps.PendingCursor()
+	done := rl.Keymap.PendingCursor()
 	defer done()
 
 	// The replace mode is quite special in that it does escape back
@@ -665,7 +665,7 @@ func (rl *Shell) viReplace() {
 	// them as long as the escape key is not pressed.
 	for {
 		// We read a character to use first.
-		keys, isAbort := rl.keys.ReadArgument()
+		keys, isAbort := rl.Keys.ReadArgument()
 		if isAbort {
 			break
 		}
@@ -700,7 +700,7 @@ func (rl *Shell) viReplace() {
 		}
 
 		// Update the line
-		rl.display.Refresh()
+		rl.Display.Refresh()
 	}
 
 	// When exiting the replace mode, move the cursor back
@@ -744,7 +744,7 @@ func (rl *Shell) viSubstitute() {
 
 	default:
 		// Delete next characters and enter insert mode.
-		vii := rl.iterations.Get()
+		vii := rl.Iterations.Get()
 		for i := 1; i <= vii; i++ {
 			rl.line.CutRune(rl.cursor.Pos())
 		}
@@ -755,8 +755,8 @@ func (rl *Shell) viSubstitute() {
 
 // Kill to the end of the line and enter insert mode.
 func (rl *Shell) viChangeEol() {
-	rl.histories.Save()
-	rl.histories.SkipSave()
+	rl.History.Save()
+	rl.History.SkipSave()
 
 	pos := rl.cursor.Pos()
 	rl.selection.Mark(pos)
@@ -764,8 +764,8 @@ func (rl *Shell) viChangeEol() {
 	rl.selection.Cut()
 	rl.cursor.Set(pos)
 
-	rl.iterations.Reset()
-	rl.display.ResetHelpers()
+	rl.Iterations.Reset()
+	rl.Display.ResetHelpers()
 	rl.viInsertMode()
 }
 
@@ -774,18 +774,18 @@ func (rl *Shell) viChangeEol() {
 // matchers is used accordingly (an opening and closing one).
 func (rl *Shell) viAddSurround() {
 	// Get the surround character to change.
-	done := rl.keymaps.PendingCursor()
+	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.keys.ReadArgument()
+	key, isAbort := rl.Keys.ReadArgument()
 	if isAbort {
-		rl.histories.SkipSave()
+		rl.History.SkipSave()
 		return
 	}
 
 	bchar, echar := strutil.MatchSurround(rune(key[0]))
 
-	rl.histories.Save()
+	rl.History.Save()
 
 	// Surround the selection
 	rl.selection.Surround(bchar, echar)
@@ -794,14 +794,14 @@ func (rl *Shell) viAddSurround() {
 // Read a key from the keyboard, attempt to find a pair of this key around the cursor,
 // and if found, read another key with which to replace the matched keys.
 func (rl *Shell) viChangeSurround() {
-	rl.histories.Save()
-	rl.histories.SkipSave()
+	rl.History.Save()
+	rl.History.SkipSave()
 
 	// Read a key as a rune to search for
-	done := rl.keymaps.PendingCursor()
+	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.keys.ReadArgument()
+	key, isAbort := rl.Keys.ReadArgument()
 	if isAbort {
 		return
 	}
@@ -816,20 +816,20 @@ func (rl *Shell) viChangeSurround() {
 
 	// Add those two positions to highlighting and update.
 	rl.selection.MarkSurround(bpos, epos)
-	rl.display.Refresh()
+	rl.Display.Refresh()
 
 	defer func() { rl.selection.Reset() }()
 
 	// Now read another key
-	done = rl.keymaps.PendingCursor()
+	done = rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort = rl.keys.ReadArgument()
+	key, isAbort = rl.Keys.ReadArgument()
 	if isAbort {
 		return
 	}
 
-	rl.histories.Save()
+	rl.History.Save()
 
 	rchar := rune(key[0])
 
@@ -842,7 +842,7 @@ func (rl *Shell) viChangeSurround() {
 
 // Create a new line above the current one, and enter insert mode.
 func (rl *Shell) viOpenLineAbove() {
-	rl.histories.Save()
+	rl.History.Save()
 	if !rl.cursor.OnEmptyLine() {
 		rl.beginningOfLine()
 	}
@@ -852,7 +852,7 @@ func (rl *Shell) viOpenLineAbove() {
 
 // Create a new line below the current one, and enter insert mode.
 func (rl *Shell) viOpenLineBelow() {
-	rl.histories.Save()
+	rl.History.Save()
 	if !rl.cursor.OnEmptyLine() {
 		rl.endOfLine()
 	}
@@ -864,14 +864,14 @@ func (rl *Shell) viOpenLineBelow() {
 // Convert the current word to all lowercase and move past it.
 // If in visual mode, operate on the whole selection.
 func (rl *Shell) viDownCase() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	switch {
-	case rl.keymaps.IsPending():
+	case rl.Keymap.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `uu`), so modify the entire current line.
-		rl.histories.Save()
-		rl.histories.SkipSave()
+		rl.History.Save()
+		rl.History.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -884,8 +884,8 @@ func (rl *Shell) viDownCase() {
 
 	default:
 		// Else if we are actually starting a yank action.
-		rl.histories.SkipSave()
-		rl.keymaps.Pending()
+		rl.History.SkipSave()
+		rl.Keymap.Pending()
 		rl.selection.Mark(rl.cursor.Pos())
 	}
 }
@@ -893,14 +893,14 @@ func (rl *Shell) viDownCase() {
 // Convert the current word to all uppercase and move past it.
 // If in visual mode, operate on the whole selection.
 func (rl *Shell) viUpCase() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	switch {
-	case rl.keymaps.IsPending():
+	case rl.Keymap.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `uu`), so modify the entire current line.
-		rl.histories.Save()
-		rl.histories.SkipSave()
+		rl.History.Save()
+		rl.History.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -913,8 +913,8 @@ func (rl *Shell) viUpCase() {
 
 	default:
 		// Else if we are actually starting a yank action.
-		rl.histories.SkipSave()
-		rl.keymaps.Pending()
+		rl.History.SkipSave()
+		rl.Keymap.Pending()
 		rl.selection.Mark(rl.cursor.Pos())
 	}
 }
@@ -925,32 +925,32 @@ func (rl *Shell) viUpCase() {
 
 // Kill from the cursor to the end of the line.
 func (rl *Shell) viKillEol() {
-	rl.histories.Save()
-	rl.histories.SkipSave()
+	rl.History.Save()
+	rl.History.SkipSave()
 
 	pos := rl.cursor.Pos()
 	rl.selection.Mark(rl.cursor.Pos())
 	rl.cursor.EndOfLineAppend()
 
 	cut := rl.selection.Cut()
-	rl.buffers.Write([]rune(cut)...)
+	rl.Buffers.Write([]rune(cut)...)
 	rl.cursor.Set(pos)
 
 	if !rl.cursor.AtBeginningOfLine() {
 		rl.cursor.Dec()
 	}
 
-	rl.iterations.Reset()
-	rl.display.ResetHelpers()
+	rl.Iterations.Reset()
+	rl.Display.ResetHelpers()
 }
 
 // Kill the word from its beginning up to the cursor point.
 func (rl *Shell) viRubout() {
-	if rl.keymaps.Main() != keymap.ViIns {
-		rl.histories.Save()
+	if rl.Keymap.Main() != keymap.ViIns {
+		rl.History.Save()
 	}
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	cut := make([]rune, 0)
 
@@ -965,20 +965,20 @@ func (rl *Shell) viRubout() {
 		rl.line.CutRune(rl.cursor.Pos())
 	}
 
-	rl.buffers.Write(cut...)
+	rl.Buffers.Write(cut...)
 }
 
 // Read a movement command from the keyboard, and copy the region
 // from the cursor position to the endpoint of the movement into
 // the kill buffer. If the command is vi-yank, copy the current line.
 func (rl *Shell) viYankTo() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	switch {
-	case rl.keymaps.IsPending():
+	case rl.Keymap.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `yy`), so copy the entire current line.
-		rl.keymaps.CancelPending()
+		rl.Keymap.CancelPending()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -989,14 +989,14 @@ func (rl *Shell) viYankTo() {
 			text += string(inputrc.Newline)
 		}
 
-		rl.buffers.Write([]rune(text)...)
+		rl.Buffers.Write([]rune(text)...)
 
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just yank.
 		rl.adjustSelectionPending()
 		text, _, _, cpos := rl.selection.Pop()
 
-		rl.buffers.Write([]rune(text)...)
+		rl.Buffers.Write([]rune(text)...)
 		rl.cursor.Set(cpos)
 
 		rl.viCommandMode()
@@ -1004,11 +1004,11 @@ func (rl *Shell) viYankTo() {
 	default:
 		// Since we must emulate the default readline behavior,
 		// we vary our behavior depending on the caller key.
-		key, _ := rl.keys.Peek()
+		key, _ := rl.Keys.Peek()
 
 		switch key {
 		case 'y':
-			rl.keymaps.Pending()
+			rl.Keymap.Pending()
 			rl.selection.Mark(rl.cursor.Pos())
 		case 'Y':
 			rl.viYankWholeLine()
@@ -1018,7 +1018,7 @@ func (rl *Shell) viYankTo() {
 
 // Copy the current line into the kill buffer.
 func (rl *Shell) viYankWholeLine() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// calculate line selection.
 	rl.selection.Mark(rl.cursor.Pos())
@@ -1033,7 +1033,7 @@ func (rl *Shell) viYankWholeLine() {
 
 	// Pass the buffer to register.
 	buffer := (*rl.line)[bpos:epos]
-	rl.buffers.Write(buffer...)
+	rl.Buffers.Write(buffer...)
 
 	// Done with any selection.
 	rl.selection.Reset()
@@ -1045,18 +1045,18 @@ func (rl *Shell) viKillLine() {
 		return
 	}
 
-	rl.histories.Save()
-	rl.histories.SkipSave()
+	rl.History.Save()
+	rl.History.SkipSave()
 
 	rl.selection.MarkRange(rl.cursor.Mark(), rl.line.Len())
 	rl.cursor.Dec()
 	cut := rl.selection.Cut()
-	rl.buffers.Write([]rune(cut)...)
+	rl.Buffers.Write([]rune(cut)...)
 }
 
 // Readline-compatible version dispatching to vi-put-after or vi-put-before.
 func (rl *Shell) viPut() {
-	key, _ := rl.keys.Peek()
+	key, _ := rl.Keys.Peek()
 
 	switch key {
 	case 'P':
@@ -1070,9 +1070,9 @@ func (rl *Shell) viPut() {
 
 // Insert the contents of the kill buffer after the cursor.
 func (rl *Shell) viPutAfter() {
-	rl.histories.Save()
+	rl.History.Save()
 
-	buffer := rl.buffers.Active()
+	buffer := rl.Buffers.Active()
 
 	if len(buffer) == 0 {
 		return
@@ -1092,7 +1092,7 @@ func (rl *Shell) viPutAfter() {
 	rl.cursor.Inc()
 	pos := rl.cursor.Pos()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 	for i := 1; i <= vii; i++ {
 		rl.line.Insert(pos, buffer...)
 	}
@@ -1100,9 +1100,9 @@ func (rl *Shell) viPutAfter() {
 
 // Insert the contents of the kill buffer before the cursor.
 func (rl *Shell) viPutBefore() {
-	rl.histories.Save()
+	rl.History.Save()
 
-	buffer := rl.buffers.Active()
+	buffer := rl.Buffers.Active()
 
 	if len(buffer) == 0 {
 		return
@@ -1119,7 +1119,7 @@ func (rl *Shell) viPutBefore() {
 
 	pos := rl.cursor.Pos()
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 	for i := 1; i <= vii; i++ {
 		rl.line.Insert(pos, buffer...)
 	}
@@ -1129,21 +1129,21 @@ func (rl *Shell) viPutBefore() {
 
 // Specify a buffer to be used in the following command. See the registers section in the Vim page.
 func (rl *Shell) viSetBuffer() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// Always reset the active register.
-	rl.buffers.Reset()
+	rl.Buffers.Reset()
 
 	// Then read a key to select the register
-	done := rl.keymaps.PendingCursor()
+	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.keys.ReadArgument()
+	key, isAbort := rl.Keys.ReadArgument()
 	if isAbort {
 		return
 	}
 
-	rl.buffers.SetActive(key[0])
+	rl.Buffers.SetActive(key[0])
 }
 
 //
@@ -1152,7 +1152,7 @@ func (rl *Shell) viSetBuffer() {
 
 // Select a word including adjacent blanks, where a word is defined as a series of non-blank characters.
 func (rl *Shell) viSelectABlankWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 	rl.cursor.CheckCommand()
 
 	rl.selection.SelectABlankWord()
@@ -1160,7 +1160,7 @@ func (rl *Shell) viSelectABlankWord() {
 
 // Select the current command argument applying the normal rules for quoting.
 func (rl *Shell) viSelectAShellWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 	rl.cursor.CheckCommand()
 
 	// First find the blank word under cursor,
@@ -1174,13 +1174,13 @@ func (rl *Shell) viSelectAShellWord() {
 
 // Select a word including adjacent blanks, using the normal vi-style word definition.
 func (rl *Shell) viSelectAWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 	rl.selection.SelectAWord()
 }
 
 // Select a word, where a word is defined as a series of non-blank characters.
 func (rl *Shell) viSelectInBlankWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	bpos, epos := rl.line.SelectBlankWord(rl.cursor.Pos())
 	rl.cursor.Set(epos)
@@ -1191,7 +1191,7 @@ func (rl *Shell) viSelectInBlankWord() {
 // If the argument begins and ends with matching quote characters, these are
 // not included in the selection.
 func (rl *Shell) viSelectInShellWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// First find the blank word under cursor,
 	// and put or cursor at the beginning of it.
@@ -1219,7 +1219,7 @@ func (rl *Shell) viSelectInShellWord() {
 
 // Select a word, using the normal vi-style word definition.
 func (rl *Shell) viSelectInWord() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	bpos, epos := rl.line.SelectWord(rl.cursor.Pos())
 	rl.cursor.Set(epos)
@@ -1228,7 +1228,7 @@ func (rl *Shell) viSelectInWord() {
 
 // Read a key from the keyboard, and attempt to select a region surrounded by those keys.
 func (rl *Shell) viSelectSurround() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	var inside bool
 
@@ -1236,14 +1236,14 @@ func (rl *Shell) viSelectSurround() {
 	// character, so we look at the input keys: the first one is
 	// the only that triggered this command, so check the second.
 	// Use the first key to know if inside/around is used.
-	key, _ := rl.keys.Pop()
+	key, _ := rl.Keys.Pop()
 	switch key {
 	case 'i':
 		inside = true
 	}
 
 	// Then use the next key as the surrounding character.
-	char, empty := rl.keys.Pop()
+	char, empty := rl.Keys.Pop()
 	if empty {
 		return
 	}
@@ -1280,7 +1280,7 @@ func (rl *Shell) viEOFMaybe() {
 func (rl *Shell) viSearch() {
 	var forward bool
 
-	key, _ := rl.keys.Peek()
+	key, _ := rl.Keys.Peek()
 
 	switch key {
 	case '/':
@@ -1289,14 +1289,14 @@ func (rl *Shell) viSearch() {
 		forward = false
 	}
 
-	rl.completer.NonIsearchStart(rl.histories.Name()+" "+string(key), false, forward, true)
+	rl.Completions.NonIsearchStart(rl.History.Name()+" "+string(key), false, forward, true)
 }
 
 func (rl *Shell) viSearchAgain() {
 	var forward bool
 	var hint string
 
-	key, _ := rl.keys.Peek()
+	key, _ := rl.Keys.Peek()
 
 	switch key {
 	case 'n':
@@ -1307,25 +1307,25 @@ func (rl *Shell) viSearchAgain() {
 		hint = " ?"
 	}
 
-	rl.completer.NonIsearchStart(rl.histories.Name()+hint, true, forward, true)
+	rl.Completions.NonIsearchStart(rl.History.Name()+hint, true, forward, true)
 
-	line, cursor, _ := rl.completer.GetBuffer()
+	line, cursor, _ := rl.Completions.GetBuffer()
 
-	rl.histories.InsertMatch(line, cursor, true, forward, true)
-	rl.completer.NonIsearchStop()
+	rl.History.InsertMatch(line, cursor, true, forward, true)
+	rl.Completions.NonIsearchStop()
 }
 
 // Start a new numeric argument, or add to the current one.
 // This only works if bound to a key sequence ending in a decimal digit.
 func (rl *Shell) viArgDigit() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
-	keys, empty := rl.keys.PeekAll()
+	keys, empty := rl.Keys.PeekAll()
 	if empty {
 		return
 	}
 
-	rl.iterations.Add(string(keys))
+	rl.Iterations.Add(string(keys))
 }
 
 // Readline-compatible command for F/f/T/t character search commands.
@@ -1335,7 +1335,7 @@ func (rl *Shell) viCharSearch() {
 	// In order to keep readline compatibility,
 	// we check the key triggering the command
 	// so set the specific behavior.
-	key, _ := rl.keys.Peek()
+	key, _ := rl.Keys.Peek()
 
 	switch key {
 	case 'F':
@@ -1354,7 +1354,7 @@ func (rl *Shell) viCharSearch() {
 		skip = false
 	}
 
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		rl.viFindChar(forward, skip)
@@ -1363,7 +1363,7 @@ func (rl *Shell) viCharSearch() {
 
 // Set the specified mark at the cursor position.
 func (rl *Shell) viSetMark() {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 	rl.selection.Mark(rl.cursor.Pos())
 }
 
@@ -1376,8 +1376,8 @@ func (rl *Shell) viEditAndExecuteCommand() {
 // Incrementally redo undone text modifications.
 // If at the beginning of the line changes, enter insert mode.
 func (rl *Shell) viRedo() {
-	if rl.histories.Pos() > 0 {
-		rl.histories.Redo()
+	if rl.History.Pos() > 0 {
+		rl.History.Redo()
 		return
 	}
 
@@ -1388,7 +1388,7 @@ func (rl *Shell) viRedo() {
 // Invoke an editor on the current command line.
 // Readline attempts to invoke $VISUAL, $EDITOR, and Vi as the editor, in that order.
 func (rl *Shell) viEditCommandLine() {
-	keymapCur := rl.keymaps.Main()
+	keymapCur := rl.Keymap.Main()
 
 	rl.editCommandLine()
 
@@ -1403,7 +1403,7 @@ func (rl *Shell) viEditCommandLine() {
 
 // Read a character from the keyboard, and move to the next occurrence of it in the line.
 func (rl *Shell) viFindNextChar() {
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		rl.viFindChar(true, false)
@@ -1412,7 +1412,7 @@ func (rl *Shell) viFindNextChar() {
 
 // Read a character from the keyboard, and move to the position just before the next occurrence of it in the line.
 func (rl *Shell) viFindNextCharSkip() {
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		rl.viFindChar(true, true)
@@ -1421,7 +1421,7 @@ func (rl *Shell) viFindNextCharSkip() {
 
 // Read a character from the keyboard, and move to the previous occurrence of it in the line.
 func (rl *Shell) viFindPrevChar() {
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		rl.viFindChar(false, false)
@@ -1430,7 +1430,7 @@ func (rl *Shell) viFindPrevChar() {
 
 // Read a character from the keyboard, and move to the position just after the previous occurrence of it in the line.
 func (rl *Shell) viFindPrevCharSkip() {
-	vii := rl.iterations.Get()
+	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
 		rl.viFindChar(false, true)
@@ -1438,19 +1438,19 @@ func (rl *Shell) viFindPrevCharSkip() {
 }
 
 func (rl *Shell) viFindChar(forward, skip bool) {
-	rl.histories.SkipSave()
+	rl.History.SkipSave()
 
 	// Read the argument key to use as a pattern to search
-	done := rl.keymaps.PendingCursor()
+	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, esc := rl.keys.ReadArgument()
+	key, esc := rl.Keys.ReadArgument()
 	if esc {
 		return
 	}
 
 	char := key[0]
-	times := rl.iterations.Get()
+	times := rl.Iterations.Get()
 
 	for i := 1; i <= times; i++ {
 		pos := rl.line.Find(char, rl.cursor.Pos(), forward)
@@ -1472,33 +1472,33 @@ func (rl *Shell) viFindChar(forward, skip bool) {
 // Start a non-incremental search buffer, finds the first forward
 // matching line (as a regexp), and makes it the current buffer.
 func (rl *Shell) viSearchForward() {
-	rl.completer.NonIsearchStart(rl.histories.Name()+" /", false, true, true)
+	rl.Completions.NonIsearchStart(rl.History.Name()+" /", false, true, true)
 }
 
 // Start a non-incremental search buffer, finds the first backward
 // matching line (as a regexp), and makes it the current buffer.
 func (rl *Shell) viSearchBackward() {
-	rl.completer.NonIsearchStart(rl.histories.Name()+" ?", false, false, true)
+	rl.Completions.NonIsearchStart(rl.History.Name()+" ?", false, false, true)
 }
 
 // Reuses the last vi-search buffer and finds the previous search match occurrence in the history.
 func (rl *Shell) viSearchAgainForward() {
-	rl.completer.NonIsearchStart(rl.histories.Name()+" /", true, true, true)
+	rl.Completions.NonIsearchStart(rl.History.Name()+" /", true, true, true)
 
-	line, cursor, _ := rl.completer.GetBuffer()
+	line, cursor, _ := rl.Completions.GetBuffer()
 
-	rl.histories.InsertMatch(line, cursor, true, true, true)
-	rl.completer.NonIsearchStop()
+	rl.History.InsertMatch(line, cursor, true, true, true)
+	rl.Completions.NonIsearchStop()
 }
 
 // Reuses the last vi-search buffer and finds the next search match occurrence in the history.
 func (rl *Shell) viSearchAgainBackward() {
-	rl.completer.NonIsearchStart(rl.histories.Name()+" ?", true, false, true)
+	rl.Completions.NonIsearchStart(rl.History.Name()+" ?", true, false, true)
 
-	line, cursor, _ := rl.completer.GetBuffer()
+	line, cursor, _ := rl.Completions.GetBuffer()
 
-	rl.histories.InsertMatch(line, cursor, true, false, true)
-	rl.completer.NonIsearchStop()
+	rl.History.InsertMatch(line, cursor, true, false, true)
+	rl.Completions.NonIsearchStop()
 }
 
 //
@@ -1515,7 +1515,7 @@ func (rl *Shell) adjustSelectionPending() {
 		return
 	}
 
-	switch rl.keymaps.ActiveCommand().Action {
+	switch rl.Keymap.ActiveCommand().Action {
 	// Movements
 	case "vi-end-word", "vi-end-bigword":
 		rl.selection.Visual(false)
