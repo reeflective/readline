@@ -14,6 +14,7 @@ import (
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
+	"github.com/rivo/uniseg"
 )
 
 // standardCommands returns all standard/emacs commands.
@@ -416,9 +417,17 @@ func (rl *Shell) selfInsert() {
 		return
 	}
 
+	var quoted []rune
+	var length int
+
 	// TODO: DOnt't escape in some cases.
 	// if rl.config.GetBool("output-meta") {
-	quoted, length := rl.line.Quote(key)
+	if rl.Config.GetBool("output-meta") {
+		quoted = append(quoted, key)
+		length = uniseg.StringWidth(string(quoted))
+	} else {
+		quoted, length = rl.line.Quote(key)
+	}
 
 	rl.line.Insert(rl.cursor.Pos(), quoted...)
 

@@ -659,14 +659,12 @@ func (l *Line) Display(indent int) {
 // @x - The number of columns, starting from the terminal left, to the end of the last line.
 // @y - The number of actual lines on which the line spans, accounting for line wrap.
 func (l *Line) Coordinates(indent int) (x, y int) {
-	newlines := l.newlines()
-	bpos := 0
+	line := string(*l)
+	lines := strings.Split(line, "\n")
 	usedY, usedX := 0, 0
 
-	for i, newline := range newlines {
-		bline := (*l)[bpos:newline[0]]
-		bpos = newline[0]
-		x, y := strutil.LineSpan(bline, i, indent)
+	for i, line := range lines {
+		x, y := strutil.LineSpan([]rune(line), i, indent)
 		usedY += y
 		usedX = x
 	}

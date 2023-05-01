@@ -19,7 +19,7 @@ func RealLength(s string) int {
 	tabs := strings.ReplaceAll(colors, "\t", "     ") // Remove spaces
 
 	// return utf8.RuneCountInString(tabs)
-	return uniseg.GraphemeClusterCount(tabs)
+	return uniseg.StringWidth(tabs)
 }
 
 // LineSpan computes the number of columns and lines that are needed for a given line,

@@ -86,7 +86,7 @@ func (e *Engine) Refresh() {
 
 	// Print the line, right prompt, hints and completions.
 	e.displayLine()
-	// e.prompt.RightPrint(e.lineCol, true)
+	e.prompt.RightPrint(e.lineCol, true)
 	e.displayHelpers()
 
 	// Go back to the start of the line, then to cursor.
