@@ -79,6 +79,11 @@ func (m *Modes) loadBuiltinBinds() {
 	m.config.Binds[string(Visual)] = visualKeys
 	m.config.Binds[string(ViOpp)] = vioppKeys
 	m.config.Binds[string(MenuSelect)] = menuselectKeys
+
+	// Default TTY binds
+	for _, keymap := range m.config.Binds {
+		keymap[inputrc.Unescape(`\C-C`)] = inputrc.Bind{Action: "abort"}
+	}
 }
 
 // Register adds commands to the list of available commands.
@@ -217,6 +222,27 @@ func (m *Modes) ConvertMeta(keys []rune) string {
 	}
 
 	return string(converted)
+}
+
+// InputIsTerminator returns true when current input keys are one of
+// the configured or builtin "terminators", which can be configured
+// in .inputrc with the isearch-terminators variable.
+func (m *Modes) InputIsTerminator() bool {
+	// Make a special list of binds with a unique command.
+	terminators := []string{
+		inputrc.Unescape(`\C-G`),
+		inputrc.Unescape(`C-]`),
+	}
+
+	binds := make(map[string]inputrc.Bind)
+
+	for _, sequence := range terminators {
+		binds[sequence] = inputrc.Bind{Action: "abort", Macro: false}
+	}
+
+	bind, cmd, _ := m.matchKeymap(binds)
+
+	return bind.Action == "abort" && cmd != nil
 }
 
 // ActiveCommand returns the sequence/command currently being ran.

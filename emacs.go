@@ -387,24 +387,14 @@ func (rl *Shell) quotedInsert() {
 	defer done()
 
 	keys, _ := rl.keys.ReadArgument()
-
-	quoted := []rune{}
-
-	for _, key := range keys {
-		switch {
-		case inputrc.IsMeta(key):
-			quoted = append(quoted, '^', '[')
-			quoted = append(quoted, inputrc.Demeta(key))
-		case inputrc.IsControl(key):
-			quoted = append(quoted, '^')
-			quoted = append(quoted, inputrc.Decontrol(key))
-		default:
-			quoted = append(quoted, key)
-		}
+	if len(keys) == 0 {
+		return
 	}
 
+	quoted, length := rl.line.Quote(keys[0])
+
 	rl.line.Insert(rl.cursor.Pos(), quoted...)
-	rl.cursor.Move(len(quoted))
+	rl.cursor.Move(length)
 }
 
 // Insert a tab character.
@@ -428,26 +418,13 @@ func (rl *Shell) selfInsert() {
 		return
 	}
 
-	inserted := []rune{}
+	// TODO: DOnt't escape in some cases.
+	// if rl.config.GetBool("output-meta") {
+	quoted, length := rl.line.Quote(key)
 
-	switch {
-	case inputrc.IsMeta(key):
-		if rl.config.GetBool("output-meta") {
-			inserted = append(inserted, key)
-			// fmt.Println(strconv.QuoteToASCII(string(key)))
-		} else {
-			inserted = append(inserted, '^', '[')
-			inserted = append(inserted, inputrc.Demeta(key))
-		}
-	case inputrc.IsControl(key):
-		inserted = append(inserted, '^')
-		inserted = append(inserted, inputrc.Decontrol(key))
-	default:
-		inserted = []rune(inputrc.Unescape(string(key)))
-	}
+	rl.line.Insert(rl.cursor.Pos(), quoted...)
 
-	rl.line.Insert(rl.cursor.Pos(), inserted...)
-	rl.cursor.Move(len(inserted))
+	rl.cursor.Move(length)
 }
 
 func (rl *Shell) bracketedPasteBegin() {
@@ -1170,20 +1147,33 @@ func (rl *Shell) abort() {
 	rl.iterations.Reset()
 	rl.selection.Reset()
 
-	// Cancel completions and/or incremental search.
-	rl.hint.Reset()
-	rl.completer.ResetForce()
-}
+	// Cancel active completion insertion and/or incremental search.
+	if rl.completer.AutoCompleting() || rl.completer.IsInserting() {
+		rl.hint.Reset()
+		rl.completer.ResetForce()
 
-// func (rl *Instance) errorCtrlC() error {
-// 	rl.keys = ""
-//
-// 	// Or return the current command line
-// 	rl.clearHelpers()
-// 	moveCursorDown(rl.fullY - rl.posY)
-// 	fmt.Print("\r\n")
-//
-// 	return ErrCtrlC
+		return
+	}
+
+	// And only return to the caller if the abort was
+	// called by one of the builtin/config terminators.
+	// All others should generally be OS signals.
+	if rl.keymaps.InputIsTerminator() {
+		return
+	}
+
+	if rl.config.GetBool("echo-control-characters") {
+		key, _ := rl.keys.Peek()
+		if key == rune(inputrc.Unescape(`\C-C`)[0]) {
+			quoted, _ := rl.line.Quote(key)
+			fmt.Print(string(quoted))
+		}
+	}
+
+	// If no line was active,
+	rl.display.AcceptLine()
+	rl.histories.Accept(false, false, nil)
+}
 
 // If the metafied character x is uppercase, run the command
 // that is bound to the corresponding metafied lowercase character.

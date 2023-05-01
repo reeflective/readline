@@ -73,8 +73,8 @@ func (e *Engine) Refresh() {
 	// prompt end (thus indentation), cursor positions, etc.
 	e.computeCoordinates()
 
-	// term.MoveCursorBackwards(e.startCols)
-	// e.prompt.LastPrint()
+	term.MoveCursorBackwards(e.startCols)
+	e.prompt.LastPrint()
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorForwards(e.startCols)
 
