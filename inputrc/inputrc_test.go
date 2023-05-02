@@ -178,7 +178,7 @@ func readTest(t *testing.T, name string) [][]byte {
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	return bytes.Split(buf, []byte(delimiter))
+	return bytes.SplitN(buf, []byte(delimiter), 3)
 }
 
 func check(t *testing.T, exp []byte, cfg *Config, m map[string][]string, err error) {
