@@ -278,8 +278,8 @@ func (m *Engine) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
 	// commands like vi-movement-mode unreachable, so if the bind
 	// is vi-movement-mode, we return it to be ran regardless of
 	// the other binds matching by prefix.
-	if m.isEscapeKey() && !m.IsEmacs() {
-		bind, command, prefix = m.handleEscape(true, prefix)
+	if m.isEscapeKey() && !m.IsEmacs() && prefix {
+		bind, command, prefix = m.handleEscape(true)
 	}
 
 	return
@@ -303,25 +303,29 @@ func (m *Engine) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 	// (if it's alone): using escape in Viopp/menu-complete/isearch should cancel the
 	// current mode, thus we return either a Vim movement-mode command, or nothing.
 	if m.isEscapeKey() && (prefix || command == nil) {
-		bind, command, prefix = m.handleEscape(false, prefix)
+		bind, command, prefix = m.handleEscape(false)
 	}
 
 	return
 }
 
 func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
-	var keys []rune
+	// var keys []rune
+	var keyBytes []byte
 
 	// Important to wrap in a defer function,
 	// because the keys array is not yet populated.
-	defer func() {
-		m.keys.Matched(keys...)
-	}()
+	// defer func() {
+	// 	m.keys.MatchedBytes(keyBytes...)
+	// 	// m.keys.Matched(keys...)
+	// }()
 
 	for {
 		// Read keys one by one, and abort once exhausted.
 		key, empty := m.keys.Pop()
+		// key, empty := m.keys.Pop()
 		if empty {
+			m.keys.MarkMatched(keyBytes...)
 			return
 		}
 
@@ -329,10 +333,11 @@ func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, 
 		// sequence so that they can match eight-bit binds (generally
 		// self-insert additional latin characters).
 
-		keys = append(keys, key)
+		keyBytes = append(keyBytes, key)
+		// keys = append(keys, key)
 
 		// Find binds (actions/macros) matching by prefix or perfectly.
-		match, prefixed := m.matchCommand(keys, binds)
+		match, prefixed := m.matchCommand(keyBytes, binds)
 
 		// If the current keys have no matches but the previous
 		// matching process found a prefix, use it with the keys.
@@ -342,6 +347,7 @@ func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, 
 			m.active = m.prefixed
 			m.prefixed = inputrc.Bind{}
 
+			m.keys.MarkMatched(keyBytes...)
 			return
 		}
 
@@ -363,11 +369,38 @@ func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, 
 		m.active = match
 		m.prefixed = inputrc.Bind{}
 
+		m.keys.MarkMatched(keyBytes...)
 		return match, m.resolveCommand(match), false
 	}
 }
 
-func (m *Engine) matchCommand(keys []rune, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
+func (m *Engine) matchCommand(keys []byte, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
+	var match inputrc.Bind
+	var prefixed []inputrc.Bind
+
+	for sequence, kbind := range binds {
+		// When convert-meta is on, any meta-prefixed bind should
+		// be stripped and replaced with an escape meta instead.
+		if m.config.GetBool("convert-meta") {
+			sequence = m.ConvertMeta([]rune(sequence))
+		}
+
+		// If the keys are a prefix of the bind, keep the bind
+		if len(string(keys)) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {
+			prefixed = append(prefixed, kbind)
+		}
+
+		// Else if the match is perfect, keep the bind
+		// if string(keys) == sequence {
+		if inputrc.Unescape(string(keys)) == sequence {
+			match = kbind
+		}
+	}
+
+	return match, prefixed
+}
+
+func (m *Engine) matchCommandAlt(keys []rune, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
 	var match inputrc.Bind
 	var prefixed []inputrc.Bind
 
@@ -385,6 +418,8 @@ func (m *Engine) matchCommand(keys []rune, binds map[string]inputrc.Bind) (input
 
 		// Else if the match is perfect, keep the bind
 		if string(keys) == sequence {
+			// if inputrc.Unescape(string(keys)) == sequence {
+			// if string(keys) == sequence {
 			match = kbind
 		}
 	}
@@ -423,9 +458,9 @@ func (m *Engine) isEscapeKey() bool {
 
 // handleEscape is used to override or change the matched command when the escape key has
 // been pressed: it might exit completion/isearch menus, use the vi-movement-mode, etc.
-func (m *Engine) handleEscape(main, prefix bool) (bind inputrc.Bind, cmd func(), pref bool) {
+func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bool) {
 	switch {
-	case prefix && m.prefixed.Action == "vi-movement-mode":
+	case m.prefixed.Action == "vi-movement-mode":
 		// The vi-movement-mode command always has precedence over
 		// other binds when we are currently using the main keymap.
 		bind = m.prefixed

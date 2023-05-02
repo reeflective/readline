@@ -626,7 +626,7 @@ func (rl *Shell) viChangeChar() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.Keys.ReadArgument()
+	key, isAbort := rl.Keys.ReadKey()
 	if isAbort || len(key) == 0 {
 		rl.History.SkipSave()
 		return
@@ -665,7 +665,7 @@ func (rl *Shell) viReplace() {
 	// them as long as the escape key is not pressed.
 	for {
 		// We read a character to use first.
-		keys, isAbort := rl.Keys.ReadArgument()
+		keys, isAbort := rl.Keys.ReadKey()
 		if isAbort {
 			break
 		}
@@ -777,7 +777,7 @@ func (rl *Shell) viAddSurround() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.Keys.ReadArgument()
+	key, isAbort := rl.Keys.ReadKey()
 	if isAbort {
 		rl.History.SkipSave()
 		return
@@ -801,7 +801,7 @@ func (rl *Shell) viChangeSurround() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.Keys.ReadArgument()
+	key, isAbort := rl.Keys.ReadKey()
 	if isAbort {
 		return
 	}
@@ -818,13 +818,13 @@ func (rl *Shell) viChangeSurround() {
 	rl.selection.MarkSurround(bpos, epos)
 	rl.Display.Refresh()
 
-	defer func() { rl.selection.Reset() }()
+	defer rl.selection.Reset()
 
 	// Now read another key
 	done = rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort = rl.Keys.ReadArgument()
+	key, isAbort = rl.Keys.ReadKey()
 	if isAbort {
 		return
 	}
@@ -1138,7 +1138,7 @@ func (rl *Shell) viSetBuffer() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.Keys.ReadArgument()
+	key, isAbort := rl.Keys.ReadKey()
 	if isAbort {
 		return
 	}
@@ -1248,7 +1248,7 @@ func (rl *Shell) viSelectSurround() {
 		return
 	}
 
-	bpos, epos, _, _ := rl.line.FindSurround(char, rl.cursor.Pos())
+	bpos, epos, _, _ := rl.line.FindSurround(rune(char), rl.cursor.Pos())
 	if bpos == -1 && epos == -1 {
 		return
 	}
@@ -1444,7 +1444,7 @@ func (rl *Shell) viFindChar(forward, skip bool) {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, esc := rl.Keys.ReadArgument()
+	key, esc := rl.Keys.ReadKey()
 	if esc {
 		return
 	}

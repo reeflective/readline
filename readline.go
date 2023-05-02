@@ -36,8 +36,8 @@ func (rl *Shell) Readline() (string, error) {
 		// for user input again, we do it before actually reading it.
 		rl.Display.Refresh()
 
-		// Block and wait for user input.
-		rl.Keys.Read()
+		// Block and wait for user input keys.
+		rl.Keys.WaitInput()
 
 		// 1 - Local keymap (completion/isearch/viopp)
 		bind, command, prefixed := rl.Keymap.MatchLocal()
@@ -83,13 +83,13 @@ func (rl *Shell) Readline() (string, error) {
 // init gathers all steps to perform at the beginning of readline loop.
 func (rl *Shell) init() {
 	// Reset core editor components.
+	rl.Keys.Flush()
+	rl.line.Set()
+	rl.cursor.Set(0)
+	rl.cursor.ResetMark()
 	rl.selection.Reset()
 	rl.Buffers.Reset()
 	rl.History.Reset()
-	rl.Keys.Flush()
-	rl.cursor.ResetMark()
-	rl.cursor.Set(0)
-	rl.line.Set([]rune{}...)
 	rl.History.Save()
 	rl.Iterations.Reset()
 
@@ -114,7 +114,7 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// bound sequence back to the key stack.
 	if bind.Macro {
 		macro := inputrc.Unescape(bind.Action)
-		rl.Keys.Feed(false, true, []rune(macro)...)
+		rl.Keys.Feed(false, []rune(macro)...)
 	}
 
 	// And don't do anything else if we don't have a command.

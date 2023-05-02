@@ -18,7 +18,6 @@ func RealLength(s string) int {
 	colors := color.Strip(s)                          // Remove colors
 	tabs := strings.ReplaceAll(colors, "\t", "     ") // Remove spaces
 
-	// return utf8.RuneCountInString(tabs)
 	return uniseg.StringWidth(tabs)
 }
 

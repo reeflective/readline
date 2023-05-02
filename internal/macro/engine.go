@@ -79,7 +79,7 @@ func (e *Engine) RunLastMacro() {
 	}
 
 	macro := inputrc.Unescape(e.macros[len(e.macros)-1])
-	e.keys.Feed(false, true, []rune(macro)...)
+	e.keys.Feed(false, []rune(macro)...)
 }
 
 // RunMacro runs a given macro, injecting its

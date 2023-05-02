@@ -386,7 +386,7 @@ func (rl *Shell) quotedInsert() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	keys, _ := rl.Keys.ReadArgument()
+	keys, _ := rl.Keys.ReadKey()
 	if len(keys) == 0 {
 		return
 	}
@@ -420,8 +420,6 @@ func (rl *Shell) selfInsert() {
 	var quoted []rune
 	var length int
 
-	// TODO: DOnt't escape in some cases.
-	// if rl.config.GetBool("output-meta") {
 	if rl.Config.GetBool("output-meta") {
 		quoted = append(quoted, key)
 		length = uniseg.StringWidth(string(quoted))
@@ -435,9 +433,8 @@ func (rl *Shell) selfInsert() {
 }
 
 func (rl *Shell) bracketedPasteBegin() {
-	fmt.Println("Keys:")
-	keys, _ := rl.Keys.PeekAll()
-	fmt.Println(string(keys))
+	// keys, _ := rl.Keys.PeekAllBytes()
+	// fmt.Println(string(keys))
 }
 
 // Drag the character before point forward over the character
@@ -641,7 +638,7 @@ func (rl *Shell) overwriteMode() {
 	// them as long as the escape key is not pressed.
 	for {
 		// We read a character to use first.
-		keys, isAbort := rl.Keys.ReadArgument()
+		keys, isAbort := rl.Keys.ReadKey()
 		if isAbort {
 			break
 		}
@@ -1229,9 +1226,9 @@ func (rl *Shell) doLowercaseVersion() {
 	// Feed back the keys with meta prefix or encoding
 	if escapePrefix {
 		input := append([]rune{inputrc.Esc}, keys...)
-		rl.Keys.Feed(false, true, input...)
+		rl.Keys.Feed(false, input...)
 	} else {
-		rl.Keys.Feed(false, true, inputrc.Enmeta(keys[0]))
+		rl.Keys.Feed(false, inputrc.Enmeta(keys[0]))
 	}
 }
 
@@ -1242,7 +1239,7 @@ func (rl *Shell) prefixMeta() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	keys, isAbort := rl.Keys.ReadArgument()
+	keys, isAbort := rl.Keys.ReadKey()
 	if isAbort {
 		return
 	}
@@ -1250,7 +1247,7 @@ func (rl *Shell) prefixMeta() {
 	keys = append([]rune{inputrc.Esc}, keys...)
 
 	// And feed them back to be used on the next loop.
-	rl.Keys.Feed(false, true, keys...)
+	rl.Keys.Feed(false, keys...)
 }
 
 // Incrementally undo the last text modification.
