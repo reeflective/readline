@@ -310,34 +310,20 @@ func (m *Engine) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 }
 
 func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
-	// var keys []rune
-	var keyBytes []byte
-
-	// Important to wrap in a defer function,
-	// because the keys array is not yet populated.
-	// defer func() {
-	// 	m.keys.MatchedBytes(keyBytes...)
-	// 	// m.keys.Matched(keys...)
-	// }()
+	var keys []byte
 
 	for {
 		// Read keys one by one, and abort once exhausted.
 		key, empty := m.keys.Pop()
-		// key, empty := m.keys.Pop()
 		if empty {
-			m.keys.MarkMatched(keyBytes...)
+			m.keys.MarkMatched(keys...)
 			return
 		}
 
-		// If keys are metafied, replace them with the appropriate
-		// sequence so that they can match eight-bit binds (generally
-		// self-insert additional latin characters).
-
-		keyBytes = append(keyBytes, key)
-		// keys = append(keys, key)
+		keys = append(keys, key)
 
 		// Find binds (actions/macros) matching by prefix or perfectly.
-		match, prefixed := m.matchCommand(keyBytes, binds)
+		match, prefixed := m.matchCommand(keys, binds)
 
 		// If the current keys have no matches but the previous
 		// matching process found a prefix, use it with the keys.
@@ -347,7 +333,7 @@ func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, 
 			m.active = m.prefixed
 			m.prefixed = inputrc.Bind{}
 
-			m.keys.MarkMatched(keyBytes...)
+			m.keys.MarkMatched(keys...)
 			return
 		}
 
@@ -369,7 +355,7 @@ func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, 
 		m.active = match
 		m.prefixed = inputrc.Bind{}
 
-		m.keys.MarkMatched(keyBytes...)
+		m.keys.MarkMatched(keys...)
 		return match, m.resolveCommand(match), false
 	}
 }
@@ -391,7 +377,6 @@ func (m *Engine) matchCommand(keys []byte, binds map[string]inputrc.Bind) (input
 		}
 
 		// Else if the match is perfect, keep the bind
-		// if string(keys) == sequence {
 		if inputrc.Unescape(string(keys)) == sequence {
 			match = kbind
 		}
@@ -418,8 +403,6 @@ func (m *Engine) matchCommandAlt(keys []rune, binds map[string]inputrc.Bind) (in
 
 		// Else if the match is perfect, keep the bind
 		if string(keys) == sequence {
-			// if inputrc.Unescape(string(keys)) == sequence {
-			// if string(keys) == sequence {
 			match = kbind
 		}
 	}
