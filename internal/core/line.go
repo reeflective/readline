@@ -241,6 +241,11 @@ func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
 
 // Find returns the index position of a target rune, or -1 if not found.
 func (l *Line) Find(char rune, pos int, forward bool) int {
+	pos, valid := l.checkPos(pos)
+	if !valid {
+		return -1
+	}
+
 	for {
 		if forward {
 			pos++
@@ -250,7 +255,6 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 		} else {
 			pos--
 			if pos < 0 {
-				pos++
 				break
 			}
 		}

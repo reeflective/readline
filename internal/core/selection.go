@@ -1,6 +1,8 @@
 package core
 
 import (
+	"unicode"
+
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/strutil"
@@ -325,7 +327,7 @@ func (s *Selection) SelectAWord() {
 	s.cursor.Set(epos)
 	cpos = s.cursor.Pos()
 
-	spaceAfter := cpos < s.line.Len()-1 && (*s.line)[cpos+1] == inputrc.Space
+	spaceAfter := cpos < s.line.Len()-1 && isSpace((*s.line)[cpos+1])
 
 	// And only select spaces after it if the word selected is not preceded
 	// by spaces as well, or if we started the selection within this word.
@@ -354,7 +356,7 @@ func (s *Selection) SelectABlankWord() (bpos, epos int) {
 
 	// Then go to the end of the blank word
 	s.cursor.Move(s.line.ForwardEnd(s.line.TokenizeSpace, s.cursor.Pos()))
-	spaceAfter := s.cursor.Pos() < s.line.Len()-1 && (*s.line)[s.cursor.Pos()+1] == inputrc.Space
+	spaceAfter := s.cursor.Pos() < s.line.Len()-1 && isSpace((*s.line)[s.cursor.Pos()+1])
 
 	// And only select spaces after it if the word selected is not preceded
 	// by spaces as well, or if we started the selection within this word.
@@ -638,10 +640,14 @@ func (s *Selection) selectToCursor(bpos int) (int, int) {
 }
 
 func (s *Selection) spacesAroundWord(cpos int) (before, under bool) {
-	under = (*s.line)[cpos] == inputrc.Space
-	before = cpos > 0 && (*s.line)[cpos-1] == inputrc.Space
+	under = isSpace((*s.line)[cpos])
+	before = cpos > 0 && isSpace((*s.line)[cpos-1])
 
 	return
+}
+
+func isSpace(char rune) bool {
+	return unicode.IsSpace(char) && char != inputrc.Newline
 }
 
 // adjustWordSelection adjust the beginning and end of a word (blank or not) selection, depending
