@@ -644,7 +644,7 @@ func TestLine_Coordinates(t *testing.T) {
 			l:     &multiline,
 			args:  args{indent: indent},
 			wantY: 2,
-			wantX: indent + 49,
+			wantX: indent + 48,
 		},
 	}
 
