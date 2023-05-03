@@ -397,7 +397,7 @@ func (s *Selection) SelectAShellWord() (bpos, epos int) {
 	// The quotes might be followed by non-blank characters,
 	// in which case we must keep expanding our selection.
 	for {
-		spaceBefore := mark > 0 && (*s.line)[mark-1] == inputrc.Space
+		spaceBefore := mark > 0 && isSpace((*s.line)[mark-1])
 		if spaceBefore {
 			s.cursor.Dec()
 			s.cursor.ToFirstNonSpace(false)
@@ -416,7 +416,7 @@ func (s *Selection) SelectAShellWord() (bpos, epos int) {
 
 	// Adjust if no spaces after.
 	for {
-		spaceAfter := cpos < s.line.Len()-1 && (*s.line)[cpos+1] == inputrc.Space
+		spaceAfter := cpos < s.line.Len()-1 && isSpace((*s.line)[cpos+1])
 		if spaceAfter || cpos == s.line.Len()-1 {
 			break
 		}
