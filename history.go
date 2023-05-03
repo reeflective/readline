@@ -70,6 +70,7 @@ func (rl *Shell) historyCommands() commands {
 		"history-substring-search-forward":       rl.historySubstringSearchForward,
 		"history-substring-search-backward":      rl.historySubstringSearchBackward,
 		"yank-last-arg":                          rl.yankLastArg,
+		"insert-last-argument":                   rl.yankLastArg,
 		"yank-nth-arg":                           rl.yankNthArg,
 		"magic-space":                            rl.magicSpace,
 

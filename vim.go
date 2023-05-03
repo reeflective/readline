@@ -332,6 +332,10 @@ func (rl *Shell) viBackwardWordEnd() {
 
 	vii := rl.Iterations.Get()
 
+	if rl.line.Len() == 0 {
+		return
+	}
+
 	for i := 1; i <= vii; i++ {
 		rl.cursor.Inc()
 
@@ -725,6 +729,10 @@ func (rl *Shell) viChangeCase() {
 		})
 
 	default:
+		if rl.line.Len() == 0 || rl.cursor.Pos() == rl.line.Len() {
+			return
+		}
+
 		char := (*rl.line)[rl.cursor.Pos()]
 		if unicode.IsLower(char) {
 			char = unicode.ToUpper(char)

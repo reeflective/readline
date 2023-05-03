@@ -377,32 +377,8 @@ func (m *Engine) matchCommand(keys []byte, binds map[string]inputrc.Bind) (input
 		}
 
 		// Else if the match is perfect, keep the bind
-		if inputrc.Unescape(string(keys)) == sequence {
-			match = kbind
-		}
-	}
-
-	return match, prefixed
-}
-
-func (m *Engine) matchCommandAlt(keys []rune, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
-	var match inputrc.Bind
-	var prefixed []inputrc.Bind
-
-	for sequence, kbind := range binds {
-		// When convert-meta is on, any meta-prefixed bind should
-		// be stripped and replaced with an escape meta instead.
-		if m.config.GetBool("convert-meta") {
-			sequence = m.ConvertMeta([]rune(sequence))
-		}
-
-		// If the keys are a prefix of the bind, keep the bind
-		if len(string(keys)) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {
-			prefixed = append(prefixed, kbind)
-		}
-
-		// Else if the match is perfect, keep the bind
 		if string(keys) == sequence {
+			// if inputrc.Unescape(string(keys)) == sequence {
 			match = kbind
 		}
 	}
