@@ -252,7 +252,8 @@ func (h *Sources) GetLast() string {
 }
 
 // Cycle checks for the next history source (if any) and makes it the active one.
-// If next is false, the source cycles to the previous source.
+// The active one is used in completions, and all history-related commands.
+// If next is false, the engine cycles to the previous source.
 func (h *Sources) Cycle(next bool) {
 	switch next {
 	case true:
@@ -465,9 +466,11 @@ func (h *Sources) Complete(forward, filter bool) completion.Values {
 	compLines := make([]completion.Candidate, 0)
 
 	// Set up iteration clauses
-	var histPos int
-	var done func(i int) bool
-	var move func(inc int) int
+	var (
+		histPos int
+		done    func(i int) bool
+		move    func(inc int) int
+	)
 
 	if forward {
 		histPos = -1

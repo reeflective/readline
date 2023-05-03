@@ -1,6 +1,7 @@
 package core
 
 import (
+	"regexp"
 	"unicode"
 
 	"github.com/reeflective/readline/inputrc"
@@ -13,16 +14,21 @@ import (
 // with the default cursor mark and position, and contains a list of additional surround
 // selections used to change/select multiple parts of the line at once.
 type Selection struct {
-	Type       string
-	active     bool
-	visual     bool
-	visualLine bool
-	bpos       int
-	epos       int
-	fg         string
-	bg         string
-	surrounds  []Selection
+	Type       string // Can be a normal one, surrounding (pairs), (cursor) matchers, etc.
+	active     bool   // The selection is running.
+	visual     bool   // The selection is highlighted.
+	visualLine bool   // The selection should span entire lines.
+	bpos       int    // Beginning index position
+	epos       int    // End index position (can be +1 in visual mode, to encompass cursor pos)
+	kpos       int    // Keyword regexp matchers cycling counter.
+	kmpos      int    // Keyword regexp matcher subgroups counter.
 
+	// Display
+	fg        string      // Foreground color of the highlighted selection.
+	bg        string      // Background color.
+	surrounds []Selection // Surrounds are usually pairs of characters matching each other (quotes/brackets, etc.)
+
+	// Core
 	line   *Line
 	cursor *Cursor
 }
@@ -95,7 +101,7 @@ func (s *Selection) Active() bool {
 }
 
 // Visual sets the selection as a visual one (highlighted),
-// which is core.y seen in Vim.
+// which is commonly seen in Vim edition mode.
 // If line is true, the visual is extended to entire lines.
 func (s *Selection) Visual(line bool) {
 	s.visual = true
@@ -315,9 +321,7 @@ func (s *Selection) Surround(bchar, echar rune) {
 // SelectAWord selects a word around the current cursor position,
 // selecting leading or trailing spaces depending on where the cursor
 // is: if on a blank space, in a word, or at the end of the line.
-func (s *Selection) SelectAWord() {
-	var bpos, epos int
-
+func (s *Selection) SelectAWord() (bpos, epos int) {
 	bpos = s.cursor.Pos()
 	cpos := bpos
 
@@ -336,6 +340,8 @@ func (s *Selection) SelectAWord() {
 	if !s.Active() || bpos < cpos {
 		s.Mark(bpos)
 	}
+
+	return bpos, epos
 }
 
 // SelectABlankWord selects a bigword around the current cursor position,
@@ -425,6 +431,39 @@ func (s *Selection) SelectAShellWord() (bpos, epos int) {
 	}
 
 	return bpos, cpos
+}
+
+// SelectKeyword attempts to find a pattern in the current blank word
+// around the current cursor position, using various regular expressions.
+// Repeatedly calling this function will cycle through all regex matches,
+// or if a matcher captured multiple subgroups, through each of them.
+//
+// Those are, in the order in which they are tried:
+// URI / URL / Domain|IPv4|IPv6 / URL path component / URL parameters.
+//
+// The returned positions are the beginning and end positions of the match
+// on the line (absolute position, not relative to cursor), or if no matcher
+// succeeds, the bpos and epos parameters are returned unchanged.
+// If found is true, a match occurred, otherwise false is returned.
+func (s *Selection) SelectKeyword(bpos, epos int, next bool) (kbpos, kepos int, match bool) {
+	selection := (*s.line)[bpos:epos]
+
+	_, match, kbpos, kepos = s.matchKeyword(selection, bpos, next)
+	if !match {
+		return bpos, epos, false
+	}
+
+	// Always check the validity of the selection
+	kbpos, kepos, match = s.checkRange(kbpos, kepos)
+	if !match {
+		return bpos, epos, false
+	}
+
+	// Mark the selection at its beginning
+	// and move the cursor to its end.
+	s.Mark(kbpos)
+
+	return kbpos, kepos, true
 }
 
 // ReplaceWith replaces all characters of the line within the current
@@ -543,6 +582,7 @@ func (s *Selection) Reset() {
 	s.visualLine = false
 	s.bpos = -1
 	s.epos = -1
+	s.kpos = 0
 	s.fg = ""
 	s.bg = ""
 
@@ -672,3 +712,131 @@ func (s *Selection) adjustWordSelection(before, under, after bool, bpos int) (in
 
 	return bpos, epos
 }
+
+func (s *Selection) matchKeyword(buf []rune, bbpos int, next bool) (name string, found bool, bpos, epos int) {
+	matchersNames := []string{
+		"URI",
+	}
+
+	matchers := map[string]*regexp.Regexp{
+		"URI": regexp.MustCompile(`https?:\/\/(?:www\.)?([-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b)*(\/[\/\d\w\.-]*)*(?:[\?])*(.+)*`),
+	}
+
+	// The matcher name and all the capturing subgroups it found.
+	var matcherName string
+	var groups []int
+
+	// Always preload the current/last target matcher used.
+	if s.kpos > 0 && s.kpos <= len(matchersNames) {
+		matcherName = matchersNames[s.kpos-1]
+		matcher := matchers[matcherName]
+
+		groups = s.runMatcher(buf, matcher)
+	}
+
+	// Either increment/decrement the counter (switch the matcher altogether),
+	// or cycle through the match groups for the current matcher.
+	if sbpos, sepos, cycled := s.cycleSubgroup(groups, bbpos, next); cycled {
+		return matcherName, true, sbpos, sepos
+	}
+
+	// We did not cycle through subgroups, so cycle the matchers.
+	prevPos := s.kpos
+	s.kmpos = 1
+
+	if next {
+		s.kpos++
+	} else {
+		s.kpos--
+	}
+
+	if s.kpos > len(matchersNames) {
+		s.kpos = 1
+	}
+
+	if s.kpos < 1 {
+		s.kpos = len(matchersNames)
+	}
+
+	// Prepare the cycling functions, increments and counters.
+	var (
+		kpos = s.kpos
+		done func(i int) bool
+		move func(inc int) int
+	)
+
+	if next {
+		done = func(i int) bool { return i <= len(matchersNames) }
+		move = func(inc int) int { return kpos + 1 }
+	} else {
+		done = func(i int) bool { return i > 0 }
+		move = func(inc int) int { return kpos - 1 }
+	}
+
+	// Try the different matchers until one succeeds, and select the first/last capturing group.
+	for done(kpos) {
+		matcherName = matchersNames[kpos-1]
+		matcher := matchers[matcherName]
+
+		groups = s.runMatcher(buf, matcher)
+
+		if len(groups) <= 1 {
+			kpos = move(kpos)
+			continue
+		}
+
+		if !next && prevPos == 1 {
+			s.kmpos = len(groups)
+
+			return matcherName, true, bbpos + groups[len(groups)-2], bbpos + groups[len(groups)-1]
+		}
+
+		return matcherName, true, bbpos + groups[0], bbpos + groups[1]
+	}
+
+	return "", false, -1, -1
+}
+
+func (s *Selection) cycleSubgroup(groups []int, bbpos int, next bool) (bpos, epos int, cycled bool) {
+	canCycleSubgroup := (next && s.kmpos < len(groups)-1) || (!next && s.kmpos > 1)
+
+	if !canCycleSubgroup {
+		return
+	}
+
+	if next {
+		s.kmpos++
+	} else {
+		s.kmpos--
+	}
+
+	return bbpos + groups[s.kmpos-1], bbpos + groups[s.kmpos], true
+}
+
+func (s *Selection) runMatcher(buf []rune, matcher *regexp.Regexp) (groups []int) {
+	if matcher == nil {
+		return
+	}
+
+	matches := matcher.FindAllStringSubmatchIndex(string(buf), -1)
+	if len(matches) == 0 {
+		return
+	}
+
+	return matches[0]
+}
+
+// Tested URL / IP regexp matchers, not working as well as the current ones
+//
+// "URL": regexp.MustCompile(`([\w+]+\:\/\/)?([\w\d-]+\.)*[\w-]+[\.\:]\w+([\/\?\=\&\#.]?[\w-]+)*\/?`),
+
+// "Domain|IP": regexp.MustCompile(ipv4_regex + `|` + ipv6_regex + `|` + domain_regex),
+// (http(s?):\/\/)?(((www\.)?+[a-zA-Z0-9\.\-\_]+(\.[a-zA-Z]{2,3})+)|(\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b))(\/[a-zA-Z0-9\_\-\s\.\/\?\%\#\&\=]*)?
+// "Domain|IP": regexp.MustCompile(`((www\.)?[a-zA-Z0-9\.\-\_]+(\.[a-zA-Z]{2,3})+)|(\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b)`),
+
+// "URL path": ,
+// "URL parameters": regexp.MustCompile(`[(\?|\&)]([^=]+)\=([^&#]+)`),
+
+// ipv6Regex   = `^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))`
+// ipv4Regex   = `^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4})`
+// domainRegex = `^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]`
