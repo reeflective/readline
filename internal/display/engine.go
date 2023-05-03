@@ -220,7 +220,7 @@ func (e *Engine) computeCoordinates() {
 
 	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startCols)
 
-	// Get the number of rows used by the line, and the last X pos.
+	// Get the number of rows used by the line, and the end line X pos.
 	if e.opts.GetBool("history-autosuggest") {
 		e.lineCol, e.lineRows = e.suggested.Coordinates(e.startCols)
 	} else {
@@ -248,13 +248,13 @@ func (e *Engine) displayLine() {
 	// Apply visual selections highlighting if any
 	line = ui.Highlight([]rune(line), *e.selection, e.opts)
 
-	// Format tabs as spaces, for consistent display
-	line = strutil.FormatTabs(line)
-
 	// Get the subset of the suggested line to print.
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
 		line += color.FgBlackBright + string(e.suggested[e.line.Len():]) + color.Reset
 	}
+
+	// Format tabs as spaces, for consistent display
+	line = strutil.FormatTabs(line)
 
 	// And display the line.
 	e.suggested.Set([]rune(line)...)

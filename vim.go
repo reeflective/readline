@@ -132,6 +132,7 @@ func (rl *Shell) viInsertMode() {
 	// Reset any visual selection and iterations.
 	rl.selection.Reset()
 	rl.Iterations.Reset()
+	rl.Buffers.Reset()
 
 	// Change the keymap and mark the insertion point.
 	rl.Keymap.SetLocal("")
@@ -142,8 +143,9 @@ func (rl *Shell) viInsertMode() {
 // Enter Vim command mode.
 func (rl *Shell) viCommandMode() {
 	// Reset any visual selection and iterations.
-	rl.Iterations.Reset()
 	rl.selection.Reset()
+	rl.Iterations.Reset()
+	rl.Buffers.Reset()
 
 	// Cancel completions and hints if any, and reassign the
 	// current line/cursor/selection for the cursor check below
@@ -167,6 +169,7 @@ func (rl *Shell) viCommandMode() {
 func (rl *Shell) viVisualMode() {
 	rl.History.SkipSave()
 	rl.Iterations.Reset()
+	rl.Buffers.Reset()
 
 	// Cancel completions and hints if any.
 	rl.Hint.Reset()
@@ -183,6 +186,7 @@ func (rl *Shell) viVisualMode() {
 func (rl *Shell) viVisualLineMode() {
 	rl.History.SkipSave()
 	rl.Iterations.Reset()
+	rl.Buffers.Reset()
 
 	rl.Hint.Reset()
 	rl.Completions.Reset()

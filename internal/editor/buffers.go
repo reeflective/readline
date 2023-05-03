@@ -175,6 +175,12 @@ func (reg *Buffers) WriteTo(register rune, content ...rune) {
 	}
 }
 
+// IsSelected returns the name of the selected register, and
+// true if one is indeed selected, or the default one and false.
+func (reg *Buffers) IsSelected() (name string, selected bool) {
+	return string(reg.active), reg.selected
+}
+
 // Reset forgets any active/pending buffer/register, but does not delete its contents.
 func (reg *Buffers) Reset() {
 	reg.active = ' '

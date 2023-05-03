@@ -628,7 +628,8 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 func (l *Line) Display(indent int) {
 	lines := strings.Split(string(*l), "\n")
 
-	if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
+	if strings.HasSuffix(string(*l), "\n") {
+		// if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
 		lines = append(lines, "")
 	}
 

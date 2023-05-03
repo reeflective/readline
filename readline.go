@@ -1,9 +1,11 @@
 package readline
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/reeflective/readline/inputrc"
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/term"
 )
@@ -131,14 +133,8 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// along with any pending ones, and reset iterations.
 	rl.execute(command)
 
-	// When iterations are active, show them in hint section.
-	hint := rl.Iterations.ResetPostCommand()
-
-	if hint != "" {
-		rl.Hint.Persist(hint)
-	} else {
-		rl.Hint.ResetPersist()
-	}
+	// Either print/clear iterations/active registers hints.
+	rl.updatePosRunHints()
 
 	// If the command just run was using the incremental search
 	// buffer (acting on it), update the list of matches.
@@ -176,6 +172,22 @@ func (rl *Shell) execute(command func()) {
 		rl.cursor.CheckCommand()
 	default:
 		rl.cursor.CheckAppend()
+	}
+}
+
+func (rl *Shell) updatePosRunHints() {
+	hint := rl.Iterations.ResetPostCommand()
+	register, selected := rl.Buffers.IsSelected()
+
+	if hint == "" && !selected {
+		rl.Hint.ResetPersist()
+		return
+	}
+
+	if hint != "" {
+		rl.Hint.Persist(hint)
+	} else if selected {
+		rl.Hint.Persist(color.Dim + fmt.Sprintf("(register: %s)", register))
 	}
 }
 
