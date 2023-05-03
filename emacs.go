@@ -601,6 +601,10 @@ func (rl *Shell) upCaseWord() {
 // Capitalize the current (or following) word.  With a negative argument,
 // capitalize the previous word, but do not move point.
 func (rl *Shell) capitalizeWord() {
+	if rl.line.Len() == 0 {
+		return
+	}
+
 	rl.History.Save()
 
 	startPos := rl.cursor.Pos()

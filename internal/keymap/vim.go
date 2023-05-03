@@ -108,7 +108,6 @@ var vicmdKeys = map[string]inputrc.Bind{
 	unescape("Y"):       {Action: "vi-yank-whole-line"},
 	unescape("|"):       {Action: "vi-column"},
 	unescape("~"):       {Action: "vi-change-case"},
-	unescape("g~"):      {Action: "vi-oper-swap-case"},
 }
 
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode.
