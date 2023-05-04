@@ -153,7 +153,7 @@ func IsControl(c rune) bool {
 	return c < Space && c&Meta == 0
 }
 
-// Enmeta encodes a Meta-c code
+// Enmeta encodes a Meta-c code.
 func Enmeta(c rune) rune {
 	return c | Meta
 }
@@ -210,5 +210,5 @@ const (
 	Tab       rune = '\t'
 	Vertical  rune = '\v'
 	Space     rune = ' '
-	// Rubout = Delete
+	// Rubout = Delete.
 )

@@ -9,4 +9,4 @@ require (
 	golang.org/x/term v0.3.0
 )
 
-require github.com/rivo/uniseg v0.4.4 // indirect
+require github.com/rivo/uniseg v0.4.4
