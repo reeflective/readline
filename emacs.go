@@ -1486,7 +1486,7 @@ func (rl *Shell) editAndExecuteCommand() {
 	buffer := *rl.line
 
 	// Edit in editor
-	edited, err := editor.EditBuffer(buffer, "", "")
+	edited, err := editor.EditBuffer(buffer, "", "", rl.Keymap.IsEmacs())
 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
 		rl.History.SkipSave()
 
@@ -1510,7 +1510,7 @@ func (rl *Shell) editCommandLine() {
 	keymapCur := rl.Keymap.Main()
 
 	// Edit in editor
-	edited, err := editor.EditBuffer(buffer, "", "")
+	edited, err := editor.EditBuffer(buffer, "", "", rl.Keymap.IsEmacs())
 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
 		rl.History.SkipSave()
 

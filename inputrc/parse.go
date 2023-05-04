@@ -16,6 +16,7 @@ import (
 // Parser is a inputrc parser.
 type Parser struct {
 	haltOnErr bool
+	strict    bool
 	name      string
 	app       string
 	term      string
@@ -191,6 +192,21 @@ func (p *Parser) doSet(h Handler, name, value string) error {
 	}
 	switch name {
 	case "keymap":
+		if p.strict {
+			switch value {
+			// see: man readline
+			// see: https://unix.stackexchange.com/questions/303479/what-are-readlines-modes-keymaps-and-their-default-bindings
+			case "emacs", "emacs-standard", "emacs-meta", "emacs-ctlx",
+				"vi", "vi-move", "vi-command", "vi-insert":
+			default:
+				return &ParseError{
+					Name: p.name,
+					Line: p.line,
+					Text: value,
+					Err:  ErrInvalidKeymap,
+				}
+			}
+		}
 		p.keymap = value
 		return nil
 	case "editing-mode":
@@ -248,7 +264,6 @@ func (p *Parser) do(h Handler, a, b string) error {
 			eval = strings.TrimPrefix(b, "mode=") == p.mode
 		case strings.HasPrefix(b, "term="):
 			eval = strings.TrimPrefix(b, "term=") == p.term
-			// TODO: Should add a case for simple readline variable equality test.
 		default:
 			eval = strings.ToLower(b) == p.app
 		}
@@ -311,6 +326,13 @@ type Option func(*Parser)
 func WithHaltOnErr(haltOnErr bool) Option {
 	return func(p *Parser) {
 		p.haltOnErr = haltOnErr
+	}
+}
+
+// WithStrict is a parser option to set strict keymap parsing.
+func WithStrict(strict bool) Option {
+	return func(p *Parser) {
+		p.strict = strict
 	}
 }
 
@@ -592,12 +614,12 @@ func unescapeRunes(r []rune, i, end int) string {
 	return string(s)
 }
 
-// octDigit returns true when r is 0-7.
+// octDigit returns true when r is 0-7
 func octDigit(c rune) bool {
 	return '0' <= c && c <= '7'
 }
 
-// hexDigit returns true when r is 0-9A-Fa-f.
+// hexDigit returns true when r is 0-9A-Fa-f
 func hexDigit(c rune) bool {
 	return '0' <= c && c <= '9' || 'A' <= c && c <= 'F' || 'a' <= c && c <= 'f'
 }
