@@ -20,7 +20,6 @@ type Sources struct {
 	names      []string          // Names of histories stored in rl.histories
 	maxEntries int               // Inputrc configured maximum number of entries.
 	sourcePos  int               // The index of the currently used history
-	buf        string            // The current line saved when we are on another history line
 	hpos       int               // Index used for navigating the history lines with arrows/j/k
 	infer      bool              // If the last command ran needs to infer the history line.
 	accepted   bool              // The line has been accepted and must be returned.
@@ -28,7 +27,7 @@ type Sources struct {
 	acceptLine core.Line         // The line to return to the caller.
 	acceptErr  error             // An error to return to the caller.
 
-	// Line history
+	// Line changes history
 	skip    bool
 	undoing bool
 	last    inputrc.Bind
@@ -177,7 +176,9 @@ func (h *Sources) Walk(pos int) {
 
 	// Save the current line buffer if we are leaving it.
 	if h.hpos == 0 && (h.hpos+pos) == 1 {
-		h.buf = string(*h.line)
+		h.skip = false
+		h.Save()
+		h.cpos = -1
 	}
 
 	h.hpos += pos
@@ -188,11 +189,7 @@ func (h *Sources) Walk(pos int) {
 	case h.hpos < 0:
 		h.hpos = 0
 	case h.hpos == 0:
-		h.line.Set([]rune(h.buf)...)
-		h.cursor.Set(h.line.Len())
-	}
-
-	if h.hpos == 0 {
+		h.restoreLineBuffer()
 		return
 	}
 
@@ -231,8 +228,7 @@ func (h *Sources) Fetch(pos int) {
 		return
 	}
 
-	h.line.Set([]rune(line)...)
-	h.cursor.Set(h.line.Len())
+	h.setLineCursorMatch(line)
 }
 
 // GetLast returns the last saved history line in the active history source.
@@ -340,8 +336,11 @@ func (h *Sources) Accept(hold, infer bool, err error) {
 	h.acceptLine = *h.line
 	h.acceptErr = err
 
-	// Simply write the line to the history sources.
-	h.Write(infer)
+	// Write the line to the history sources only when the line is not
+	// returned along with an error (generally, a CtrlC/CtrlD keypress).
+	if err == nil {
+		h.Write(infer)
+	}
 }
 
 // LineAccepted returns true if the user has accepted the line, signaling
@@ -385,14 +384,40 @@ func (h *Sources) InsertMatch(line *core.Line, cur *core.Cursor, usePos, fwd, re
 		return
 	}
 
-	match, pos, found := h.match(line, cur, usePos, fwd, regexp)
-	if !found {
+	// When the provided line is empty, we must use
+	// the last known state of the main input line.
+	line, cur = h.getLine(line, cur)
+	preservePoint := cur.Pos() != 0
+
+	// Don't go back to the beginning of
+	// history if we are at the end of it.
+	if fwd && h.hpos <= 0 {
+		h.hpos = 0
 		return
 	}
 
+	match, pos, found := h.match(line, cur, usePos, fwd, regexp)
+
+	// If no match was found, return anyway, but if we were going forward
+	// (down to the current input line), reinstore the main line buffer.
+	if !found {
+		if fwd {
+			h.hpos = 0
+			h.Undo()
+		}
+
+		return
+	}
+
+	// Update the line/cursor, and save the history position
 	h.hpos = h.Current().Len() - pos
 	h.line.Set([]rune(match)...)
-	h.cursor.Set(h.line.Len())
+
+	if preservePoint {
+		h.cursor.Set(cur.Pos())
+	} else {
+		h.cursor.Set(h.line.Len())
+	}
 }
 
 // InferNext finds a line matching the current line in the history,
@@ -564,7 +589,7 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 	}
 
 	for done(histPos) {
-		// Set index and fetch the line
+		// Fetch the next/prev line and adapt its length.
 		histPos = move(histPos)
 
 		histline, err := history.GetLine(histPos)
@@ -572,15 +597,15 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 			return
 		}
 
+		cline := string(*match)
+		if cur != nil && cur.Pos() < match.Len() {
+			cline = cline[:cur.Pos()]
+		}
+
 		// Matching: either as substring (regex) or since beginning.
 		switch {
 		case regex:
-			line := string(*match)
-			if cur.Pos() < match.Len() {
-				line = line[:cur.Pos()]
-			}
-
-			regexLine, err := regexp.Compile(regexp.QuoteMeta(line))
+			regexLine, err := regexp.Compile(regexp.QuoteMeta(cline))
 			if err != nil {
 				continue
 			}
@@ -592,7 +617,7 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 
 		default:
 			// If too short or if not fully matching
-			if len(histline) < match.Len() || !strings.HasPrefix(histline, string(*match)) {
+			if len(histline) < len(cline) || (len(cline) > 0 && !strings.HasPrefix(histline, cline)) {
 				continue
 			}
 		}
@@ -605,9 +630,46 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 	return "", 0, false
 }
 
+// use the "main buffer" and its cursor if no line/cursor has been provided to match against.
+func (h *Sources) getLine(line *core.Line, cur *core.Cursor) (*core.Line, *core.Cursor) {
+	if h.hpos == 0 {
+		skip := h.skip
+		h.skip = false
+		h.Save()
+		h.skip = skip
+	}
+
+	if line == nil {
+		line = new(core.Line)
+		cur = core.NewCursor(line)
+
+		hist := h.getHistoryLineChanges()
+		if hist == nil {
+			return line, cur
+		}
+
+		lh := hist[0]
+		if lh == nil || len(lh.items) == 0 {
+			return line, cur
+		}
+
+		undo := lh.items[len(lh.items)-1]
+		line.Set([]rune(undo.line)...)
+		cur.Set(undo.pos)
+	}
+
+	if cur == nil {
+		cur = core.NewCursor(line)
+	}
+
+	return line, cur
+}
+
+// when walking down/up the lines (not search-matching them),
+// this updates the buffer and the cursor position.
 func (h *Sources) setLineCursorMatch(next string) {
 	// Save the current cursor position when not saved before.
-	if h.cpos == -1 && h.line.Len() > 0 && h.cursor.Pos() < h.line.Len()-1 {
+	if h.cpos == -1 && h.line.Len() > 0 && h.cursor.Pos() <= h.line.Len() {
 		h.cpos = h.cursor.Pos()
 	}
 

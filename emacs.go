@@ -1,8 +1,10 @@
 package readline
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 	"unicode"
@@ -1196,7 +1198,7 @@ func (rl *Shell) abort() {
 
 	// If no line was active,
 	rl.Display.AcceptLine()
-	rl.History.Accept(false, false, nil)
+	rl.History.Accept(false, false, errors.New(os.Interrupt.String()))
 }
 
 // If the metafied character x is uppercase, run the command

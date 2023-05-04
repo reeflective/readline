@@ -192,10 +192,11 @@ func (h *Sources) Reset() {
 	h.undoing = false
 }
 
-func (h *Sources) getLineHistory() *lineHistory {
+// Always returns a non-nil map, whether or not a history source is found.
+func (h *Sources) getHistoryLineChanges() map[int]*lineHistory {
 	history := h.Current()
 	if history == nil {
-		return nil
+		return map[int]*lineHistory{}
 	}
 
 	// Get the state changes of all history lines
@@ -208,10 +209,39 @@ func (h *Sources) getLineHistory() *lineHistory {
 		hist = h.lines[source]
 	}
 
+	return hist
+}
+
+func (h *Sources) getLineHistory() *lineHistory {
+	hist := h.getHistoryLineChanges()
+	if hist == nil {
+		return &lineHistory{}
+	}
+
 	if hist[h.hpos] == nil {
 		hist[h.hpos] = &lineHistory{}
 	}
 
 	// Return the state changes of the current line.
 	return hist[h.hpos]
+}
+
+func (h *Sources) restoreLineBuffer() {
+	hist := h.getHistoryLineChanges()
+	if hist == nil {
+		return
+	}
+
+	// Get the undo states for the line buffer
+	// (the last one, not any of the history ones)
+	lh := hist[0]
+	if lh == nil || len(lh.items) == 0 {
+		return
+	}
+
+	undo := lh.items[len(lh.items)-1]
+
+	// Restore the line to the last known state.
+	h.line.Set([]rune(undo.line)...)
+	h.cursor.Set(undo.pos)
 }

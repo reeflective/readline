@@ -87,6 +87,8 @@ func (rl *Shell) historyCommands() commands {
 		"end-of-line-hist":                   rl.endOfLineHist,
 		"incremental-forward-search-history": rl.incrementalForwardSearchHistory,
 		"incremental-reverse-search-history": rl.incrementalReverseSearchHistory,
+		"history-source-next":                rl.historySourceNext,
+		"history-source-prev":                rl.historySourcePrev,
 		"autosuggest-accept":                 rl.autosuggestAccept,
 		"autosuggest-execute":                rl.autosuggestExecute,
 		"autosuggest-enable":                 rl.autosuggestEnable,
@@ -191,10 +193,7 @@ func (rl *Shell) nonIncrementalReverseSearchHistory() {
 // This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchForward() {
 	rl.History.Save()
-
-	cpos := rl.cursor.Pos()
-	rl.History.InsertMatch(rl.line, rl.cursor, true, true, false)
-	rl.cursor.Set(cpos)
+	rl.History.InsertMatch(nil, nil, true, true, false)
 }
 
 // Search backward through the history for the string of characters
@@ -203,24 +202,21 @@ func (rl *Shell) historySearchForward() {
 // This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchBackward() {
 	rl.History.Save()
-
-	cpos := rl.cursor.Pos()
-	rl.History.InsertMatch(rl.line, rl.cursor, true, false, false)
-	rl.cursor.Set(cpos)
+	rl.History.InsertMatch(nil, nil, true, false, false)
 }
 
 // Search forward through the history for the string of characters
 // between the start of the current line and the current cursor position.
-// The search string may match anywhere in a history line.  This is a non-
-// incremental search.
+// The search string may match anywhere in a history line.
+// This is a non-incremental search.
 func (rl *Shell) historySubstringSearchForward() {
 	rl.History.InsertMatch(rl.line, rl.cursor, true, true, true)
 }
 
 // Search backward through the history for the string of characters
 // between the start of the current line and the current cursor position.
-// The search string may match anywhere in a history line.  This is a non-
-// incremental search.
+// The search string may match anywhere in a history line.
+// This is a non-incremental search.
 func (rl *Shell) historySubstringSearchBackward() {
 	rl.History.InsertMatch(rl.line, rl.cursor, true, false, true)
 }
@@ -515,6 +511,20 @@ func (rl *Shell) incrementalForwardSearchHistory() {
 func (rl *Shell) incrementalReverseSearchHistory() {
 	rl.History.SkipSave()
 	rl.historyCompletion(false, true, false)
+}
+
+// If more than one source of command history is bound to the shell,
+// cycle to the next one and use it for all history search operations,
+// movements across lines, their respective undo histories, etc.
+func (rl *Shell) historySourceNext() {
+	rl.History.Cycle(true)
+}
+
+// If more than one source of command history is bound to the shell,
+// cycle to the previous one and use it for all history search operations,
+// movements across lines, their respective undo histories, etc.
+func (rl *Shell) historySourcePrev() {
+	rl.History.Cycle(false)
 }
 
 // If a line is currently autoggested, make it the buffer.
