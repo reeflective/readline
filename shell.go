@@ -2,7 +2,6 @@ package readline
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/completion"
@@ -93,8 +92,6 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	shell.Iterations = iterations
 
 	// Keymaps and commands
-	opts = append(opts, inputrc.WithTerm(os.Getenv("TERM")))
-
 	keymaps, config := keymap.NewEngine(keys, iterations, opts...)
 	keymaps.Register(shell.standardCommands())
 	keymaps.Register(shell.viCommands())
