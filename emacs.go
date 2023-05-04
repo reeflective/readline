@@ -350,7 +350,7 @@ func (rl *Shell) backwardDeleteChar() {
 		if rl.line.Len() > rl.cursor.Pos() {
 			toDelete = (*rl.line)[rl.cursor.Pos()-1]
 			isSurround = strutil.IsBracket(toDelete) || toDelete == '\'' || toDelete == '"'
-			matcher = strutil.IsSurround(toDelete, (*rl.line)[rl.cursor.Pos()])
+			matcher = strutil.IsSurround(toDelete, rl.cursor.Char())
 		}
 
 		rl.cursor.Dec()
@@ -449,6 +449,8 @@ func (rl *Shell) transposeChars() {
 		return
 	}
 
+	rl.History.Save()
+
 	switch {
 	case rl.cursor.Pos() == rl.line.Len():
 		last := (*rl.line)[rl.cursor.Pos()-1]
@@ -456,10 +458,10 @@ func (rl *Shell) transposeChars() {
 		(*rl.line)[rl.cursor.Pos()-2] = last
 		(*rl.line)[rl.cursor.Pos()-1] = blast
 	default:
-		last := (*rl.line)[rl.cursor.Pos()]
+		last := rl.cursor.Char()
 		blast := (*rl.line)[rl.cursor.Pos()-1]
 		(*rl.line)[rl.cursor.Pos()-1] = last
-		(*rl.line)[rl.cursor.Pos()] = blast
+		rl.cursor.ReplaceWith(blast)
 	}
 }
 
@@ -615,9 +617,8 @@ func (rl *Shell) capitalizeWord() {
 	backward := rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos())
 	rl.cursor.Move(backward)
 
-	letter := (*rl.line)[rl.cursor.Pos()]
-	upper := unicode.ToUpper(letter)
-	(*rl.line)[rl.cursor.Pos()] = upper
+	letter := rl.cursor.Char()
+	rl.cursor.ReplaceWith(unicode.ToUpper(letter))
 	rl.cursor.Set(startPos)
 }
 
@@ -663,7 +664,7 @@ func (rl *Shell) overwriteMode() {
 			if len(cache) > 0 && rl.cursor.Pos() < lineStart {
 				key = cache[len(cache)-1]
 				cache = cache[:len(cache)-1]
-				(*rl.line)[rl.cursor.Pos()] = key
+				rl.cursor.ReplaceWith(key)
 			}
 		} else {
 			// If the cursor is at the end of the line,
@@ -671,8 +672,8 @@ func (rl *Shell) overwriteMode() {
 			if rl.line.Len() == rl.cursor.Pos() {
 				rl.line.Insert(rl.cursor.Pos(), key)
 			} else {
-				cache = append(cache, (*rl.line)[rl.cursor.Pos()])
-				(*rl.line)[rl.cursor.Pos()] = key
+				cache = append(cache, rl.cursor.Char())
+				rl.cursor.ReplaceWith(key)
 			}
 
 			rl.cursor.Inc()

@@ -68,6 +68,36 @@ func (c *Cursor) Move(offset int) {
 	c.pos += offset
 }
 
+// Char returns the rune (unicode point) under the cursor.
+// If the line is empty, or if the cursor is appending to
+// the line, the returned rune is 0 (rune(0)).
+func (c *Cursor) Char() rune {
+	c.CheckAppend()
+
+	if c.line.Len() == 0 {
+		return rune(0)
+	}
+
+	if c.pos >= c.line.Len() {
+		return rune(0)
+	}
+
+	return (*c.line)[c.pos]
+}
+
+// ReplaceWith replaces the rune (unicode point) under the cursor with the provided one.
+// If the cursor is appending to the line, the character is appended to it.
+func (c *Cursor) ReplaceWith(char rune) {
+	c.CheckAppend()
+
+	switch {
+	case c.pos == c.line.Len():
+		c.line.Insert(c.line.Len(), char)
+	default:
+		(*c.line)[c.pos] = char
+	}
+}
+
 // ToFirstNonSpace moves the cursor either backward or forward to
 // the first character in the line that is not a space, a tab or
 // a newline. If the current is not one, the cursor doesn't move.
@@ -307,7 +337,7 @@ func (c *Cursor) CheckCommand() {
 
 	// The cursor can also not be on a newline sign,
 	// as it will induce the line rendering into an error.
-	if c.line.Len() > 0 && c.pos < c.line.Len() && (*c.line)[c.pos] == '\n' && !c.OnEmptyLine() {
+	if c.line.Len() > 0 && c.pos < c.line.Len() && c.Char() == '\n' && !c.OnEmptyLine() {
 		c.Dec()
 	}
 }
@@ -420,7 +450,7 @@ func (c *Cursor) moveLineUp() {
 }
 
 func (c *Cursor) onSpace() bool {
-	switch (*c.line)[c.pos] {
+	switch c.Char() {
 	case inputrc.Space, inputrc.Newline, inputrc.Tab:
 		return true
 	default:

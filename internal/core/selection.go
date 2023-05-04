@@ -519,7 +519,7 @@ func (s *Selection) HighlightMatchers() {
 		return
 	}
 
-	if strutil.IsBracket((*s.line)[cpos]) {
+	if strutil.IsBracket(s.cursor.Char()) {
 		var adjust, ppos int
 
 		split, index, pos := s.line.TokenizeBlock(cpos)
@@ -680,7 +680,7 @@ func (s *Selection) selectToCursor(bpos int) (int, int) {
 }
 
 func (s *Selection) spacesAroundWord(cpos int) (before, under bool) {
-	under = isSpace((*s.line)[cpos])
+	under = isSpace(s.cursor.Char())
 	before = cpos > 0 && isSpace((*s.line)[cpos-1])
 
 	return

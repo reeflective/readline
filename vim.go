@@ -343,7 +343,7 @@ func (rl *Shell) viBackwardWordEnd() {
 		rl.cursor.Move(rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos()))
 
 		// Then move forward, adjusting if we are on a punctuation.
-		if strutil.IsPunctuation((*rl.line)[rl.cursor.Pos()]) {
+		if strutil.IsPunctuation(rl.cursor.Char()) {
 			rl.cursor.Dec()
 		}
 
@@ -399,7 +399,7 @@ func (rl *Shell) viMatchBracket() {
 	found := false
 
 	// If we are on a bracket/brace/parenthesis, we just find the matcher
-	if !strutil.IsBracket((*rl.line)[rl.cursor.Pos()]) {
+	if !strutil.IsBracket(rl.cursor.Char()) {
 		for i := rl.cursor.Pos() + 1; i < rl.line.Len(); i++ {
 			char := (*rl.line)[i]
 			if char == '}' || char == ')' || char == ']' {
@@ -619,7 +619,7 @@ func (rl *Shell) viDeleteChar() {
 	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
-		cutBuf = append(cutBuf, (*rl.line)[rl.cursor.Pos()])
+		cutBuf = append(cutBuf, rl.cursor.Char())
 		rl.line.CutRune(rl.cursor.Pos())
 	}
 
@@ -692,7 +692,7 @@ func (rl *Shell) viReplace() {
 			if len(cache) > 0 && rl.cursor.Pos() < lineStart {
 				key = cache[len(cache)-1]
 				cache = cache[:len(cache)-1]
-				(*rl.line)[rl.cursor.Pos()] = key
+				rl.cursor.ReplaceWith(key)
 			}
 		} else {
 			// If the cursor is at the end of the line,
@@ -700,8 +700,8 @@ func (rl *Shell) viReplace() {
 			if rl.line.Len() == rl.cursor.Pos() {
 				rl.line.Insert(rl.cursor.Pos(), key)
 			} else {
-				cache = append(cache, (*rl.line)[rl.cursor.Pos()])
-				(*rl.line)[rl.cursor.Pos()] = key
+				cache = append(cache, rl.cursor.Char())
+				rl.cursor.ReplaceWith(key)
 			}
 
 			rl.cursor.Inc()
@@ -733,14 +733,14 @@ func (rl *Shell) viChangeCase() {
 			return
 		}
 
-		char := (*rl.line)[rl.cursor.Pos()]
+		char := rl.cursor.Char()
 		if unicode.IsLower(char) {
 			char = unicode.ToUpper(char)
 		} else {
 			char = unicode.ToLower(char)
 		}
 
-		(*rl.line)[rl.cursor.Pos()] = char
+		rl.cursor.ReplaceWith(char)
 	}
 }
 
@@ -973,7 +973,7 @@ func (rl *Shell) viRubout() {
 		}
 
 		rl.cursor.Dec()
-		cut = append(cut, (*rl.line)[rl.cursor.Pos()])
+		cut = append(cut, rl.cursor.Char())
 		rl.line.CutRune(rl.cursor.Pos())
 	}
 
