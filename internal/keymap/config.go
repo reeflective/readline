@@ -67,14 +67,18 @@ func (m *Engine) loadBuiltinBinds() {
 		m.config.Binds[string(Emacs)][seq] = bind
 	}
 
-	// Load default keymaps (main)
+	// Vim main keymaps
 	for seq, bind := range vicmdKeys {
 		m.config.Binds[string(ViCmd)][seq] = bind
 		m.config.Binds[string(ViMove)][seq] = bind
 		m.config.Binds[string(Vi)][seq] = bind
 	}
 
-	// Load default keymaps(local)
+	for seq, bind := range viinsKeys {
+		m.config.Binds[string(ViIns)][seq] = bind
+	}
+
+	// Vim local keymaps
 	m.config.Binds[string(Visual)] = visualKeys
 	m.config.Binds[string(ViOpp)] = vioppKeys
 	m.config.Binds[string(MenuSelect)] = menuselectKeys
