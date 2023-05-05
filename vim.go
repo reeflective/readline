@@ -68,7 +68,6 @@ func (rl *Shell) viCommands() commands {
 
 		"vi-change-eol":      rl.viChangeEol,
 		"vi-add-surround":    rl.viAddSurround,
-		"vi-change-surround": rl.viChangeSurround,
 		"vi-open-line-above": rl.viOpenLineAbove,
 		"vi-open-line-below": rl.viOpenLineBelow,
 		"vi-down-case":       rl.viDownCase,
@@ -96,6 +95,7 @@ func (rl *Shell) viCommands() commands {
 		"select-in-blank-word": rl.viSelectInBlankWord,
 		"select-in-shell-word": rl.viSelectInShellWord,
 		"select-in-word":       rl.viSelectInWord,
+		"vi-select-inside":     rl.viSelectInside,
 		"vi-select-surround":   rl.viSelectSurround,
 
 		// Miscellaneous
@@ -136,7 +136,7 @@ func (rl *Shell) viInsertMode() {
 
 	// Change the keymap and mark the insertion point.
 	rl.Keymap.SetLocal("")
-	rl.Keymap.SetMain(keymap.ViIns)
+	rl.Keymap.SetMain(keymap.ViInsert)
 	rl.cursor.SetMark()
 }
 
@@ -155,14 +155,14 @@ func (rl *Shell) viCommandMode() {
 	rl.line, rl.cursor, rl.selection = rl.Completions.GetBuffer()
 
 	// Only go back if not in insert mode
-	if rl.Keymap.Main() == keymap.ViIns && !rl.cursor.AtBeginningOfLine() {
+	if rl.Keymap.Main() == keymap.ViInsert && !rl.cursor.AtBeginningOfLine() {
 		rl.cursor.Dec()
 	}
 
 	// Update the cursor position, keymap and insertion point.
 	rl.cursor.CheckCommand()
 	rl.Keymap.SetLocal("")
-	rl.Keymap.SetMain(keymap.ViCmd)
+	rl.Keymap.SetMain(keymap.ViCommand)
 }
 
 // Enter Vim visual mode.
@@ -246,7 +246,7 @@ func (rl *Shell) viForwardChar() {
 
 	// In vi-cmd-mode, we don't go further than the
 	// last character in the line, hence rl.line-1
-	if rl.Keymap.Main() != keymap.ViIns && rl.cursor.Pos() < rl.line.Len()-1 {
+	if rl.Keymap.Main() != keymap.ViInsert && rl.cursor.Pos() < rl.line.Len()-1 {
 		vii := rl.Iterations.Get()
 
 		for i := 1; i <= vii; i++ {
@@ -522,6 +522,35 @@ func (rl *Shell) viChangeTo() {
 		rl.selection.Visual(true)
 		rl.selection.Cut()
 		rl.viInsertMode()
+
+	case len(rl.selection.Surrounds()) == 2:
+		// In surround selection mode, change the surrounding chars.
+		rl.Display.Refresh()
+		defer rl.selection.Reset()
+
+		// Now read another key
+		done := rl.Keymap.PendingCursor()
+		defer done()
+
+		key, isAbort := rl.Keys.ReadKey()
+		if isAbort {
+			return
+		}
+
+		rl.History.Save()
+
+		rchar := key[0]
+
+		// There might be a matching equivalent.
+		bchar, echar := strutil.MatchSurround(rchar)
+
+		surrounds := rl.selection.Surrounds()
+
+		bpos, _ := surrounds[0].Pos()
+		epos, _ := surrounds[1].Pos()
+
+		(*rl.line)[bpos] = bchar
+		(*rl.line)[epos] = echar
 
 	case rl.selection.Active():
 		// In visual mode, we have just have a selection to delete.
@@ -803,55 +832,6 @@ func (rl *Shell) viAddSurround() {
 	rl.selection.Surround(bchar, echar)
 }
 
-// Read a key from the keyboard, attempt to find a pair of this key around the cursor,
-// and if found, read another key with which to replace the matched keys.
-func (rl *Shell) viChangeSurround() {
-	rl.History.Save()
-	rl.History.SkipSave()
-
-	// Read a key as a rune to search for
-	done := rl.Keymap.PendingCursor()
-	defer done()
-
-	key, isAbort := rl.Keys.ReadKey()
-	if isAbort {
-		return
-	}
-
-	char := rune(key[0])
-
-	// Find the corresponding enclosing chars
-	bpos, epos, _, _ := rl.line.FindSurround(char, rl.cursor.Pos())
-	if bpos == -1 || epos == -1 {
-		return
-	}
-
-	// Add those two positions to highlighting and update.
-	rl.selection.MarkSurround(bpos, epos)
-	rl.Display.Refresh()
-
-	defer rl.selection.Reset()
-
-	// Now read another key
-	done = rl.Keymap.PendingCursor()
-	defer done()
-
-	key, isAbort = rl.Keys.ReadKey()
-	if isAbort {
-		return
-	}
-
-	rl.History.Save()
-
-	rchar := rune(key[0])
-
-	// There might be a matching equivalent.
-	bchar, echar := strutil.MatchSurround(rchar)
-
-	(*rl.line)[bpos] = bchar
-	(*rl.line)[epos] = echar
-}
-
 // Create a new line above the current one, and enter insert mode.
 func (rl *Shell) viOpenLineAbove() {
 	rl.History.Save()
@@ -958,7 +938,7 @@ func (rl *Shell) viKillEol() {
 
 // Kill the word from its beginning up to the cursor point.
 func (rl *Shell) viRubout() {
-	if rl.Keymap.Main() != keymap.ViIns {
+	if rl.Keymap.Main() != keymap.ViInsert {
 		rl.History.Save()
 	}
 
@@ -1239,7 +1219,8 @@ func (rl *Shell) viSelectInWord() {
 }
 
 // Read a key from the keyboard, and attempt to select a region surrounded by those keys.
-func (rl *Shell) viSelectSurround() {
+// If the key triggering this command is 'i', the selection excludes the surrounding chars.
+func (rl *Shell) viSelectInside() {
 	rl.History.SkipSave()
 
 	var inside bool
@@ -1249,8 +1230,7 @@ func (rl *Shell) viSelectSurround() {
 	// the only that triggered this command, so check the second.
 	// Use the first key to know if inside/around is used.
 	key, _ := rl.Keys.Pop()
-	switch key {
-	case 'i':
+	if key == 'i' {
 		inside = true
 	}
 
@@ -1274,6 +1254,32 @@ func (rl *Shell) viSelectSurround() {
 	// to do with the cursor position and the selection itself.
 	rl.selection.Mark(bpos)
 	rl.cursor.Set(epos)
+}
+
+// Read a key from the keyboard, and attempt to create a selection
+// consisting of a pair of this character, if any such pair can be found.
+func (rl *Shell) viSelectSurround() {
+	rl.History.SkipSave()
+
+	// Read a key as a rune to search for
+	done := rl.Keymap.PendingCursor()
+	defer done()
+
+	key, isAbort := rl.Keys.ReadKey()
+	if isAbort {
+		return
+	}
+
+	char := key[0]
+
+	// Find the corresponding enclosing chars
+	bpos, epos, _, _ := rl.line.FindSurround(char, rl.cursor.Pos())
+	if bpos == -1 || epos == -1 {
+		return
+	}
+
+	// Add those two positions to highlighting and update.
+	rl.selection.MarkSurround(bpos, epos)
 }
 
 //
@@ -1406,7 +1412,7 @@ func (rl *Shell) viEditCommandLine() {
 
 	// We're done with visual mode when we were in.
 	switch keymapCur {
-	case keymap.ViCmd, keymap.Vi:
+	case keymap.ViCommand, keymap.Vi:
 		rl.viCommandMode()
 	default:
 		rl.viInsertMode()
@@ -1540,7 +1546,7 @@ func (rl *Shell) adjustSelectionPending() {
 	case "select-in-word", "select-a-word",
 		"select-in-blank-word", "select-a-blank-word",
 		"select-in-shell-word", "select-a-shell-word",
-		"vi-select-surround":
+		"vi-select-inside":
 		rl.selection.Visual(false)
 	}
 }

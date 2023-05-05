@@ -75,9 +75,11 @@ func (s *Selection) MarkRange(bpos, epos int) {
 // The first area starts at bpos, and the second one at epos. If either bpos
 // is negative or epos is > line.Len()-1, no selection is created.
 func (s *Selection) MarkSurround(bpos, epos int) {
-	if bpos < 0 || epos > s.line.Len() {
+	if bpos < 0 || epos > s.line.Len()-1 {
 		return
 	}
+
+	s.active = true
 
 	for _, pos := range []int{bpos, epos} {
 		s.surrounds = append(s.surrounds, Selection{
@@ -498,14 +500,25 @@ func (s *Selection) Cut() (buf string) {
 
 	defer s.Reset()
 
-	bpos, epos := s.Pos()
-	if bpos == -1 || epos == -1 {
-		return
+	switch {
+	case len(s.surrounds) > 0:
+		offset := 0
+
+		for _, surround := range s.surrounds {
+			s.line.CutRune(surround.bpos - offset)
+			offset++
+		}
+
+	default:
+		bpos, epos := s.Pos()
+		if bpos == -1 || epos == -1 {
+			return
+		}
+
+		buf = s.Text()
+
+		s.line.Cut(bpos, epos)
 	}
-
-	buf = s.Text()
-
-	s.line.Cut(bpos, epos)
 
 	return
 }
