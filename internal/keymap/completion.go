@@ -19,7 +19,13 @@ var menuselectKeys = map[string]inputrc.Bind{
 // The isearch keymap is empty by default: the widgets that can
 // be used while in incremental search mode will be found in the
 // main keymap, so that the same keybinds can be used.
-var isearchKeys = map[string]string{}
+var isearchKeys = map[string]inputrc.Bind{
+	// Completion keys
+	unescape(`\C-i`):    {Action: "menu-complete"},
+	unescape(`\e[Z`):    {Action: "menu-complete-backward"},
+	unescape(`\e[1;5B`): {Action: "menu-complete-next-tag"},
+	unescape(`\e[1;5A`): {Action: "menu-complete-prev-tag"},
+}
 
 // those widgets, generally found in the main keymap, are the only
 // valid widgets to be used in the incremental search minibuffer.

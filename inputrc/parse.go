@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
@@ -295,7 +297,8 @@ func (p *Parser) do(h Handler, a, b string) error {
 		if !p.conds[len(p.conds)-1] {
 			return nil
 		}
-		buf, err := h.ReadFile(b)
+		path := expandIncludePath(b)
+		buf, err := h.ReadFile(path)
 		switch {
 		case err != nil && errors.Is(err, os.ErrNotExist):
 			return nil
@@ -478,6 +481,7 @@ func decodeKey(r []rune, i, end int) (string, int, error) {
 	switch s {
 	case "":
 		return "", i, nil
+
 	case "delete", "del", "rubout":
 		c = Delete
 	case "escape", "esc":
@@ -601,8 +605,13 @@ func unescapeRunes(r []rune, i, end int) string {
 				}
 				i += 3
 			case c1 == 'M' && c2 == '-': // \M- meta prefix
-				s = append(s, Enmeta(c3))
-				i += 3
+				if c3 == 0 {
+					s = append(s, Esc)
+					i += 2
+				} else {
+					s = append(s, Enmeta(c3))
+					i += 3
+				}
 			default:
 				s = append(s, c1)
 				i += 1
@@ -633,4 +642,18 @@ func hexVal(c rune) rune {
 		return c - 'A' + 10
 	}
 	return c - '0'
+}
+
+// expandIncludePath handles tilde home directory expansion in $include path directives.
+func expandIncludePath(file string) string {
+	if !strings.HasPrefix(file, "~/") {
+		return file
+	}
+
+	u, err := user.Current()
+	if err != nil || u == nil || u.HomeDir == "" {
+		return file
+	}
+
+	return filepath.Join(u.HomeDir, file[2:])
 }

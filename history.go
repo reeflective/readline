@@ -79,7 +79,7 @@ func (rl *Shell) historyCommands() commands {
 		"down-line-or-history":               rl.downLineOrHistory,
 		"up-line-or-history":                 rl.upLineOrHistory,
 		"up-line-or-search":                  rl.upLineOrSearch,
-		"down-line-or-search":                rl.downLineOrSearch,
+		"down-line-or-select":                rl.downLineOrSelect,
 		"infer-next-history":                 rl.inferNextHistory,
 		"beginning-of-buffer-or-history":     rl.beginningOfBufferOrHistory,
 		"end-of-buffer-or-history":           rl.endOfBufferOrHistory,
@@ -420,13 +420,13 @@ func (rl *Shell) upLineOrSearch() {
 
 // If the cursor is on the last line of the buffer, start an incremental
 // search forward on the history lines. Otherwise, move up a line in the buffer.
-func (rl *Shell) downLineOrSearch() {
+func (rl *Shell) downLineOrSelect() {
 	rl.History.SkipSave()
 	switch {
 	case rl.cursor.Line() < rl.line.Lines():
 		rl.cursor.LineMove(1)
 	default:
-		rl.historySearchForward()
+		rl.menuComplete()
 	}
 }
 
@@ -440,26 +440,28 @@ func (rl *Shell) inferNextHistory() {
 // If the cursor is not at the beginning of the buffer, go to it.
 // Otherwise, go to the beginning of history.
 func (rl *Shell) beginningOfBufferOrHistory() {
-	rl.History.SkipSave()
-
 	if rl.cursor.Pos() > 0 {
+		rl.History.SkipSave()
 		rl.cursor.Set(0)
+
 		return
 	}
 
+	rl.History.Save()
 	rl.beginningOfHistory()
 }
 
 // If the cursor is not at the end of the buffer, go to it.
 // Otherwise, go to the end of history.
 func (rl *Shell) endOfBufferOrHistory() {
-	rl.History.SkipSave()
-
 	if rl.cursor.Pos() < rl.line.Len()-1 {
+		rl.History.SkipSave()
 		rl.cursor.Set(rl.line.Len())
+
 		return
 	}
 
+	rl.History.Save()
 	rl.endOfHistory()
 }
 
@@ -467,15 +469,17 @@ func (rl *Shell) endOfBufferOrHistory() {
 // If at the beginning of the line, attempt to move one line up.
 // If at the beginning of the buffer, move up one history line.
 func (rl *Shell) beginningOfLineHist() {
-	rl.History.SkipSave()
-
 	switch {
 	case rl.cursor.Pos() > 0:
+		rl.History.SkipSave()
+
 		if rl.cursor.AtBeginningOfLine() {
 			rl.cursor.Dec()
 		}
+
 		rl.beginningOfLine()
 	default:
+		rl.History.Save()
 		rl.History.Walk(1)
 	}
 }
@@ -488,6 +492,8 @@ func (rl *Shell) endOfLineHist() {
 
 	switch {
 	case rl.cursor.Pos() < rl.line.Len()-1:
+		rl.History.SkipSave()
+
 		if rl.cursor.AtEndOfLine() {
 			rl.cursor.Inc()
 		}
@@ -495,6 +501,7 @@ func (rl *Shell) endOfLineHist() {
 		rl.endOfLine()
 
 	default:
+		rl.History.Save()
 		rl.History.Walk(-1)
 	}
 }

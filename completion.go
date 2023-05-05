@@ -89,6 +89,7 @@ func (rl *Shell) menuComplete() {
 			return
 		}
 	}
+
 	rl.Completions.Select(1, 0)
 }
 
@@ -113,7 +114,7 @@ func (rl *Shell) menuCompleteBackward() {
 
 	// We don't do anything when not already completing.
 	if !rl.Completions.IsActive() {
-		return
+		rl.startMenuComplete(rl.commandCompletion)
 	}
 
 	rl.Completions.Select(-1, 0)

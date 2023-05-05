@@ -58,7 +58,7 @@ func (rl *Shell) standardCommands() commands {
 		"quoted-insert":                rl.quotedInsert,
 		"tab-insert":                   rl.tabInsert,
 		"self-insert":                  rl.selfInsert,
-		"bracketed-paste-begin":        rl.bracketedPasteBegin, // TODO: Finish and find how to do it.
+		"bracketed-paste-begin":        rl.bracketedPasteBegin,
 		"transpose-chars":              rl.transposeChars,
 		"transpose-words":              rl.transposeWords,
 		"shell-transpose-words":        rl.shellTransposeWords,

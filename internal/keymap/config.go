@@ -62,6 +62,11 @@ func (m *Engine) ReloadConfig(opts ...inputrc.Option) (err error) {
 // of the standard C readline configuration: those binds therefore can
 // reference commands or keymaps only implemented/used in this library.
 func (m *Engine) loadBuiltinBinds() {
+	// Emacs specials
+	for seq, bind := range emacsKeys {
+		m.config.Binds[string(Emacs)][seq] = bind
+	}
+
 	// Load default keymaps (main)
 	for seq, bind := range vicmdKeys {
 		m.config.Binds[string(ViCmd)][seq] = bind
@@ -73,6 +78,7 @@ func (m *Engine) loadBuiltinBinds() {
 	m.config.Binds[string(Visual)] = visualKeys
 	m.config.Binds[string(ViOpp)] = vioppKeys
 	m.config.Binds[string(MenuSelect)] = menuselectKeys
+	m.config.Binds[string(Isearch)] = isearchKeys
 
 	// Default TTY binds
 	for _, keymap := range m.config.Binds {
