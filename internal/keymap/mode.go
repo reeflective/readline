@@ -13,14 +13,14 @@ const (
 	EmacsCtrlX    Mode = "emacs-ctlx"
 	EmacsStandard Mode = "emacs-standard"
 
-	ViIns  Mode = "vi-insert"
-	Vi     Mode = "vi"
-	ViCmd  Mode = "vi-command"
-	ViMove Mode = "vi-move"
-	Visual Mode = "vi-visual"
-	ViOpp  Mode = "vi-opp"
+	ViInsert  Mode = "vi-insert"
+	Vi        Mode = "vi"
+	ViCommand Mode = "vi-command"
+	ViMove    Mode = "vi-move"
+	Visual    Mode = "vi-visual"
+	ViOpp     Mode = "vi-opp"
 
 	// Completion and search.
 	Isearch    Mode = "isearch"
-	MenuSelect Mode = "menuselect"
+	MenuSelect Mode = "menu-select"
 )

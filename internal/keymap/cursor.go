@@ -36,12 +36,12 @@ var cursors = map[CursorStyle]string{
 }
 
 var defaultCursors = map[Mode]CursorStyle{
-	ViIns:  cursorBlinkingBeam,
-	Vi:     cursorBlinkingBeam,
-	ViCmd:  cursorBlinkingBlock,
-	ViOpp:  cursorBlinkingUnderline,
-	Visual: cursorBlock,
-	Emacs:  cursorBlinkingBlock,
+	ViInsert:  cursorBlinkingBeam,
+	Vi:        cursorBlinkingBeam,
+	ViCommand: cursorBlinkingBlock,
+	ViOpp:     cursorBlinkingUnderline,
+	Visual:    cursorBlock,
+	Emacs:     cursorBlinkingBlock,
 }
 
 // PrintCursor prints the cursor for the given keymap mode,

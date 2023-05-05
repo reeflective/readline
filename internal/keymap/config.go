@@ -52,7 +52,7 @@ func (m *Engine) ReloadConfig(opts ...inputrc.Option) (err error) {
 	case "emacs":
 		m.main = Emacs
 	case "vi":
-		m.main = ViIns
+		m.main = ViInsert
 	}
 
 	return nil
@@ -69,13 +69,13 @@ func (m *Engine) loadBuiltinBinds() {
 
 	// Vim main keymaps
 	for seq, bind := range vicmdKeys {
-		m.config.Binds[string(ViCmd)][seq] = bind
+		m.config.Binds[string(ViCommand)][seq] = bind
 		m.config.Binds[string(ViMove)][seq] = bind
 		m.config.Binds[string(Vi)][seq] = bind
 	}
 
 	for seq, bind := range viinsKeys {
-		m.config.Binds[string(ViIns)][seq] = bind
+		m.config.Binds[string(ViInsert)][seq] = bind
 	}
 
 	// Vim local keymaps

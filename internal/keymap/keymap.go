@@ -94,10 +94,10 @@ func (m *Engine) UpdateCursor() {
 	switch m.main {
 	case Emacs, EmacsStandard, EmacsMeta, EmacsCtrlX:
 		m.PrintCursor(Emacs)
-	case ViIns:
-		m.PrintCursor(ViIns)
-	case ViCmd:
-		m.PrintCursor(ViCmd)
+	case ViInsert:
+		m.PrintCursor(ViInsert)
+	case ViCommand:
+		m.PrintCursor(ViCommand)
 	}
 }
 

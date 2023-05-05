@@ -41,7 +41,6 @@ func (e *Engine) GetBuffer() (*core.Line, *core.Cursor, *core.Selection) {
 	// Incremental search buffer
 	if e.isearchCur != nil {
 		selection := core.NewSelection(e.isearchBuf, e.isearchCur)
-
 		return e.isearchBuf, e.isearchCur, selection
 	}
 
@@ -95,8 +94,8 @@ func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
 	// Adapt keymap if required.
 	e.isearchModeExit = e.keymaps.Main()
 
-	if !e.keymaps.IsEmacs() && e.keymaps.Main() != keymap.ViIns {
-		e.keymaps.SetMain(keymap.ViIns)
+	if !e.keymaps.IsEmacs() && e.keymaps.Main() != keymap.ViInsert {
+		e.keymaps.SetMain(keymap.ViInsert)
 	}
 }
 
@@ -115,7 +114,7 @@ func (e *Engine) NonIsearchStop() {
 		e.isearchModeExit = ""
 	}
 
-	if e.keymaps.Main() == keymap.ViCmd {
+	if e.keymaps.Main() == keymap.ViCommand {
 		e.cursor.CheckCommand()
 	}
 

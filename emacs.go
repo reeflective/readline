@@ -328,7 +328,7 @@ func (rl *Shell) deleteChar() {
 // under the cursor is its matching counterpart, this
 // character will also be deleted.
 func (rl *Shell) backwardDeleteChar() {
-	if rl.Keymap.Main() == keymap.ViIns {
+	if rl.Keymap.Main() == keymap.ViInsert {
 		rl.History.SkipSave()
 	} else {
 		rl.History.Save()
@@ -1157,9 +1157,9 @@ func (rl *Shell) reReadInitFile() {
 		switch newMain {
 		case keymap.Emacs, keymap.EmacsStandard, keymap.EmacsMeta, keymap.EmacsCtrlX:
 			rl.emacsEditingMode()
-		case keymap.Vi, keymap.ViCmd, keymap.ViMove:
+		case keymap.Vi, keymap.ViCommand, keymap.ViMove:
 			rl.viCommandMode()
-		case keymap.ViIns:
+		case keymap.ViInsert:
 			rl.viInsertMode()
 		}
 	}

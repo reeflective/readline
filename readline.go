@@ -168,7 +168,7 @@ func (rl *Shell) execute(command func()) {
 
 	// Update/check cursor positions after run.
 	switch rl.Keymap.Main() {
-	case keymap.ViCmd, keymap.ViMove, keymap.Vi:
+	case keymap.ViCommand, keymap.ViMove, keymap.Vi:
 		rl.cursor.CheckCommand()
 	default:
 		rl.cursor.CheckAppend()

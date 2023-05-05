@@ -273,7 +273,7 @@ func (e *Engine) needsAutoComplete() bool {
 		e.line.Len() > 0
 
 		// Not possible in Vim command mode either.
-	isCorrectMenu := e.keymaps.Main() != keymap.ViCmd &&
+	isCorrectMenu := e.keymaps.Main() != keymap.ViCommand &&
 		e.keymaps.Local() != keymap.Isearch
 
 	if needsComplete && isCorrectMenu && len(e.selected.Value) == 0 {

@@ -250,9 +250,9 @@ func (p *Prompt) formatLastPrompt(prompt string) string {
 	switch {
 	case p.keymaps.IsEmacs():
 		status = p.opts.GetString("emacs-mode-string")
-	case p.keymaps.Main() == keymap.ViCmd:
+	case p.keymaps.Main() == keymap.ViCommand:
 		status = p.opts.GetString("vi-cmd-mode-string")
-	case p.keymaps.Main() == keymap.ViIns:
+	case p.keymaps.Main() == keymap.ViInsert:
 		status = p.opts.GetString("vi-ins-mode-string")
 	}
 
