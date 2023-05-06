@@ -1017,6 +1017,8 @@ func (rl *Shell) shellBackwardKillWord() {
 		return
 	}
 
+	rl.History.Save()
+
 	// Always ignore the character under cursor.
 	rl.cursor.Dec()
 	rl.cursor.ToFirstNonSpace(false)
@@ -1024,7 +1026,7 @@ func (rl *Shell) shellBackwardKillWord() {
 	unclosed, bpos := strutil.GetQuotedWordStart((*rl.line)[:startPos])
 
 	if !unclosed {
-		rl.selection.SelectAShellWord()
+		rl.viSelectAShellWord()
 		bpos, _ = rl.selection.Pos()
 	}
 
