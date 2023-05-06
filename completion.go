@@ -244,7 +244,7 @@ func (rl *Shell) historyCompletion(forward, filterLine, substring bool) {
 	default:
 		// Notify if we don't have history sources at all.
 		if rl.History.Current() == nil {
-			rl.Hint.Set(fmt.Sprintf("%s%s%s %s", color.Dim, color.FgRed, "No command history source", color.Reset))
+			rl.Hint.SetTemporary(fmt.Sprintf("%s%s%s %s", color.Dim, color.FgRed, "No command history source", color.Reset))
 			return
 		}
 

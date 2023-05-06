@@ -179,7 +179,7 @@ func (rl *Shell) updatePosRunHints() {
 	hint := rl.Iterations.ResetPostCommand()
 	register, selected := rl.Buffers.IsSelected()
 
-	if hint == "" && !selected {
+	if hint == "" && !selected && !rl.Macros.Recording() {
 		rl.Hint.ResetPersist()
 		return
 	}

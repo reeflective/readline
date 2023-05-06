@@ -1127,7 +1127,7 @@ func (rl *Shell) macroToggleRecord() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	rl.Hint.Set(color.Dim + "REC (macro arg)")
+	rl.Hint.SetTemporary(color.Dim + "REC (macro arg)")
 	rl.Display.Refresh()
 
 	key, isAbort := rl.Keys.ReadKey()
@@ -1145,7 +1145,7 @@ func (rl *Shell) macroRun() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	rl.Hint.Set(color.Dim + "Run (macro arg)")
+	rl.Hint.SetTemporary(color.Dim + "Run (macro arg)")
 	rl.Display.Refresh()
 
 	key, isAbort := rl.Keys.ReadKey()
@@ -1167,7 +1167,7 @@ func (rl *Shell) reReadInitFile() {
 
 	err := rl.Keymap.ReloadConfig(rl.Opts...)
 	if err != nil {
-		rl.Hint.Set(color.FgRed + "Inputrc reload error: " + err.Error())
+		rl.Hint.SetTemporary(color.FgRed + "Inputrc reload error: " + err.Error())
 		return
 	}
 
@@ -1186,7 +1186,7 @@ func (rl *Shell) reReadInitFile() {
 	}
 
 	// Notify successfully reloaded
-	rl.Hint.Set(color.FgGreen + "Inputrc reloaded")
+	rl.Hint.SetTemporary(color.FgGreen + "Inputrc reloaded")
 }
 
 // Abort the current editing command.
@@ -1523,7 +1523,7 @@ func (rl *Shell) editAndExecuteCommand() {
 
 		errStr := strings.ReplaceAll(err.Error(), "\n", "")
 		changeHint := fmt.Sprintf(color.FgRed+"Editor error: %s", errStr)
-		rl.Hint.Set(changeHint)
+		rl.Hint.SetTemporary(changeHint)
 
 		return
 	}
@@ -1547,7 +1547,7 @@ func (rl *Shell) editCommandLine() {
 
 		errStr := strings.ReplaceAll(err.Error(), "\n", "")
 		changeHint := fmt.Sprintf(color.FgRed+"Editor error: %s", errStr)
-		rl.Hint.Set(changeHint)
+		rl.Hint.SetTemporary(changeHint)
 
 		return
 	}

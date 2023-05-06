@@ -19,17 +19,20 @@ type Hint struct {
 	persistent []rune
 	cleanup    bool
 	temp       bool
+	set        bool
 }
 
 // Set sets the hint message to the given text.
 func (h *Hint) Set(hint string) {
 	h.text = []rune(hint)
+	h.set = true
 }
 
 // SetTemporary sets a hint message that will be cleared
 // at the next keypress/command being run.
 func (h *Hint) SetTemporary(hint string) {
 	h.text = []rune(hint)
+	h.set = true
 	h.temp = true
 }
 
@@ -55,6 +58,8 @@ func (h *Hint) Len() int {
 // Reset removes the hint message.
 func (h *Hint) Reset() {
 	h.text = make([]rune, 0)
+	h.temp = false
+	h.set = false
 }
 
 // ResetPersist drops the persistent hint.
@@ -65,6 +70,12 @@ func (h *Hint) ResetPersist() {
 
 // Display prints the hint section.
 func (h *Hint) Display() {
+	if h.temp && h.set {
+		h.set = false
+	} else if h.temp {
+		h.Reset()
+	}
+
 	if len(h.text) == 0 && len(h.persistent) == 0 {
 		if h.cleanup {
 			fmt.Print(term.ClearLineAfter)
@@ -84,6 +95,10 @@ func (h *Hint) Display() {
 
 	if len(h.text) > 0 {
 		text += string(h.text)
+	}
+
+	if strutil.RealLength(text) == 0 {
+		return
 	}
 
 	text = "\r" + strings.TrimSuffix(text, "\n") + term.ClearLineAfter + string(inputrc.Newline) + color.Reset
@@ -106,12 +121,14 @@ func (h *Hint) Coordinates() int {
 		text += string(h.text)
 	}
 
+	// Nothing to do if no real text
 	text = strings.TrimSuffix(text, "\n")
 
-	if text == "" {
+	if strutil.RealLength(text) == 0 {
 		return 0
 	}
 
+	// Otherwise compute the real length/span.
 	line := color.Strip(text)
 	line += string(inputrc.Newline)
 	nl := regexp.MustCompile(string(inputrc.Newline))
