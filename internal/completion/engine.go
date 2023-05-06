@@ -195,18 +195,13 @@ func (e *Engine) Update() {
 	// last key typed is an escape, in which case the user wants
 	// to quit incremental search but keeping any selected comp.
 	inserted := e.removeInserted()
+	cached := e.keymaps.Local() != keymap.Isearch
 
-	e.Cancel(inserted, false)
+	e.Cancel(inserted, cached)
 
 	if choices && e.autoForce && len(e.selected.Value) == 0 {
 		e.Reset()
 	}
-
-	// Lastly, if we are in incremental-search mode
-	// and no valid choices, we must exit the mode.
-	// if e.keymaps.Local() == keymap.Isearch {
-	// 	// e.IsearchStop()
-	// }
 }
 
 // Cancel exits the current completions with the following behavior:
@@ -217,6 +212,7 @@ func (e *Engine) Update() {
 func (e *Engine) Cancel(inserted, cached bool) {
 	if cached {
 		e.cached = nil
+		e.hint.Reset()
 	}
 
 	if len(e.selected.Value) == 0 && !inserted {
@@ -258,6 +254,7 @@ func (e *Engine) ResetForce() {
 func (e *Engine) Reset() {
 	e.autoForce = false
 	if !e.IsActive() {
+		e.ClearMenu(true)
 		return
 	}
 

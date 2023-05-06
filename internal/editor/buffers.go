@@ -208,7 +208,7 @@ func (reg *Buffers) Complete() completion.Values {
 	}
 	comps.ListLong["*"] = true
 
-	comps.Messages.Add(color.FgBlue + "-- registers --" + color.Reset)
+	comps.Messages.Add(color.Bold + color.FgBlue + "(registers)" + color.Reset)
 
 	return comps
 }

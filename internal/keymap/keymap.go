@@ -325,6 +325,7 @@ func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, 
 		m.prefixed = inputrc.Bind{}
 
 		m.keys.MarkMatched(keys...)
+
 		return match, m.resolveCommand(match), false
 	}
 }
