@@ -53,6 +53,7 @@ var isearchCommands = []string{
 
 var nonIsearchCommands = []string{
 	"abort",
+	"accept-line",
 	"backward-delete-char",
 	"backward-kill-word",
 	"backward-kill-line",

@@ -71,7 +71,7 @@ func (e *Engine) hintIsearch() {
 	hint := color.Bold + color.FgCyan + currentMode + color.Reset + color.BgDarkGray
 	hint += string(*e.isearchBuf)
 
-	if e.isearch == nil && e.isearchBuf.Len() > 0 {
+	if e.isearchRgx == nil && e.isearchBuf.Len() > 0 {
 		hint += color.FgRed + " ! failed to compile search regexp"
 	} else if e.noCompletions() && e.isearchBuf.Len() > 0 {
 		hint += color.FgRed + " ! no matches"

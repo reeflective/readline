@@ -41,12 +41,13 @@ type Engine struct {
 	// Incremental search
 	isearchBuf       *core.Line     // The isearch minibuffer
 	isearchCur       *core.Cursor   // Cursor position in the minibuffer.
-	isearch          *regexp.Regexp // Holds the current search regex match
+	isearchRgx       *regexp.Regexp // Holds the current search regex match
 	isearchName      string         // What is being incrementally searched for.
 	isearchInsert    bool           // Whether to insert the first match in the line
 	isearchForward   bool           // Match results in forward order, or backward.
 	isearchSubstring bool           // Match results as a substring (regex), or as a prefix.
 	isearchModeExit  keymap.Mode    // The main keymap to restore after exiting isearch
+	searchLast       string         // The last non-incremental buffer.
 }
 
 // NewEngine initializes a new completion engine with the shell operating parameters.
@@ -200,6 +201,12 @@ func (e *Engine) Update() {
 	if choices && e.autoForce && len(e.selected.Value) == 0 {
 		e.Reset()
 	}
+
+	// Lastly, if we are in incremental-search mode
+	// and no valid choices, we must exit the mode.
+	// if e.keymaps.Local() == keymap.Isearch {
+	// 	// e.IsearchStop()
+	// }
 }
 
 // Cancel exits the current completions with the following behavior:

@@ -1013,6 +1013,9 @@ func (rl *Shell) shellKillWord() {
 // Kill the shell word behind point.
 func (rl *Shell) shellBackwardKillWord() {
 	startPos := rl.cursor.Pos()
+	if rl.line.Len() == 0 || startPos == 0 {
+		return
+	}
 
 	// Always ignore the character under cursor.
 	rl.cursor.Dec()

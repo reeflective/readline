@@ -359,7 +359,7 @@ func (g *group) canFitInRow(termWidth int) bool {
 // we ask each of them to filter its own items and return the results to the shell for aggregating them.
 // The rx parameter is passed, as the shell already checked that the search pattern is valid.
 func (g *group) updateIsearch(eng *Engine) {
-	if eng.isearch == nil {
+	if eng.isearchRgx == nil {
 		return
 	}
 
@@ -369,9 +369,9 @@ func (g *group) updateIsearch(eng *Engine) {
 		row := g.values[i]
 
 		for _, val := range row {
-			if eng.isearch.MatchString(val.Value) {
+			if eng.isearchRgx.MatchString(val.Value) {
 				suggs = append(suggs, val)
-			} else if val.Description != "" && eng.isearch.MatchString(val.Description) {
+			} else if val.Description != "" && eng.isearchRgx.MatchString(val.Description) {
 				suggs = append(suggs, val)
 			}
 		}
@@ -603,10 +603,10 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 	reset := color.SGR(val.Style, true)
 	candidate = g.displayTrimmed(val.Display)
 
-	if eng.isearch != nil && eng.isearchBuf.Len() > 0 {
-		match := eng.isearch.FindString(candidate)
+	if eng.isearchRgx != nil && eng.isearchBuf.Len() > 0 {
+		match := eng.isearchRgx.FindString(candidate)
 		match = color.BgBlackBright + match + color.Reset + cell + reset
-		candidate = eng.isearch.ReplaceAllLiteralString(candidate, match)
+		candidate = eng.isearchRgx.ReplaceAllLiteralString(candidate, match)
 	}
 
 	switch {
@@ -640,10 +640,10 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	desc = g.descriptionTrimmed(val.Description)
 
-	if eng.isearch != nil && eng.isearchBuf.Len() > 0 {
-		match := eng.isearch.FindString(desc)
+	if eng.isearchRgx != nil && eng.isearchBuf.Len() > 0 {
+		match := eng.isearchRgx.FindString(desc)
 		match = color.BgBlackBright + match + color.Reset + color.Dim
-		desc = eng.isearch.ReplaceAllLiteralString(desc, match)
+		desc = eng.isearchRgx.ReplaceAllLiteralString(desc, match)
 	}
 
 	// If the comp is currently selected, overwrite any highlighting already applied.
