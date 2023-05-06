@@ -14,6 +14,7 @@ func (e *Engine) IsearchStart(name string, autoinsert bool) {
 	e.keymaps.SetLocal(keymap.Isearch)
 	e.auto = true
 	e.isearchInsert = autoinsert
+	e.adaptIsearchInsertMode()
 
 	e.isearchBuf = new(core.Line)
 	e.isearchCur = core.NewCursor(e.isearchBuf)
@@ -33,6 +34,8 @@ func (e *Engine) IsearchStop() {
 	e.autoForce = false
 	e.isearch = nil
 	e.isearchCur = nil
+
+	e.resetIsearchInsertMode()
 }
 
 // GetBuffer returns either the current input line when incremental
@@ -92,13 +95,7 @@ func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
 	e.isearchSubstring = substring
 
 	e.keymaps.NonIncrementalSearchStart()
-
-	// Adapt keymap if required.
-	e.isearchModeExit = e.keymaps.Main()
-
-	if !e.keymaps.IsEmacs() && e.keymaps.Main() != keymap.ViInsert {
-		e.keymaps.SetMain(keymap.ViInsert)
-	}
+	e.adaptIsearchInsertMode()
 }
 
 // NonIsearchStop exits the non-incremental search mode.
@@ -110,19 +107,9 @@ func (e *Engine) NonIsearchStop() {
 	e.isearchForward = false
 	e.isearchSubstring = false
 
+	// Reset keymap and helpers
 	e.keymaps.NonIncrementalSearchStop()
-
-	// Reset keymap if required.
-	if e.keymaps.Main() != e.isearchModeExit {
-		e.keymaps.SetMain(e.isearchModeExit)
-		e.isearchModeExit = ""
-	}
-
-	if e.keymaps.Main() == keymap.ViCommand {
-		e.cursor.CheckCommand()
-	}
-
-	// Reset helpers
+	e.resetIsearchInsertMode()
 	e.hint.Reset()
 }
 
@@ -174,4 +161,27 @@ func (e *Engine) updateNonIncrementalSearch() {
 	isearchHint := color.Bold + color.FgCyan + e.isearchName +
 		" (non-inc-search): " + color.Reset + color.Bold + string(*e.isearchBuf) + color.Reset + "_"
 	e.hint.Set(isearchHint)
+}
+
+func (e *Engine) adaptIsearchInsertMode() {
+	e.isearchModeExit = e.keymaps.Main()
+
+	if !e.keymaps.IsEmacs() && e.keymaps.Main() != keymap.ViInsert {
+		e.keymaps.SetMain(keymap.ViInsert)
+	}
+}
+
+func (e *Engine) resetIsearchInsertMode() {
+	if e.isearchModeExit == "" {
+		return
+	}
+
+	if e.keymaps.Main() != e.isearchModeExit {
+		e.keymaps.SetMain(e.isearchModeExit)
+		e.isearchModeExit = ""
+	}
+
+	if e.keymaps.Main() == keymap.ViCommand {
+		e.cursor.CheckCommand()
+	}
 }
