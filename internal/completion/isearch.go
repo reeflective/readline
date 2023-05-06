@@ -91,6 +91,8 @@ func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
 	e.isearchForward = forward
 	e.isearchSubstring = substring
 
+	e.keymaps.NonIncrementalSearchStart()
+
 	// Adapt keymap if required.
 	e.isearchModeExit = e.keymaps.Main()
 
@@ -107,6 +109,8 @@ func (e *Engine) NonIsearchStop() {
 	e.isearchCur = nil
 	e.isearchForward = false
 	e.isearchSubstring = false
+
+	e.keymaps.NonIncrementalSearchStop()
 
 	// Reset keymap if required.
 	if e.keymaps.Main() != e.isearchModeExit {

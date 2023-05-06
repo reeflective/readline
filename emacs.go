@@ -425,7 +425,7 @@ func (rl *Shell) selfInsert() {
 	var quoted []rune
 	var length int
 
-	if rl.Config.GetBool("output-meta") {
+	if rl.Config.GetBool("output-meta") && key != inputrc.Esc {
 		quoted = append(quoted, key)
 		length = uniseg.StringWidth(string(quoted))
 	} else {
@@ -1194,6 +1194,13 @@ func (rl *Shell) abort() {
 		rl.Hint.Reset()
 		rl.Completions.ResetForce()
 
+		return
+	}
+
+	// Cancel non-incremental search modes.
+	searching, _, _ := rl.Completions.NonIncrementallySearching()
+	if searching {
+		rl.Completions.NonIsearchStop()
 		return
 	}
 

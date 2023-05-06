@@ -86,6 +86,7 @@ func (l *Line) InsertBetween(bpos, epos int, chars ...rune) {
 // Quoted translates one rune in its printable version,
 // which might be different for Control/Meta characters.
 // Returns the "translated" string and new length. (eg 0x04 => ^C = len:2).
+// TODO: Move this strutil.
 func (l *Line) Quote(char rune) (res []rune, length int) {
 	var inserted []rune
 

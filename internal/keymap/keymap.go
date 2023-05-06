@@ -13,13 +13,14 @@ var unescape = inputrc.Unescape
 
 // Engine is used to manage the main and local keymaps for the shell.
 type Engine struct {
-	local    Mode
-	main     Mode
-	prefixed inputrc.Bind
-	active   inputrc.Bind
-	pending  []inputrc.Bind
-	skip     bool
-	isCaller bool
+	local        Mode
+	main         Mode
+	prefixed     inputrc.Bind
+	active       inputrc.Bind
+	pending      []inputrc.Bind
+	skip         bool
+	isCaller     bool
+	nonIncSearch bool
 
 	keys       *core.Keys
 	iterations *core.Iterations
@@ -223,19 +224,23 @@ func (m *Engine) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
 		return
 	}
 
-	binds := m.config.Binds[string(m.main)]
+	// Get relevant binds in the current context, possibly
+	// restrained to a subset when non/incrementally-searching.
+	binds := m.getContextBinds(true)
 	if len(binds) == 0 {
 		return
 	}
 
-	// When we are in incremental-search mode (local keymap),
-	// the set of valid commands is restricted: filter out the
-	// binds down to those.
-	if m.Local() == Isearch {
-		binds = m.IsearchCommands(m.Main())
-	}
-
 	bind, command, prefix = m.matchKeymap(binds)
+
+	// Non-incremental search mode should always insert the keys
+	// if they did not exactly match one of the valid commands.
+	if m.nonIncSearch && (command == nil || prefix) {
+		bind = inputrc.Bind{Action: "self-insert"}
+		m.active = bind
+		command = m.resolveCommand(bind)
+		prefix = false
+	}
 
 	// Adjusting for the ESC key: when convert-meta is enabled,
 	// many binds will actually match ESC as a prefix. This makes
@@ -256,7 +261,7 @@ func (m *Engine) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 		return
 	}
 
-	binds := m.config.Binds[string(m.local)]
+	binds := m.getContextBinds(false)
 	if len(binds) == 0 {
 		return
 	}
@@ -451,4 +456,12 @@ func printBindsInputrc(commands []string, all map[string][]string) {
 			}
 		}
 	}
+}
+
+func (m *Engine) NonIncrementalSearchStart() {
+	m.nonIncSearch = true
+}
+
+func (m *Engine) NonIncrementalSearchStop() {
+	m.nonIncSearch = false
 }
