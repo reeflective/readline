@@ -41,6 +41,10 @@ func (rl *Shell) Readline() (string, error) {
 		// Block and wait for user input keys.
 		rl.Keys.WaitInput()
 
+		// Whether or not the command is resolved, let the macro
+		// engine record the keys if currently recording a macro.
+		rl.Macros.RecordKeys()
+
 		// 1 - Local keymap (completion/isearch/viopp)
 		bind, command, prefixed := rl.Keymap.MatchLocal()
 		if prefixed {
@@ -108,10 +112,6 @@ func (rl *Shell) init() {
 // run wraps the execution of a target command/sequence with various pre/post actions
 // and setup steps (buffers setup, cursor checks, iterations, key flushing, etc...)
 func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
-	// Whether or not the command is resolved, let the macro
-	// engine record the keys if currently recording a macro.
-	rl.Macros.RecordKeys(bind)
-
 	// If the resolved bind is a macro itself, reinject its
 	// bound sequence back to the key stack.
 	if bind.Macro {

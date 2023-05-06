@@ -3,6 +3,7 @@ package macro
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
@@ -56,7 +57,7 @@ func (e *Engine) StartRecord(key rune) {
 
 // StopRecord stops using key input as part of a macro.
 // A notification is given through the hint section.
-func (e *Engine) StopRecord() {
+func (e *Engine) StopRecord(keys []rune) {
 	e.recording = false
 
 	// Remove the hint.
@@ -66,7 +67,9 @@ func (e *Engine) StopRecord() {
 		return
 	}
 
-	macro := inputrc.EscapeMacro(string(e.current))
+	seq := strings.TrimSuffix(string(e.current), string(keys))
+	macro := inputrc.EscapeMacro(seq)
+
 	e.macros[e.currentKey] = macro
 	e.macros[rune(0)] = macro
 
@@ -75,11 +78,12 @@ func (e *Engine) StopRecord() {
 
 // RecordKeys is being passed every key read by the shell, and will save
 // those entered while the engine is in record mode. All others are ignored.
-func (e *Engine) RecordKeys(bind inputrc.Bind) {
-	if !e.recording || bind.Action == "end-kbd-macro" {
+func (e *Engine) RecordKeys() {
+	if !e.recording {
 		return
 	}
 
+	// TODO: Should we only record the used keys ?
 	keys, empty := e.keys.PeekAll()
 	if empty || len(keys) == 0 {
 		return

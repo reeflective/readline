@@ -1090,7 +1090,8 @@ func (rl *Shell) startKeyboardMacro() {
 // Stop saving the characters typed into the current
 // keyboard macro and store the definition.
 func (rl *Shell) endKeyboardMacro() {
-	rl.Macros.StopRecord()
+	keys, _ := rl.Keys.PeekAll()
+	rl.Macros.StopRecord(keys)
 }
 
 // Re-execute the last keyboard macro defined, by making the
@@ -1117,7 +1118,9 @@ func (rl *Shell) printLastKeyboardMacro() {
 // when using Vim editing mode.
 func (rl *Shell) macroToggleRecord() {
 	if rl.Macros.Recording() {
-		rl.Macros.StopRecord()
+		keys, _ := rl.Keys.PeekAll()
+		rl.Macros.StopRecord(keys)
+
 		return
 	}
 

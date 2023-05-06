@@ -18,11 +18,19 @@ type Hint struct {
 	text       []rune
 	persistent []rune
 	cleanup    bool
+	temp       bool
 }
 
 // Set sets the hint message to the given text.
 func (h *Hint) Set(hint string) {
 	h.text = []rune(hint)
+}
+
+// SetTemporary sets a hint message that will be cleared
+// at the next keypress/command being run.
+func (h *Hint) SetTemporary(hint string) {
+	h.text = []rune(hint)
+	h.temp = true
 }
 
 // Persist adds a hint message to be persistently
