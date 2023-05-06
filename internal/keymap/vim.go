@@ -18,12 +18,14 @@ var viinsKeys = map[string]inputrc.Bind{
 	unescape(`\C-Q`):   {Action: "accept-and-infer-next-history"},
 	unescape(`\C-P`):   {Action: "up-line-or-history"},
 	unescape(`\C-_`):   {Action: "undo"},
+	unescape(`\M-q`):   {Action: "macro-toggle-record"},
 	unescape(`\M-r`):   {Action: "vi-registers-complete"},
 	unescape(`\M-[3~`): {Action: "delete-char"},
 	unescape(`\M-[H`):  {Action: "beginning-of-line"},
 	unescape(`\M-[F`):  {Action: "end-of-line"},
 	unescape(`\M-[A`):  {Action: "up-line-or-search"},
 	unescape(`\M-[B`):  {Action: "down-line-or-search"},
+	unescape(`\M-@`):   {Action: "macro-run"},
 }
 
 // viinsKeymaps are the default keymaps in Vim Command mode.
@@ -85,6 +87,7 @@ var vicmdKeys = map[string]inputrc.Bind{
 	unescape("o"):        {Action: "vi-open-line-below"},
 	unescape("p"):        {Action: "vi-put-after"},
 	unescape("P"):        {Action: "vi-put-before"},
+	unescape("q"):        {Action: "macro-toggle-record"},
 	unescape("r"):        {Action: "vi-change-char"},
 	unescape("R"):        {Action: "vi-replace"},
 	unescape("F"):        {Action: "vi-find-prev-char"},
@@ -102,7 +105,7 @@ var vicmdKeys = map[string]inputrc.Bind{
 	unescape("Y"):        {Action: "vi-yank-whole-line"},
 	unescape("|"):        {Action: "vi-column"},
 	unescape("~"):        {Action: "vi-change-case"},
-	// unescape("cs"):       {Action: "vi-change-surround"},
+	unescape("@"):        {Action: "macro-run"},
 }
 
 // viinsKeymaps are the default keymaps in Vim Operating Pending mode.

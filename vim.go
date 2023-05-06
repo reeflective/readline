@@ -775,22 +775,50 @@ func (rl *Shell) viChangeCase() {
 
 // Substitute the next character(s).
 func (rl *Shell) viSubstitute() {
+	rl.History.Save()
+
+	defer rl.viInsertMode()
+
 	switch {
 	case rl.selection.Active():
 		// Delete the selection and enter insert mode.
 		cpos := rl.selection.Cursor()
 		rl.selection.Cut()
 		rl.cursor.Set(cpos)
-		rl.viInsertMode()
 
 	default:
-		// Delete next characters and enter insert mode.
-		vii := rl.Iterations.Get()
-		for i := 1; i <= vii; i++ {
-			rl.line.CutRune(rl.cursor.Pos())
-		}
+		// Since we must emulate the default readline behavior,
+		// we vary our behavior depending on the caller key.
+		key, _ := rl.Keys.Peek()
 
-		rl.viInsertMode()
+		switch key {
+		case 's':
+			// Delete next characters and enter insert mode.
+			vii := rl.Iterations.Get()
+			for i := 1; i <= vii; i++ {
+				rl.line.CutRune(rl.cursor.Pos())
+			}
+		case 'S':
+			if rl.cursor.OnEmptyLine() {
+				return
+			}
+
+			// Pass the buffer to register.
+			rl.selection.Mark(rl.cursor.Pos())
+			rl.selection.Visual(true)
+
+			bpos, epos := rl.selection.Pos()
+			rl.Buffers.Write((*rl.line)[bpos:epos]...)
+
+			// If selection has a new line, remove it.
+			if (*rl.line)[epos-1] == '\n' {
+				epos--
+			}
+
+			// Kill the line
+			rl.line.Cut(bpos, epos)
+			rl.cursor.Set(bpos)
+		}
 	}
 }
 

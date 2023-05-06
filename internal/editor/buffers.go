@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	// ValidRegisterKeys - All valid register IDs (keys) for read/write Vim registers.
-	ValidRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
+	// validRegisterKeys - All valid register IDs (keys) for read/write Vim registers.
+	validRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
 
 	numRegisters   = 10
 	alphaRegisters = 52

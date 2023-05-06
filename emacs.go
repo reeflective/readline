@@ -103,6 +103,9 @@ func (rl *Shell) standardCommands() commands {
 		"call-last-kbd-macro":  rl.callLastKeyboardMacro,
 		"print-last-kbd-macro": rl.printLastKeyboardMacro,
 
+		"macro-toggle-record": rl.macroToggleRecord,
+		"macro-run":           rl.macroRun,
+
 		// Miscellaneous
 		"re-read-init-file":         rl.reReadInitFile,
 		"abort":                     rl.abort,
@@ -733,8 +736,6 @@ func (rl *Shell) quoteLine() {
 		return
 	}
 
-	rl.line.Insert(0, '\'')
-
 	for pos, char := range *rl.line {
 		if char == '\n' {
 			break
@@ -745,6 +746,7 @@ func (rl *Shell) quoteLine() {
 		}
 	}
 
+	rl.line.Insert(0, '\'')
 	rl.line.Insert(rl.line.Len(), '\'')
 }
 
@@ -1016,50 +1018,19 @@ func (rl *Shell) shellBackwardKillWord() {
 	rl.cursor.Dec()
 	rl.cursor.ToFirstNonSpace(false)
 
-	// Find the beginning of a correctly formatted shellword.
-	rl.viSelectAShellWord()
-	bpos, _ := rl.selection.Pos()
+	unclosed, bpos := strutil.GetQuotedWordStart((*rl.line)[:startPos])
 
-	// But don't include any of the leading spaces.
+	if !unclosed {
+		rl.selection.SelectAShellWord()
+		bpos, _ = rl.selection.Pos()
+	}
+
 	rl.cursor.Set(bpos)
 	rl.cursor.ToFirstNonSpace(true)
 	bpos = rl.cursor.Pos()
 
-	// Find any quotes backard, and settle on the outermost one.
-	outquote := -1
-
-	squote := rl.line.Find('\'', bpos, false)
-	dquote := rl.line.Find('"', bpos, false)
-
-	if squote != -1 {
-		outquote = squote
-	}
-	if dquote != -1 {
-		if squote != -1 && dquote < squote {
-			outquote = dquote
-		} else if squote == -1 {
-			outquote = dquote
-		}
-	}
-
-	// If any is found, try to find if it's matching another one.
-	if outquote != -1 {
-		sBpos, sEpos := rl.line.SurroundQuotes(true, outquote)
-		dBpos, dEpos := rl.line.SurroundQuotes(false, outquote)
-		mark, _ := strutil.AdjustSurroundQuotes(dBpos, dEpos, sBpos, sEpos)
-
-		// And if no matches have been found, only use the quote
-		// if its backward to our currently found shellword.
-		if mark == -1 && outquote < bpos {
-			bpos = outquote
-			rl.cursor.Set(bpos)
-		}
-	}
-
-	// Remove the selection.
 	rl.Buffers.Write([]rune((*rl.line)[bpos:startPos])...)
 	rl.line.Cut(bpos, startPos)
-
 	rl.selection.Reset()
 }
 
@@ -1110,7 +1081,7 @@ func (rl *Shell) digitArgument() {
 
 // Begin saving the characters typed into the current keyboard macro.
 func (rl *Shell) startKeyboardMacro() {
-	rl.Macros.StartRecord()
+	rl.Macros.StartRecord(rune(0))
 }
 
 // Stop saving the characters typed into the current
@@ -1133,6 +1104,50 @@ func (rl *Shell) printLastKeyboardMacro() {
 
 	rl.Prompt.PrimaryPrint()
 	rl.Display.Refresh()
+}
+
+// Either starts recording a macro (if not yet recording), or stops it.
+// If the command is about to start recording a macro, it will read an
+// additional argument key (must be a letter), to be used as the macro
+// "name", just like macro recording and use work in Vim.
+// This command thus works "Vim-style", and should probably be used only
+// when using Vim editing mode.
+func (rl *Shell) macroToggleRecord() {
+	if rl.Macros.Recording() {
+		rl.Macros.StopRecord()
+		return
+	}
+
+	done := rl.Keymap.PendingCursor()
+	defer done()
+
+	rl.Hint.Set(color.Dim + "REC (macro arg)")
+	rl.Display.Refresh()
+
+	key, isAbort := rl.Keys.ReadKey()
+	if isAbort {
+		return
+	}
+
+	rl.Macros.StartRecord(key[0])
+}
+
+// Reads a key from the keyboard, and runs the macro stored for this key identitier.
+// This mimics the Vim-style or running macros. If no macro is recorded for this key,
+// or if the key is invalid, nothing happens.
+func (rl *Shell) macroRun() {
+	done := rl.Keymap.PendingCursor()
+	defer done()
+
+	rl.Hint.Set(color.Dim + "Run (macro arg)")
+	rl.Display.Refresh()
+
+	key, isAbort := rl.Keys.ReadKey()
+	if isAbort {
+		return
+	}
+
+	rl.Macros.RunMacro(key[0])
 }
 
 //
