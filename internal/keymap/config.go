@@ -82,7 +82,7 @@ func (m *Engine) loadBuiltinBinds() {
 	m.config.Binds[string(Visual)] = visualKeys
 	m.config.Binds[string(ViOpp)] = vioppKeys
 	m.config.Binds[string(MenuSelect)] = menuselectKeys
-	m.config.Binds[string(Isearch)] = isearchKeys
+	m.config.Binds[string(Isearch)] = menuselectKeys
 
 	// Default TTY binds
 	for _, keymap := range m.config.Binds {
