@@ -1,8 +1,11 @@
 package keymap
 
 import (
+	"fmt"
 	"os"
 	"os/user"
+	"sort"
+	"strings"
 
 	"github.com/reeflective/readline/inputrc"
 )
@@ -100,6 +103,54 @@ func (m *Engine) overrideBindsSpecial() {
 				case "complete", "menu-complete", "possible-completions":
 					keymap[seq] = inputrc.Bind{Action: "self-insert"}
 				}
+			}
+		}
+	}
+}
+
+func printBindsReadable(commands []string, all map[string][]string) {
+	for _, command := range commands {
+		commandBinds := all[command]
+		sort.Strings(commandBinds)
+
+		switch {
+		case len(commandBinds) == 0:
+			fmt.Printf("%s is not bound to any keys\n", command)
+
+		case len(commandBinds) > 5:
+			var firstBinds []string
+
+			for i := 0; i < 5; i++ {
+				firstBinds = append(firstBinds, "\""+commandBinds[i]+"\"")
+			}
+
+			bindsStr := strings.Join(firstBinds, ", ")
+			fmt.Printf("%s can be found on %s ...\n", command, bindsStr)
+
+		default:
+			var firstBinds []string
+
+			for _, bind := range commandBinds {
+				firstBinds = append(firstBinds, "\""+bind+"\"")
+			}
+
+			bindsStr := strings.Join(firstBinds, ", ")
+			fmt.Printf("%s can be found on %s\n", command, bindsStr)
+		}
+	}
+}
+
+func printBindsInputrc(commands []string, all map[string][]string) {
+	for _, command := range commands {
+		commandBinds := all[command]
+		sort.Strings(commandBinds)
+
+		switch {
+		case len(commandBinds) == 0:
+			fmt.Printf("# %s (not bound)\n", command)
+		default:
+			for _, bind := range commandBinds {
+				fmt.Printf("\"%s\": %s\n", bind, command)
 			}
 		}
 	}

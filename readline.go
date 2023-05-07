@@ -53,7 +53,7 @@ func (rl *Shell) Readline() (string, error) {
 		rl.Keys.WaitInput()
 
 		// 1 - Local keymap (completion/isearch/viopp)
-		bind, command, prefixed := rl.Keymap.MatchLocal()
+		bind, command, prefixed := keymap.MatchLocal(rl.Keymap)
 		if prefixed {
 			continue
 		}
@@ -74,7 +74,7 @@ func (rl *Shell) Readline() (string, error) {
 		rl.Completions.Update()
 
 		// 2 - Main keymap (vicmd/viins/emacs-*)
-		bind, command, prefixed = rl.Keymap.MatchMain()
+		bind, command, prefixed = keymap.MatchMain(rl.Keymap)
 		if prefixed {
 			continue
 		}

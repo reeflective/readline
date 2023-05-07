@@ -75,7 +75,7 @@ func (m *Engine) RunPending() {
 	}
 
 	// Resolve and run X times (iterations at pending time)
-	command := m.resolveCommand(pending)
+	command := m.resolve(pending)
 
 	// TODO: Handle returns from widgets.
 	command()

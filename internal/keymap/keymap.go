@@ -1,9 +1,7 @@
 package keymap
 
 import (
-	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
@@ -45,7 +43,9 @@ func NewEngine(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*En
 	return modes, modes.config
 }
 
-// Register adds commands to the list of available commands.
+// Register adds command functions to the list of available commands.
+// Each key of the map should be a unique name, not yet used by any
+// other builtin/user command, in order not to "overload" the builtins.
 func (m *Engine) Register(commands map[string]func()) {
 	for name, command := range commands {
 		m.commands[name] = command
@@ -97,7 +97,7 @@ func (m *Engine) UpdateCursor() {
 		m.PrintCursor(Emacs)
 	case ViInsert:
 		m.PrintCursor(ViInsert)
-	case ViCommand:
+	case ViCommand, ViMove, Vi:
 		m.PrintCursor(ViCommand)
 	}
 }
@@ -158,36 +158,10 @@ func (m *Engine) PrintBinds(inputrcFormat bool) {
 	}
 }
 
-// ConvertMeta recursively searches for metafied keys in a sequence,
-// and replaces them with an esc prefix and their unmeta equivalent.
-func (m *Engine) ConvertMeta(keys []rune) string {
-	if len(keys) == 0 {
-		return string(keys)
-	}
-
-	converted := make([]rune, 0)
-
-	for i := 0; i < len(keys); i++ {
-		char := keys[i]
-
-		if !inputrc.IsMeta(char) {
-			converted = append(converted, char)
-			continue
-		}
-
-		// Replace the key with esc prefix and add the demetafied key.
-		converted = append(converted, inputrc.Esc)
-		converted = append(converted, inputrc.Demeta(char))
-	}
-
-	return string(converted)
-}
-
 // InputIsTerminator returns true when current input keys are one of
 // the configured or builtin "terminators", which can be configured
 // in .inputrc with the isearch-terminators variable.
 func (m *Engine) InputIsTerminator() bool {
-	// Make a special list of binds with a unique command.
 	terminators := []string{
 		inputrc.Unescape(`\C-G`),
 		inputrc.Unescape(`C-]`),
@@ -199,7 +173,7 @@ func (m *Engine) InputIsTerminator() bool {
 		binds[sequence] = inputrc.Bind{Action: "abort", Macro: false}
 	}
 
-	bind, cmd, _ := m.matchKeymap(binds)
+	bind, cmd, _ := m.dispatch(binds)
 
 	return bind.Action == "abort" && cmd != nil
 }
@@ -217,265 +191,15 @@ func (m *Engine) ActiveCommand() inputrc.Bind {
 	return m.active
 }
 
-// MatchMain incrementally attempts to match cached input keys against the local keymap.
-// Returns the bind if matched, the corresponding command, and if we only matched by prefix.
-func (m *Engine) MatchMain() (bind inputrc.Bind, command func(), prefix bool) {
-	if m.main == "" {
-		return
-	}
-
-	// Get relevant binds in the current context, possibly
-	// restrained to a subset when non/incrementally-searching.
-	binds := m.getContextBinds(true)
-	if len(binds) == 0 {
-		return
-	}
-
-	bind, command, prefix = m.matchKeymap(binds)
-
-	// Non-incremental search mode should always insert the keys
-	// if they did not exactly match one of the valid commands.
-	if m.nonIncSearch && (command == nil || prefix) {
-		bind = inputrc.Bind{Action: "self-insert"}
-		m.active = bind
-		command = m.resolveCommand(bind)
-		prefix = false
-	}
-
-	// Adjusting for the ESC key: when convert-meta is enabled,
-	// many binds will actually match ESC as a prefix. This makes
-	// commands like vi-movement-mode unreachable, so if the bind
-	// is vi-movement-mode, we return it to be ran regardless of
-	// the other binds matching by prefix.
-	if m.isEscapeKey() && !m.IsEmacs() && prefix {
-		bind, command, prefix = m.handleEscape(true)
-	}
-
-	return
-}
-
-// MatchMain incrementally attempts to match cached input keys against the main keymap.
-// Returns the bind if matched, the corresponding command, and if we only matched by prefix.
-func (m *Engine) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
-	if m.local == "" {
-		return
-	}
-
-	binds := m.getContextBinds(false)
-	if len(binds) == 0 {
-		return
-	}
-
-	bind, command, prefix = m.matchKeymap(binds)
-
-	// Similarly to the MatchMain() function, give a special treatment to the escape key
-	// (if it's alone): using escape in Viopp/menu-complete/isearch should cancel the
-	// current mode, thus we return either a Vim movement-mode command, or nothing.
-	if m.isEscapeKey() && (prefix || command == nil) {
-		bind, command, prefix = m.handleEscape(false)
-	}
-
-	return
-}
-
-func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
-	var keys, matched []byte
-
-	for {
-		// Read keys one by one, and abort once exhausted.
-		key, empty := core.PopKey(m.keys)
-		if empty {
-			break
-		}
-
-		keys = append(keys, key)
-
-		// Find binds (actions/macros) matching by prefix or perfectly.
-		match, prefixed := m.matchCommand(keys, binds)
-
-		// If the current keys have no matches but the previous
-		// matching process found a prefix, use it with the keys.
-		if match.Action == "" && len(prefixed) == 0 {
-			prefix = false
-			cmd = m.resolveCommand(m.prefixed)
-			m.active = m.prefixed
-			m.prefixed = inputrc.Bind{}
-
-			break
-		}
-
-		// From here, there is at least one sequence matched, as a prefix
-		// or exactly, so the key we popped is considered matched.
-		matched = append(matched, key)
-
-		// Or several matches, in which case we read another key.
-		if match.Action != "" && len(prefixed) > 0 {
-			prefix = true
-			m.prefixed = match
-
-			continue
-		}
-
-		// Or no exact match and only prefixes
-		if len(prefixed) > 0 {
-			prefix = true
-			continue
-		}
-
-		// Or an exact match, so drop any prefixed one.
-		m.active = match
-		bind = m.active
-		m.prefixed = inputrc.Bind{}
-		cmd = m.resolveCommand(match)
-		prefix = false
-
-		break
-	}
-
-	// We're done matching input against binds.
-	keys = keys[len(matched):]
-
-	// First mark the keys that FOR SURE matched against a command.
-	// But if there are keys that have been tried but which didn't
-	// match the filtered list of previous matches, we feed them back.
-	core.MatchedKeys(m.keys, matched, keys...)
-
-	return bind, cmd, prefix
-}
-
-func (m *Engine) matchCommand(keys []byte, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
-	var match inputrc.Bind
-	var prefixed []inputrc.Bind
-
-	for sequence, kbind := range binds {
-		// When convert-meta is on, any meta-prefixed bind should
-		// be stripped and replaced with an escape meta instead.
-		if m.config.GetBool("convert-meta") {
-			sequence = m.ConvertMeta([]rune(sequence))
-		}
-
-		// If the keys are a prefix of the bind, keep the bind
-		if len(string(keys)) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {
-			prefixed = append(prefixed, kbind)
-		}
-
-		// Else if the match is perfect, keep the bind
-		if string(keys) == sequence {
-			// if inputrc.Unescape(string(keys)) == sequence {
-			match = kbind
-		}
-	}
-
-	return match, prefixed
-}
-
-func (m *Engine) resolveCommand(bind inputrc.Bind) func() {
-	if bind.Macro {
-		return nil
-	}
-
-	if bind.Action == "" {
-		return nil
-	}
-
-	return m.commands[bind.Action]
-}
-
-func (m *Engine) isEscapeKey() bool {
-	keys := m.keys.Caller()
-	if len(keys) == 0 {
-		return false
-	}
-
-	if len(keys) > 1 {
-		return false
-	}
-
-	if keys[0] != inputrc.Esc {
-		return false
-	}
-
-	return true
-}
-
-// handleEscape is used to override or change the matched command when the escape key has
-// been pressed: it might exit completion/isearch menus, use the vi-movement-mode, etc.
-func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bool) {
-	switch {
-	case m.prefixed.Action == "vi-movement-mode":
-		// The vi-movement-mode command always has precedence over
-		// other binds when we are currently using the main keymap.
-		bind = m.prefixed
-	case !main:
-		// When using the local keymap, we simply drop any prefixed
-		// or matched bind, so that the key will be matched against
-		// the main keymap: between both, completion/isearch menus
-		// will likely be cancelled.
-		bind = inputrc.Bind{}
-	}
-
-	// Drop what needs to, and resolve the command.
-	m.prefixed = inputrc.Bind{}
-
-	if bind.Action != "" && !bind.Macro {
-		cmd = m.resolveCommand(bind)
-	}
-
-	return
-}
-
-func printBindsReadable(commands []string, all map[string][]string) {
-	for _, command := range commands {
-		commandBinds := all[command]
-		sort.Strings(commandBinds)
-
-		switch {
-		case len(commandBinds) == 0:
-			fmt.Printf("%s is not bound to any keys\n", command)
-
-		case len(commandBinds) > 5:
-			var firstBinds []string
-
-			for i := 0; i < 5; i++ {
-				firstBinds = append(firstBinds, "\""+commandBinds[i]+"\"")
-			}
-
-			bindsStr := strings.Join(firstBinds, ", ")
-			fmt.Printf("%s can be found on %s ...\n", command, bindsStr)
-
-		default:
-			var firstBinds []string
-
-			for _, bind := range commandBinds {
-				firstBinds = append(firstBinds, "\""+bind+"\"")
-			}
-
-			bindsStr := strings.Join(firstBinds, ", ")
-			fmt.Printf("%s can be found on %s\n", command, bindsStr)
-		}
-	}
-}
-
-func printBindsInputrc(commands []string, all map[string][]string) {
-	for _, command := range commands {
-		commandBinds := all[command]
-		sort.Strings(commandBinds)
-
-		switch {
-		case len(commandBinds) == 0:
-			fmt.Printf("# %s (not bound)\n", command)
-		default:
-			for _, bind := range commandBinds {
-				fmt.Printf("\"%s\": %s\n", bind, command)
-			}
-		}
-	}
-}
-
+// NonIncrementalSearchStart is used to notify the keymap dispatchers
+// that are using a minibuffer, and that the set of valid commands
+// should be restrained to a few ones (self-insert/abort/rubout...).
 func (m *Engine) NonIncrementalSearchStart() {
 	m.nonIncSearch = true
 }
 
+// NonIncrementalSearchStop notifies the keymap dispatchers
+// that we stopped editing a non-incremental search minibuffer.
 func (m *Engine) NonIncrementalSearchStop() {
 	m.nonIncSearch = false
 }
