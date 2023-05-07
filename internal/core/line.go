@@ -353,6 +353,73 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 	return
 }
 
+// Display prints the line to stdout, starting at the current terminal
+// cursor position, assuming it is at the end of the shell prompt string.
+// Params:
+// @indent -    Used to align all lines (except the first) together on a single column.
+func (l *Line) Display(indent int) {
+	lines := strings.Split(string(*l), "\n")
+
+	if strings.HasSuffix(string(*l), "\n") {
+		// if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
+		lines = append(lines, "")
+	}
+
+	for num, line := range lines {
+		// Don't let any visual selection go further than length.
+		line += color.BgDefault
+
+		// Clear everything before each line, except the first.
+		if num > 0 {
+			term.MoveCursorForwards(indent)
+			line = term.ClearLineBefore + line
+		}
+
+		// Clear everything after each line, except the last.
+		if num < len(lines)-1 {
+			line += term.ClearLineAfter
+			line += "\n"
+		}
+
+		line += term.ClearLineAfter
+
+		fmt.Print(line)
+	}
+}
+
+// Coordinates returns the number of real terminal lines on which the input line spans, considering
+// any contained newlines, any overflowing line, and the indent passed as parameter. The values
+// also take into account an eventual suggestion added to the line before printing.
+// Params:
+// @indent - Coordinates to align all lines (except the first) together on a single column.
+// Returns:
+// @x - The number of columns, starting from the terminal left, to the end of the last line.
+// @y - The number of actual lines on which the line spans, accounting for line wrap.
+func (l *Line) Coordinates(indent int) (x, y int) {
+	line := string(*l)
+	lines := strings.Split(line, "\n")
+	usedY, usedX := 0, 0
+
+	for i, line := range lines {
+		x, y := strutil.LineSpan([]rune(line), i, indent)
+		usedY += y
+		usedX = x
+	}
+
+	return usedX, usedY
+}
+
+// Lines returns the number of real lines in the input buffer.
+// If there are no newlines, the result is 1, otherwise it's
+// the number of newlines + 1.
+func (l *Line) Lines() int {
+	line := string(*l)
+	nl := regexp.MustCompile(string(inputrc.Newline))
+	lines := nl.FindAllStringIndex(line, -1)
+
+	return len(lines)
+}
+
 // Forward returns the offset to the beginning of the next
 // (forward) token determined by the tokenizer function.
 func (l *Line) Forward(tokenizer Tokenizer, pos int) (adjust int) {
@@ -555,7 +622,7 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 	line := *l
 
 	var (
-		bpos, epos     rune
+		opener, closer rune
 		split          []string
 		count          int
 		pos            = make(map[int]int)
@@ -565,14 +632,14 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 
 	switch line[cpos] {
 	case '(', ')', '{', '[', '}', ']':
-		bpos, epos = strutil.MatchSurround(line[cpos])
+		opener, closer = strutil.MatchSurround(line[cpos])
 
 	default:
 		return nil, 0, 0
 	}
 
-	for i := range line {
-		switch line[i] {
+	for idx := range line {
+		switch line[idx] {
 		case '\'':
 			if !single {
 				double = !double
@@ -583,37 +650,23 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 				single = !single
 			}
 
-		case bpos:
+		case opener:
 			if !single && !double {
-				count++
-
-				pos[count] = i
-
-				if i == cpos {
-					match = count
-					split = []string{string(line[:i-1])}
-				}
-			} else if i == cpos {
+				count, match, split = openToken(idx, count, cpos, match, pos, line, split)
+			} else if idx == cpos {
 				return nil, 0, 0
 			}
 
-		case epos:
+		case closer:
 			if !single && !double {
+				count, split = closeToken(idx, count, cpos, match, pos, line, split)
+
 				if match == count {
-					split = append(split, string(line[pos[count]:i]))
 					return split, 1, 0
-				}
-
-				if i == cpos {
-					split = []string{
-						string(line[:pos[count]-1]),
-						string(line[pos[count]:i]),
-					}
-
+				} else if idx == cpos {
 					return split, 1, len(split[1])
 				}
-				count--
-			} else if i == cpos {
+			} else if idx == cpos {
 				return nil, 0, 0
 			}
 		}
@@ -622,71 +675,50 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 	return nil, 0, 0
 }
 
-// Display prints the line to stdout, starting at the current terminal
-// cursor position, assuming it is at the end of the shell prompt string.
-// Params:
-// @indent -    Used to align all lines (except the first) together on a single column.
-func (l *Line) Display(indent int) {
-	lines := strings.Split(string(*l), "\n")
+// add a new block token to the list of split tokens.
+func openToken(idx, count, cpos, match int, pos map[int]int, line []rune, split []string) (int, int, []string) {
+	count++
 
-	if strings.HasSuffix(string(*l), "\n") {
-		// if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
-		lines = append(lines, "")
+	pos[count] = idx
+
+	if idx != cpos {
+		return count, match, split
 	}
 
-	for num, line := range lines {
-		// Don't let any visual selection go further than length.
-		line += color.BgDefault
-
-		// Clear everything before each line, except the first.
-		if num > 0 {
-			term.MoveCursorForwards(indent)
-			line = term.ClearLineBefore + line
-		}
-
-		// Clear everything after each line, except the last.
-		if num < len(lines)-1 {
-			line += term.ClearLineAfter
-			line += "\n"
-		}
-
-		line += term.ClearLineAfter
-
-		fmt.Print(line)
+	// Important: don't index a negative below.
+	if idx == 0 {
+		idx++
 	}
+
+	match = count
+	split = []string{string(line[:idx-1])}
+
+	return count, match, split
 }
 
-// Coordinates returns the number of real terminal lines on which the input line spans, considering
-// any contained newlines, any overflowing line, and the indent passed as parameter. The values
-// also take into account an eventual suggestion added to the line before printing.
-// Params:
-// @indent - Coordinates to align all lines (except the first) together on a single column.
-// Returns:
-// @x - The number of columns, starting from the terminal left, to the end of the last line.
-// @y - The number of actual lines on which the line spans, accounting for line wrap.
-func (l *Line) Coordinates(indent int) (x, y int) {
-	line := string(*l)
-	lines := strings.Split(line, "\n")
-	usedY, usedX := 0, 0
-
-	for i, line := range lines {
-		x, y := strutil.LineSpan([]rune(line), i, indent)
-		usedY += y
-		usedX = x
+// close the current block token if any.
+func closeToken(idx, count, cpos, match int, pos map[int]int, line []rune, split []string) (int, []string) {
+	if match == count {
+		split = append(split, string(line[pos[count]:idx]))
+		return count, split
 	}
 
-	return usedX, usedY
-}
+	if idx == cpos {
+		start := pos[count]
+		if start == 0 {
+			start++
+		}
 
-// Lines returns the number of real lines in the input buffer.
-// If there are no newlines, the result is 1, otherwise it's
-// the number of newlines + 1.
-func (l *Line) Lines() int {
-	line := string(*l)
-	nl := regexp.MustCompile(string(inputrc.Newline))
-	lines := nl.FindAllStringIndex(line, -1)
+		split = []string{
+			string(line[:start-1]),
+			string(line[pos[count]:idx]),
+		}
 
-	return len(lines)
+		return count, split
+	}
+	count--
+
+	return count, split
 }
 
 // newlines gives the indexes of all newline characters in the line.

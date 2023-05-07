@@ -129,7 +129,8 @@ func (s *Selection) Pos() (bpos, epos int) {
 	}
 
 	// Use currently set values, or update if one is pending.
-	bpos, epos = s.bpos, s.epos
+	s.bpos, s.epos = bpos, epos
+	// bpos, epos = s.bpos, s.epos
 
 	if epos == -1 {
 		bpos, epos = s.selectToCursor(bpos)
@@ -540,7 +541,7 @@ func (s *Selection) HighlightMatchers() {
 		switch {
 		case len(split) == 0:
 			return
-		case pos == 0:
+		case pos == 0 && len(split) > index:
 			adjust = len(split[index])
 		default:
 			adjust = pos * -1

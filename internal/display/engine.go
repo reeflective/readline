@@ -195,8 +195,6 @@ func (e *Engine) cursorHintToLineStart() {
 }
 
 func (e *Engine) computeCoordinates() {
-	e.selection.ResetMatchers()
-
 	// Get the new input line and auto-suggested one.
 	e.line, e.cursor = e.completer.Line()
 	if e.completer.IsInserting() {
@@ -243,6 +241,7 @@ func (e *Engine) displayLine() {
 	// Highlight matching parenthesis
 	if e.opts.GetBool("blink-matching-paren") {
 		e.selection.HighlightMatchers()
+		defer e.selection.ResetMatchers()
 	}
 
 	// Apply visual selections highlighting if any
