@@ -23,7 +23,8 @@ func (e *Engine) TrimSuffix() {
 	}
 
 	suf := (*e.line)[e.cursor.Pos()-1]
-	key, _ := e.keys.Peek()
+	keys := e.keys.Caller()
+	key := keys[0]
 
 	// Special case when completing paths: if the comp is ended
 	// by a slash, only remove this slash if the inserted key is
@@ -144,7 +145,8 @@ func (e *Engine) prepareSuffix() (comp string) {
 	}
 
 	suffix := rune(comp[len(comp)-1])
-	key, _ := e.keys.Peek()
+	keys := e.keys.Caller()
+	key := keys[0]
 
 	// If we are to even consider removing a suffix, we keep the suffix
 	// matcher for later: whatever the decision we take here will be identical
@@ -200,10 +202,12 @@ func (e *Engine) removeInserted() bool {
 	}
 
 	// Normally, we should have a key.
-	key, empty := e.keys.Peek()
-	if empty {
+	keys := e.keys.Caller()
+	if len(keys) == 0 {
 		return false
 	}
+
+	key := keys[0]
 
 	// Some keys trigger behavior different from the normal one:
 	// Ex: if the key is a letter, the isearch buffer is updated

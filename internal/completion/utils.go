@@ -148,7 +148,7 @@ func (e *Engine) cyclePreviousGroup() {
 func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
 	cur := e.currentGroup()
 
-	keyRunes, _ := e.keys.PeekAll()
+	keyRunes := e.keys.Caller()
 	keys := string(keyRunes)
 
 	if row > 0 {

@@ -34,16 +34,22 @@ func (rl *Shell) Readline() (string, error) {
 	rl.init()
 
 	for {
+		// Whether or not the command is resolved, let the macro
+		// engine record the keys if currently recording a macro.
+		// This is done before flushing all used keys, on purpose.
+		rl.Macros.RecordKeys()
+
+		// Get the rid of the keys that were consumed during the
+		// previous command run. This may include keys that have
+		// been consumed but did not match any command.
+		rl.Keys.FlushUsed()
+
 		// Since we always update helpers after being asked to read
 		// for user input again, we do it before actually reading it.
 		rl.Display.Refresh()
 
 		// Block and wait for user input keys.
 		rl.Keys.WaitInput()
-
-		// Whether or not the command is resolved, let the macro
-		// engine record the keys if currently recording a macro.
-		rl.Macros.RecordKeys()
 
 		// 1 - Local keymap (completion/isearch/viopp)
 		bind, command, prefixed := rl.Keymap.MatchLocal()
@@ -77,8 +83,6 @@ func (rl *Shell) Readline() (string, error) {
 			return line, err
 		}
 
-		rl.Keys.FlushUsed()
-
 		// Reaching this point means the last key/sequence has not
 		// been dispatched down to a command: therefore this key is
 		// undefined for the current local/main keymaps.
@@ -89,7 +93,7 @@ func (rl *Shell) Readline() (string, error) {
 // init gathers all steps to perform at the beginning of readline loop.
 func (rl *Shell) init() {
 	// Reset core editor components.
-	rl.Keys.Flush()
+	rl.Keys.FlushUsed()
 	rl.line.Set()
 	rl.cursor.Set(0)
 	rl.cursor.ResetMark()
@@ -162,9 +166,6 @@ func (rl *Shell) execute(command func()) {
 	if !rl.Iterations.IsPending() {
 		rl.Keymap.RunPending()
 	}
-
-	// Flush the keys used to match against the command.
-	rl.Keys.FlushUsed()
 
 	// Update/check cursor positions after run.
 	switch rl.Keymap.Main() {

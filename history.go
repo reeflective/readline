@@ -614,7 +614,7 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 
 	// Without multiline support, we always return the line.
 	if rl.AcceptMultiline == nil {
-		keys, _ := rl.Keys.PeekAll()
+		keys := rl.Keys.Caller()
 		rl.Macros.StopRecord(keys)
 
 		rl.Display.AcceptLine()
@@ -626,7 +626,7 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	// Ask the caller if the line should be accepted
 	// as is, save the command line and accept it.
 	if rl.AcceptMultiline(*rl.line) {
-		keys, _ := rl.Keys.PeekAll()
+		keys := rl.Keys.Caller()
 		rl.Macros.StopRecord(keys)
 
 		rl.Display.AcceptLine()

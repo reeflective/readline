@@ -21,6 +21,7 @@ type Engine struct {
 	current    []rune          // Key sequence of the current macro being recorded.
 	currentKey rune            // The identifier of the macro being recorded.
 	macros     map[rune]string // All previously recorded macros.
+	started    bool
 
 	keys   *core.Keys // The engine feeds macros directly in the key stack.
 	hint   *ui.Hint   // The engine notifies when macro recording starts/stops.
@@ -50,6 +51,7 @@ func (e *Engine) StartRecord(key rune) {
 		return
 	}
 
+	e.started = true
 	e.recording = true
 	e.status = color.Dim + "Recording macro: " + color.Bold
 	e.hint.Persist(e.status)
@@ -83,13 +85,19 @@ func (e *Engine) RecordKeys() {
 		return
 	}
 
-	// TODO: Should we only record the used keys ?
-	keys, empty := e.keys.PeekAll()
-	if empty || len(keys) == 0 {
+	keys := e.keys.Caller()
+	if len(keys) == 0 {
 		return
 	}
 
-	e.current = append(e.current, keys...)
+	// The first call to record should not add
+	// the caller keys that started the recording.
+	if !e.started {
+		e.current = append(e.current, keys...)
+	}
+
+	e.started = false
+
 	e.hint.Persist(e.status + inputrc.EscapeMacro(string(e.current)) + color.Reset)
 }
 
@@ -127,6 +135,7 @@ func (e *Engine) RunMacro(key rune) {
 		return
 	}
 
+	macro = strings.ReplaceAll(macro, `\e`, "\x1b")
 	e.keys.Feed(false, []rune(macro)...)
 }
 

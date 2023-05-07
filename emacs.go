@@ -385,12 +385,9 @@ func (rl *Shell) quotedInsert() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	keys, _ := rl.Keys.ReadKey()
-	if len(keys) == 0 {
-		return
-	}
+	key, _ := rl.Keys.ReadKey()
 
-	quoted, length := rl.line.Quote(keys[0])
+	quoted, length := rl.line.Quote(key)
 
 	rl.line.Insert(rl.cursor.Pos(), quoted...)
 	rl.cursor.Move(length)
@@ -411,17 +408,14 @@ func (rl *Shell) selfInsert() {
 	// Handle suffix-autoremoval for inserted completions.
 	rl.Completions.TrimSuffix()
 
-	key, empty := rl.Keys.Peek()
-	if empty {
-		return
-	}
+	key := rl.Keys.Caller()
 
 	// Handle autopair insertion (for the closer only)
 	searching, _, _ := rl.Completions.NonIncrementallySearching()
 	isearch := rl.Keymap.Local() == keymap.Isearch
 
 	if !searching && !isearch && rl.Config.GetBool("autopairs") {
-		if jump := completion.AutopairInsertOrJump(key, rl.line, rl.cursor); jump {
+		if jump := completion.AutopairInsertOrJump(key[0], rl.line, rl.cursor); jump {
 			return
 		}
 	}
@@ -429,11 +423,11 @@ func (rl *Shell) selfInsert() {
 	var quoted []rune
 	var length int
 
-	if rl.Config.GetBool("output-meta") && key != inputrc.Esc {
-		quoted = append(quoted, key)
+	if rl.Config.GetBool("output-meta") && key[0] != inputrc.Esc {
+		quoted = append(quoted, key[0])
 		length = uniseg.StringWidth(string(quoted))
 	} else {
-		quoted, length = rl.line.Quote(key)
+		quoted, length = rl.line.Quote(key[0])
 	}
 
 	rl.line.Insert(rl.cursor.Pos(), quoted...)
@@ -652,12 +646,10 @@ func (rl *Shell) overwriteMode() {
 	// them as long as the escape key is not pressed.
 	for {
 		// We read a character to use first.
-		keys, isAbort := rl.Keys.ReadKey()
+		key, isAbort := rl.Keys.ReadKey()
 		if isAbort {
 			break
 		}
-
-		key := keys[0]
 
 		// If the key is a backspace, we go back one character
 		if string(key) == inputrc.Unescape(string(`\C-?`)) {
@@ -1076,11 +1068,7 @@ func (rl *Shell) copyPrevShellWord() {
 func (rl *Shell) digitArgument() {
 	rl.History.SkipSave()
 
-	keys, empty := rl.Keys.PeekAll()
-	if empty {
-		return
-	}
-
+	keys := rl.Keys.Caller()
 	rl.Iterations.Add(string(keys))
 }
 
@@ -1096,7 +1084,7 @@ func (rl *Shell) startKeyboardMacro() {
 // Stop saving the characters typed into the current
 // keyboard macro and store the definition.
 func (rl *Shell) endKeyboardMacro() {
-	keys, _ := rl.Keys.PeekAll()
+	keys := rl.Keys.Caller()
 	rl.Macros.StopRecord(keys)
 }
 
@@ -1124,7 +1112,7 @@ func (rl *Shell) printLastKeyboardMacro() {
 // when using Vim editing mode.
 func (rl *Shell) macroToggleRecord() {
 	if rl.Macros.Recording() {
-		keys, _ := rl.Keys.PeekAll()
+		keys := rl.Keys.Caller()
 		rl.Macros.StopRecord(keys)
 
 		return
@@ -1141,7 +1129,7 @@ func (rl *Shell) macroToggleRecord() {
 		return
 	}
 
-	rl.Macros.StartRecord(key[0])
+	rl.Macros.StartRecord(key)
 }
 
 // Reads a key from the keyboard, and runs the macro stored for this key identitier.
@@ -1159,7 +1147,7 @@ func (rl *Shell) macroRun() {
 		return
 	}
 
-	rl.Macros.RunMacro(key[0])
+	rl.Macros.RunMacro(key)
 }
 
 //
@@ -1224,9 +1212,9 @@ func (rl *Shell) abort() {
 	}
 
 	if rl.Config.GetBool("echo-control-characters") {
-		key, _ := rl.Keys.Peek()
-		if key == rune(inputrc.Unescape(`\C-C`)[0]) {
-			quoted, _ := rl.line.Quote(key)
+		key := rl.Keys.Caller()
+		if key[0] == rune(inputrc.Unescape(`\C-C`)[0]) {
+			quoted, _ := rl.line.Quote(key[0])
 			fmt.Print(string(quoted))
 		}
 	}
@@ -1242,10 +1230,7 @@ func (rl *Shell) abort() {
 func (rl *Shell) doLowercaseVersion() {
 	rl.History.SkipSave()
 
-	keys, empty := rl.Keys.PeekAll()
-	if empty {
-		return
-	}
+	keys := rl.Keys.Caller()
 
 	escapePrefix := false
 
@@ -1280,14 +1265,13 @@ func (rl *Shell) prefixMeta() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	keys, isAbort := rl.Keys.ReadKey()
+	key, isAbort := rl.Keys.ReadKey()
 	if isAbort {
 		return
 	}
 
-	keys = append([]rune{inputrc.Esc}, keys...)
-
 	// And feed them back to be used on the next loop.
+	keys := append([]rune{inputrc.Esc}, key)
 	rl.Keys.Feed(false, keys...)
 }
 

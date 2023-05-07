@@ -532,14 +532,12 @@ func (rl *Shell) viChangeTo() {
 		done := rl.Keymap.PendingCursor()
 		defer done()
 
-		key, isAbort := rl.Keys.ReadKey()
+		rchar, isAbort := rl.Keys.ReadKey()
 		if isAbort {
 			return
 		}
 
 		rl.History.Save()
-
-		rchar := key[0]
 
 		// There might be a matching equivalent.
 		bchar, echar := strutil.MatchSurround(rchar)
@@ -568,9 +566,9 @@ func (rl *Shell) viChangeTo() {
 	default:
 		// Since we must emulate the default readline behavior,
 		// we vary our behavior depending on the caller key.
-		key, _ := rl.Keys.Peek()
+		keys := rl.Keys.Caller()
 
-		switch key {
+		switch keys[0] {
 		case 'c':
 			rl.Keymap.Pending()
 			rl.selection.Mark(rl.cursor.Pos())
@@ -623,9 +621,9 @@ func (rl *Shell) viDeleteTo() {
 	default:
 		// Since we must emulate the default readline behavior,
 		// we vary our behavior depending on the caller key.
-		key, _ := rl.Keys.Peek()
+		keys := rl.Keys.Caller()
 
-		switch key {
+		switch keys[0] {
 		case 'd':
 			rl.Keymap.Pending()
 			rl.selection.Mark(rl.cursor.Pos())
@@ -664,7 +662,7 @@ func (rl *Shell) viChangeChar() {
 	defer done()
 
 	key, isAbort := rl.Keys.ReadKey()
-	if isAbort || len(key) == 0 {
+	if isAbort {
 		rl.History.SkipSave()
 		return
 	}
@@ -673,12 +671,11 @@ func (rl *Shell) viChangeChar() {
 	case rl.selection.Active() && rl.selection.IsVisual():
 		// In visual mode, we replace all chars of the selection
 		rl.selection.ReplaceWith(func(r rune) rune {
-			return key[0]
+			return key
 		})
 	default:
 		// Or simply the character under the cursor.
-		rl.line.CutRune(rl.cursor.Pos())
-		rl.line.Insert(rl.cursor.Pos(), []rune(key)...)
+		rl.cursor.ReplaceWith(key)
 	}
 }
 
@@ -702,12 +699,10 @@ func (rl *Shell) viReplace() {
 	// them as long as the escape key is not pressed.
 	for {
 		// We read a character to use first.
-		keys, isAbort := rl.Keys.ReadKey()
+		key, isAbort := rl.Keys.ReadKey()
 		if isAbort {
 			break
 		}
-
-		key := keys[0]
 
 		// If the key is a backspace, we go back one character
 		if string(key) == inputrc.Unescape(string(`\C-?`)) {
@@ -789,9 +784,9 @@ func (rl *Shell) viSubstitute() {
 	default:
 		// Since we must emulate the default readline behavior,
 		// we vary our behavior depending on the caller key.
-		key, _ := rl.Keys.Peek()
+		keys := rl.Keys.Caller()
 
-		switch key {
+		switch keys[0] {
 		case 's':
 			// Delete next characters and enter insert mode.
 			vii := rl.Iterations.Get()
@@ -852,7 +847,7 @@ func (rl *Shell) viAddSurround() {
 		return
 	}
 
-	bchar, echar := strutil.MatchSurround(rune(key[0]))
+	bchar, echar := strutil.MatchSurround(key)
 
 	rl.History.Save()
 
@@ -1024,9 +1019,9 @@ func (rl *Shell) viYankTo() {
 	default:
 		// Since we must emulate the default readline behavior,
 		// we vary our behavior depending on the caller key.
-		key, _ := rl.Keys.Peek()
+		keys := rl.Keys.Caller()
 
-		switch key {
+		switch keys[0] {
 		case 'y':
 			rl.Keymap.Pending()
 			rl.selection.Mark(rl.cursor.Pos())
@@ -1076,9 +1071,9 @@ func (rl *Shell) viKillLine() {
 
 // Readline-compatible version dispatching to vi-put-after or vi-put-before.
 func (rl *Shell) viPut() {
-	key, _ := rl.Keys.Peek()
+	keys := rl.Keys.Caller()
 
-	switch key {
+	switch keys[0] {
 	case 'P':
 		rl.viPutBefore()
 	case 'p':
@@ -1163,7 +1158,7 @@ func (rl *Shell) viSetBuffer() {
 		return
 	}
 
-	rl.Buffers.SetActive(key[0])
+	rl.Buffers.SetActive(key)
 }
 
 //
@@ -1257,8 +1252,8 @@ func (rl *Shell) viSelectInside() {
 	// character, so we look at the input keys: the first one is
 	// the only that triggered this command, so check the second.
 	// Use the first key to know if inside/around is used.
-	key, _ := rl.Keys.Pop()
-	if key == 'i' {
+	keys := rl.Keys.Caller()
+	if keys[0] == 'i' {
 		inside = true
 	}
 
@@ -1293,12 +1288,10 @@ func (rl *Shell) viSelectSurround() {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, isAbort := rl.Keys.ReadKey()
+	char, isAbort := rl.Keys.ReadKey()
 	if isAbort {
 		return
 	}
-
-	char := key[0]
 
 	// Find the corresponding enclosing chars
 	bpos, epos, _, _ := rl.line.FindSurround(char, rl.cursor.Pos())
@@ -1326,25 +1319,25 @@ func (rl *Shell) viEOFMaybe() {
 func (rl *Shell) viSearch() {
 	var forward bool
 
-	key, _ := rl.Keys.Peek()
+	keys := rl.Keys.Caller()
 
-	switch key {
+	switch keys[0] {
 	case '/':
 		forward = true
 	case '?':
 		forward = false
 	}
 
-	rl.Completions.NonIsearchStart(rl.History.Name()+" "+string(key), false, forward, true)
+	rl.Completions.NonIsearchStart(rl.History.Name()+" "+string(keys[0]), false, forward, true)
 }
 
 func (rl *Shell) viSearchAgain() {
 	var forward bool
 	var hint string
 
-	key, _ := rl.Keys.Peek()
+	keys := rl.Keys.Caller()
 
-	switch key {
+	switch keys[0] {
 	case 'n':
 		forward = true
 		hint = " /"
@@ -1366,11 +1359,7 @@ func (rl *Shell) viSearchAgain() {
 func (rl *Shell) viArgDigit() {
 	rl.History.SkipSave()
 
-	keys, empty := rl.Keys.PeekAll()
-	if empty {
-		return
-	}
-
+	keys := rl.Keys.Caller()
 	rl.Iterations.Add(string(keys))
 }
 
@@ -1381,9 +1370,9 @@ func (rl *Shell) viCharSearch() {
 	// In order to keep readline compatibility,
 	// we check the key triggering the command
 	// so set the specific behavior.
-	key, _ := rl.Keys.Peek()
+	keys := rl.Keys.Caller()
 
-	switch key {
+	switch keys[0] {
 	case 'F':
 		forward = false
 		skip = false
@@ -1490,12 +1479,11 @@ func (rl *Shell) viFindChar(forward, skip bool) {
 	done := rl.Keymap.PendingCursor()
 	defer done()
 
-	key, esc := rl.Keys.ReadKey()
+	char, esc := rl.Keys.ReadKey()
 	if esc {
 		return
 	}
 
-	char := key[0]
 	times := rl.Iterations.Get()
 
 	for i := 1; i <= times; i++ {
@@ -1563,11 +1551,10 @@ func (rl *Shell) adjustSelectionPending() {
 
 	switch rl.Keymap.ActiveCommand().Action {
 	// Movements
-	case "vi-end-word", "vi-end-bigword":
-		rl.selection.Visual(false)
-
-		// Modifiers
-	case "vi-change-to":
+	case "vi-end-word", "vi-end-bigword",
+		"vi-find-next-char", "vi-find-next-char-skip",
+		"vi-find-prev-char", "vi-find-prev-char-skip",
+		"vi-match":
 		rl.selection.Visual(false)
 
 		// Selectors
@@ -1575,6 +1562,10 @@ func (rl *Shell) adjustSelectionPending() {
 		"select-in-blank-word", "select-a-blank-word",
 		"select-in-shell-word", "select-a-shell-word",
 		"vi-select-inside":
+		rl.selection.Visual(false)
+
+		// Modifiers
+	case "vi-change-to":
 		rl.selection.Visual(false)
 	}
 }

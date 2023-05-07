@@ -279,14 +279,13 @@ func (m *Engine) MatchLocal() (bind inputrc.Bind, command func(), prefix bool) {
 }
 
 func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
-	var keys []byte
+	var keys, matched []byte
 
 	for {
 		// Read keys one by one, and abort once exhausted.
-		key, empty := m.keys.Pop()
+		key, empty := core.PopKey(m.keys)
 		if empty {
-			m.keys.MarkMatched(keys...)
-			return
+			break
 		}
 
 		keys = append(keys, key)
@@ -302,9 +301,12 @@ func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, 
 			m.active = m.prefixed
 			m.prefixed = inputrc.Bind{}
 
-			m.keys.MarkMatched(keys...)
-			return
+			break
 		}
+
+		// From here, there is at least one sequence matched, as a prefix
+		// or exactly, so the key we popped is considered matched.
+		matched = append(matched, key)
 
 		// Or several matches, in which case we read another key.
 		if match.Action != "" && len(prefixed) > 0 {
@@ -322,12 +324,23 @@ func (m *Engine) matchKeymap(binds map[string]inputrc.Bind) (bind inputrc.Bind, 
 
 		// Or an exact match, so drop any prefixed one.
 		m.active = match
+		bind = m.active
 		m.prefixed = inputrc.Bind{}
+		cmd = m.resolveCommand(match)
+		prefix = false
 
-		m.keys.MarkMatched(keys...)
-
-		return match, m.resolveCommand(match), false
+		break
 	}
+
+	// We're done matching input against binds.
+	keys = keys[len(matched):]
+
+	// First mark the keys that FOR SURE matched against a command.
+	// But if there are keys that have been tried but which didn't
+	// match the filtered list of previous matches, we feed them back.
+	core.MatchedKeys(m.keys, matched, keys...)
+
+	return bind, cmd, prefix
 }
 
 func (m *Engine) matchCommand(keys []byte, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
@@ -369,8 +382,8 @@ func (m *Engine) resolveCommand(bind inputrc.Bind) func() {
 }
 
 func (m *Engine) isEscapeKey() bool {
-	keys, empty := m.keys.PeekAll()
-	if empty || len(keys) == 0 {
+	keys := m.keys.Caller()
+	if len(keys) == 0 {
 		return false
 	}
 

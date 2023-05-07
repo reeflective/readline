@@ -208,7 +208,14 @@ func (reg *Buffers) Complete() completion.Values {
 	}
 	comps.ListLong["*"] = true
 
-	comps.Messages.Add(color.Bold + color.FgBlue + "(registers)" + color.Reset)
+	// Registers hint
+	hint := color.Bold + color.FgBlue + "(registers)"
+
+	if len(vals) == 0 {
+		hint += " - empty -"
+	}
+
+	comps.Messages.Add(hint)
 
 	return comps
 }
