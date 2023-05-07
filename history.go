@@ -110,13 +110,13 @@ func (rl *Shell) acceptLine() {
 
 // Move to the next event in the history list.
 func (rl *Shell) downHistory() {
-	rl.History.SkipSave()
+	rl.History.Save()
 	rl.History.Walk(-1)
 }
 
 // Move to the previous event in the history list.
 func (rl *Shell) upHistory() {
-	rl.History.SkipSave()
+	rl.History.Save()
 	rl.History.Walk(1)
 }
 
@@ -369,8 +369,6 @@ func (rl *Shell) acceptAndInferNextHistory() {
 // Move down a line in the buffer, or if already at the
 // bottom line, move to the next event in the history list.
 func (rl *Shell) downLineOrHistory() {
-	rl.History.SkipSave()
-
 	times := rl.Iterations.Get()
 	linesDown := rl.line.Lines() - rl.cursor.Line()
 
@@ -389,8 +387,6 @@ func (rl *Shell) downLineOrHistory() {
 // Move up a line in the buffer, or if already at the top
 // line, move to the previous event in the history list.
 func (rl *Shell) upLineOrHistory() {
-	rl.History.SkipSave()
-
 	times := rl.Iterations.Get()
 	linesUp := rl.cursor.Line()
 

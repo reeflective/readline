@@ -514,9 +514,7 @@ func (rl *Shell) viChangeTo() {
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `cc`), so copy the entire current line.
 		rl.Keymap.CancelPending()
-
 		rl.History.Save()
-		rl.History.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -553,7 +551,6 @@ func (rl *Shell) viChangeTo() {
 	case rl.selection.Active():
 		// In visual mode, we have just have a selection to delete.
 		rl.History.Save()
-		rl.History.SkipSave()
 
 		rl.adjustSelectionPending()
 		cpos := rl.selection.Cursor()
@@ -587,9 +584,7 @@ func (rl *Shell) viDeleteTo() {
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `dd`), so delete the entire current line.
 		rl.Keymap.CancelPending()
-
 		rl.History.Save()
-		rl.History.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -608,7 +603,6 @@ func (rl *Shell) viDeleteTo() {
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just cut it.
 		rl.History.Save()
-		rl.History.SkipSave()
 
 		rl.adjustSelectionPending()
 		cpos := rl.selection.Cursor()
@@ -879,14 +873,11 @@ func (rl *Shell) viOpenLineBelow() {
 // Convert the current word to all lowercase and move past it.
 // If in visual mode, operate on the whole selection.
 func (rl *Shell) viDownCase() {
-	rl.History.SkipSave()
-
 	switch {
 	case rl.Keymap.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `uu`), so modify the entire current line.
 		rl.History.Save()
-		rl.History.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -894,6 +885,7 @@ func (rl *Shell) viDownCase() {
 		rl.viCommandMode()
 
 	case rl.selection.Active():
+		rl.History.Save()
 		rl.selection.ReplaceWith(unicode.ToLower)
 		rl.viCommandMode()
 
@@ -908,14 +900,11 @@ func (rl *Shell) viDownCase() {
 // Convert the current word to all uppercase and move past it.
 // If in visual mode, operate on the whole selection.
 func (rl *Shell) viUpCase() {
-	rl.History.SkipSave()
-
 	switch {
 	case rl.Keymap.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `uu`), so modify the entire current line.
 		rl.History.Save()
-		rl.History.SkipSave()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -923,6 +912,7 @@ func (rl *Shell) viUpCase() {
 		rl.viCommandMode()
 
 	case rl.selection.Active():
+		rl.History.Save()
 		rl.selection.ReplaceWith(unicode.ToUpper)
 		rl.viCommandMode()
 
@@ -941,7 +931,6 @@ func (rl *Shell) viUpCase() {
 // Kill from the cursor to the end of the line.
 func (rl *Shell) viKillEol() {
 	rl.History.Save()
-	rl.History.SkipSave()
 
 	pos := rl.cursor.Pos()
 	rl.selection.Mark(rl.cursor.Pos())
@@ -987,13 +976,12 @@ func (rl *Shell) viRubout() {
 // from the cursor position to the endpoint of the movement into
 // the kill buffer. If the command is vi-yank, copy the current line.
 func (rl *Shell) viYankTo() {
-	rl.History.SkipSave()
-
 	switch {
 	case rl.Keymap.IsPending():
 		// In vi operator pending mode, it's that we've been called
 		// twice in a row (eg. `yy`), so copy the entire current line.
 		rl.Keymap.CancelPending()
+		rl.History.Save()
 
 		rl.selection.Mark(rl.cursor.Pos())
 		rl.selection.Visual(true)
@@ -1008,6 +996,7 @@ func (rl *Shell) viYankTo() {
 
 	case rl.selection.Active():
 		// In visual mode, or with a non-empty selection, just yank.
+		rl.History.Save()
 		rl.adjustSelectionPending()
 		text, _, _, cpos := rl.selection.Pop()
 
@@ -1061,7 +1050,6 @@ func (rl *Shell) viKillLine() {
 	}
 
 	rl.History.Save()
-	rl.History.SkipSave()
 
 	rl.selection.MarkRange(rl.cursor.Mark(), rl.line.Len())
 	rl.cursor.Dec()
