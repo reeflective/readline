@@ -14,6 +14,11 @@ import (
 	"github.com/reeflective/readline/internal/ui"
 )
 
+var (
+	oneThirdTerminalHeight = 3
+	halfTerminalHeight     = 2
+)
+
 // Engine handles all display operations: it refreshes the terminal
 // interface and stores the necessary offsets of each components.
 type Engine struct {
@@ -59,13 +64,10 @@ func NewEngine(k *core.Keys, s *core.Selection, h *history.Sources, p *ui.Prompt
 // have bound it after instantiating a new shell instance.
 func (e *Engine) Init(highlighter func([]rune) string) {
 	e.highlighter = highlighter
-	// e.computeCoordinates()
 }
 
 // Refresh recomputes and redisplays the entire readline interface, except
 // the first lines of the primary prompt when the latter is a multiline one.
-//
-// Doc: Refresh the current line. By default, this is unbound.
 func (e *Engine) Refresh() {
 	fmt.Print(term.HideCursor)
 
@@ -96,12 +98,14 @@ func (e *Engine) Refresh() {
 }
 
 // PrintPrimaryPrompt redraws the primary prompt.
+// There are relatively few cases where you want to use this.
+// It is currently only used when using clear-screen commands.
 func (e *Engine) PrintPrimaryPrompt() {
 	e.prompt.PrimaryPrint()
 	e.primaryPrinted = true
 }
 
-// ClearHelpers clears and resets the hint and completion sections.
+// ClearHelpers clears the hint and completion sections below the line.
 func (e *Engine) ClearHelpers() {
 	e.CursorBelowLine()
 	fmt.Print(term.ClearScreenBelow)
@@ -140,38 +144,36 @@ func (e *Engine) AcceptLine() {
 	fmt.Println()
 }
 
-// PrintTransientPrompt clears the accepted line
-// and redisplays the transient prompt with line.
+// PrintTransientPrompt goes back to the first line of the input buffer,
+// clears it,  displays the transient prompt, then redisplays the input line.
 func (e *Engine) PrintTransientPrompt() {
 	if !e.opts.GetBool("prompt-transient") {
 		return
 	}
 
+	// Go to the beginning of the primary prompt.
 	e.CursorToLineStart()
-	e.prompt.TransientPrint()
+	term.MoveCursorUp(e.prompt.PrimaryUsed())
 
+	// And redisplay the transient/primary/line.
+	e.prompt.TransientPrint()
 	e.displayLine()
 	fmt.Println()
 }
 
 // CursorToLineStart moves the cursor just after the primary prompt.
+// This function should only be called when the cursor is on its
+// "cursor" position on the input line.
 func (e *Engine) CursorToLineStart() {
 	term.MoveCursorBackwards(e.cursorCol)
 	term.MoveCursorUp(e.cursorRow)
 	term.MoveCursorForwards(e.startCols)
 }
 
-// cursorToPos moves the cursor back to where the cursor is on the input line.
-func (e *Engine) cursorToPos() {
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.cursorCol)
-
-	term.MoveCursorUp(e.lineRows)
-	term.MoveCursorDown(e.cursorRow)
-}
-
-// CursorBelowLine moves the cursor to the leftmost column
-// of the first row after the last line of input.
+// CursorBelowLine moves the cursor to the leftmost
+// column of the first row after the last line of input.
+// This function should only be called when the cursor
+// is on its "cursor" position on the input line.
 func (e *Engine) CursorBelowLine() {
 	term.MoveCursorUp(e.cursorRow)
 	term.MoveCursorDown(e.lineRows)
@@ -245,7 +247,7 @@ func (e *Engine) displayLine() {
 	}
 
 	// Apply visual selections highlighting if any
-	line = ui.Highlight([]rune(line), *e.selection, e.opts)
+	line = e.highlightLine([]rune(line), *e.selection)
 
 	// Get the subset of the suggested line to print.
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
@@ -279,8 +281,8 @@ func (e *Engine) displayHelpers() {
 	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
 	compLines := termHeight - e.startRows - e.lineRows - e.hint.Coordinates() - 1
 
-	if compLines < (termHeight / 3) {
-		compLines = termHeight/2 - 1
+	if compLines < (termHeight / oneThirdTerminalHeight) {
+		compLines = (termHeight / halfTerminalHeight) - 1
 	}
 
 	// Display hint and completions.

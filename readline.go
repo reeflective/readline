@@ -110,7 +110,6 @@ func (rl *Shell) init() {
 	// Reset/initialize user interface components.
 	rl.Hint.Reset()
 	rl.Completions.ResetForce()
-	rl.Display.Init(rl.SyntaxHighlighter)
 }
 
 // run wraps the execution of a target command/sequence with various pre/post actions

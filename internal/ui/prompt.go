@@ -123,8 +123,9 @@ func (p *Prompt) PrimaryPrint() {
 	fmt.Print(lastPrompt)
 
 	// And compute coordinates
-	p.primaryRows = len(strings.Split(prompt, "\n"))
+	p.primaryRows = strings.Count(prompt, "\n")
 	p.primaryCols = strutil.RealLength(lastPrompt)
+
 	if p.primaryCols > 0 {
 		p.primaryCols--
 	}
@@ -149,7 +150,6 @@ func (p *Prompt) LastPrint() {
 	// rows used since any redisplay of all lines but the last
 	// will trigger their  own recomputation.
 	lines := strings.Split(p.primaryF(), "\n")
-	p.primaryRows = 0
 
 	// Print the prompt and compute columns.
 	if len(lines) == 0 {
