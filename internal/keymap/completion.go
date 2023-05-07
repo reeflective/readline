@@ -16,8 +16,7 @@ var menuselectKeys = map[string]inputrc.Bind{
 	unescape(`\e[1;5B`): {Action: "menu-complete-next-tag"},
 }
 
-// those widgets, generally found in the main keymap, are the only
-// valid widgets to be used in the incremental search minibuffer.
+// isearchCommands is a subset of commands that are valid in incremental-search mode.
 var isearchCommands = []string{
 	"abort",
 	"accept-and-infer-next-history",
@@ -40,6 +39,8 @@ var isearchCommands = []string{
 	"self-insert",
 }
 
+// nonIsearchCommands is an even more restricted set of commands
+// that are used when a non-incremental search mode is active.
 var nonIsearchCommands = []string{
 	"abort",
 	"accept-line",

@@ -58,6 +58,34 @@ func IsSurround(bchar, echar rune) bool {
 	return echar == bchar
 }
 
+// SurroundType says if the character is a pairing one (first boolean),
+// and if the character is the closing part of the pair (second boolean).
+func SurroundType(char rune) (surround, closer bool) {
+	switch char {
+	case '{':
+		return true, false
+	case '}':
+		return true, true
+	case '(':
+		return true, false
+	case ')':
+		return true, true
+	case '[':
+		return true, false
+	case ']':
+		return true, true
+	case '<':
+		return true, false
+	case '>':
+	case '"':
+		return true, true
+	case '\'':
+		return true, true
+	}
+
+	return false, false
+}
+
 // AdjustSurroundQuotes returns the correct mark and cursor positions when
 // we want to know where a shell word enclosed with quotes (and potentially
 // having inner ones) starts and ends.

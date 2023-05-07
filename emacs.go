@@ -11,6 +11,7 @@ import (
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
+	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/editor"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
@@ -347,21 +348,14 @@ func (rl *Shell) backwardDeleteChar() {
 
 	switch vii {
 	case 1:
-		var toDelete rune
-		var isSurround, matcher bool
-
-		if rl.line.Len() > rl.cursor.Pos() {
-			toDelete = (*rl.line)[rl.cursor.Pos()-1]
-			isSurround = strutil.IsBracket(toDelete) || toDelete == '\'' || toDelete == '"'
-			matcher = strutil.IsSurround(toDelete, rl.cursor.Char())
+		// Handle removal of autopairs characters.
+		if rl.Config.GetBool("autopairs") {
+			completion.AutopairDelete(rl.line, rl.cursor)
 		}
 
+		// And then delete the character under cursor.
 		rl.cursor.Dec()
 		rl.line.CutRune(rl.cursor.Pos())
-
-		if isSurround && matcher {
-			rl.line.CutRune(rl.cursor.Pos())
-		}
 
 	default:
 		for i := 1; i <= vii; i++ {
@@ -420,6 +414,16 @@ func (rl *Shell) selfInsert() {
 	key, empty := rl.Keys.Peek()
 	if empty {
 		return
+	}
+
+	// Handle autopair insertion (for the closer only)
+	searching, _, _ := rl.Completions.NonIncrementallySearching()
+	isearch := rl.Keymap.Local() == keymap.Isearch
+
+	if !searching && !isearch && rl.Config.GetBool("autopairs") {
+		if jump := completion.AutopairInsertOrJump(key, rl.line, rl.cursor); jump {
+			return
+		}
 	}
 
 	var quoted []rune

@@ -169,12 +169,7 @@ func (rl *Shell) acceptAndMenuComplete() {
 // Open a completion menu (similar to menu-complete) with all currently populated Vim registers.
 func (rl *Shell) viRegistersComplete() {
 	rl.History.SkipSave()
-
-	// if !rl.Completions.IsActive() {
 	rl.startMenuComplete(rl.Buffers.Complete)
-	// } else {
-	// 	rl.Completions.Select(1, 0)
-	// }
 }
 
 // In a menu completion (wether a candidate is selected or not), start incremental-search

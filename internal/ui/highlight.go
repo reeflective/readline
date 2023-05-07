@@ -55,23 +55,40 @@ func sortHighlights(vhl core.Selection) []core.Selection {
 		bpos = append(bpos, rbpos)
 	}
 
-	all = append(all, vhl)
-
 	if vhl.Active() && vhl.IsVisual() {
+		all = append(all, vhl)
 		vbpos, _ := vhl.Pos()
 		bpos = append(bpos, vbpos)
 	}
 
 	sort.Ints(bpos)
 
+	prevIsMatcher := false
+	prevPos := 0
+
 	for _, pos := range bpos {
 		for _, reg := range all {
 			bpos, _ := reg.Pos()
+			isMatcher := reg.Type == "matcher"
 
-			if bpos == pos && reg.Active() && reg.IsVisual() {
-				sorted = append(sorted, reg)
-				break
+			if bpos != pos || !reg.Active() || !reg.IsVisual() {
+				continue
 			}
+
+			// If we have both a matcher and a visual selection
+			// starting at the same position, then we might have
+			// just added the matcher, and we must "overwrite" it
+			// with the visual selection, so skip until we find it.
+			if prevIsMatcher && isMatcher && prevPos == pos {
+				continue
+			}
+
+			// Else the region is good to be used in that order.
+			sorted = append(sorted, reg)
+			prevIsMatcher = reg.Type == "matcher"
+			prevPos = bpos
+
+			break
 		}
 	}
 
@@ -176,22 +193,28 @@ func hlReset(regions []core.Selection, line []rune, pos int, config *inputrc.Con
 		foreground, background := reg.Highlights()
 		matcher := reg.Type == "matcher"
 
-		if epos == pos {
+		if epos != pos {
+			continue
+		}
+
+		if i < len(regions)-1 {
 			regions = append(regions[:i], regions[i+1:]...)
+		} else {
+			regions = regions[:i]
+		}
 
-			if foreground != "" {
-				line = append(line, []rune(color.FgDefault)...)
-			}
+		if foreground != "" {
+			line = append(line, []rune(color.FgDefault)...)
+		}
 
-			if background != "" {
-				background, _ := strconv.Unquote(config.GetString("active-region-end-color"))
-				foreground := config.GetString("active-region-start-color")
+		if background != "" {
+			background, _ := strconv.Unquote(config.GetString("active-region-end-color"))
+			foreground := config.GetString("active-region-start-color")
 
-				if background == "" && foreground == "" && !matcher {
-					line = append(line, []rune(color.ReverseReset)...)
-				} else {
-					line = append(line, []rune(color.BgDefault)...)
-				}
+			if background == "" && foreground == "" && !matcher {
+				line = append(line, []rune(color.ReverseReset)...)
+			} else {
+				line = append(line, []rune(color.BgDefault)...)
 			}
 		}
 	}
