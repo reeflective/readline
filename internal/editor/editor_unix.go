@@ -9,8 +9,6 @@ import (
 	"os/exec"
 )
 
-const defaultEditor = "vi"
-
 // ErrStart indicates that the command to start the editor failed.
 var ErrStart = errors.New("failed to start editor")
 
@@ -26,9 +24,6 @@ func EditBuffer(buf []rune, filename, filetype string, emacs bool) ([]rune, erro
 	}
 
 	editor := getSystemEditor(emacs)
-	if editor == "" {
-		editor = defaultEditor
-	}
 
 	args := []string{}
 	if filetype != "" {
