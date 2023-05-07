@@ -222,19 +222,16 @@ func (e *Engine) Cancel(inserted, cached bool) {
 	// In the end, there is no completed line anymore.
 	defer e.cancelCompletedLine()
 
-	// Either drop the inserted candidate.
+	// Either drop the inserted candidate,
+	// or make it part of the real input line.
 	if inserted {
 		cpos := e.cursor.Pos()
-		e.cursor.Move(-1 * len(e.inserted))
-		e.line.Cut(e.cursor.Pos(), cpos)
+		e.line.Cut(e.cursor.Pos(), cpos+len(e.inserted))
 		e.line.Insert(e.cursor.Pos(), []rune(e.suffix)...)
-
-		return
+	} else {
+		e.line.Set(*e.completed...)
+		e.cursor.Set(e.compCursor.Pos())
 	}
-
-	// Or make it part of the real input line.
-	e.line.Set(*e.completed...)
-	e.cursor.Set(e.compCursor.Pos())
 }
 
 // ResetForce drops any currently inserted candidate from the line,
