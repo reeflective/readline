@@ -7,6 +7,7 @@ import (
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/keymap"
+	"github.com/reeflective/readline/internal/macro"
 	"github.com/reeflective/readline/internal/term"
 )
 
@@ -37,7 +38,7 @@ func (rl *Shell) Readline() (string, error) {
 		// Whether or not the command is resolved, let the macro
 		// engine record the keys if currently recording a macro.
 		// This is done before flushing all used keys, on purpose.
-		rl.Macros.RecordKeys()
+		macro.RecordKeys(rl.Macros)
 
 		// Get the rid of the keys that were consumed during the
 		// previous command run. This may include keys that have

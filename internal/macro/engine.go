@@ -38,11 +38,34 @@ func NewEngine(keys *core.Keys, hint *ui.Hint) *Engine {
 	}
 }
 
-// StartRecord uses all key input to record a macro.
+// RecordKeys is being passed every key read by the shell, and will save
+// those entered while the engine is in record mode. All others are ignored.
+func RecordKeys(eng *Engine) {
+	if !eng.recording {
+		return
+	}
+
+	keys := eng.keys.Caller()
+	if len(keys) == 0 {
+		return
+	}
+
+	// The first call to record should not add
+	// the caller keys that started the recording.
+	if !eng.started {
+		eng.current = append(eng.current, keys...)
+	}
+
+	eng.started = false
+
+	eng.hint.Persist(eng.status + inputrc.EscapeMacro(string(eng.current)) + color.Reset)
+}
+
+// StartRecord starts saving all user key input to record a macro.
 // If the key parameter is an alphanumeric character, the macro recorded will be
 // stored and used through this letter argument, just like macros work in Vim.
 // If the key is neither valid nor the null value, the engine does not start.
-// A notification is given through the hint section.
+// A notification containing the saved sequence is given through the hint section.
 func (e *Engine) StartRecord(key rune) {
 	switch {
 	case isValidMacroID(key), key == 0:
@@ -58,7 +81,7 @@ func (e *Engine) StartRecord(key rune) {
 }
 
 // StopRecord stops using key input as part of a macro.
-// A notification is given through the hint section.
+// The hint section displaying the currently saved sequence is cleared.
 func (e *Engine) StopRecord(keys []rune) {
 	e.recording = false
 
@@ -78,36 +101,15 @@ func (e *Engine) StopRecord(keys []rune) {
 	e.current = make([]rune, 0)
 }
 
-// RecordKeys is being passed every key read by the shell, and will save
-// those entered while the engine is in record mode. All others are ignored.
-func (e *Engine) RecordKeys() {
-	if !e.recording {
-		return
-	}
-
-	keys := e.keys.Caller()
-	if len(keys) == 0 {
-		return
-	}
-
-	// The first call to record should not add
-	// the caller keys that started the recording.
-	if !e.started {
-		e.current = append(e.current, keys...)
-	}
-
-	e.started = false
-
-	e.hint.Persist(e.status + inputrc.EscapeMacro(string(e.current)) + color.Reset)
-}
-
 // Recording returns true if the macro engine is recording the keys for a macro.
 func (e *Engine) Recording() bool {
 	return e.recording
 }
 
-// RunLastMacro feeds keys the last recorded macro to
-// the shell's key stack, so that the macro is replayed.
+// RunLastMacro feeds keys the last recorded macro to the shell's key stack,
+// so that the macro is replayed.
+// Note that this function only feeds the keys of the macro back into the key
+// stack: it does not dispatch them to commands, therefore not running any.
 func (e *Engine) RunLastMacro() {
 	if len(e.macros) == 0 {
 		return
@@ -125,6 +127,8 @@ func (e *Engine) RunLastMacro() {
 // RunMacro runs a given macro, injecting its key sequence back into the shell key stack.
 // The key argument should either be one of the valid alphanumeric macro identifiers, or
 // a nil rune (in which case the last recorded macro is ran).
+// Note that this function only feeds the keys of the macro back into the key
+// stack: it does not dispatch them to commands, therefore not running any.
 func (e *Engine) RunMacro(key rune) {
 	if !isValidMacroID(key) && key != 0 {
 		return
@@ -139,7 +143,7 @@ func (e *Engine) RunMacro(key rune) {
 	e.keys.Feed(false, []rune(macro)...)
 }
 
-// PrintLastMacro dumps the last recorded macro to the screen.
+// PrintLastMacro dumps the last recorded macro sequence to the screen.
 func (e *Engine) PrintLastMacro() {
 	if len(e.macros) == 0 {
 		return
@@ -151,7 +155,8 @@ func (e *Engine) PrintLastMacro() {
 	fmt.Printf("\n%s\n", e.macros[e.currentKey])
 }
 
-// PrintAllMacros dumps all macros to the screen.
+// PrintAllMacros dumps all macros to the screen, which one line
+// per saved macro sequence, next to its corresponding key ID.
 func (e *Engine) PrintAllMacros() {
 	var macroIDs []rune
 
