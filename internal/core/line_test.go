@@ -3,7 +3,13 @@ package core
 import (
 	"reflect"
 	"testing"
+
+	"github.com/reeflective/readline/internal/term"
 )
+
+// getTermWidth is used as a variable so that we can
+// use specific terminal widths in our tests.
+var getTermWidth = term.GetWidth
 
 // TODO: Add many more values to insert: Control characters,
 // and everything as weird as one can find in a terminal.

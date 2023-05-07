@@ -343,7 +343,7 @@ func (rl *Shell) viBackwardWordEnd() {
 		rl.cursor.Move(rl.line.Backward(rl.line.Tokenize, rl.cursor.Pos()))
 
 		// Then move forward, adjusting if we are on a punctuation.
-		if strutil.IsPunctuation(rl.cursor.Char()) {
+		if unicode.IsPunct(rl.cursor.Char()) {
 			rl.cursor.Dec()
 		}
 

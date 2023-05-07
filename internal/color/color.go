@@ -159,6 +159,7 @@ const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)
 
 var re = regexp.MustCompile(ansi)
 
+// Strip removes all ANSI escaped color sequences in a string.
 func Strip(str string) string {
 	return re.ReplaceAllString(str, "")
 }

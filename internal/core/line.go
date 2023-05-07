@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/reeflective/readline/inputrc"
@@ -445,7 +446,7 @@ func (l *Line) ForwardEnd(tokenizer Tokenizer, pos int) (adjust int) {
 		return
 	}
 
-	word := strutil.TrimWhiteSpaceRight(split[index])
+	word := strings.TrimRightFunc(split[index], unicode.IsSpace)
 
 	switch {
 	case len(split) == 0:
@@ -453,7 +454,7 @@ func (l *Line) ForwardEnd(tokenizer Tokenizer, pos int) (adjust int) {
 	case index == len(split)-1 && pos >= len(word)-1:
 		return
 	case pos >= len(word)-1:
-		word = strutil.TrimWhiteSpaceRight(split[index+1])
+		word = strings.TrimRightFunc(split[index+1], unicode.IsSpace)
 		adjust = len(split[index]) - pos
 		adjust += len(word) - 1
 	default:
@@ -502,7 +503,7 @@ func (l *Line) Tokenize(cpos int) ([]string, int, int) {
 
 	for i, char := range line {
 		switch {
-		case strutil.IsPunctuation(char):
+		case unicode.IsPunct(char):
 			if i > 0 && line[i-1] != char {
 				split = append(split, "")
 			}
