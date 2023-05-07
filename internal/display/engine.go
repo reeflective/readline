@@ -144,9 +144,9 @@ func (e *Engine) AcceptLine() {
 	fmt.Println()
 }
 
-// PrintTransientPrompt goes back to the first line of the input buffer,
-// clears it,  displays the transient prompt, then redisplays the input line.
-func (e *Engine) PrintTransientPrompt() {
+// RefreshTransient goes back to the first line of the input buffer
+// and displays the transient prompt, then redisplays the input line.
+func (e *Engine) RefreshTransient() {
 	if !e.opts.GetBool("prompt-transient") {
 		return
 	}

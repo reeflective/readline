@@ -19,14 +19,10 @@ type Prompt struct {
 	primaryRows int
 	primaryCols int
 
-	secondaryF    func() string
-	secondaryCols int
-
+	secondaryF func() string
 	transientF func() string
-
-	rightF func() string
-
-	tooltipF func() string
+	rightF     func() string
+	tooltipF   func() string
 
 	// True if some logs have printed asynchronously
 	// since last loop. Check refresh prompt funcs.
@@ -90,7 +86,7 @@ func (p *Prompt) Tooltip(prompt func(word string) string) {
 }
 
 // PrimaryPrint prints the primary prompt string, excluding
-// the last line if the primary spans on several lines.
+// the last line if the primary prompt spans on several lines.
 func (p *Prompt) PrimaryPrint() {
 	p.refreshing = false
 
@@ -219,7 +215,7 @@ func (p *Prompt) RightPrint(startColumn int, force bool) {
 	}
 }
 
-// TransientPrint prints the transient prompt if it is enabled.
+// TransientPrint prints the transient prompt.
 func (p *Prompt) TransientPrint() {
 	if p.transientF == nil {
 		return

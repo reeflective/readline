@@ -29,7 +29,7 @@ func (rl *Shell) Readline() (string, error) {
 	defer term.Restore(descriptor, state)
 
 	rl.Prompt.PrimaryPrint()
-	defer rl.Display.PrintTransientPrompt()
+	defer rl.Display.RefreshTransient()
 
 	rl.init()
 

@@ -23,13 +23,15 @@ type Hint struct {
 }
 
 // Set sets the hint message to the given text.
+// Generally, this hint message will persist until either a command
+// or the completion system overwrites it, or if hint.Reset() is called.
 func (h *Hint) Set(hint string) {
 	h.text = []rune(hint)
 	h.set = true
 }
 
-// SetTemporary sets a hint message that will be cleared
-// at the next keypress/command being run.
+// SetTemporary sets a hint message that will be cleared at the next keypress
+// or command being run, which generally coincides with the next redisplay.
 func (h *Hint) SetTemporary(hint string) {
 	h.text = []rune(hint)
 	h.set = true
@@ -62,13 +64,13 @@ func (h *Hint) Reset() {
 	h.set = false
 }
 
-// ResetPersist drops the persistent hint.
+// ResetPersist drops the persistent hint section.
 func (h *Hint) ResetPersist() {
 	h.cleanup = len(h.persistent) > 0
 	h.persistent = make([]rune, 0)
 }
 
-// Display prints the hint section.
+// Display prints the hint (persistent and/or temporary) sections.
 func (h *Hint) Display() {
 	if h.temp && h.set {
 		h.set = false
@@ -142,13 +144,13 @@ func (h *Hint) Coordinates() int {
 		bline := line[bpos:newline[0]]
 		bpos = newline[0]
 
-		x, y := strutil.LineSpan([]rune(bline), i, 0)
+		x, lineY := strutil.LineSpan([]rune(bline), i, 0)
 
-		if x != 0 || y == 0 {
-			y++
+		if x != 0 || lineY == 0 {
+			lineY++
 		}
 
-		usedY += y
+		usedY += lineY
 	}
 
 	return usedY
