@@ -242,8 +242,8 @@ func (e *Engine) displayLine() {
 
 	// Highlight matching parenthesis
 	if e.opts.GetBool("blink-matching-paren") {
-		e.selection.HighlightMatchers()
-		defer e.selection.ResetMatchers()
+		core.HighlightMatchers(e.selection)
+		defer core.ResetMatchers(e.selection)
 	}
 
 	// Apply visual selections highlighting if any

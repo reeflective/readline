@@ -405,6 +405,7 @@ func (s *Selection) SelectAShellWord() (bpos, epos int) {
 			s.cursor.Dec()
 			s.cursor.ToFirstNonSpace(false)
 			s.cursor.Inc()
+
 			break
 		} else if mark == 0 {
 			break
@@ -439,7 +440,7 @@ func (s *Selection) SelectAShellWord() (bpos, epos int) {
 // SelectKeyword attempts to find a pattern in the current blank word
 // around the current cursor position, using various regular expressions.
 // Repeatedly calling this function will cycle through all regex matches,
-// or if a matcher captured multiple subgroups, through each of them.
+// or if a matcher captured multiple subgroups, through each of those groups.
 //
 // Those are, in the order in which they are tried:
 // URI / URL / Domain|IPv4|IPv6 / URL path component / URL parameters.
@@ -447,7 +448,7 @@ func (s *Selection) SelectAShellWord() (bpos, epos int) {
 // The returned positions are the beginning and end positions of the match
 // on the line (absolute position, not relative to cursor), or if no matcher
 // succeeds, the bpos and epos parameters are returned unchanged.
-// If found is true, a match occurred, otherwise false is returned.
+// If found is true, it means a match occurred, otherwise false is returned.
 func (s *Selection) SelectKeyword(bpos, epos int, next bool) (kbpos, kepos int, match bool) {
 	selection := (*s.line)[bpos:epos]
 
@@ -524,19 +525,29 @@ func (s *Selection) Cut() (buf string) {
 	return
 }
 
+// Surrounds returns all surround-selected regions contained by the selection.
+func (s *Selection) Surrounds() []Selection {
+	return s.surrounds
+}
+
+// Highlights returns the highlighting sequences for the selection.
+func (s *Selection) Highlights() (fg, bg string) {
+	return s.fg, s.bg
+}
+
 // HighlightMatchers adds highlighting to matching
 // parens when the cursor is on one of them.
-func (s *Selection) HighlightMatchers() {
-	cpos := s.cursor.Pos()
+func HighlightMatchers(sel *Selection) {
+	cpos := sel.cursor.Pos()
 
-	if s.line.Len() == 0 || cpos == s.line.Len() {
+	if sel.line.Len() == 0 || cpos == sel.line.Len() {
 		return
 	}
 
-	if strutil.IsBracket(s.cursor.Char()) {
+	if strutil.IsBracket(sel.cursor.Char()) {
 		var adjust, ppos int
 
-		split, index, pos := s.line.TokenizeBlock(cpos)
+		split, index, pos := sel.line.TokenizeBlock(cpos)
 
 		switch {
 		case len(split) == 0:
@@ -549,25 +560,25 @@ func (s *Selection) HighlightMatchers() {
 
 		ppos = cpos + adjust
 
-		s.surrounds = append(s.surrounds, Selection{
+		sel.surrounds = append(sel.surrounds, Selection{
 			Type:   "matcher",
 			active: true,
 			visual: true,
 			bpos:   ppos,
 			epos:   ppos,
 			bg:     color.SGR("240", false),
-			line:   s.line,
-			cursor: s.cursor,
+			line:   sel.line,
+			cursor: sel.cursor,
 		})
 	}
 }
 
 // ResetMatchers is meant to be used by the display engine
 // (and only it), to reset matching parens highlighting regions.
-func (s *Selection) ResetMatchers() {
+func ResetMatchers(sel *Selection) {
 	var surrounds []Selection
 
-	for _, surround := range s.surrounds {
+	for _, surround := range sel.surrounds {
 		if surround.Type == "matcher" {
 			continue
 		}
@@ -575,17 +586,7 @@ func (s *Selection) ResetMatchers() {
 		surrounds = append(surrounds, surround)
 	}
 
-	s.surrounds = surrounds
-}
-
-// Surrounds returns all surround-selected regions contained by the selection.
-func (s *Selection) Surrounds() []Selection {
-	return s.surrounds
-}
-
-// Highlights returns the highlighting sequences for the selection.
-func (s *Selection) Highlights() (fg, bg string) {
-	return s.fg, s.bg
+	sel.surrounds = surrounds
 }
 
 // Reset makes the current selection inactive, resetting all of its values.
@@ -706,7 +707,7 @@ func isSpace(char rune) bool {
 
 // adjustWordSelection adjust the beginning and end of a word (blank or not) selection, depending
 // on whether it's surrounded by spaces, and if selection started from a whitespace or within word.
-func (s *Selection) adjustWordSelection(before, under, after bool, bpos int) (int, int) {
+func (s *Selection) adjustWordSelection(_, under, after bool, bpos int) (int, int) {
 	var epos int
 
 	if after && !under {
