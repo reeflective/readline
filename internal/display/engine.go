@@ -279,19 +279,19 @@ func (e *Engine) displayHelpers() {
 	// Compute the number of available lines we have for displaying completions.
 	// Use half the terminal if we currently have less than 1/3rd of it below.
 	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
-	compLines := termHeight - e.startRows - e.lineRows - e.hint.Coordinates() - 1
+	compLines := termHeight - e.startRows - e.lineRows - ui.CoordinatesHint(e.hint) - 1
 
 	if compLines < (termHeight / oneThirdTerminalHeight) {
 		compLines = (termHeight / halfTerminalHeight) - 1
 	}
 
 	// Display hint and completions.
-	e.hint.Display()
+	ui.DisplayHint(e.hint)
 	completion.Display(e.completer, compLines)
 	e.compRows = completion.Coordinates(e.completer)
 
 	// Go back to the first line below the input line.
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorUp(e.compRows)
-	term.MoveCursorUp(e.hint.Coordinates())
+	term.MoveCursorUp(ui.CoordinatesHint(e.hint))
 }

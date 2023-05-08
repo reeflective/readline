@@ -70,20 +70,20 @@ func (h *Hint) ResetPersist() {
 	h.persistent = make([]rune, 0)
 }
 
-// Display prints the hint (persistent and/or temporary) sections.
-func (h *Hint) Display() {
-	if h.temp && h.set {
-		h.set = false
-	} else if h.temp {
-		h.Reset()
+// DisplayHint prints the hint (persistent and/or temporary) sections.
+func DisplayHint(hint *Hint) {
+	if hint.temp && hint.set {
+		hint.set = false
+	} else if hint.temp {
+		hint.Reset()
 	}
 
-	if len(h.text) == 0 && len(h.persistent) == 0 {
-		if h.cleanup {
+	if len(hint.text) == 0 && len(hint.persistent) == 0 {
+		if hint.cleanup {
 			fmt.Print(term.ClearLineAfter)
 		}
 
-		h.cleanup = false
+		hint.cleanup = false
 
 		return
 	}
@@ -91,12 +91,12 @@ func (h *Hint) Display() {
 	var text string
 
 	// Add the various hints.
-	if len(h.persistent) > 0 {
-		text += string(h.persistent) + "\n"
+	if len(hint.persistent) > 0 {
+		text += string(hint.persistent) + "\n"
 	}
 
-	if len(h.text) > 0 {
-		text += string(h.text)
+	if len(hint.text) > 0 {
+		text += string(hint.text)
 	}
 
 	if strutil.RealLength(text) == 0 {
@@ -111,16 +111,16 @@ func (h *Hint) Display() {
 }
 
 // Coordinates returns the number of terminal rows used by the hint.
-func (h *Hint) Coordinates() int {
+func CoordinatesHint(hint *Hint) int {
 	var text string
 
 	// Add the various hints.
-	if len(h.persistent) > 0 {
-		text += string(h.persistent) + "\n"
+	if len(hint.persistent) > 0 {
+		text += string(hint.persistent) + "\n"
 	}
 
-	if len(h.text) > 0 {
-		text += string(h.text)
+	if len(hint.text) > 0 {
+		text += string(hint.text)
 	}
 
 	// Nothing to do if no real text
