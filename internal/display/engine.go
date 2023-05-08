@@ -218,7 +218,7 @@ func (e *Engine) computeCoordinates() {
 		e.startCols = e.prompt.LastUsed()
 	}
 
-	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startCols)
+	e.cursorCol, e.cursorRow = core.CoordinatesCursor(e.cursor, e.startCols)
 
 	// Get the number of rows used by the line, and the end line X pos.
 	if e.opts.GetBool("history-autosuggest") {

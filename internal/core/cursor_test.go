@@ -442,7 +442,7 @@ func TestCursor_Line(t *testing.T) {
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			if got := c.Line(); got != test.want {
+			if got := c.LinePos(); got != test.want {
 				t.Errorf("Cursor.Line() = %v, want %v", got, test.want)
 			}
 		})
@@ -647,7 +647,7 @@ func TestCursor_Coordinates(t *testing.T) {
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			gotX, gotY := c.Coordinates(indent)
+			gotX, gotY := CoordinatesCursor(c, indent)
 			if gotX != test.wantX {
 				t.Errorf("Cursor.Coordinates() gotX = %v, want %v", gotX, test.wantX)
 			}

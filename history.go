@@ -370,7 +370,7 @@ func (rl *Shell) acceptAndInferNextHistory() {
 // bottom line, move to the next event in the history list.
 func (rl *Shell) downLineOrHistory() {
 	times := rl.Iterations.Get()
-	linesDown := rl.line.Lines() - rl.cursor.Line()
+	linesDown := rl.line.Lines() - rl.cursor.LinePos()
 
 	// If we can go down some lines out of
 	// the available iterations, use them.
@@ -388,7 +388,7 @@ func (rl *Shell) downLineOrHistory() {
 // line, move to the previous event in the history list.
 func (rl *Shell) upLineOrHistory() {
 	times := rl.Iterations.Get()
-	linesUp := rl.cursor.Line()
+	linesUp := rl.cursor.LinePos()
 
 	// If we can go down some lines out of
 	// the available iterations, use them.
@@ -407,7 +407,7 @@ func (rl *Shell) upLineOrHistory() {
 func (rl *Shell) upLineOrSearch() {
 	rl.History.SkipSave()
 	switch {
-	case rl.cursor.Line() > 0:
+	case rl.cursor.LinePos() > 0:
 		rl.cursor.LineMove(-1)
 	default:
 		rl.historySearchBackward()
@@ -419,7 +419,7 @@ func (rl *Shell) upLineOrSearch() {
 func (rl *Shell) downLineOrSelect() {
 	rl.History.SkipSave()
 	switch {
-	case rl.cursor.Line() < rl.line.Lines():
+	case rl.cursor.LinePos() < rl.line.Lines():
 		rl.cursor.LineMove(1)
 	default:
 		rl.menuComplete()
