@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/reeflective/readline/inputrc"
-	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/strutil"
 )
@@ -164,7 +163,12 @@ func (rl *Shell) fetchHistory() {
 // showing matching completions.
 func (rl *Shell) forwardSearchHistory() {
 	rl.History.SkipSave()
-	rl.historyCompletion(true, false, true)
+
+	forward := true
+	filterLine := false
+	regexp := true
+
+	rl.historyCompletion(forward, filterLine, regexp)
 }
 
 // Search backward starting at the current line and moving `up' through
@@ -172,19 +176,32 @@ func (rl *Shell) forwardSearchHistory() {
 // showing matching completions.
 func (rl *Shell) reverseSearchHistory() {
 	rl.History.SkipSave()
-	rl.historyCompletion(false, false, true)
+
+	forward := false
+	filterLine := false
+	regexp := true
+
+	rl.historyCompletion(forward, filterLine, regexp)
 }
 
 // Search forward through the history starting at the current line
 // using a non-incremental search for a string supplied by the user.
 func (rl *Shell) nonIncrementalForwardSearchHistory() {
-	rl.completer.NonIsearchStart(rl.History.Name(), false, true, true)
+	repeat := false
+	forward := true
+	regexp := true
+
+	rl.completer.NonIsearchStart(rl.History.Name(), repeat, forward, regexp)
 }
 
 // Search backward through the history starting at the current line
 // using a non-incremental search for a string supplied by the user.
 func (rl *Shell) nonIncrementalReverseSearchHistory() {
-	rl.completer.NonIsearchStart(rl.History.Name(), false, false, true)
+	repeat := false
+	forward := false
+	regexp := true
+
+	rl.completer.NonIsearchStart(rl.History.Name(), repeat, forward, regexp)
 }
 
 // Search forward through the history for the string of characters
@@ -193,7 +210,12 @@ func (rl *Shell) nonIncrementalReverseSearchHistory() {
 // This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchForward() {
 	rl.History.Save()
-	rl.History.InsertMatch(nil, nil, true, true, false)
+
+	usePos := true
+	forward := true
+	regexp := false
+
+	rl.History.InsertMatch(nil, nil, usePos, forward, regexp)
 }
 
 // Search backward through the history for the string of characters
@@ -202,7 +224,12 @@ func (rl *Shell) historySearchForward() {
 // This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchBackward() {
 	rl.History.Save()
-	rl.History.InsertMatch(nil, nil, true, false, false)
+
+	usePos := true
+	forward := false
+	regexp := false
+
+	rl.History.InsertMatch(nil, nil, usePos, forward, regexp)
 }
 
 // Search forward through the history for the string of characters
@@ -210,7 +237,11 @@ func (rl *Shell) historySearchBackward() {
 // The search string may match anywhere in a history line.
 // This is a non-incremental search.
 func (rl *Shell) historySubstringSearchForward() {
-	rl.History.InsertMatch(rl.line, rl.cursor, true, true, true)
+	usePos := true
+	forward := true
+	regexp := true
+
+	rl.History.InsertMatch(rl.line, rl.cursor, usePos, forward, regexp)
 }
 
 // Search backward through the history for the string of characters
@@ -218,7 +249,11 @@ func (rl *Shell) historySubstringSearchForward() {
 // The search string may match anywhere in a history line.
 // This is a non-incremental search.
 func (rl *Shell) historySubstringSearchBackward() {
-	rl.History.InsertMatch(rl.line, rl.cursor, true, false, true)
+	usePos := true
+	forward := false
+	regexp := true
+
+	rl.History.InsertMatch(rl.line, rl.cursor, usePos, forward, regexp)
 }
 
 // Insert the last argument to the previous command (the last
@@ -287,9 +322,9 @@ func (rl *Shell) yankNthArg() {
 	argNth := rl.Iterations.Get()
 	if len(words) < argNth {
 		return
-	} else {
-		lastArg = words[argNth-1]
 	}
+
+	lastArg = words[argNth-1]
 
 	// Quote if required.
 	if strings.ContainsAny(lastArg, " \t") {
@@ -336,7 +371,7 @@ func (rl *Shell) magicSpace() {
 	}
 
 	// Else, perform expansion on the remainder.
-	pattern := core.Line((*rl.line)[bpos+1:])
+	pattern := (*rl.line)[bpos+1:]
 	suggested := rl.History.Suggest(&pattern)
 
 	if string(suggested) == string(pattern) {
@@ -406,6 +441,7 @@ func (rl *Shell) upLineOrHistory() {
 // search backward on the history lines. Otherwise, move up a line in the buffer.
 func (rl *Shell) upLineOrSearch() {
 	rl.History.SkipSave()
+
 	switch {
 	case rl.cursor.LinePos() > 0:
 		rl.cursor.LineMove(-1)
@@ -418,6 +454,7 @@ func (rl *Shell) upLineOrSearch() {
 // search forward on the history lines. Otherwise, move up a line in the buffer.
 func (rl *Shell) downLineOrSelect() {
 	rl.History.SkipSave()
+
 	switch {
 	case rl.cursor.LinePos() < rl.line.Lines():
 		rl.cursor.LineMove(1)
@@ -506,14 +543,24 @@ func (rl *Shell) endOfLineHist() {
 // current line and moving `down' through the history as necessary.
 func (rl *Shell) incrementalForwardSearchHistory() {
 	rl.History.SkipSave()
-	rl.historyCompletion(true, true, false)
+
+	forward := true
+	filter := true
+	regexp := false
+
+	rl.historyCompletion(forward, filter, regexp)
 }
 
 // Start an backward history autocompletion mode, starting at the
 // current line and moving `down' through the history as necessary.
 func (rl *Shell) incrementalReverseSearchHistory() {
 	rl.History.SkipSave()
-	rl.historyCompletion(false, true, false)
+
+	forward := false
+	filter := true
+	regexp := false
+
+	rl.historyCompletion(forward, filter, regexp)
 }
 
 // If more than one source of command history is bound to the shell,
@@ -650,8 +697,8 @@ func (rl *Shell) insertAutosuggestPartial(emacs bool) {
 	}
 
 	suggested := rl.History.Suggest(rl.line)
-	if suggested.Len() > rl.line.Len() {
 
+	if suggested.Len() > rl.line.Len() {
 		var forward int
 
 		if emacs {
