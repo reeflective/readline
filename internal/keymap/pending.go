@@ -74,10 +74,9 @@ func (m *Engine) RunPending() {
 		return
 	}
 
-	// Resolve and run X times (iterations at pending time)
+	// Resolve and run the command
 	command := m.resolve(pending)
 
-	// TODO: Handle returns from widgets.
 	command()
 
 	// And adapt the local keymap.

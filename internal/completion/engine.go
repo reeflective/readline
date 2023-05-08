@@ -202,8 +202,8 @@ func (e *Engine) Cancel(inserted, cached bool) {
 	// or make it part of the real input line.
 	if inserted {
 		cpos := e.cursor.Pos()
-		e.line.Cut(e.cursor.Pos(), cpos+len(e.inserted))
-		e.line.Insert(e.cursor.Pos(), []rune(e.suffix)...)
+		e.line.Cut(cpos, cpos+len(e.inserted))
+		e.line.Insert(cpos, []rune(e.suffix)...)
 	} else {
 		e.line.Set(*e.compLine...)
 		e.cursor.Set(e.compCursor.Pos())
