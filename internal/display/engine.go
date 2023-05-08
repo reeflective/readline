@@ -222,9 +222,9 @@ func (e *Engine) computeCoordinates() {
 
 	// Get the number of rows used by the line, and the end line X pos.
 	if e.opts.GetBool("history-autosuggest") {
-		e.lineCol, e.lineRows = e.suggested.Coordinates(e.startCols)
+		e.lineCol, e.lineRows = core.CoordinatesLine(&e.suggested, e.startCols)
 	} else {
-		e.lineCol, e.lineRows = e.line.Coordinates(e.startCols)
+		e.lineCol, e.lineRows = core.CoordinatesLine(e.line, e.startCols)
 	}
 
 	e.primaryPrinted = false
@@ -259,7 +259,7 @@ func (e *Engine) displayLine() {
 
 	// And display the line.
 	e.suggested.Set([]rune(line)...)
-	e.suggested.Display(e.startCols)
+	core.DisplayLine(&e.suggested, e.startCols)
 
 	// Adjust the cursor if the line fits exactly in the terminal width.
 	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {

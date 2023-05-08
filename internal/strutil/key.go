@@ -26,3 +26,29 @@ func ConvertMeta(keys []rune) string {
 
 	return string(converted)
 }
+
+// Quote translates one rune in its printable version,
+// which might be different for Control/Meta characters.
+// Returns the "translated" string and new length. (eg 0x04 => ^C = len:2).
+func Quote(char rune) (res []rune, length int) {
+	var inserted []rune
+
+	// Special cases for keys that should not be quoted
+	if char == inputrc.Tab {
+		inserted = append(inserted, char)
+		return inserted, len(inserted)
+	}
+
+	switch {
+	case inputrc.IsMeta(char):
+		inserted = append(inserted, '^', '[')
+		inserted = append(inserted, inputrc.Demeta(char))
+	case inputrc.IsControl(char):
+		inserted = append(inserted, '^')
+		inserted = append(inserted, inputrc.Decontrol(char))
+	default:
+		inserted = []rune(inputrc.Unescape(string(char)))
+	}
+
+	return inserted, len(inserted)
+}

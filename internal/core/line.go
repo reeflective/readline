@@ -23,6 +23,7 @@ type Tokenizer func(cursorPos int) (split []string, index int, newPos int)
 type Line []rune
 
 // Set replaces the line contents altogether with a new slice of characters.
+// If no charaters are passed, the line is thus made empty.
 func (l *Line) Set(chars ...rune) {
 	*l = chars
 }
@@ -84,33 +85,6 @@ func (l *Line) InsertBetween(bpos, epos int, chars ...rune) {
 	}
 }
 
-// Quoted translates one rune in its printable version,
-// which might be different for Control/Meta characters.
-// Returns the "translated" string and new length. (eg 0x04 => ^C = len:2).
-// TODO: Move this strutil.
-func (l *Line) Quote(char rune) (res []rune, length int) {
-	var inserted []rune
-
-	// Special cases for keys that should not be quoted
-	if char == inputrc.Tab {
-		inserted = append(inserted, char)
-		return inserted, len(inserted)
-	}
-
-	switch {
-	case inputrc.IsMeta(char):
-		inserted = append(inserted, '^', '[')
-		inserted = append(inserted, inputrc.Demeta(char))
-	case inputrc.IsControl(char):
-		inserted = append(inserted, '^')
-		inserted = append(inserted, inputrc.Decontrol(char))
-	default:
-		inserted = []rune(inputrc.Unescape(string(char)))
-	}
-
-	return inserted, len(inserted)
-}
-
 // Cut deletes a slice of runes between a beginning and end position on the line.
 // If the begin/end pos is negative/greater than the line, all runes located on
 // valid indexes in the given range are removed.
@@ -157,7 +131,8 @@ func (l *Line) Len() int {
 	return utf8.RuneCountInString(string(*l))
 }
 
-// SelectWord returns the full non-blank word around the specified position.
+// SelectWord returns the begin and end index positions of a word
+// (separated by punctuation or spaces) around the specified position.
 func (l *Line) SelectWord(pos int) (bpos, epos int) {
 	pos, valid := l.checkPos(pos)
 	if !valid {
@@ -199,7 +174,8 @@ func (l *Line) SelectWord(pos int) (bpos, epos int) {
 	return bpos, epos
 }
 
-// SelectBlankWord returns the full bigword around the specified position.
+// SelectBlankWord returns the begin and end index positions
+// of a full bigword (blank word) around the specified position.
 func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
 	pos, valid := l.checkPos(pos)
 	if !valid {
@@ -324,7 +300,6 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 
 	next, prev := epos, bpos
 
-	// Recursively search for occurrences, forward and backward.
 	for {
 		if prev != -1 {
 			before++
@@ -351,18 +326,17 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 	}
 
 	// Or we possibly are (but not mandatorily: bpos/epos can be -1)
-	return
+	return bpos, epos
 }
 
 // Display prints the line to stdout, starting at the current terminal
 // cursor position, assuming it is at the end of the shell prompt string.
 // Params:
 // @indent -    Used to align all lines (except the first) together on a single column.
-func (l *Line) Display(indent int) {
+func DisplayLine(l *Line, indent int) {
 	lines := strings.Split(string(*l), "\n")
 
 	if strings.HasSuffix(string(*l), "\n") {
-		// if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
 		lines = append(lines, "")
 	}
 
@@ -396,7 +370,7 @@ func (l *Line) Display(indent int) {
 // Returns:
 // @x - The number of columns, starting from the terminal left, to the end of the last line.
 // @y - The number of actual lines on which the line spans, accounting for line wrap.
-func (l *Line) Coordinates(indent int) (x, y int) {
+func CoordinatesLine(l *Line, indent int) (x, y int) {
 	line := string(*l)
 	lines := strings.Split(line, "\n")
 	usedY, usedX := 0, 0

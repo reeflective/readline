@@ -614,7 +614,7 @@ func TestLine_Display(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.l.Display(tt.args.indent)
+			DisplayLine(tt.l, tt.args.indent)
 		})
 	}
 }
@@ -656,7 +656,7 @@ func TestLine_Coordinates(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gotX, gotY := test.l.Coordinates(test.args.indent)
+			gotX, gotY := CoordinatesLine(test.l, test.args.indent)
 			if gotX != test.wantX {
 				t.Errorf("Line.Used() gotX = %v, want %v", gotX, test.wantX)
 			}

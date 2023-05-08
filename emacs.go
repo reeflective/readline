@@ -390,7 +390,7 @@ func (rl *Shell) quotedInsert() {
 
 	key, _ := rl.Keys.ReadKey()
 
-	quoted, length := rl.line.Quote(key)
+	quoted, length := strutil.Quote(key)
 
 	rl.line.Insert(rl.cursor.Pos(), quoted...)
 	rl.cursor.Move(length)
@@ -430,7 +430,7 @@ func (rl *Shell) selfInsert() {
 		quoted = append(quoted, key[0])
 		length = uniseg.StringWidth(string(quoted))
 	} else {
-		quoted, length = rl.line.Quote(key[0])
+		quoted, length = strutil.Quote(key[0])
 	}
 
 	rl.line.Insert(rl.cursor.Pos(), quoted...)
@@ -1217,7 +1217,7 @@ func (rl *Shell) abort() {
 	if rl.Config.GetBool("echo-control-characters") {
 		key := rl.Keys.Caller()
 		if key[0] == rune(inputrc.Unescape(`\C-C`)[0]) {
-			quoted, _ := rl.line.Quote(key[0])
+			quoted, _ := strutil.Quote(key[0])
 			fmt.Print(string(quoted))
 		}
 	}
