@@ -679,7 +679,7 @@ func (rl *Shell) viReplace() {
 	// which blocks until the ESC is pressed
 	rl.overwriteMode()
 
-	// When exiting the replace mode, move the cursor back
+	// And after exiting, move the cursor back
 	rl.cursor.Dec()
 }
 

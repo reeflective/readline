@@ -20,10 +20,11 @@ var rxRcvCursorPos = regexp.MustCompile(`\x1b\[([0-9]+);([0-9]+)R`)
 
 // Keys is used read, manage and use keys input by the shell user.
 type Keys struct {
-	buf        []byte // Keys read and waiting to be used.
-	matched    []rune
-	matchedLen int // Number of keys matched against commands.
-	macroKeys  []rune
+	buf        []byte       // Keys read and waiting to be used.
+	matched    []rune       // Keys that have been successfully matched against a bind.
+	matchedLen int          // Number of keys matched against commands.
+	macroKeys  []rune       // Keys that have been fed by a macro.
+	mustWait   bool         // Keys are in the stack, but we must still read stdin.
 	waiting    bool         // Currently waiting for keys on stdin.
 	reading    bool         // Currently reading keys out of the main loop.
 	keysOnce   chan []byte  // Passing keys from the main routine.
@@ -34,7 +35,7 @@ type Keys struct {
 // WaitAvailableKeys waits until an input key is either read from standard input,
 // or directly returns if the key stack still/already has available keys.
 func WaitAvailableKeys(keys *Keys) {
-	if len(keys.buf) > 0 && keys.matchedLen == 0 {
+	if len(keys.buf) > 0 && !keys.mustWait {
 		return
 	}
 
@@ -110,6 +111,27 @@ func MatchedKeys(keys *Keys, matched []byte, args ...byte) {
 	if len(args) > 0 {
 		keys.buf = append(args, keys.buf...)
 	}
+}
+
+// MatchedPrefix is similar to MatchedKeys, except that the provided keys
+// should not be flushed, since they only matched some binds by prefix and
+// that we need more keys for an exact match (or failure).
+func MatchedPrefix(keys *Keys, prefix ...byte) {
+	if len(prefix) == 0 {
+		return
+	}
+
+	keys.mutex.Lock()
+	defer keys.mutex.Unlock()
+
+	// Our keys are still considered unread, but they have been:
+	// if there is no more keys in the stack, the next blocking
+	// call to WaitAvailableKeys() should block for new keys.
+	keys.mustWait = len(keys.buf) == 0
+	keys.buf = append(prefix, keys.buf...)
+
+	keys.matched = []rune(string(prefix))
+	keys.matchedLen = len(prefix)
 }
 
 // FlushUsed drops the keys that have matched a given command.

@@ -92,23 +92,20 @@ func (m *Engine) dispatch(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd
 			break
 		}
 
-		// From here, there is at least one sequence matched,
-		// as a prefix or exactly, so the key we popped is
-		// considered matched.
+		// From here, there is at least one bind matched, by prefix
+		// or exactly, so the key we popped is considered matched.
 		matched = append(matched, key)
 
-		// Or several matches, in which case we read another key.
-		if match.Action != "" && len(prefixed) > 0 {
+		// Handle different cases where we had more than one match.
+		switch {
+		case match.Action != "" && len(prefixed) > 0:
 			prefix = true
 			m.prefixed = match
 
 			continue
-		}
 
-		// Or no exact match and only prefixes
-		if len(prefixed) > 0 {
+		case len(prefixed) > 0:
 			prefix = true
-
 			continue
 		}
 
@@ -119,12 +116,18 @@ func (m *Engine) dispatch(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd
 	}
 
 	// We're done matching input against binds.
-	// First mark the keys that FOR SURE matched against a command.
-	// But if there are keys that have been tried but which didn't
-	// match the filtered list of previous matches, we feed them back.
-	keys = keys[len(matched):]
-
-	core.MatchedKeys(m.keys, matched, keys...)
+	if prefix {
+		// If we matched by prefix, whether or not we have an exact
+		// match amongst those or not, we should keep the keys for the
+		// next dispatch run.
+		core.MatchedPrefix(m.keys, keys...)
+	} else {
+		// Or mark the keys that FOR SURE matched against a command.
+		// But if there are keys that have been tried but which didn't
+		// match the filtered list of previous matches, we feed them back.
+		keys = keys[len(matched):]
+		core.MatchedKeys(m.keys, matched, keys...)
+	}
 
 	return bind, cmd, prefix
 }
@@ -194,6 +197,11 @@ func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bo
 
 	if bind.Action != "" && !bind.Macro {
 		cmd = m.resolve(bind)
+	}
+
+	// Drop the escape key in the stack
+	if main {
+		m.keys.Pop()
 	}
 
 	return
