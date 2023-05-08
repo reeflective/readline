@@ -675,59 +675,9 @@ func (rl *Shell) viChangeChar() {
 
 // Enter overwrite mode.
 func (rl *Shell) viReplace() {
-	// We store the current line as an undo item first, but will not
-	// store any intermediate changes (in the loop below) as undo items.
-	rl.History.Save()
-
-	// All replaced characters are stored, to be used with backspace
-	cache := make([]rune, 0)
-
-	// Don't use the delete cache past the end of the line
-	lineStart := rl.line.Len()
-
-	done := rl.Keymap.PendingCursor()
-	defer done()
-
-	// The replace mode is quite special in that it does escape back
-	// to the main readline loop: it keeps reading characters and inserts
-	// them as long as the escape key is not pressed.
-	for {
-		// We read a character to use first.
-		key, isAbort := rl.Keys.ReadKey()
-		if isAbort {
-			break
-		}
-
-		// If the key is a backspace, we go back one character
-		if string(key) == inputrc.Unescape(string(`\C-?`)) {
-			if rl.cursor.Pos() > lineStart {
-				rl.backwardDeleteChar()
-			} else if rl.cursor.Pos() > 0 {
-				rl.cursor.Dec()
-			}
-
-			// And recover the last replaced character
-			if len(cache) > 0 && rl.cursor.Pos() < lineStart {
-				key = cache[len(cache)-1]
-				cache = cache[:len(cache)-1]
-				rl.cursor.ReplaceWith(key)
-			}
-		} else {
-			// If the cursor is at the end of the line,
-			// we insert the character instead of replacing.
-			if rl.line.Len() == rl.cursor.Pos() {
-				rl.line.Insert(rl.cursor.Pos(), key)
-			} else {
-				cache = append(cache, rl.cursor.Char())
-				rl.cursor.ReplaceWith(key)
-			}
-
-			rl.cursor.Inc()
-		}
-
-		// Update the line
-		rl.Display.Refresh()
-	}
+	// The the standard emacs replace loop,
+	// which blocks until the ESC is pressed
+	rl.overwriteMode()
 
 	// When exiting the replace mode, move the cursor back
 	rl.cursor.Dec()

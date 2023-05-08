@@ -1,10 +1,8 @@
 package readline
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"os"
 	"sort"
 	"strings"
 	"unicode"
@@ -45,8 +43,8 @@ func (rl *Shell) standardCommands() commands {
 		"shell-backward-word":  rl.backwardShellWord,
 		"beginning-of-line":    rl.beginningOfLine,
 		"end-of-line":          rl.endOfLine,
-		"previous-screen-line": rl.upLine,   // up-line
-		"next-screen-line":     rl.downLine, // down-line
+		"previous-screen-line": rl.upLine,
+		"next-screen-line":     rl.downLine,
 		"clear-screen":         rl.clearScreen,
 		"clear-display":        rl.clearDisplay,
 		"redraw-current-line":  rl.Display.Refresh,
@@ -310,12 +308,6 @@ func (rl *Shell) endOfFile() {
 
 // Delete the character under the cursor.
 func (rl *Shell) deleteChar() {
-	// Extract from bash documentation of readline:
-	// Delete the character at point.  If this function is bound
-	// to the same character as the tty EOF character, as C-d
-	//
-	// TODO: We should match the same behavior here.
-
 	rl.History.Save()
 
 	vii := rl.Iterations.Get()
@@ -489,6 +481,7 @@ func (rl *Shell) transposeWords() {
 	// Then move some number of words.
 	// Either use words backward (if we are at end of line) or forward.
 	rl.cursor.Set(tbpos)
+
 	if tepos >= rl.line.Len()-1 || rl.Iterations.IsSet() {
 		rl.backwardWord()
 	} else {
@@ -666,6 +659,7 @@ func (rl *Shell) overwriteMode() {
 			if len(cache) > 0 && rl.cursor.Pos() < lineStart {
 				key = cache[len(cache)-1]
 				cache = cache[:len(cache)-1]
+
 				rl.cursor.ReplaceWith(key)
 			}
 		} else {
@@ -697,15 +691,15 @@ func (rl *Shell) deleteHorizontalWhitespace() {
 	if rl.cursor.Pos() != startPos {
 		rl.cursor.Inc()
 	}
-	bpos := rl.cursor.Pos()
 
+	bpos := rl.cursor.Pos()
 	rl.cursor.ToFirstNonSpace(true)
 
 	if rl.cursor.Pos() != startPos {
 		rl.cursor.Dec()
 	}
-	epos := rl.cursor.Pos()
 
+	epos := rl.cursor.Pos()
 	rl.line.Cut(bpos, epos)
 	rl.cursor.Set(bpos)
 }
@@ -1224,7 +1218,7 @@ func (rl *Shell) abort() {
 
 	// If no line was active,
 	rl.Display.AcceptLine()
-	rl.History.Accept(false, false, errors.New(os.Interrupt.String()))
+	rl.History.Accept(false, false, ErrInterrupt)
 }
 
 // If the metafied character x is uppercase, run the command

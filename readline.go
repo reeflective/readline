@@ -1,6 +1,7 @@
 package readline
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -14,6 +15,10 @@ import (
 	"github.com/reeflective/readline/internal/macro"
 	"github.com/reeflective/readline/internal/term"
 )
+
+// ErrInterrupt is returned when the interrupt sequence
+// is pressed on the keyboard. The sequence is usually Ctrl-C.
+var ErrInterrupt = errors.New(os.Interrupt.String())
 
 // Readline displays the readline prompt and reads for user input.
 // It can return from the call because of different several things:
