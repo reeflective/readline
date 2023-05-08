@@ -47,14 +47,14 @@ func (rl *Shell) Readline() (string, error) {
 		// Get the rid of the keys that were consumed during the
 		// previous command run. This may include keys that have
 		// been consumed but did not match any command.
-		rl.Keys.FlushUsed()
+		core.FlushUsed(rl.Keys)
 
 		// Since we always update helpers after being asked to read
 		// for user input again, we do it before actually reading it.
 		rl.Display.Refresh()
 
 		// Block and wait for user input keys.
-		rl.Keys.WaitInput()
+		core.WaitAvailableKeys(rl.Keys)
 
 		// 1 - Local keymap (completion/isearch/viopp)
 		bind, command, prefixed := keymap.MatchLocal(rl.Keymap)
@@ -98,7 +98,7 @@ func (rl *Shell) Readline() (string, error) {
 // init gathers all steps to perform at the beginning of readline loop.
 func (rl *Shell) init() {
 	// Reset core editor components.
-	rl.Keys.FlushUsed()
+	core.FlushUsed(rl.Keys)
 	rl.line.Set()
 	rl.cursor.Set(0)
 	rl.cursor.ResetMark()

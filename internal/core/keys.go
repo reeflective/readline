@@ -31,6 +31,56 @@ type Keys struct {
 	mutex      sync.RWMutex // Concurrency safety
 }
 
+// WaitAvailableKeys waits until an input key is either read from standard input,
+// or directly returns if the key stack still/already has available keys.
+func WaitAvailableKeys(keys *Keys) {
+	if len(keys.buf) > 0 && keys.matchedLen == 0 {
+		return
+	}
+
+	// The macro engine might have fed some keys
+	if len(keys.macroKeys) > 0 {
+		return
+	}
+
+	keys.mutex.Lock()
+	keys.waiting = true
+	keys.mutex.Unlock()
+
+	defer func() {
+		keys.mutex.Lock()
+		keys.waiting = false
+		keys.mutex.Unlock()
+	}()
+
+	for {
+		// Start reading from os.Stdin in the background.
+		// We will either read keyBuf from user, or an EOF
+		// send by ourselves, because we pause reading.
+		keyBuf, err := keys.readInputFiltered()
+		if err != nil && errors.Is(err, io.EOF) {
+			return
+		}
+
+		if len(keyBuf) == 0 {
+			continue
+		}
+
+		switch {
+		case keys.reading:
+			keys.keysOnce <- keyBuf
+			continue
+
+		default:
+			keys.mutex.RLock()
+			keys.buf = append(keys.buf, keyBuf...)
+			keys.mutex.RUnlock()
+		}
+
+		return
+	}
+}
+
 // PopKey is used to pop a key off the key stack without
 // yet marking this key as having matched a command.
 func PopKey(keys *Keys) (key byte, empty bool) {
@@ -48,9 +98,8 @@ func PopKey(keys *Keys) (key byte, empty bool) {
 	return key, false
 }
 
-// MatchedKeys is used to indicate how many keys have been evaluated
-// against the shell commands in the dispatching process (regardless of
-// if a command was matched or not).
+// MatchedKeys is used to indicate how many keys have been evaluated against the shell
+// commands in the dispatching process (regardless of if a command was matched or not).
 // This function should normally not be used by external users of the library.
 func MatchedKeys(keys *Keys, matched []byte, args ...byte) {
 	if len(matched) > 0 {
@@ -63,54 +112,21 @@ func MatchedKeys(keys *Keys, matched []byte, args ...byte) {
 	}
 }
 
-// WaitInput waits until an input key is either read from standard input,
-// or directly returns if the key stack still/already has available keys.
-func (k *Keys) WaitInput() {
-	if len(k.buf) > 0 && k.matchedLen == 0 {
-		return
-	}
-
-	// The macro engine might have fed some keys
-	if len(k.macroKeys) > 0 {
-		return
-	}
-
-	k.mutex.Lock()
-	k.waiting = true
-	k.mutex.Unlock()
+// FlushUsed drops the keys that have matched a given command.
+func FlushUsed(keys *Keys) {
+	keys.mutex.Lock()
+	defer keys.mutex.Unlock()
 
 	defer func() {
-		k.mutex.Lock()
-		k.waiting = false
-		k.mutex.Unlock()
+		keys.matchedLen = 0
+		keys.matched = nil
 	}()
 
-	for {
-		// Start reading from os.Stdin in the background.
-		// We will either read keys from user, or an EOF
-		// send by ourselves, because we pause reading.
-		keys, err := k.readInputFiltered()
-		if err != nil && errors.Is(err, io.EOF) {
-			return
-		}
-
-		if len(keys) == 0 {
-			continue
-		}
-
-		switch {
-		case k.reading:
-			k.keysOnce <- keys
-			continue
-
-		default:
-			k.mutex.RLock()
-			k.buf = append(k.buf, keys...)
-			k.mutex.RUnlock()
-		}
-
+	if keys.matchedLen == 0 {
 		return
 	}
+
+	keys.matched = nil
 }
 
 // ReadKey reads keys from stdin like Read(), but immediately
@@ -196,23 +212,6 @@ func (k *Keys) Feed(begin bool, keys ...rune) {
 		k.macroKeys = append(k.macroKeys, keyBuf...)
 		// k.buf = append(k.buf, keyBuf...)
 	}
-}
-
-// FlushUsed drops the keys that have matched a given command.
-func (k *Keys) FlushUsed() {
-	k.mutex.Lock()
-	defer k.mutex.Unlock()
-
-	defer func() {
-		k.matchedLen = 0
-		k.matched = nil
-	}()
-
-	if k.matchedLen == 0 {
-		return
-	}
-
-	k.matched = nil
 }
 
 // GetCursorPos returns the current cursor position in the terminal.
