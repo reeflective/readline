@@ -20,15 +20,16 @@ import (
 // is pressed on the keyboard. The sequence is usually Ctrl-C.
 var ErrInterrupt = errors.New(os.Interrupt.String())
 
-// Readline displays the readline prompt and reads for user input.
-// It can return from the call because of different several things:
+// Readline displays the readline prompt and reads user input.
+// It can return from the call because of different things:
 //
 //   - When the user accepts the line (generally with Enter).
-//   - If a particular keystroke mapping returns an error
-//     (like Ctrl-C, Ctrl-D, etc).
+//   - If a particular keystroke mapping returns an error.
+//     (Ctrl-C returns ErrInterrupt, Ctrl-D returns io.EOF).
 //
 // In all cases, the current input line is returned along with any error,
 // and it is up to the caller to decide what to do with the line result.
+// When the error is not nil, the returned line is not written to history.
 func (rl *Shell) Readline() (string, error) {
 	descriptor := int(os.Stdin.Fd())
 
@@ -61,7 +62,7 @@ func (rl *Shell) Readline() (string, error) {
 		// Block and wait for user input keys.
 		core.WaitAvailableKeys(rl.Keys)
 
-		// 1 - Local keymap (completion/isearch/viopp)
+		// 1 - Local keymap (Completion/Isearch/Vim operator pending).
 		bind, command, prefixed := keymap.MatchLocal(rl.Keymap)
 		if prefixed {
 			continue
@@ -70,9 +71,7 @@ func (rl *Shell) Readline() (string, error) {
 		accepted, line, err := rl.run(bind, command)
 		if accepted {
 			return line, err
-		}
-
-		if command != nil {
+		} else if command != nil {
 			continue
 		}
 
@@ -82,7 +81,7 @@ func (rl *Shell) Readline() (string, error) {
 		// such as a virtually inserted candidate.
 		completion.UpdateInserted(rl.completer)
 
-		// 2 - Main keymap (vicmd/viins/emacs-*)
+		// 2 - Main keymap (Vim command/insertion, Emacs).
 		bind, command, prefixed = keymap.MatchMain(rl.Keymap)
 		if prefixed {
 			continue
@@ -168,6 +167,8 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	return rl.History.LineAccepted()
 }
 
+// Run the dispatched command, any pending operator
+// commands (Vim mode) and some post-run checks.
 func (rl *Shell) execute(command func()) {
 	command()
 
@@ -186,6 +187,7 @@ func (rl *Shell) execute(command func()) {
 	}
 }
 
+// Some commands show their current status as a hint (iterations/macro).
 func (rl *Shell) updatePosRunHints() {
 	hint := core.ResetPostRunIterations(rl.Iterations)
 	register, selected := rl.Buffers.IsSelected()
