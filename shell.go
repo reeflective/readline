@@ -27,16 +27,16 @@ type Shell struct {
 	Buffers    *editor.Buffers  // buffers (Vim registers) and methods use/manage/query them.
 	Keys       *core.Keys       // Keys is in charge of reading and managing buffered user input.
 	Keymap     *keymap.Engine   // Manages main/local keymaps, binds, stores command functions, etc.
+	History    *history.Sources // History manages all history types/sources (past commands and undo)
+	Macros     *macro.Engine    // Record, use and display macros.
 
 	// User interface
-	Config      *inputrc.Config    // Contains all keymaps, binds and per-application settings.
-	Opts        []inputrc.Option   // Inputrc file parsing options (app/term/values, etc).
-	Prompt      *ui.Prompt         // The prompt engine computes and renders prompt strings.
-	Hint        *ui.Hint           // Usage/hints for completion/isearch below the input line.
-	Completions *completion.Engine // Completions generation and display.
-	History     *history.Sources   // History manages all history types/sources (past commands and undo)
-	Macros      *macro.Engine      // Record, use and display macros.
-	Display     *display.Engine    // Manages display refresh/update/clearing.
+	Config    *inputrc.Config    // Contains all keymaps, binds and per-application settings.
+	Opts      []inputrc.Option   // Inputrc file parsing options (app/term/values, etc).
+	Prompt    *ui.Prompt         // The prompt engine computes and renders prompt strings.
+	Hint      *ui.Hint           // Usage/hints for completion/isearch below the input line.
+	completer *completion.Engine // Completions generation and display.
+	Display   *display.Engine    // Manages display refresh/update/clearing.
 
 	// User-provided functions
 
@@ -106,16 +106,16 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	hint := new(ui.Hint)
 	prompt := ui.NewPrompt(line, cursor, keymaps, config)
 	macros := macro.NewEngine(keys, hint)
-	completer := completion.NewEngine(keys, line, cursor, selection, hint, keymaps, config)
 	history := history.NewSources(line, cursor, hint, config)
-	display := display.NewEngine(keys, selection, history, prompt, hint, completer, config)
+	completer := completion.NewEngine(hint, keymaps, config)
+	completion.Init(completer, keys, line, cursor, selection, shell.commandCompletion)
 
-	completer.SetAutocompleter(shell.commandCompletion)
+	display := display.NewEngine(keys, selection, history, prompt, hint, completer, config)
 
 	shell.Config = config
 	shell.Hint = hint
 	shell.Prompt = prompt
-	shell.Completions = completer
+	shell.completer = completer
 	shell.Macros = macros
 	shell.History = history
 	shell.Display = display

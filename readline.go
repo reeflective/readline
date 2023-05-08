@@ -6,6 +6,8 @@ import (
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
+	"github.com/reeflective/readline/internal/completion"
+	"github.com/reeflective/readline/internal/display"
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/macro"
@@ -72,7 +74,7 @@ func (rl *Shell) Readline() (string, error) {
 		// on the line or on the cursor position, so we must first
 		// "reset" or accept any completion state we're in, if any,
 		// such as a virtually inserted candidate.
-		rl.Completions.Update()
+		completion.UpdateInserted(rl.completer)
 
 		// 2 - Main keymap (vicmd/viins/emacs-*)
 		bind, command, prefixed = keymap.MatchMain(rl.Keymap)
@@ -111,7 +113,8 @@ func (rl *Shell) init() {
 
 	// Reset/initialize user interface components.
 	rl.Hint.Reset()
-	rl.Completions.ResetForce()
+	rl.completer.ResetForce()
+	display.Init(rl.Display, rl.SyntaxHighlighter)
 }
 
 // run wraps the execution of a target command/sequence with various pre/post actions
@@ -132,7 +135,7 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 	// The completion system might have control of the
 	// input line and be using it with a virtual insertion,
 	// so it knows which line and cursor we should work on.
-	rl.line, rl.cursor, rl.selection = rl.Completions.GetBuffer()
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	// The line and cursor are ready, we can run the command
 	// along with any pending ones, and reset iterations.
@@ -143,11 +146,11 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 
 	// If the command just run was using the incremental search
 	// buffer (acting on it), update the list of matches.
-	rl.Completions.UpdateIsearch()
+	rl.completer.UpdateIsearch()
 
 	// Work is done: ask the completion system to
 	// return the correct input line and cursor.
-	rl.line, rl.cursor, rl.selection = rl.Completions.GetBuffer()
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	// History: save the last action to the line history,
 	// and return with the call to the history system that
@@ -203,6 +206,6 @@ func (rl *Shell) handleUndefined(bind inputrc.Bind, cmd func()) {
 	// Undefined keys incremental-search mode cancels it.
 	if rl.Keymap.Local() == keymap.Isearch {
 		rl.Hint.Reset()
-		rl.Completions.Reset()
+		rl.completer.Reset()
 	}
 }

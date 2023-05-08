@@ -62,7 +62,7 @@ func NewEngine(k *core.Keys, s *core.Selection, h *history.Sources, p *ui.Prompt
 // Init computes some base coordinates needed before displaying the line and helpers.
 // The shell syntax highlighter is also provided here, since any consumer library will
 // have bound it after instantiating a new shell instance.
-func (e *Engine) Init(highlighter func([]rune) string) {
+func Init(e *Engine, highlighter func([]rune) string) {
 	e.highlighter = highlighter
 }
 
@@ -287,8 +287,8 @@ func (e *Engine) displayHelpers() {
 
 	// Display hint and completions.
 	e.hint.Display()
-	e.completer.Display(compLines)
-	e.compRows = e.completer.Coordinates()
+	completion.Display(e.completer, compLines)
+	e.compRows = completion.Coordinates(e.completer)
 
 	// Go back to the first line below the input line.
 	term.MoveCursorBackwards(term.GetWidth())

@@ -11,7 +11,7 @@ import (
 // IsearchStart starts incremental search (fuzzy-finding)
 // with values matching the isearch minibuffer as a regexp.
 func (e *Engine) IsearchStart(name string, autoinsert bool) {
-	e.keymaps.SetLocal(keymap.Isearch)
+	e.keymap.SetLocal(keymap.Isearch)
 	e.auto = true
 	e.isearchInsert = autoinsert
 	e.adaptIsearchInsertMode()
@@ -27,7 +27,7 @@ func (e *Engine) IsearchStart(name string, autoinsert bool) {
 // IsearchStop exists the incremental search mode,
 // and drops the currently used regexp matcher.
 func (e *Engine) IsearchStop() {
-	e.keymaps.SetLocal("")
+	e.keymap.SetLocal("")
 	e.auto = false
 	e.autoForce = false
 	e.isearchBuf = nil
@@ -37,32 +37,35 @@ func (e *Engine) IsearchStop() {
 	e.resetIsearchInsertMode()
 }
 
-// GetBuffer returns either the current input line when incremental
-// search is not running, or the incremental minibuffer.
+// GetBuffer returns the correct input line buffer (and its cursor/
+// selection) depending on the context and active components:
+// - If in non/incremental-search mode, the minibuffer.
+// - If a completion is currently inserted, the completed line.
+// - If neither of the above, the normal input line.
 func (e *Engine) GetBuffer() (*core.Line, *core.Cursor, *core.Selection) {
 	// Non/Incremental search buffer
 	searching, _, _ := e.NonIncrementallySearching()
 
-	if e.keymaps.Local() == keymap.Isearch || searching {
+	if e.keymap.Local() == keymap.Isearch || searching {
 		selection := core.NewSelection(e.isearchBuf, e.isearchCur)
 		return e.isearchBuf, e.isearchCur, selection
 	}
 
 	// Completed line (with inserted candidate)
 	if len(e.selected.Value) > 0 {
-		return e.completed, e.compCursor, e.selection
+		return e.compLine, e.compCursor, e.selection
 	}
 
 	// Or completer inactive, normal input line.
 	return e.line, e.cursor, e.selection
 }
 
-// UpdateIsearch recompiles the isearch as a regex and
+// UpdateIsearch recompiles the isearch buffer as a regex and
 // filters matching candidates in the available completions.
 func (e *Engine) UpdateIsearch() {
 	searching, _, _ := e.NonIncrementallySearching()
 
-	if e.keymaps.Local() != keymap.Isearch && !searching {
+	if e.keymap.Local() != keymap.Isearch && !searching {
 		return
 	}
 
@@ -75,7 +78,7 @@ func (e *Engine) UpdateIsearch() {
 	}
 
 	// Update helpers depending on the search/minibuffer mode.
-	if e.keymaps.Local() == keymap.Isearch {
+	if e.keymap.Local() == keymap.Isearch {
 		e.updateIncrementalSearch()
 	} else {
 		e.updateNonIncrementalSearch()
@@ -100,7 +103,7 @@ func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
 	e.isearchForward = forward
 	e.isearchSubstring = substring
 
-	e.keymaps.NonIncrementalSearchStart()
+	e.keymap.NonIncrementalSearchStart()
 	e.adaptIsearchInsertMode()
 }
 
@@ -114,7 +117,7 @@ func (e *Engine) NonIsearchStop() {
 	e.isearchSubstring = false
 
 	// Reset keymap and helpers
-	e.keymaps.NonIncrementalSearchStop()
+	e.keymap.NonIncrementalSearchStop()
 	e.resetIsearchInsertMode()
 	e.hint.Reset()
 }
@@ -122,7 +125,7 @@ func (e *Engine) NonIsearchStop() {
 // NonIncrementallySearching returns true if the completion engine
 // is currently using a minibuffer for non-incremental search mode.
 func (e *Engine) NonIncrementallySearching() (searching, forward, substring bool) {
-	searching = e.isearchCur != nil && e.keymaps.Local() != keymap.Isearch
+	searching = e.isearchCur != nil && e.keymap.Local() != keymap.Isearch
 	forward = e.isearchForward
 	substring = e.isearchSubstring
 
@@ -176,10 +179,10 @@ func (e *Engine) updateNonIncrementalSearch() {
 }
 
 func (e *Engine) adaptIsearchInsertMode() {
-	e.isearchModeExit = e.keymaps.Main()
+	e.isearchModeExit = e.keymap.Main()
 
-	if !e.keymaps.IsEmacs() && e.keymaps.Main() != keymap.ViInsert {
-		e.keymaps.SetMain(keymap.ViInsert)
+	if !e.keymap.IsEmacs() && e.keymap.Main() != keymap.ViInsert {
+		e.keymap.SetMain(keymap.ViInsert)
 	}
 }
 
@@ -188,12 +191,12 @@ func (e *Engine) resetIsearchInsertMode() {
 		return
 	}
 
-	if e.keymaps.Main() != e.isearchModeExit {
-		e.keymaps.SetMain(e.isearchModeExit)
+	if e.keymap.Main() != e.isearchModeExit {
+		e.keymap.SetMain(e.isearchModeExit)
 		e.isearchModeExit = ""
 	}
 
-	if e.keymaps.Main() == keymap.ViCommand {
+	if e.keymap.Main() == keymap.ViCommand {
 		e.cursor.CheckCommand()
 	}
 }

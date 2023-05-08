@@ -12,7 +12,7 @@ func (e *Engine) hintCompletions(comps Values) {
 
 	// First add the command/flag usage string if any,
 	// and only if we don't have completions.
-	if len(comps.values) == 0 || e.opts.GetBool("usage-hint-always") {
+	if len(comps.values) == 0 || e.config.GetBool("usage-hint-always") {
 		if comps.Usage != "" {
 			hint += color.Dim + comps.Usage + "\n"
 		}

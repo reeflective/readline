@@ -151,8 +151,8 @@ func (rl *Shell) viCommandMode() {
 	// current line/cursor/selection for the cursor check below
 	// to be effective. This is needed when in isearch mode.
 	rl.Hint.Reset()
-	rl.Completions.Reset()
-	rl.line, rl.cursor, rl.selection = rl.Completions.GetBuffer()
+	rl.completer.Reset()
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	// Only go back if not in insert mode
 	if rl.Keymap.Main() == keymap.ViInsert && !rl.cursor.AtBeginningOfLine() {
@@ -173,7 +173,7 @@ func (rl *Shell) viVisualMode() {
 
 	// Cancel completions and hints if any.
 	rl.Hint.Reset()
-	rl.Completions.Reset()
+	rl.completer.Reset()
 
 	// Mark the selection as visual at the current cursor position.
 	rl.selection.Mark(rl.cursor.Pos())
@@ -189,7 +189,7 @@ func (rl *Shell) viVisualLineMode() {
 	rl.Buffers.Reset()
 
 	rl.Hint.Reset()
-	rl.Completions.Reset()
+	rl.completer.Reset()
 
 	// Mark the selection as visual at the current
 	// cursor position, in visual line mode.
@@ -1316,7 +1316,7 @@ func (rl *Shell) viSearch() {
 		forward = false
 	}
 
-	rl.Completions.NonIsearchStart(rl.History.Name()+" "+string(keys[0]), false, forward, true)
+	rl.completer.NonIsearchStart(rl.History.Name()+" "+string(keys[0]), false, forward, true)
 }
 
 func (rl *Shell) viSearchAgain() {
@@ -1334,12 +1334,12 @@ func (rl *Shell) viSearchAgain() {
 		hint = " ?"
 	}
 
-	rl.Completions.NonIsearchStart(rl.History.Name()+hint, true, forward, true)
+	rl.completer.NonIsearchStart(rl.History.Name()+hint, true, forward, true)
 
-	line, cursor, _ := rl.Completions.GetBuffer()
+	line, cursor, _ := rl.completer.GetBuffer()
 
 	rl.History.InsertMatch(line, cursor, true, forward, true)
-	rl.Completions.NonIsearchStop()
+	rl.completer.NonIsearchStop()
 }
 
 // Start a new numeric argument, or add to the current one.
@@ -1494,33 +1494,33 @@ func (rl *Shell) viFindChar(forward, skip bool) {
 // Start a non-incremental search buffer, finds the first forward
 // matching line (as a regexp), and makes it the current buffer.
 func (rl *Shell) viSearchForward() {
-	rl.Completions.NonIsearchStart(rl.History.Name()+" /", false, true, true)
+	rl.completer.NonIsearchStart(rl.History.Name()+" /", false, true, true)
 }
 
 // Start a non-incremental search buffer, finds the first backward
 // matching line (as a regexp), and makes it the current buffer.
 func (rl *Shell) viSearchBackward() {
-	rl.Completions.NonIsearchStart(rl.History.Name()+" ?", false, false, true)
+	rl.completer.NonIsearchStart(rl.History.Name()+" ?", false, false, true)
 }
 
 // Reuses the last vi-search buffer and finds the previous search match occurrence in the history.
 func (rl *Shell) viSearchAgainForward() {
-	rl.Completions.NonIsearchStart(rl.History.Name()+" /", true, true, true)
+	rl.completer.NonIsearchStart(rl.History.Name()+" /", true, true, true)
 
-	line, cursor, _ := rl.Completions.GetBuffer()
+	line, cursor, _ := rl.completer.GetBuffer()
 
 	rl.History.InsertMatch(line, cursor, true, true, true)
-	rl.Completions.NonIsearchStop()
+	rl.completer.NonIsearchStop()
 }
 
 // Reuses the last vi-search buffer and finds the next search match occurrence in the history.
 func (rl *Shell) viSearchAgainBackward() {
-	rl.Completions.NonIsearchStart(rl.History.Name()+" ?", true, false, true)
+	rl.completer.NonIsearchStart(rl.History.Name()+" ?", true, false, true)
 
-	line, cursor, _ := rl.Completions.GetBuffer()
+	line, cursor, _ := rl.completer.GetBuffer()
 
 	rl.History.InsertMatch(line, cursor, true, false, true)
-	rl.Completions.NonIsearchStop()
+	rl.completer.NonIsearchStop()
 }
 
 //

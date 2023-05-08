@@ -8,6 +8,37 @@ import (
 	"github.com/reeflective/readline/internal/keymap"
 )
 
+// UpdateInserted should be called only once in between the two shell keymaps
+// (local/main) in the main readline loop, to either drop or confirm a virtually
+// inserted candidate.
+func UpdateInserted(eng *Engine) {
+	// If the user currently has a completion selected, any change
+	// in the input line will drop the current completion list, in
+	// effect deactivating the completion engine.
+	// This is so that when a user asks for the list of choices, but
+	// then deletes or types something in the input line, the list
+	// is still displayed to the user, otherwise it's removed.
+	// This does not apply when autocomplete is on.
+	choices := len(eng.selected.Value) != 0
+	if !eng.auto {
+		defer eng.ClearMenu(choices)
+	}
+
+	// If autocomplete is on, we also drop the list of generated
+	// completions, because it will be recomputed shortly after.
+	// Do the same when using incremental search, except if the
+	// last key typed is an escape, in which case the user wants
+	// to quit incremental search but keeping any selected comp.
+	inserted := eng.removeInserted()
+	cached := eng.keymap.Local() != keymap.Isearch
+
+	eng.Cancel(inserted, cached)
+
+	if choices && eng.autoForce && len(eng.selected.Value) == 0 {
+		eng.Reset()
+	}
+}
+
 // TrimSuffix removes the last inserted completion's suffix if the required constraints
 // are satisfied, among which the index position, the suffix matching patterns, etc.
 func (e *Engine) TrimSuffix() {
@@ -33,14 +64,11 @@ func (e *Engine) TrimSuffix() {
 		return
 	}
 
-	// Remove the suffix if either:
 	switch {
 	case e.sm.Matches(string(key)):
-		// The key to be inserted matches the suffix matcher.
 		e.line.CutRune(e.cursor.Pos())
 
 	case e.sm.Matches(string(suf)) && key == inputrc.Space:
-		// The end of the completion matches the suffix and we are inserting a space.
 		e.line.CutRune(e.cursor.Pos())
 	}
 }
@@ -114,16 +142,16 @@ func (e *Engine) insertCandidate() {
 
 	// Copy the current (uncompleted) line/cursor.
 	completed := core.Line(string(*e.line))
-	e.completed = &completed
+	e.compLine = &completed
 
-	e.compCursor = core.NewCursor(e.completed)
+	e.compCursor = core.NewCursor(e.compLine)
 	e.compCursor.Set(e.cursor.Pos())
 
 	// Remove the suffix from the line first.
-	e.completed.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.suffix))
+	e.compLine.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.suffix))
 
 	// And insert it in the completed line.
-	e.completed.Insert(e.compCursor.Pos(), e.inserted...)
+	e.compLine.Insert(e.compCursor.Pos(), e.inserted...)
 	e.compCursor.Move(len(e.inserted))
 }
 
@@ -187,7 +215,7 @@ func (e *Engine) prepareSuffix() (comp string) {
 func (e *Engine) cancelCompletedLine() {
 	// The completed line includes any currently selected
 	// candidate, just overwrite it with the normal line.
-	e.completed.Set(*e.line...)
+	e.compLine.Set(*e.line...)
 	e.compCursor.Set(e.cursor.Pos())
 
 	// And no virtual candidate anymore.
@@ -197,7 +225,7 @@ func (e *Engine) cancelCompletedLine() {
 func (e *Engine) removeInserted() bool {
 	// All other completion modes do not want
 	// the candidate to be removed from the line.
-	if e.keymaps.Local() != keymap.Isearch {
+	if e.keymap.Local() != keymap.Isearch {
 		return false
 	}
 

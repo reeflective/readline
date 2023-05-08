@@ -178,13 +178,13 @@ func (rl *Shell) reverseSearchHistory() {
 // Search forward through the history starting at the current line
 // using a non-incremental search for a string supplied by the user.
 func (rl *Shell) nonIncrementalForwardSearchHistory() {
-	rl.Completions.NonIsearchStart(rl.History.Name(), false, true, true)
+	rl.completer.NonIsearchStart(rl.History.Name(), false, true, true)
 }
 
 // Search backward through the history starting at the current line
 // using a non-incremental search for a string supplied by the user.
 func (rl *Shell) nonIncrementalReverseSearchHistory() {
-	rl.Completions.NonIsearchStart(rl.History.Name(), false, false, true)
+	rl.completer.NonIsearchStart(rl.History.Name(), false, false, true)
 }
 
 // Search forward through the history for the string of characters
@@ -589,16 +589,16 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	// If we are currently using the incremental-search buffer,
 	// we should cancel this mode so as to run the rest of this
 	// function on (with) the input line itself, not the minibuffer.
-	rl.Completions.Reset()
+	rl.completer.Reset()
 
 	// Non-incremental search modes are the only mode not cancelled
 	// by the completion engine. If it's active, match the line result
 	// and return without returning the line to the readline caller.
-	searching, forward, substring := rl.Completions.NonIncrementallySearching()
+	searching, forward, substring := rl.completer.NonIncrementallySearching()
 	if searching {
-		defer rl.Completions.NonIsearchStop()
+		defer rl.completer.NonIsearchStop()
 
-		line, cursor, _ := rl.Completions.GetBuffer()
+		line, cursor, _ := rl.completer.GetBuffer()
 
 		rl.History.InsertMatch(line, cursor, true, forward, substring)
 
@@ -606,7 +606,7 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	}
 
 	// Use the correct buffer for the rest of the function.
-	rl.line, rl.cursor, rl.selection = rl.Completions.GetBuffer()
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
 	// Without multiline support, we always return the line.
 	if rl.AcceptMultiline == nil {

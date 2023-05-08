@@ -28,10 +28,12 @@ type group struct {
 	tcMaxLength   int           // Used when display is map/list, for determining message width
 	maxDescWidth  int
 	maxCellLength int
-	posX          int
-	posY          int
-	maxX          int
-	maxY          int
+
+	// Selectors (position/bounds) management
+	posX int
+	posY int
+	maxX int
+	maxY int
 }
 
 func (e *Engine) group(comps Values) {
@@ -134,10 +136,10 @@ func (e *Engine) justifyCommandComps() {
 	}
 }
 
-func (e *Engine) newGroup(c Values, tag string, vals RawValues, aliased bool) {
+func (e *Engine) newGroup(comps Values, tag string, vals RawValues, aliased bool) {
 	grp := &group{
 		tag:           tag,
-		noSpace:       c.NoSpace,
+		noSpace:       comps.NoSpace,
 		listSeparator: "--",
 		posX:          -1,
 		posY:          -1,
@@ -150,7 +152,7 @@ func (e *Engine) newGroup(c Values, tag string, vals RawValues, aliased bool) {
 	vals = grp.checkDisplays(vals)
 
 	// Set sorting options, various display styles, etc.
-	grp.setOptions(c, tag, vals)
+	grp.setOptions(comps, tag, vals)
 
 	// Keep computing/devising some parameters and constraints.
 	// This does not do much when we have aliased completions.
@@ -255,7 +257,7 @@ func (g *group) computeCells(eng *Engine, vals RawValues) {
 func (g *group) setMaxCellLength(eng *Engine) int {
 	termWidth := term.GetWidth()
 
-	compDisplayWidth := eng.opts.GetInt("completion-display-width")
+	compDisplayWidth := eng.config.GetInt("completion-display-width")
 	if compDisplayWidth > termWidth {
 		compDisplayWidth = -1
 	}
@@ -352,7 +354,7 @@ func (g *group) canFitInRow(termWidth int) bool {
 }
 
 //
-// Usage-time functions (selecting/writing) 9----------------------------------------------------------------
+// Usage-time functions (selecting/writing) -----------------------------------------------------------------
 //
 
 // updateIsearch - When searching through all completion groups (whether it be command history or not),
@@ -574,6 +576,7 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 	writeDesc := func(val Candidate, x, y, pad int) string {
 		desc := g.highlightDescription(eng, val, y, x)
 		descPad := g.padDescription(current, val, pad)
+
 		if descPad > 0 {
 			desc += strings.Repeat(" ", descPad)
 		}
@@ -619,7 +622,7 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 
 	default:
 		// Highlight the prefix if any and configured for it.
-		if eng.opts.GetBool("colored-completion-prefix") && eng.prefix != "" {
+		if eng.config.GetBool("colored-completion-prefix") && eng.prefix != "" {
 			if prefixMatch, err := regexp.Compile(fmt.Sprintf("^%s", eng.prefix)); err == nil {
 				candidate = prefixMatch.ReplaceAllString(candidate, color.Bold+color.FgBlue+eng.prefix+color.BoldReset+reset)
 			}
@@ -628,9 +631,7 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 		candidate = reset + candidate + color.Reset + cell
 	}
 
-	candidate += pad
-
-	return
+	return candidate + pad
 }
 
 func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (desc string) {
@@ -724,6 +725,7 @@ func (g *group) descriptionTrimmed(desc string) string {
 		if !g.aliased {
 			offset++
 		}
+
 		desc = desc[:g.maxDescWidth-offset] + "..."
 	}
 

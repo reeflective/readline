@@ -11,8 +11,8 @@ import (
 
 // Display prints the current completion list to the screen,
 // respecting the current display and completion settings.
-func (e *Engine) Display(lines int) {
-	e.usedY = 0
+func Display(eng *Engine, maxRows int) {
+	eng.usedY = 0
 
 	defer fmt.Print(term.ClearScreenBelow)
 
@@ -21,7 +21,7 @@ func (e *Engine) Display(lines int) {
 	// sometimes it's better to keep completions printed for a
 	// little more time. The engine itself is responsible for
 	// deleting those lists when it deems them useless.
-	if e.Matches() == 0 || e.skipDisplay {
+	if eng.Matches() == 0 || eng.skipDisplay {
 		fmt.Print(term.ClearLineAfter)
 		return
 	}
@@ -29,12 +29,12 @@ func (e *Engine) Display(lines int) {
 	// The final completions string to print.
 	completions := term.ClearLineAfter
 
-	for _, group := range e.groups {
-		completions += group.writeComps(e)
+	for _, group := range eng.groups {
+		completions += group.writeComps(eng)
 	}
 
 	// Crop the completions so that it fits within our terminal
-	completions, e.usedY = e.cropCompletions(completions, lines)
+	completions, eng.usedY = eng.cropCompletions(completions, maxRows)
 
 	if completions != "" {
 		fmt.Print(completions)
@@ -43,7 +43,7 @@ func (e *Engine) Display(lines int) {
 
 // Coordinates returns the number of terminal rows used
 // when displaying the completions with Display().
-func (e *Engine) Coordinates() int {
+func Coordinates(e *Engine) int {
 	return e.usedY
 }
 

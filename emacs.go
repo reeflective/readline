@@ -338,7 +338,10 @@ func (rl *Shell) backwardDeleteChar() {
 		rl.History.Save()
 	}
 
-	rl.Completions.Update()
+	// We might currently have a selected candidate inserted,
+	// and thus we should accept it as part of the real input
+	// line before cutting any character.
+	completion.UpdateInserted(rl.completer)
 
 	if rl.cursor.Pos() == 0 {
 		return
@@ -380,7 +383,7 @@ func (rl *Shell) forwardBackwardDeleteChar() {
 // This is how to insert characters like C-q, for example.
 func (rl *Shell) quotedInsert() {
 	rl.History.SkipSave()
-	rl.Completions.TrimSuffix()
+	rl.completer.TrimSuffix()
 
 	done := rl.Keymap.PendingCursor()
 	defer done()
@@ -406,12 +409,12 @@ func (rl *Shell) selfInsert() {
 	rl.History.SkipSave()
 
 	// Handle suffix-autoremoval for inserted completions.
-	rl.Completions.TrimSuffix()
+	rl.completer.TrimSuffix()
 
 	key := rl.Keys.Caller()
 
 	// Handle autopair insertion (for the closer only)
-	searching, _, _ := rl.Completions.NonIncrementallySearching()
+	searching, _, _ := rl.completer.NonIncrementallySearching()
 	isearch := rl.Keymap.Local() == keymap.Isearch
 
 	if !searching && !isearch && rl.Config.GetBool("autopairs") {
@@ -1190,17 +1193,17 @@ func (rl *Shell) abort() {
 	rl.selection.Reset()
 
 	// Cancel active completion insertion and/or incremental search.
-	if rl.Completions.AutoCompleting() || rl.Completions.IsInserting() {
+	if rl.completer.AutoCompleting() || rl.completer.IsInserting() {
 		rl.Hint.Reset()
-		rl.Completions.ResetForce()
+		rl.completer.ResetForce()
 
 		return
 	}
 
 	// Cancel non-incremental search modes.
-	searching, _, _ := rl.Completions.NonIncrementallySearching()
+	searching, _, _ := rl.completer.NonIncrementallySearching()
 	if searching {
-		rl.Completions.NonIsearchStop()
+		rl.completer.NonIsearchStop()
 		return
 	}
 
