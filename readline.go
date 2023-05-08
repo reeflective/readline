@@ -7,6 +7,7 @@ import (
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/display"
 	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/keymap"
@@ -181,7 +182,7 @@ func (rl *Shell) execute(command func()) {
 }
 
 func (rl *Shell) updatePosRunHints() {
-	hint := rl.Iterations.ResetPostCommand()
+	hint := core.ResetPostRunIterations(rl.Iterations)
 	register, selected := rl.Buffers.IsSelected()
 
 	if hint == "" && !selected && !rl.Macros.Recording() {

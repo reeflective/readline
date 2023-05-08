@@ -15,7 +15,10 @@ type Iterations struct {
 	pending bool   // Has the last command been an iteration one (vi-pending style)
 }
 
-// Add adds a string which might be a digit or a negative sign.
+// Add accepts a string to be converted as an integer representing
+// the number of times some action should be performed.
+// The times parameter can also be a negative sign, in which case
+// the iterations value will be negative until those are reset.
 func (i *Iterations) Add(times string) {
 	if times == "" {
 		return
@@ -71,18 +74,18 @@ func (i *Iterations) Reset() {
 
 // Reset resets the iterations if the last command was not one to set them.
 // If the reset operated on active iterations, this function returns true.
-func (i *Iterations) ResetPostCommand() (hint string) {
-	if i.pending {
-		hint = color.Dim + fmt.Sprintf("(arg: %s)", i.times)
+func ResetPostRunIterations(iter *Iterations) (hint string) {
+	if iter.pending {
+		hint = color.Dim + fmt.Sprintf("(arg: %s)", iter.times)
 	}
 
-	if i.pending {
-		i.pending = false
+	if iter.pending {
+		iter.pending = false
 
 		return
 	}
 
-	i.active = false
+	iter.active = false
 
 	return
 }
