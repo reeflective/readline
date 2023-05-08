@@ -106,13 +106,13 @@ func (h *fileHistory) Write(s string) (int, error) {
 }
 
 // GetLine returns a specific line from the history file.
-func (h *fileHistory) GetLine(i int) (string, error) {
-	if i < 0 {
+func (h *fileHistory) GetLine(pos int) (string, error) {
+	if pos < 0 {
 		return "", errNegativeIndex
 	}
 
-	if i < len(h.lines) {
-		return h.lines[i].Block, nil
+	if pos < len(h.lines) {
+		return h.lines[pos].Block, nil
 	}
 
 	return "", errOutOfRangeIndex

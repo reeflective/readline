@@ -6,6 +6,7 @@ import (
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
+	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/macro"
 	"github.com/reeflective/readline/internal/term"
@@ -104,9 +105,9 @@ func (rl *Shell) init() {
 	rl.History.Save()
 	rl.Iterations.Reset()
 
-	// Some accept-* command must fetch a specific
+	// Some accept-* commands must fetch a specific
 	// line outright, or keep the accepted one.
-	rl.History.Init()
+	history.Init(rl.History)
 
 	// Reset/initialize user interface components.
 	rl.Hint.Reset()

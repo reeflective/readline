@@ -8,10 +8,8 @@ import (
 // lineHistory contains all state changes for a given input line,
 // whether it is the current input line or one of the history ones.
 type lineHistory struct {
-	pos     int
-	lineBuf string
-	linePos int
-	items   []undoItem
+	pos   int
+	items []undoItem
 }
 
 type undoItem struct {
@@ -20,7 +18,7 @@ type undoItem struct {
 }
 
 // Save saves the current line and cursor position as an undo state item.
-// If this was called while the shell in the middle of its undo history
+// If this was called while the shell was in the middle of its undo history
 // (eg. the caller has undone one or more times), all undone steps are dropped.
 func (h *Sources) Save() {
 	defer h.Reset()
@@ -30,25 +28,25 @@ func (h *Sources) Save() {
 	}
 
 	// Get the undo states for the current line.
-	lh := h.getLineHistory()
-	if lh == nil {
+	line := h.getLineHistory()
+	if line == nil {
 		return
 	}
 
 	// When the line is identical to the previous undo, we just update
 	// the cursor position if it's a different one.
-	if len(lh.items) > 0 && lh.items[len(lh.items)-1].line == string(*h.line) {
-		lh.items[len(lh.items)-1].pos = h.cursor.Pos()
+	if len(line.items) > 0 && line.items[len(line.items)-1].line == string(*h.line) {
+		line.items[len(line.items)-1].pos = h.cursor.Pos()
 		return
 	}
 
 	// When we add an item to the undo history, the history
 	// is cut from the current undo hist position onwards.
-	if lh.pos > len(lh.items) {
-		lh.pos = len(lh.items)
+	if line.pos > len(line.items) {
+		line.pos = len(line.items)
 	}
 
-	lh.items = lh.items[:len(lh.items)-lh.pos]
+	line.items = line.items[:len(line.items)-line.pos]
 
 	// Make a copy of the cursor and ensure its position.
 	cur := core.NewCursor(h.line)
@@ -56,13 +54,16 @@ func (h *Sources) Save() {
 	cur.CheckCommand()
 
 	// And save the item.
-	lh.items = append(lh.items, undoItem{
+	line.items = append(line.items, undoItem{
 		line: string(*h.line),
 		pos:  cur.Pos(),
 	})
 }
 
-// SkipSave will not save the current line when the target command is done.
+// SkipSave will not save the current line when the target command is done
+// (more precisely, the next call to h.Save() will have no effect).
+// This function is not useful is most cases, as call to saves will efficiently
+// compare the line with the last saved state, and will not add redundant ones.
 func (h *Sources) SkipSave() {
 	h.skip = true
 }
@@ -81,8 +82,8 @@ func (h *Sources) Undo() {
 	h.undoing = true
 
 	// Get the undo states for the current line.
-	lh := h.getLineHistory()
-	if lh == nil || len(lh.items) == 0 {
+	line := h.getLineHistory()
+	if line == nil || len(line.items) == 0 {
 		return
 	}
 
@@ -91,16 +92,16 @@ func (h *Sources) Undo() {
 	// When undoing, we loop through preceding undo items
 	// as long as they are identical to the current line.
 	for {
-		lh.pos++
+		line.pos++
 
 		// Exit if we reached the end.
-		if lh.pos > len(lh.items) {
-			lh.pos = len(lh.items)
+		if line.pos > len(line.items) {
+			line.pos = len(line.items)
 			return
 		}
 
 		// Break as soon as we find a non-matching line.
-		undo = lh.items[len(lh.items)-lh.pos]
+		undo = line.items[len(line.items)-line.pos]
 		if undo.line != string(*h.line) {
 			break
 		}
@@ -115,19 +116,19 @@ func (h *Sources) Undo() {
 // like when the shell started reading user input. Note that this state might
 // be a line that was inferred, accept-and-held from the previous readline run.
 func (h *Sources) Revert() {
-	lh := h.getLineHistory()
-	if lh == nil || len(lh.items) == 0 {
+	line := h.getLineHistory()
+	if line == nil || len(line.items) == 0 {
 		return
 	}
 
 	// Reuse the first saved state.
-	undo := lh.items[0]
+	undo := line.items[0]
 
 	h.line.Set([]rune(undo.line)...)
 	h.cursor.Set(undo.pos)
 
 	// And reset everything
-	lh.items = make([]undoItem, 0)
+	line.items = make([]undoItem, 0)
 
 	h.Reset()
 }
@@ -139,22 +140,18 @@ func (h *Sources) Redo() {
 	h.skip = true
 	h.undoing = true
 
-	lh := h.getLineHistory()
-	if lh == nil || len(lh.items) == 0 {
+	line := h.getLineHistory()
+	if line == nil || len(line.items) == 0 {
 		return
 	}
 
-	lh.pos--
+	line.pos--
 
-	if lh.pos < 1 {
-		lh.pos = 0
-		h.line.Set([]rune(lh.lineBuf)...)
-		h.cursor.Set(lh.linePos)
-
+	if line.pos < 1 {
 		return
 	}
 
-	undo := lh.items[len(lh.items)-lh.pos]
+	undo := line.items[len(line.items)-line.pos]
 	h.line.Set([]rune(undo.line)...)
 	h.cursor.Set(undo.pos)
 }
@@ -180,13 +177,13 @@ func (h *Sources) Pos() int {
 func (h *Sources) Reset() {
 	h.skip = false
 
-	lh := h.getLineHistory()
-	if lh == nil {
+	line := h.getLineHistory()
+	if line == nil {
 		return
 	}
 
 	if !h.undoing {
-		lh.pos = 0
+		line.pos = 0
 	}
 
 	h.undoing = false
