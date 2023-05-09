@@ -29,7 +29,7 @@ func UpdateInserted(eng *Engine) {
 	// Do the same when using incremental search, except if the
 	// last key typed is an escape, in which case the user wants
 	// to quit incremental search but keeping any selected comp.
-	inserted := eng.removeInserted()
+	inserted := eng.mustRemoveInserted()
 	cached := eng.keymap.Local() != keymap.Isearch
 
 	eng.Cancel(inserted, cached)
@@ -222,7 +222,7 @@ func (e *Engine) cancelCompletedLine() {
 	e.selected = Candidate{}
 }
 
-func (e *Engine) removeInserted() bool {
+func (e *Engine) mustRemoveInserted() bool {
 	// All other completion modes do not want
 	// the candidate to be removed from the line.
 	if e.keymap.Local() != keymap.Isearch {
@@ -230,19 +230,17 @@ func (e *Engine) removeInserted() bool {
 	}
 
 	// Normally, we should have a key.
-	keys := e.keys.Caller()
-	if len(keys) == 0 {
+	key, empty := core.PeekKey(e.keys)
+	if empty {
 		return false
 	}
-
-	key := keys[0]
 
 	// Some keys trigger behavior different from the normal one:
 	// Ex: if the key is a letter, the isearch buffer is updated
 	// and the line-inserted match might be different, so remove.
 	// If the key is 'Enter', the line will likely be accepted
 	// with the currently inserted candidate.
-	switch key {
+	switch rune(key) {
 	case inputrc.Esc, inputrc.Return:
 		return false
 	default:

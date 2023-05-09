@@ -59,7 +59,9 @@ func (rl *Shell) Readline() (string, error) {
 		// for user input again, we do it before actually reading it.
 		rl.Display.Refresh()
 
-		// Block and wait for user input keys.
+		// Block and wait for available user input keys.
+		// These might be read on stdin, or already available because
+		// the macro engine has fed some keys in bulk when running one.
 		core.WaitAvailableKeys(rl.Keys)
 
 		// 1 - Local keymap (Completion/Isearch/Vim operator pending).

@@ -99,6 +99,20 @@ func PopKey(keys *Keys) (key byte, empty bool) {
 	return key, false
 }
 
+// PeekKey returns the first key in the stack, without removing it.
+func PeekKey(keys *Keys) (key byte, empty bool) {
+	switch {
+	case len(keys.buf) > 0:
+		key = keys.buf[0]
+	case len(keys.macroKeys) > 0:
+		key = byte(keys.macroKeys[0])
+	default:
+		return byte(0), true
+	}
+
+	return key, false
+}
+
 // MatchedKeys is used to indicate how many keys have been evaluated against the shell
 // commands in the dispatching process (regardless of if a command was matched or not).
 // This function should normally not be used by external users of the library.
