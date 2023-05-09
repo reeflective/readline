@@ -18,11 +18,8 @@ var menuselectKeys = map[string]inputrc.Bind{
 
 // isearchCommands is a subset of commands that are valid in incremental-search mode.
 var isearchCommands = []string{
+	// Edition
 	"abort",
-	"accept-and-infer-next-history",
-	"accept-line",
-	"accept-and-hold",
-	"operate-and-get-next",
 	"backward-delete-char",
 	"backward-kill-word",
 	"backward-kill-line",
@@ -31,12 +28,26 @@ var isearchCommands = []string{
 	"vi-unix-word-rubout",
 	"clear-screen",
 	"clear-display",
-	"history-incremental-search-forward",
-	"history-incremental-search-backward",
-	"magic-space", //
+	"magic-space",
 	"vi-movement-mode",
 	"yank",
 	"self-insert",
+
+	// History
+	"accept-and-infer-next-history",
+	"accept-line",
+	"accept-and-hold",
+	"operate-and-get-next",
+	"history-incremental-search-forward",
+	"history-incremental-search-backward",
+	"forward-search-history",
+	"reverse-search-history",
+	"history-search-forward",
+	"history-search-backward",
+	"history-substring-search-forward",
+	"history-substring-search-backward",
+	"incremental-forward-search-history",
+	"incremental-reverse-search-history",
 }
 
 // nonIsearchCommands is an even more restricted set of commands
