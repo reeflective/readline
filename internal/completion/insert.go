@@ -2,6 +2,7 @@ package completion
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
@@ -40,7 +41,7 @@ func UpdateInserted(eng *Engine) {
 }
 
 // TrimSuffix removes the last inserted completion's suffix if the required constraints
-// are satisfied, among which the index position, the suffix matching patterns, etc.
+// are satisfied (among which the index position, the suffix matching patterns, etc).
 func (e *Engine) TrimSuffix() {
 	if e.line.Len() == 0 || e.cursor.Pos() == 0 || len(e.selected.Value) > 0 {
 		return
@@ -64,11 +65,11 @@ func (e *Engine) TrimSuffix() {
 		return
 	}
 
-	switch {
-	case e.sm.Matches(string(key)):
-		e.line.CutRune(e.cursor.Pos())
-
-	case e.sm.Matches(string(suf)) && key == inputrc.Space:
+	if e.sm.Matches(string(key)) || (unicode.IsSpace(key)) {
+		// The line.CutRune() function will delete the character
+		// under cursor if we are not at the very end of the line.
+		// This is wrong if we are completing in the middle of line.
+		e.cursor.Dec()
 		e.line.CutRune(e.cursor.Pos())
 	}
 }
@@ -182,12 +183,6 @@ func (e *Engine) prepareSuffix() (comp string) {
 	e.sm = cur.noSpace
 	e.sm.pos = e.cursor.Pos() + len(comp) - prefix - 1
 
-	// Add a space to suffix matcher when empty and the comp ends with a space.
-	// if cur.noSpace.string == "" && !e.opts.GetBool("autocomplete") {
-	if cur.noSpace.string == "" && suffix == inputrc.Space {
-		cur.noSpace.Add([]rune{' '}...)
-	}
-
 	// When the suffix matcher is a wildcard, that just means
 	// it's a noSpace directive: if the currently inserted key
 	// is a space, don't remove anything, but keep it for later.
@@ -203,11 +198,6 @@ func (e *Engine) prepareSuffix() (comp string) {
 			return
 		}
 	}
-
-	// Else if the suffix matches a pattern, remove
-	// if cur.noSpace.Matches(comp) {
-	// 	comp = comp[:len(comp)-1]
-	// }
 
 	return comp
 }
