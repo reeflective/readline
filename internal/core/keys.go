@@ -191,6 +191,11 @@ func (k *Keys) ReadKey() (key rune, isAbort bool) {
 // Pop removes the first byte in the key stack (first read) and returns it.
 // It returns either a key and the empty boolean set to false, or if no keys
 // are present, returns a zero rune and empty set to true.
+// The key bytes returned by this function are not those that have been
+// matched against the current command. The keys returned here are only
+// keys that have not yet been dispatched. (ex: di" will match vim delete-to,
+// then select-inside, but the quote won't match a command and will be passed
+// to select-inside. This function Pop() will thus return the quote.)
 func (k *Keys) Pop() (key byte, empty bool) {
 	switch {
 	case len(k.buf) > 0:
@@ -209,7 +214,7 @@ func (k *Keys) Pop() (key byte, empty bool) {
 	return key, false
 }
 
-// Caller returns the key that has matched the command currently being ran.
+// Caller returns the keys that have matched the command currently being ran.
 func (k *Keys) Caller() (keys []rune) {
 	return k.matched
 }

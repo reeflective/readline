@@ -142,10 +142,10 @@ func (rl *Shell) Cursor() *core.Cursor { return rl.cursor }
 // selections used to change/select multiple parts of the line at once.
 func (rl *Shell) Selection() *core.Selection { return rl.selection }
 
-// Log prints a formatted string below the current line and redisplays the prompt
+// Printf prints a formatted string below the current line and redisplays the prompt
 // and input line (and possibly completions/hints if active) below the logged string.
 // A newline is added to the message so that the prompt is correctly refreshed below.
-func (rl *Shell) Log(msg string, args ...any) (n int, err error) {
+func (rl *Shell) Printf(msg string, args ...any) (n int, err error) {
 	// First go back to the last line of the input line,
 	// and clear everything below (hints and completions).
 	rl.Display.CursorBelowLine()
@@ -162,19 +162,19 @@ func (rl *Shell) Log(msg string, args ...any) (n int, err error) {
 	return
 }
 
-// LogTransient prints a formatted string in place of the current prompt and input
+// PrintTransientf prints a formatted string in place of the current prompt and input
 // line, and then refreshes, or "pushes" the prompt/line below this printed message.
-func (rl *Shell) LogTransient(msg string, args ...any) (n int, err error) {
+func (rl *Shell) PrintTransientf(msg string, args ...any) (n int, err error) {
 	// First go back to the beginning of the line/prompt, and
 	// clear everything below (prompt/line/hints/completions).
-	if rl.Prompt.Refreshing() {
-		term.MoveCursorUp(1)
-	}
+	// if rl.Prompt.Refreshing() {
+	// 	term.MoveCursorUp(1)
+	// }
 
 	rl.Display.CursorToLineStart()
 	term.MoveCursorBackwards(term.GetWidth())
 
-	term.MoveCursorUp(rl.Prompt.PrimaryUsed())
+	term.MoveCursorUp(rl.Prompt.PrimaryUsed() + 1)
 	fmt.Print(term.ClearScreenBelow)
 
 	// Print the logged message.
