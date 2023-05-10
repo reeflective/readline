@@ -112,15 +112,13 @@ func (c *Cursor) ToFirstNonSpace(forward bool) {
 
 	defer c.CheckAppend()
 
-	if c.pos == c.line.Len() {
+	if c.pos >= c.line.Len() {
 		forward = false
-		c.pos--
+		c.pos = c.line.Len() - 1
 	}
 
 	// At line bounds
-	if forward && c.pos >= c.line.Len()-1 {
-		return
-	} else if !forward && c.pos == 0 {
+	if !forward && c.pos == 0 {
 		return
 	}
 
@@ -135,7 +133,7 @@ func (c *Cursor) ToFirstNonSpace(forward bool) {
 			c.pos--
 		}
 
-		if c.pos <= 0 && c.pos >= c.line.Len() {
+		if c.pos <= 0 {
 			return
 		}
 	}
@@ -177,6 +175,10 @@ func (c *Cursor) EndOfLine() {
 // (if buffer is multiline), or the whole buffer, in append-mode.
 func (c *Cursor) EndOfLineAppend() {
 	defer c.CheckAppend()
+
+	if c.OnEmptyLine() {
+		return
+	}
 
 	newlinePos := c.line.Find(inputrc.Newline, c.pos, true)
 
@@ -272,7 +274,7 @@ func (c *Cursor) OnEmptyLine() bool {
 // of the line buffer, or on the first character after the previous newline.
 func (c *Cursor) AtBeginningOfLine() bool {
 	if c.pos == 0 {
-		return false
+		return true
 	}
 
 	newlines := c.line.newlines()
@@ -324,7 +326,7 @@ func (c *Cursor) CheckAppend() {
 		c.mark = -1
 	}
 
-	if c.mark > c.line.Len() {
+	if c.mark > c.line.Len()-1 {
 		c.mark = -1
 	}
 }
