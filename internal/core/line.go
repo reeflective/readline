@@ -126,7 +126,9 @@ func (l *Line) CutRune(pos int) {
 	}
 }
 
-// Len returns the length of the line.
+// Len returns the length of the line, as given by ut8.RuneCount.
+// This should NOT confused with the length of the line in terms of
+// how many terminal columns its printed representation will take.
 func (l *Line) Len() int {
 	return utf8.RuneCountInString(string(*l))
 }
@@ -134,32 +136,32 @@ func (l *Line) Len() int {
 // SelectWord returns the begin and end index positions of a word
 // (separated by punctuation or spaces) around the specified position.
 func (l *Line) SelectWord(pos int) (bpos, epos int) {
-	pos, valid := l.checkPos(pos)
-	if !valid {
+	if l.Len() == 0 {
 		return
 	}
 
+	pos = l.checkPosRange(pos)
 	if pos == l.Len() {
 		pos--
 	}
 
-	pattern := "[0-9a-zA-Z_]"
+	wordRgx := regexp.MustCompile("[0-9a-zA-Z_]")
 	bpos, epos = pos, pos
 
-	if match, _ := regexp.MatchString(pattern, string((*l)[pos])); !match {
-		pattern = "[^0-9a-zA-Z_ ]"
+	if match := wordRgx.MatchString(string((*l)[pos])); !match {
+		wordRgx = regexp.MustCompile(`\s`)
 	}
 
 	// To first space found backward
 	for ; bpos >= 0; bpos-- {
-		if match, _ := regexp.MatchString(pattern, string((*l)[bpos])); !match {
+		if match := wordRgx.MatchString(string((*l)[bpos])); !match {
 			break
 		}
 	}
 
 	// And to first space found forward
 	for ; epos < l.Len(); epos++ {
-		if match, _ := regexp.MatchString(pattern, string((*l)[epos])); !match {
+		if match := wordRgx.MatchString(string((*l)[epos])); !match {
 			break
 		}
 	}
@@ -177,32 +179,32 @@ func (l *Line) SelectWord(pos int) (bpos, epos int) {
 // SelectBlankWord returns the begin and end index positions
 // of a full bigword (blank word) around the specified position.
 func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
-	pos, valid := l.checkPos(pos)
-	if !valid {
+	if l.Len() == 0 {
 		return
 	}
 
+	pos = l.checkPosRange(pos)
 	if pos == l.Len() {
 		pos--
 	}
 
-	pattern := `[^\s\\]`
+	blankWordRgx := regexp.MustCompile(`[^\s\\]`)
 	bpos, epos = pos, pos
 
-	if match, _ := regexp.MatchString(pattern, string((*l)[pos])); !match {
-		pattern = `[^\s\\ ]`
+	if match := blankWordRgx.MatchString(string((*l)[pos])); !match {
+		blankWordRgx = regexp.MustCompile(`\s`)
 	}
 
 	// To first space found backward
 	for ; bpos >= 0; bpos-- {
-		if match, _ := regexp.MatchString(pattern, string((*l)[bpos])); !match {
+		if match := blankWordRgx.MatchString(string((*l)[bpos])); !match {
 			break
 		}
 	}
 
 	// And to first space found forward
 	for ; epos < l.Len(); epos++ {
-		if match, _ := regexp.MatchString(pattern, string((*l)[epos])); !match {
+		if match := blankWordRgx.MatchString(string((*l)[epos])); !match {
 			break
 		}
 	}
@@ -219,10 +221,11 @@ func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
 
 // Find returns the index position of a target rune, or -1 if not found.
 func (l *Line) Find(char rune, pos int, forward bool) int {
-	pos, valid := l.checkPos(pos)
-	if !valid {
+	if l.Len() == 0 {
 		return -1
 	}
+
+	pos = l.checkPosRange(pos)
 
 	for {
 		if forward {
@@ -235,13 +238,6 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 			if pos < 0 {
 				break
 			}
-		}
-
-		// Check positions
-		if pos < 0 {
-			pos = 0
-		} else if pos > l.Len()-1 {
-			pos = l.Len() - 1
 		}
 
 		// Check if character matches
@@ -261,20 +257,6 @@ func (l *Line) FindSurround(char rune, pos int) (bpos, epos int, bchar, echar ru
 
 	bpos = l.Find(bchar, pos+1, false)
 	epos = l.Find(echar, pos-1, true)
-
-	if bpos == epos {
-		pos++
-		epos = l.Find(echar, pos, true)
-
-		if epos == -1 {
-			pos--
-			epos = l.Find(echar, pos, false)
-
-			if epos != -1 {
-				bpos, epos = epos, bpos
-			}
-		}
-	}
 
 	return
 }
@@ -385,8 +367,8 @@ func CoordinatesLine(l *Line, indent int) (x, y int) {
 }
 
 // Lines returns the number of real lines in the input buffer.
-// If there are no newlines, the result is 1, otherwise it's
-// the number of newlines + 1.
+// If there are no newlines, the result is 0, otherwise it's
+// the number of lines - 1.
 func (l *Line) Lines() int {
 	line := string(*l)
 	nl := regexp.MustCompile(string(inputrc.Newline))
@@ -423,8 +405,6 @@ func (l *Line) ForwardEnd(tokenizer Tokenizer, pos int) (adjust int) {
 	word := strings.TrimRightFunc(split[index], unicode.IsSpace)
 
 	switch {
-	case len(split) == 0:
-		return
 	case index == len(split)-1 && pos >= len(word)-1:
 		return
 	case pos >= len(word)-1:
@@ -459,16 +439,13 @@ func (l *Line) Backward(tokenizer Tokenizer, pos int) (adjust int) {
 
 // Tokenize splits the line on each word, that is, split on every punctuation or space.
 func (l *Line) Tokenize(cpos int) ([]string, int, int) {
-	cpos, valid := l.checkPos(cpos)
-	if !valid {
-		return nil, 0, 0
-	}
-
 	line := *l
 
-	if len(line) == 0 {
+	if line.Len() == 0 {
 		return nil, 0, 0
 	}
+
+	cpos = l.checkPosRange(cpos)
 
 	var index, pos int
 	var punc bool
@@ -528,24 +505,23 @@ func (l *Line) Tokenize(cpos int) ([]string, int, int) {
 
 // Tokenize splits the line on each WORD (blank word), that is, split on every space.
 func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
-	cpos, valid := l.checkPos(cpos)
-	if !valid {
-		return nil, 0, 0
-	}
-
 	line := *l
 
-	if len(line) == 0 {
+	if line.Len() == 0 {
 		return nil, 0, 0
 	}
+
+	cpos = l.checkPosRange(cpos)
 
 	var index, pos int
 	split := make([]string, 1)
+	var newline bool
 
 	for i, char := range line {
 		switch char {
 		case ' ', '\t':
 			split[len(split)-1] += string(char)
+			newline = false
 
 		case '\n':
 			// Newlines are a word of their own only
@@ -556,12 +532,14 @@ func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
 			}
 
 			split[len(split)-1] += string(char)
+			newline = true
 
 		default:
-			if i > 0 && (line[i-1] == ' ' || line[i-1] == '\t') {
+			if (i > 0 && (line[i-1] == ' ' || line[i-1] == '\t')) || newline {
 				split = append(split, "")
 			}
 
+			newline = false
 			split[len(split)-1] += string(char)
 		}
 
@@ -585,16 +563,16 @@ func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
 // TokenizeBlock splits the line into arguments delimited either by
 // brackets, braces and parenthesis, and/or single and double quotes.
 func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
-	cpos, valid := l.checkPos(cpos)
-	if !valid {
+	line := *l
+
+	if line.Len() == 0 {
 		return nil, 0, 0
 	}
 
+	cpos = l.checkPosRange(cpos)
 	if cpos == l.Len() {
 		cpos--
 	}
-
-	line := *l
 
 	var (
 		opener, closer rune
@@ -728,10 +706,16 @@ func (l *Line) checkRange(bpos, epos int) (int, int, bool) {
 	return bpos, epos, true
 }
 
-func (l *Line) checkPos(pos int) (int, bool) {
-	if pos < 0 || pos > l.Len() || l.Len() == 0 {
-		return -1, false
+// similar to checkPos, but won't fail: will bring
+// the position back onto a valid index on the line.
+func (l *Line) checkPosRange(pos int) int {
+	if pos < 0 {
+		return 0
 	}
 
-	return pos, true
+	if pos > l.Len() {
+		return l.Len()
+	}
+
+	return pos
 }
