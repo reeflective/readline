@@ -24,12 +24,20 @@ func (i *Iterations) Add(times string) {
 		return
 	}
 
+	// Never accept non-digit values.
+	if _, err := strconv.Atoi(times); err != nil && times != "-" {
+		return
+	}
+
 	i.active = true
 	i.pending = true
 
-	if times == "-" || strings.HasPrefix(times, "-") {
-		i.times = times
-	} else {
+	switch {
+	case times == "-":
+		i.times = times + i.times
+	case strings.HasPrefix(times, "-"):
+		i.times = "-" + i.times + strings.TrimPrefix(times, "-")
+	default:
 		i.times += times
 	}
 }
@@ -40,8 +48,12 @@ func (i *Iterations) Get() int {
 	times, err := strconv.Atoi(i.times)
 
 	// Any invalid value is still one time.
-	if err != nil && times == -1 {
+	if err != nil && strings.HasPrefix(i.times, "-") {
+		times = -1
+	} else if err != nil && times == 0 {
 		times = 1
+	} else if times == 0 && strings.HasPrefix(i.times, "-") {
+		times = -1
 	}
 
 	// At least one iteration
