@@ -130,7 +130,6 @@ func (s *Selection) Pos() (bpos, epos int) {
 
 	// Use currently set values, or update if one is pending.
 	s.bpos, s.epos = bpos, epos
-	// bpos, epos = s.bpos, s.epos
 
 	if epos == -1 {
 		bpos, epos = s.selectToCursor(bpos)
@@ -140,8 +139,10 @@ func (s *Selection) Pos() (bpos, epos int) {
 		epos++
 	}
 
-	// Always check that neither the initial values
-	// nor the ones that we might have updated are wrong.
+	// Always check that neither the initial values nor the ones
+	// that we might have updated are wrong. It's very rare that
+	// the adjusted values would be invalid as a result of this
+	// call (unfixable values), but better being too safe than not.
 	bpos, epos, valid = s.checkRange(bpos, epos)
 	if !valid {
 		return -1, -1
@@ -277,17 +278,12 @@ func (s *Selection) InsertAt(bpos, epos int) {
 		return
 	}
 
+	// Get and reset the selection.
 	defer s.Reset()
 
-	// Get and reset the selection.
 	buf := s.Text()
-	if len(buf) == 0 {
-		return
-	}
 
 	switch {
-	case bpos == -1:
-		s.line.Insert(epos, []rune(buf)...)
 	case epos == -1, bpos == epos:
 		s.line.Insert(bpos, []rune(buf)...)
 	default:
@@ -573,8 +569,8 @@ func HighlightMatchers(sel *Selection) {
 	}
 }
 
-// ResetMatchers is meant to be used by the display engine
-// (and only it), to reset matching parens highlighting regions.
+// ResetMatchers is used by the display engine
+// to reset matching parens highlighting regions.
 func ResetMatchers(sel *Selection) {
 	var surrounds []Selection
 

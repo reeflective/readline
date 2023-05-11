@@ -48,7 +48,7 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 
 ### Core 
 - Pure Go, almost-only standard library
-- Full .inputrc support (all commands/options)
+- Full `.inputrc` support (all commands/options)
 - Extensive test suite and full coverage of core code
 - [Extended list](https://github.com/reeflective/readline/wiki/Keymaps-&-Widgets) of additional commands/options (edition/completion/history)
 - Complete multiline edition/movement support
