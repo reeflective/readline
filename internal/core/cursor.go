@@ -100,6 +100,14 @@ func (c *Cursor) ReplaceWith(char rune) {
 	}
 }
 
+// InsertAt inserts the given runes into the line at the current cursor position.
+func (c *Cursor) InsertAt(r ...rune) {
+	c.CheckAppend()
+
+	c.line.Insert(c.pos, r...)
+	c.pos += len(r)
+}
+
 // ToFirstNonSpace moves the cursor either backward or forward to
 // the first character in the line that is not a space, a tab or
 // a newline. If the current is not one, the cursor doesn't move.

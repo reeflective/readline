@@ -805,7 +805,8 @@ func (rl *Shell) viOpenLineAbove() {
 	if !rl.cursor.OnEmptyLine() {
 		rl.beginningOfLine()
 	}
-	rl.line.Insert(rl.cursor.Pos(), '\n')
+	rl.cursor.InsertAt('\n')
+	rl.cursor.Dec()
 	rl.viInsertMode()
 }
 
@@ -815,8 +816,7 @@ func (rl *Shell) viOpenLineBelow() {
 	if !rl.cursor.OnEmptyLine() {
 		rl.endOfLine()
 	}
-	rl.line.Insert(rl.cursor.Pos(), '\n')
-	rl.cursor.Inc()
+	rl.cursor.InsertAt('\n')
 	rl.viInsertMode()
 }
 

@@ -382,18 +382,16 @@ func (rl *Shell) quotedInsert() {
 
 	key, _ := rl.Keys.ReadKey()
 
-	quoted, length := strutil.Quote(key)
+	quoted, _ := strutil.Quote(key)
 
-	rl.line.Insert(rl.cursor.Pos(), quoted...)
-	rl.cursor.Move(length)
+	rl.cursor.InsertAt(quoted...)
 }
 
 // Insert a tab character.
 func (rl *Shell) tabInsert() {
 	rl.History.SkipSave()
 
-	rl.line.Insert(rl.cursor.Pos(), '\t')
-	rl.cursor.Move(1)
+	rl.cursor.InsertAt('\t')
 }
 
 // Insert the character typed.
@@ -425,8 +423,8 @@ func (rl *Shell) selfInsert() {
 		quoted, length = strutil.Quote(key[0])
 	}
 
-	rl.line.Insert(rl.cursor.Pos(), quoted...)
-
+	rl.cursor.InsertAt(quoted...)
+	rl.cursor.Move(-1 * len(quoted))
 	rl.cursor.Move(length)
 }
 
@@ -666,13 +664,12 @@ func (rl *Shell) overwriteMode() {
 			// If the cursor is at the end of the line,
 			// we insert the character instead of replacing.
 			if rl.line.Len() == rl.cursor.Pos() {
-				rl.line.Insert(rl.cursor.Pos(), key)
+				rl.cursor.InsertAt(key)
 			} else {
 				cache = append(cache, rl.cursor.Char())
 				rl.cursor.ReplaceWith(key)
+				rl.cursor.Inc()
 			}
-
-			rl.cursor.Inc()
 		}
 
 		// Update the line
@@ -968,8 +965,7 @@ func (rl *Shell) yank() {
 	vii := rl.Iterations.Get()
 
 	for i := 1; i <= vii; i++ {
-		rl.line.Insert(rl.cursor.Pos(), buf...)
-		rl.cursor.Move(len(buf))
+		rl.cursor.InsertAt(buf...)
 	}
 }
 
@@ -980,8 +976,7 @@ func (rl *Shell) yankPop() {
 
 	for i := 1; i <= vii; i++ {
 		buf := rl.Buffers.Pop()
-		rl.line.Insert(rl.cursor.Pos(), buf...)
-		rl.cursor.Move(len(buf))
+		rl.cursor.InsertAt(buf...)
 	}
 }
 
@@ -1375,7 +1370,7 @@ func (rl *Shell) insertComment() {
 		// Without numeric argument, insert comment at the beginning of the line.
 		cpos := rl.cursor.Pos()
 		rl.cursor.BeginningOfLine()
-		rl.line.Insert(rl.cursor.Pos(), []rune(comment)...)
+		rl.cursor.InsertAt([]rune(comment)...)
 		rl.cursor.Set(cpos)
 
 	default:

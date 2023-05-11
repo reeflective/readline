@@ -148,12 +148,9 @@ func (e *Engine) insertCandidate() {
 	e.compCursor = core.NewCursor(e.compLine)
 	e.compCursor.Set(e.cursor.Pos())
 
-	// Remove the suffix from the line first.
+	// Remove the suffix from the line first, and insert the candidate.
 	e.compLine.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.suffix))
-
-	// And insert it in the completed line.
-	e.compLine.Insert(e.compCursor.Pos(), e.inserted...)
-	e.compCursor.Move(len(e.inserted))
+	e.compCursor.InsertAt(e.inserted...)
 }
 
 // prepareSuffix caches any suffix matcher associated with the completion candidate
