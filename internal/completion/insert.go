@@ -65,12 +65,16 @@ func (e *Engine) TrimSuffix() {
 		return
 	}
 
-	if e.sm.Matches(string(key)) || (unicode.IsSpace(key)) {
-		// The line.CutRune() function will delete the character
-		// under cursor if we are not at the very end of the line.
-		// This is wrong if we are completing in the middle of line.
+	// If the key is a space or matches the suffix matcher, cut the suffix.
+	if e.sm.Matches(string(key)) || unicode.IsSpace(key) {
 		e.cursor.Dec()
 		e.line.CutRune(e.cursor.Pos())
+	}
+
+	// But when the key is a space, we also drop the suffix matcher,
+	// beause the user is done with this precise completion (or group of).
+	if unicode.IsSpace(key) {
+		e.sm = SuffixMatcher{}
 	}
 }
 
