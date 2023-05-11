@@ -113,9 +113,9 @@ func (e *Engine) acceptCandidate() {
 	// Remove the suffix from the line first.
 	e.line.Cut(e.cursor.Pos(), e.cursor.Pos()+len(e.suffix))
 
-	// Insert it in the line.
-	e.line.Insert(e.cursor.Pos(), e.inserted...)
-	e.cursor.Move(len(e.inserted))
+	// Insert it in the line and add the suffix back.
+	e.cursor.InsertAt(e.inserted...)
+	e.line.Insert(e.cursor.Pos(), []rune(e.suffix)...)
 
 	// And forget about this inserted completion.
 	e.inserted = make([]rune, 0)
@@ -151,6 +151,9 @@ func (e *Engine) insertCandidate() {
 	// Remove the suffix from the line first, and insert the candidate.
 	e.compLine.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.suffix))
 	e.compCursor.InsertAt(e.inserted...)
+
+	// Then add the suffix back.
+	e.compLine.Insert(e.compCursor.Pos(), []rune(e.suffix)...)
 }
 
 // prepareSuffix caches any suffix matcher associated with the completion candidate

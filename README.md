@@ -28,7 +28,7 @@
   </a>
 
   <a href="https://codecov.io/gh/reeflective/readline">
-    <img src="https://codecov.io/gh/reeflective/readline/branch/main/graph/badge.svg"
+    <img src="https://codecov.io/gh/reeflective/readline/branch/master/graph/badge.svg"
       alt="codecov" />
   </a>
 

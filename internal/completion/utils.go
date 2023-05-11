@@ -71,6 +71,13 @@ func (e *Engine) setSuffix(comps Values) {
 			epos = cpos
 		}
 
+		// Add back single or double quotes in the character after epos is one of them.
+		if epos < e.line.Len() {
+			if (*e.line)[epos] == '\'' || (*e.line)[epos] == '"' {
+				epos++
+			}
+		}
+
 		e.suffix = strings.TrimSpace(string((*e.line)[cpos:epos]))
 
 	default:
