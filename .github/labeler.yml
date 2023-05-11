@@ -4,6 +4,8 @@
 main:
 - readline.go
 - shell.go
+tests:
+- '*_test.go'
 terminal:
 - internal/term/
 inputrc:
