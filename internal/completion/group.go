@@ -48,7 +48,7 @@ func (e *Engine) group(comps Values) {
 		return
 	}
 
-	comps.values.eachTag(func(tag string, values RawValues) {
+	comps.values.EachTag(func(tag string, values RawValues) {
 		// Separate the completions that have a description and
 		// those which don't, and devise if there are aliases.
 		vals, noDescVals, aliased := e.groupValues(&comps, values)
@@ -63,7 +63,7 @@ func (e *Engine) group(comps Values) {
 		}
 	})
 
-	e.justifyCommandComps()
+	e.justifyGroups(comps)
 }
 
 // groupValues separates values based on whether they have descriptions, or are aliases of each other.
@@ -111,15 +111,19 @@ func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals 
 	return vals, noDescVals, aliased
 }
 
-func (e *Engine) justifyCommandComps() {
+func (e *Engine) justifyGroups(values Values) {
 	commandGroups := make([]*group, 0)
 	maxCellLength := 0
 
 	for _, group := range e.groups {
-		if !strings.HasSuffix(group.tag, "commands") {
-			continue
+		// Skip groups that are not to be justified
+		if _, justify := values.Pad[group.tag]; !justify {
+			if _, all := values.Pad["*"]; !all {
+				continue
+			}
 		}
 
+		// Skip groups that are aliased or have more than one column
 		if group.aliased || len(group.columnsWidth) > 1 {
 			continue
 		}

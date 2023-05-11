@@ -38,7 +38,7 @@ func (c *Values) Merge(other Values) {
 	}
 }
 
-func (c RawValues) eachTag(tagF func(tag string, values RawValues)) {
+func (c RawValues) EachTag(tagF func(tag string, values RawValues)) {
 	tags := make([]string, 0)
 	tagGroups := make(map[string]RawValues)
 
