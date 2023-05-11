@@ -321,6 +321,10 @@ func (s *Selection) Surround(bchar, echar rune) {
 // selecting leading or trailing spaces depending on where the cursor
 // is: if on a blank space, in a word, or at the end of the line.
 func (s *Selection) SelectAWord() (bpos, epos int) {
+	if s.line.Len() == 0 {
+		return
+	}
+
 	bpos = s.cursor.Pos()
 	cpos := bpos
 
@@ -347,6 +351,10 @@ func (s *Selection) SelectAWord() (bpos, epos int) {
 // selecting leading or trailing spaces depending on where the cursor is:
 // if on a blank space, in a word, or at the end of the line.
 func (s *Selection) SelectABlankWord() (bpos, epos int) {
+	if s.line.Len() == 0 {
+		return
+	}
+
 	bpos = s.cursor.Pos()
 	spaceBefore, spaceUnder := s.spacesAroundWord(bpos)
 
@@ -378,6 +386,10 @@ func (s *Selection) SelectABlankWord() (bpos, epos int) {
 // selecting leading or trailing spaces depending on where the cursor
 // is: if on a blank space, in a word, or at the end of the line.
 func (s *Selection) SelectAShellWord() (bpos, epos int) {
+	if s.line.Len() == 0 {
+		return
+	}
+
 	s.cursor.CheckCommand()
 	s.cursor.ToFirstNonSpace(true)
 

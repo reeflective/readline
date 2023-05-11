@@ -907,6 +907,7 @@ func TestSelection_InsertAt(t *testing.T) {
 }
 
 func TestSelection_Surround(t *testing.T) {
+	emptyline, emptycur := newLine("")
 	line, cur := newLine("multiple-ambiguous 10.203.23.45 127.0.0.1")
 	type args struct {
 		bchar rune
@@ -920,6 +921,12 @@ func TestSelection_Surround(t *testing.T) {
 		args    args
 		wantBuf string
 	}{
+		{
+			name:    "Empty line",
+			fields:  fieldsWith(emptyline, &emptycur),
+			args:    args{bchar: '"', echar: '"', bpos: 0, epos: 0},
+			wantBuf: "",
+		},
 		{
 			name:    "Valid range",
 			fields:  fieldsWith(line, &cur),
@@ -943,7 +950,9 @@ func TestSelection_Surround(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			line, cur = newLine("multiple-ambiguous 10.203.23.45 127.0.0.1")
-			test.fields.line, test.fields.cursor = &line, &cur
+			if test.fields.line == nil || test.fields.line.Len() != 0 {
+				test.fields.line, test.fields.cursor = &line, &cur
+			}
 
 			sel := newTestSelection(test.fields)
 
@@ -962,111 +971,195 @@ func TestSelection_Surround(t *testing.T) {
 }
 
 func TestSelection_SelectAWord(t *testing.T) {
+	emptyline, emptycur := newLine("")
+	line, cur := newLine("multiple-ambiguous 10.203.23.45 127.0.0.1")
+
+	type args struct {
+		cpos int
+	}
 	tests := []struct {
 		name     string
 		fields   fields
+		args     args
 		wantBpos int
 		wantEpos int
 	}{
-		// TODO: Add test cases.
+		{
+			name:     "Empty line",
+			fields:   fieldsWith(emptyline, &emptycur),
+			args:     args{cpos: 0},
+			wantBpos: 0,
+			wantEpos: 0,
+		},
+		{
+			name:     "On space (fail)",
+			fields:   fieldsWith(line, &cur),
+			args:     args{cpos: 18},
+			wantBpos: 18,
+			wantEpos: 18,
+		},
+		{
+			name:     "On digit",
+			fields:   fieldsWith(line, &cur),
+			args:     args{cpos: 19},
+			wantBpos: 18,
+			wantEpos: 20,
+		},
+		{
+			name:     "On last digit of word",
+			fields:   fieldsWith(line, &cur),
+			args:     args{cpos: 30},
+			wantBpos: 29,
+			wantEpos: 30,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sel := newTestSelection(test.fields)
+			sel.cursor.Set(test.args.cpos)
+
+			gotBpos, gotEpos := sel.SelectAWord()
+			if gotBpos != test.wantBpos {
+				t.Errorf("Selection.SelectAWord() gotBpos = %v, want %v", gotBpos, test.wantBpos)
 			}
-			gotBpos, gotEpos := s.SelectAWord()
-			if gotBpos != tt.wantBpos {
-				t.Errorf("Selection.SelectAWord() gotBpos = %v, want %v", gotBpos, tt.wantBpos)
-			}
-			if gotEpos != tt.wantEpos {
-				t.Errorf("Selection.SelectAWord() gotEpos = %v, want %v", gotEpos, tt.wantEpos)
+			if gotEpos != test.wantEpos {
+				t.Errorf("Selection.SelectAWord() gotEpos = %v, want %v", gotEpos, test.wantEpos)
 			}
 		})
 	}
 }
 
 func TestSelection_SelectABlankWord(t *testing.T) {
+	emptyline, emptycur := newLine("")
+	line, cur := newLine("multiple-ambiguous 10.203.23.45 127.0.0.1")
+
+	type args struct {
+		cpos int
+	}
 	tests := []struct {
 		name     string
 		fields   fields
+		args     args
 		wantBpos int
 		wantEpos int
 	}{
-		// TODO: Add test cases.
+		{
+			name:     "Empty line",
+			fields:   fieldsWith(emptyline, &emptycur),
+			args:     args{cpos: 0},
+			wantBpos: 0,
+			wantEpos: 0,
+		},
+		{
+			name:     "On space (select following word and leading spaces)",
+			fields:   fieldsWith(line, &cur),
+			args:     args{cpos: 18},
+			wantBpos: 18,
+			wantEpos: 30,
+		},
+		{
+			name:     "Cursor at beginning of line (with trailing spaces)",
+			fields:   fieldsWith(line, &cur),
+			args:     args{cpos: 0},
+			wantBpos: 0,
+			wantEpos: 18,
+		},
+		{
+			name:     "Cursor at end of line (with leading spaces)",
+			fields:   fieldsWith(line, &cur),
+			args:     args{cpos: line.Len()},
+			wantBpos: 31,
+			wantEpos: line.Len() - 1,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sel := newTestSelection(test.fields)
+			sel.cursor.Set(test.args.cpos)
+
+			gotBpos, gotEpos := sel.SelectABlankWord()
+			if gotBpos != test.wantBpos {
+				t.Errorf("Selection.SelectABlankWord() gotBpos = %v, want %v", gotBpos, test.wantBpos)
 			}
-			gotBpos, gotEpos := s.SelectABlankWord()
-			if gotBpos != tt.wantBpos {
-				t.Errorf("Selection.SelectABlankWord() gotBpos = %v, want %v", gotBpos, tt.wantBpos)
-			}
-			if gotEpos != tt.wantEpos {
-				t.Errorf("Selection.SelectABlankWord() gotEpos = %v, want %v", gotEpos, tt.wantEpos)
+			if gotEpos != test.wantEpos {
+				t.Errorf("Selection.SelectABlankWord() gotEpos = %v, want %v", gotEpos, test.wantEpos)
 			}
 		})
 	}
 }
 
 func TestSelection_SelectAShellWord(t *testing.T) {
+	emptyline, emptycur := newLine("")
+	multiline, mCursor := newLine("git command -c \n \"second line of input\" before an empty \"line \n\n and then\" a last quoted-\"shell-word one\" and 'trailing shell'-word")
+
+	type args struct {
+		cpos int
+	}
 	tests := []struct {
 		name     string
 		fields   fields
+		args     args
 		wantBpos int
 		wantEpos int
 	}{
-		// TODO: Add test cases.
+		{
+			name:     "Empty line",
+			fields:   fieldsWith(emptyline, &emptycur),
+			args:     args{cpos: 0},
+			wantBpos: 0,
+			wantEpos: 0,
+		},
+
+		{
+			name:     "Cursor on a single word (with leading spaces)",
+			fields:   fieldsWith(multiline, &mCursor),
+			args:     args{cpos: 4},
+			wantBpos: 3,
+			wantEpos: 10,
+		},
+		{
+			name:     "Cursor in a shell word (with leading spaces)",
+			fields:   fieldsWith(multiline, &mCursor),
+			args:     args{cpos: 23},
+			wantBpos: 14,
+			wantEpos: 38,
+		},
+		{
+			name:     "Cursor on an empty line",
+			fields:   fieldsWith(multiline, &mCursor),
+			args:     args{cpos: 63},
+			wantBpos: 55,
+			wantEpos: 73,
+		},
+		{
+			name:     "Cursor on mixed shell and leading blank word",
+			fields:   fieldsWith(multiline, &mCursor),
+			args:     args{cpos: 95},
+			wantBpos: 81,
+			wantEpos: 104,
+		},
+		{
+			name:     "Cursor on mixed shell and trailing blank words",
+			fields:   fieldsWith(multiline, &mCursor),
+			args:     args{cpos: multiline.Len() - 1},
+			wantBpos: 119,
+			wantEpos: multiline.Len() - 1,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sel := newTestSelection(test.fields)
+			sel.cursor.Set(test.args.cpos)
+
+			gotBpos, gotEpos := sel.SelectAShellWord()
+			if gotBpos != test.wantBpos {
+				t.Errorf("Selection.SelectAShellWord() gotBpos = %v, want %v", gotBpos, test.wantBpos)
 			}
-			gotBpos, gotEpos := s.SelectAShellWord()
-			if gotBpos != tt.wantBpos {
-				t.Errorf("Selection.SelectAShellWord() gotBpos = %v, want %v", gotBpos, tt.wantBpos)
-			}
-			if gotEpos != tt.wantEpos {
-				t.Errorf("Selection.SelectAShellWord() gotEpos = %v, want %v", gotEpos, tt.wantEpos)
+			if gotEpos != test.wantEpos {
+				t.Errorf("Selection.SelectAShellWord() gotEpos = %v, want %v", gotEpos, test.wantEpos)
 			}
 		})
 	}
@@ -1120,7 +1213,9 @@ func TestSelection_SelectKeyword(t *testing.T) {
 }
 
 func TestSelection_ReplaceWith(t *testing.T) {
+	emptyline, emptycur := newLine("")
 	line, cur := newLine("multiple-ambiguous lower UPPER")
+
 	type args struct {
 		bpos     int
 		epos     int
@@ -1132,6 +1227,12 @@ func TestSelection_ReplaceWith(t *testing.T) {
 		args    args
 		wantBuf string
 	}{
+		{
+			name:    "Empty line",
+			fields:  fieldsWith(emptyline, &emptycur),
+			args:    args{bpos: 0, epos: 0, replacer: unicode.ToLower},
+			wantBuf: "",
+		},
 		{
 			name:    "Replace to upper",
 			fields:  fieldsWith(line, &cur),
@@ -1149,7 +1250,9 @@ func TestSelection_ReplaceWith(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			line, cur = newLine("multiple-ambiguous lower UPPER")
-			test.fields.line, test.fields.cursor = &line, &cur
+			if test.fields.line == nil || test.fields.line.Len() != 0 {
+				test.fields.line, test.fields.cursor = &line, &cur
+			}
 
 			sel := newTestSelection(test.fields)
 
@@ -1168,73 +1271,202 @@ func TestSelection_ReplaceWith(t *testing.T) {
 }
 
 func TestSelection_Cut(t *testing.T) {
+	emptyline, emptycur := newLine("")
+	line, cur := newLine("multiple-ambiguous 10.203.23.45 127.0.0.1")
+	sline, scur := newLine("multiple-ambiguous '10.203.23.45' 127.0.0.1")
+	multiline, mCursor := newLine("git command -c \n second line of input before an empty line \n\n and then a last one")
+
+	type args struct {
+		bpos       int
+		epos       int
+		visualLine bool
+		selectFunc func(*Selection)
+	}
 	tests := []struct {
 		name    string
 		fields  fields
+		args    args
+		wantCut string
 		wantBuf string
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "Empty line",
+			fields:  fieldsWith(emptyline, &emptycur),
+			args:    args{bpos: 0, epos: 0},
+			wantCut: "",
+		},
+		{
+			name:    "Single line, cursor at beginning of line (blank word)",
+			fields:  fieldsWith(line, &cur),
+			args:    args{bpos: 0, epos: 0, selectFunc: func(s *Selection) { cur.BeginningOfLine(); s.SelectABlankWord() }},
+			wantCut: "multiple-ambiguous",
+			wantBuf: " 10.203.23.45 127.0.1",
+		},
+		{
+			name:    "Multiline, cursor after first newline, visualLine true",
+			fields:  fieldsWith(multiline, &mCursor),
+			args:    args{bpos: 20, epos: -1, visualLine: true},
+			wantCut: " second line of input before an empty line \n",
+			wantBuf: "git command -c \n\n and then a last one",
+		},
+		{
+			name:    "Single line, cursor in the middle of an IP address",
+			fields:  fieldsWith(sline, &scur),
+			args:    args{bpos: 22, epos: -1, selectFunc: func(s *Selection) { s.MarkSurround(19, 31) }},
+			wantCut: "",
+			wantBuf: "multiple-ambiguous 10.203.23.45 127.0.0.1",
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sel := NewSelection(test.fields.line, test.fields.cursor)
+
+			if test.args.epos == -1 {
+				test.fields.cursor.Set(test.args.bpos)
 			}
-			if gotBuf := s.Cut(); gotBuf != tt.wantBuf {
-				t.Errorf("Selection.Cut() = %v, want %v", gotBuf, tt.wantBuf)
+
+			// either use the selection function or fixed positions.
+			if test.args.selectFunc != nil {
+				test.args.selectFunc(sel)
+			} else {
+				sel.MarkRange(test.args.bpos, test.args.epos)
+			}
+
+			if test.args.visualLine {
+				sel.Visual(true)
+			}
+
+			if gotBuf := sel.Cut(); gotBuf != test.wantCut {
+				t.Errorf("Selection.Cut() = %v, want %v", gotBuf, test.wantCut)
 			}
 		})
 	}
 }
 
 func TestHighlightMatchers(t *testing.T) {
+	emptyline, emptycur := newLine("")
+	line, cur := newLine("multiple-ambiguous { surrounded 'quoted word' } words")
+
 	type args struct {
-		sel *Selection
+		cpos int
 	}
 	tests := []struct {
-		name string
-		args args
+		name          string
+		fields        fields
+		args          args
+		wantSurrounds int
 	}{
-		// TODO: Add test cases.
+		{
+			name:          "Empty line",
+			fields:        fieldsWith(emptyline, &emptycur),
+			args:          args{cpos: 0},
+			wantSurrounds: 0,
+		},
+		{
+			name:          "Cursor on opening token",
+			fields:        fieldsWith(line, &cur),
+			args:          args{cpos: 19},
+			wantSurrounds: 1,
+		},
+		{
+			name:          "Cursor on closing token",
+			fields:        fieldsWith(line, &cur),
+			args:          args{cpos: 46},
+			wantSurrounds: 1,
+		},
+		{
+			name:          "Cursor not on token",
+			fields:        fieldsWith(line, &cur),
+			args:          args{cpos: 25},
+			wantSurrounds: 0,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			HighlightMatchers(tt.args.sel)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sel := newTestSelection(test.fields)
+
+			test.fields.cursor.Set(test.args.cpos)
+			HighlightMatchers(sel)
+
+			if len(sel.surrounds) != test.wantSurrounds {
+				t.Errorf("ResetMatchers() len(sel.surrounds) = %v, want %v", len(sel.surrounds), test.wantSurrounds)
+			}
 		})
 	}
 }
 
 func TestResetMatchers(t *testing.T) {
+	line, cur := newLine("multiple-ambiguous { surrounded 'quoted word' } words")
 	type args struct {
-		sel *Selection
+		bpos int
+		epos int
 	}
 	tests := []struct {
-		name string
-		args args
+		name           string
+		fields         fields
+		args           args
+		wantActive     bool
+		wantVisual     bool
+		wantVisualLine bool
+		wantBpos       int
+		wantEpos       int
+		wantSurrounds  int
 	}{
-		// TODO: Add test cases.
+		{
+			name:           "Select and reset",
+			fields:         fieldsWith(line, &cur),
+			args:           args{bpos: 32, epos: 44},
+			wantActive:     true,
+			wantBpos:       -1,
+			wantEpos:       -1,
+			wantVisual:     false,
+			wantVisualLine: false,
+			wantSurrounds:  2,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ResetMatchers(tt.args.sel)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sel := newTestSelection(test.fields)
+
+			// Add some surround blinking matchers to the selection
+			test.fields.cursor.Set(19)
+			HighlightMatchers(sel)
+
+			if len(sel.surrounds) != 1 {
+				t.Errorf("ResetMatchers() len(sel.surrounds) = %v, want %v", len(sel.surrounds), test.wantSurrounds)
+			}
+
+			// Surround select the quotes
+			sel.MarkSurround(test.args.bpos, test.args.epos)
+			ResetMatchers(sel)
+
+			if sel.active != test.wantActive {
+				t.Errorf("ResetMatchers() sel.active = %v, want %v", sel.active, test.wantActive)
+			}
+			if sel.bpos != test.wantBpos {
+				t.Errorf("ResetMatchers() sel.bpos = %v, want %v", sel.bpos, test.wantBpos)
+			}
+			if sel.epos != test.wantEpos {
+				t.Errorf("ResetMatchers() sel.epos = %v, want %v", sel.epos, test.wantEpos)
+			}
+			if sel.visual != test.wantVisual {
+				t.Errorf("ResetMatchers() sel.visual = %v, want %v", sel.visual, test.wantVisual)
+			}
+			if sel.visualLine != test.wantVisualLine {
+				t.Errorf("ResetMatchers() sel.visualLine = %v, want %v", sel.visualLine, test.wantVisualLine)
+			}
+			if len(sel.surrounds) != test.wantSurrounds {
+				t.Errorf("ResetMatchers() len(sel.surrounds) = %v, want %v", len(sel.surrounds), test.wantSurrounds)
+			}
 		})
 	}
 }
 
 func TestSelection_Reset(t *testing.T) {
-	line, cur := newLine("multiple-ambiguous test")
+	line, cur := newLine("multiple-ambiguous {surrounded test} words")
 	type args struct {
 		bpos int
 		epos int
@@ -1263,13 +1495,17 @@ func TestSelection_Reset(t *testing.T) {
 			wantVisualLine: false,
 			wantFg:         "",
 			wantBg:         "",
-			wantSurrounds:  0,
+			wantSurrounds:  1, // One blinking matcher
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			sel := newTestSelection(test.fields)
+
+			// Add some surround blinking matchers to the selection
+			test.fields.cursor.Set(19)
+			HighlightMatchers(sel)
 
 			// Mark the selection and reset it.
 			sel.MarkRange(test.args.bpos, test.args.epos)
