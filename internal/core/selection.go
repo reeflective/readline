@@ -458,6 +458,10 @@ func (s *Selection) SelectAShellWord() (bpos, epos int) {
 // succeeds, the bpos and epos parameters are returned unchanged.
 // If found is true, it means a match occurred, otherwise false is returned.
 func (s *Selection) SelectKeyword(bpos, epos int, next bool) (kbpos, kepos int, match bool) {
+	if s.line.Len() == 0 {
+		return bpos, epos, false
+	}
+
 	selection := (*s.line)[bpos:epos]
 
 	_, match, kbpos, kepos = s.matchKeyword(selection, bpos, next)

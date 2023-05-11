@@ -2,7 +2,6 @@ package core
 
 import (
 	"reflect"
-	"regexp"
 	"testing"
 	"unicode"
 )
@@ -428,10 +427,10 @@ func TestSelection_Visual(t *testing.T) {
 	}
 }
 
-// selection.Pos() is actually used in many/all other tests in this file,
-// so this test is meant to try wrong values that could only be set internally,
-// (like invalid selection positions), thus this tests weird, unlikely internal errors.
 func TestSelection_Pos(t *testing.T) {
+	// selection.Pos() is actually used in many/all other tests in this file,
+	// so this test is meant to try wrong values that could only be set internally,
+	// (like invalid selection positions), thus this tests weird, unlikely internal errors.
 	emptyline, emptycur := newLine("")
 	line, cur := newLine("multiple-ambiguous 10.203.23.45")
 
@@ -1166,10 +1165,16 @@ func TestSelection_SelectAShellWord(t *testing.T) {
 }
 
 func TestSelection_SelectKeyword(t *testing.T) {
+	emptyline, emptycur := newLine("")
+	line, cur := newLine("multiple-ambiguous 10.203.23.45 127.0.0.1")
+	urlLine, urlCur := newLine("git command http://domain.word.com/url?key=value&test=val,testingthis this word http://10.203.23.45:3999")
+
 	type args struct {
-		bpos int
-		epos int
-		next bool
+		cpos   int
+		bpos   int
+		epos   int
+		next   bool
+		cycles int
 	}
 	tests := []struct {
 		name      string
@@ -1179,34 +1184,75 @@ func TestSelection_SelectKeyword(t *testing.T) {
 		wantKepos int
 		wantMatch bool
 	}{
-		// TODO: Add test cases.
+		{
+			name:      "Empty line",
+			fields:    fieldsWith(emptyline, &emptycur),
+			args:      args{bpos: 0, epos: 0, next: true, cycles: 1},
+			wantKbpos: -1,
+			wantKepos: -1,
+			wantMatch: false,
+		},
+		{
+			name:      "Single line, cursor in the middle of the first IP address",
+			fields:    fieldsWith(line, &cur),
+			args:      args{cpos: 20, bpos: 0, epos: 0, next: true, cycles: 1},
+			wantKbpos: 19,
+			wantKepos: 31,
+			wantMatch: false,
+		},
+		{
+			name:      "Single line, cursor at the beginning of the third word",
+			fields:    fieldsWith(urlLine, &urlCur),
+			args:      args{cpos: 32, bpos: 0, epos: 0, next: true, cycles: 1},
+			wantKbpos: 12,
+			wantKepos: 12 + 57,
+			wantMatch: true,
+		},
+		{
+			name:      "Multiple subgroups cyle, forward",
+			fields:    fieldsWith(urlLine, &urlCur),
+			args:      args{cpos: 32, bpos: 0, epos: 0, next: true, cycles: 2},
+			wantKbpos: 19,
+			wantKepos: 12 + 57,
+			wantMatch: true,
+		},
+		{
+			name:      "Multiple subgroups cyle, reverse",
+			fields:    fieldsWith(urlLine, &urlCur),
+			args:      args{cpos: 32, bpos: 0, epos: 0, next: false, cycles: 2},
+			wantKbpos: 39,
+			wantKepos: 12 + 57,
+			wantMatch: true,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sel := newTestSelection(test.fields)
+
+			sel.cursor.Set(test.args.cpos)
+			sel.SelectABlankWord()
+
+			// reassign the args bpos/epos to the selection bpos/epos
+			bpos, epos := sel.Pos()
+			test.args.bpos = bpos
+			test.args.epos = epos
+
+			var gotKbpos, gotKepos int
+			var gotMatch bool
+
+			for i := 0; i < test.args.cycles; i++ {
+				gotKbpos, gotKepos, gotMatch = sel.SelectKeyword(test.args.bpos, test.args.epos, test.args.next)
 			}
-			gotKbpos, gotKepos, gotMatch := s.SelectKeyword(tt.args.bpos, tt.args.epos, tt.args.next)
-			if gotKbpos != tt.wantKbpos {
-				t.Errorf("Selection.SelectKeyword() gotKbpos = %v, want %v", gotKbpos, tt.wantKbpos)
+
+			if gotKbpos != test.wantKbpos {
+				t.Errorf("Selection.SelectKeyword() gotKbpos = %v, want %v", gotKbpos, test.wantKbpos)
 			}
-			if gotKepos != tt.wantKepos {
-				t.Errorf("Selection.SelectKeyword() gotKepos = %v, want %v", gotKepos, tt.wantKepos)
+			if gotKepos != test.wantKepos {
+				t.Errorf("Selection.SelectKeyword() gotKepos = %v, want %v", gotKepos, test.wantKepos)
 			}
-			if gotMatch != tt.wantMatch {
-				t.Errorf("Selection.SelectKeyword() gotMatch = %v, want %v", gotMatch, tt.wantMatch)
+			if gotMatch != test.wantMatch {
+				t.Errorf("Selection.SelectKeyword() gotMatch = %v, want %v", gotMatch, test.wantMatch)
 			}
 		})
 	}
@@ -1556,333 +1602,6 @@ func testSelectionReset(t *testing.T, sel *Selection) {
 
 	if sel.active {
 		t.Error("Selection.Reset() is still active, should not be")
-	}
-}
-
-func TestSelection_checkRange(t *testing.T) {
-	type args struct {
-		bpos int
-		epos int
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   int
-		want1  int
-		want2  bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
-			}
-			got, got1, got2 := s.checkRange(tt.args.bpos, tt.args.epos)
-			if got != tt.want {
-				t.Errorf("Selection.checkRange() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Selection.checkRange() got1 = %v, want %v", got1, tt.want1)
-			}
-			if got2 != tt.want2 {
-				t.Errorf("Selection.checkRange() got2 = %v, want %v", got2, tt.want2)
-			}
-		})
-	}
-}
-
-func TestSelection_selectToCursor(t *testing.T) {
-	type args struct {
-		bpos int
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   int
-		want1  int
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
-			}
-			got, got1 := s.selectToCursor(tt.args.bpos)
-			if got != tt.want {
-				t.Errorf("Selection.selectToCursor() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Selection.selectToCursor() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestSelection_spacesAroundWord(t *testing.T) {
-	type args struct {
-		cpos int
-	}
-	tests := []struct {
-		name       string
-		fields     fields
-		args       args
-		wantBefore bool
-		wantUnder  bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
-			}
-			gotBefore, gotUnder := s.spacesAroundWord(tt.args.cpos)
-			if gotBefore != tt.wantBefore {
-				t.Errorf("Selection.spacesAroundWord() gotBefore = %v, want %v", gotBefore, tt.wantBefore)
-			}
-			if gotUnder != tt.wantUnder {
-				t.Errorf("Selection.spacesAroundWord() gotUnder = %v, want %v", gotUnder, tt.wantUnder)
-			}
-		})
-	}
-}
-
-func Test_isSpace(t *testing.T) {
-	type args struct {
-		char rune
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isSpace(tt.args.char); got != tt.want {
-				t.Errorf("isSpace() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestSelection_adjustWordSelection(t *testing.T) {
-	type args struct {
-		in0   bool
-		under bool
-		after bool
-		bpos  int
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   int
-		want1  int
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
-			}
-			got, got1 := s.adjustWordSelection(tt.args.in0, tt.args.under, tt.args.after, tt.args.bpos)
-			if got != tt.want {
-				t.Errorf("Selection.adjustWordSelection() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Selection.adjustWordSelection() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestSelection_matchKeyword(t *testing.T) {
-	type args struct {
-		buf   []rune
-		bbpos int
-		next  bool
-	}
-	tests := []struct {
-		name      string
-		fields    fields
-		args      args
-		wantName  string
-		wantFound bool
-		wantBpos  int
-		wantEpos  int
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
-			}
-			gotName, gotFound, gotBpos, gotEpos := s.matchKeyword(tt.args.buf, tt.args.bbpos, tt.args.next)
-			if gotName != tt.wantName {
-				t.Errorf("Selection.matchKeyword() gotName = %v, want %v", gotName, tt.wantName)
-			}
-			if gotFound != tt.wantFound {
-				t.Errorf("Selection.matchKeyword() gotFound = %v, want %v", gotFound, tt.wantFound)
-			}
-			if gotBpos != tt.wantBpos {
-				t.Errorf("Selection.matchKeyword() gotBpos = %v, want %v", gotBpos, tt.wantBpos)
-			}
-			if gotEpos != tt.wantEpos {
-				t.Errorf("Selection.matchKeyword() gotEpos = %v, want %v", gotEpos, tt.wantEpos)
-			}
-		})
-	}
-}
-
-func TestSelection_cycleSubgroup(t *testing.T) {
-	type args struct {
-		groups []int
-		bbpos  int
-		next   bool
-	}
-	tests := []struct {
-		name       string
-		fields     fields
-		args       args
-		wantBpos   int
-		wantEpos   int
-		wantCycled bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
-			}
-			gotBpos, gotEpos, gotCycled := s.cycleSubgroup(tt.args.groups, tt.args.bbpos, tt.args.next)
-			if gotBpos != tt.wantBpos {
-				t.Errorf("Selection.cycleSubgroup() gotBpos = %v, want %v", gotBpos, tt.wantBpos)
-			}
-			if gotEpos != tt.wantEpos {
-				t.Errorf("Selection.cycleSubgroup() gotEpos = %v, want %v", gotEpos, tt.wantEpos)
-			}
-			if gotCycled != tt.wantCycled {
-				t.Errorf("Selection.cycleSubgroup() gotCycled = %v, want %v", gotCycled, tt.wantCycled)
-			}
-		})
-	}
-}
-
-func TestSelection_runMatcher(t *testing.T) {
-	type args struct {
-		buf     []rune
-		matcher *regexp.Regexp
-	}
-	tests := []struct {
-		name       string
-		fields     fields
-		args       args
-		wantGroups []int
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Selection{
-				Type:       tt.fields.Type,
-				active:     tt.fields.active,
-				visual:     tt.fields.visual,
-				visualLine: tt.fields.visualLine,
-				bpos:       tt.fields.bpos,
-				epos:       tt.fields.epos,
-				kpos:       tt.fields.kpos,
-				kmpos:      tt.fields.kmpos,
-				fg:         tt.fields.fg,
-				bg:         tt.fields.bg,
-				surrounds:  tt.fields.surrounds,
-				line:       tt.fields.line,
-				cursor:     tt.fields.cursor,
-			}
-			if gotGroups := s.runMatcher(tt.args.buf, tt.args.matcher); !reflect.DeepEqual(gotGroups, tt.wantGroups) {
-				t.Errorf("Selection.runMatcher() = %v, want %v", gotGroups, tt.wantGroups)
-			}
-		})
 	}
 }
 
