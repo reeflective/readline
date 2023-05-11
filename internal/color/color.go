@@ -12,12 +12,14 @@ var (
 	Dim        = "\x1b[2m"
 	Underscore = "\x1b[4m"
 	Blink      = "\x1b[5m"
+	Reverse    = "\x1b[7m"
 
 	// Effects reset.
-	BoldReset       = "\x1b[21m"
+	BoldReset       = "\x1b[22m" // 21 actually causes underline instead
 	DimReset        = "\x1b[22m"
 	UnderscoreReset = "\x1b[24m"
 	BlinkReset      = "\x1b[25m"
+	ReverseReset    = "\x1b[27m"
 )
 
 // Text colours.
@@ -157,6 +159,7 @@ const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)
 
 var re = regexp.MustCompile(ansi)
 
+// Strip removes all ANSI escaped color sequences in a string.
 func Strip(str string) string {
 	return re.ReplaceAllString(str, "")
 }

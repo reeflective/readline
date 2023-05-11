@@ -182,8 +182,8 @@ func readTest(t *testing.T, name string) [][]byte {
 
 func check(t *testing.T, exp []byte, cfg *Config, m map[string][]string, err error) {
 	res := buildResult(t, exp, cfg, m, err)
-	if !cmp.Equal(res, exp) {
-		t.Errorf("result does not equal expected:\n%s", cmp.Diff(string(exp), string(res)))
+	if diff := cmp.Diff(string(exp), string(res)); diff != "" {
+		t.Errorf("result does not equal expected:\n%s", diff)
 	}
 }
 
@@ -199,6 +199,8 @@ func buildOpts(t *testing.T, buf []byte) []Option {
 		switch k := string(bytes.TrimSpace(line[:j])); k {
 		case "haltOnErr":
 			opts = append(opts, WithHaltOnErr(parseBool(t, line[j+1:])))
+		case "strict":
+			opts = append(opts, WithStrict(parseBool(t, line[j+1:])))
 		case "app":
 			opts = append(opts, WithApp(string(bytes.TrimSpace(line[j+1:]))))
 		case "term":
@@ -313,12 +315,12 @@ func parseBool(t *testing.T, buf []byte) bool {
 
 func readTestdata(name string) ([]byte, error) {
 	switch name {
-	case "/home/ken/.inputrc":
+	case "/home/ken/.inputrc", "\\home\\ken\\_inputrc":
 		name = "ken.inputrc"
-	case "/etc/inputrc":
+	case "/etc/inputrc", "\\home\\bob\\_inputrc":
 		name = "default.inputrc"
 	}
-	buf, err := testdata.ReadFile(filepath.Join("testdata", name))
+	buf, err := testdata.ReadFile(path.Join("testdata", name))
 	if err != nil {
 		return nil, err
 	}

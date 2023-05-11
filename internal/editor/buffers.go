@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	// ValidRegisterKeys - All valid register IDs (keys) for read/write Vim registers.
-	ValidRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\""
+	// validRegisterKeys - All valid register IDs (keys) for read/write Vim registers.
+	// validRegisterKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-\"".
 
 	numRegisters   = 10
 	alphaRegisters = 52
@@ -72,18 +72,23 @@ func (reg *Buffers) SetActive(register rune) {
 
 // Get returns the contents of a given register.
 // If the rune is nil (rune(0)), it returns the value of the kill buffer (the " Vim register).
+// If the rune is an alphanumeric comprised in the valid register IDs, their content is returned.
 // If the register name is invalid, the function returns an empty rune slice.
 func (reg *Buffers) Get(register rune) []rune {
-	num, err := strconv.Atoi(string(reg.active))
+	if register == 0 {
+		return reg.GetKill()
+	}
+
+	num, err := strconv.Atoi(string(register))
 	if err == nil {
 		return reg.num[num]
 	}
 
-	if buf, found := reg.alpha[reg.active]; found {
+	if buf, found := reg.alpha[register]; found {
 		return buf
 	}
 
-	if buf, found := reg.ro[reg.active]; found {
+	if buf, found := reg.ro[register]; found {
 		return buf
 	}
 
@@ -97,7 +102,6 @@ func (reg *Buffers) Active() []rune {
 
 	if !reg.waiting && !reg.selected {
 		return reg.GetKill()
-		// return reg.kill
 	}
 
 	return reg.Get(reg.active)
@@ -159,25 +163,34 @@ func (reg *Buffers) WriteTo(register rune, content ...rune) {
 		return
 	}
 
+	if register == 0 {
+		reg.writeNum(0, []rune(buf))
+		return
+	}
+
 	// If number register.
 	num, err := strconv.Atoi(string(register))
 	if num > 0 && num < 10 && err != nil {
 		reg.writeNum(num, []rune(buf))
-
 		return
 	}
 
 	// If lettered register.
 	if unicode.IsLetter(register) {
 		reg.writeAlpha(register, []rune(buf))
-
 		return
 	}
 }
 
+// IsSelected returns the name of the selected register, and
+// true if one is indeed selected, or the default one and false.
+func (reg *Buffers) IsSelected() (name string, selected bool) {
+	return string(reg.active), reg.selected
+}
+
 // Reset forgets any active/pending buffer/register, but does not delete its contents.
 func (reg *Buffers) Reset() {
-	reg.active = ' '
+	reg.active = 0
 	reg.waiting = false
 	reg.selected = false
 }
@@ -195,14 +208,23 @@ func (reg *Buffers) Complete() completion.Values {
 	if comps.NoSort == nil {
 		comps.NoSort = make(map[string]bool)
 	}
+
 	comps.NoSort["*"] = true
 
 	if comps.ListLong == nil {
 		comps.ListLong = make(map[string]bool)
 	}
+
 	comps.ListLong["*"] = true
 
-	comps.Messages.Add(color.FgBlue + "-- registers --" + color.Reset)
+	// Registers Hint
+	hint := color.Bold + color.FgBlue + "(registers)"
+
+	if len(vals) == 0 {
+		hint += " - empty -"
+	}
+
+	comps.Messages.Add(hint)
 
 	return comps
 }
@@ -291,6 +313,7 @@ func (reg *Buffers) completeAlphaRegs() []completion.Candidate {
 	for slot := range reg.alpha {
 		lett = append(lett, slot)
 	}
+
 	sort.Slice(lett, func(i, j int) bool { return i < j })
 
 	for _, letter := range lett {

@@ -12,51 +12,62 @@ import (
 // Engine is responsible for all completion tasks: generating, computing,
 // displaying and updating completion values and inserted candidates.
 type Engine struct {
-	opts   *inputrc.Config // The inputrc contains options relative to completion.
-	cached Completer       // A cached completer function to use when updating.
-	defaut Completer       // Completer used by things like autocomplete
-	hint   *ui.Hint        // The completions can feed hint/usage messages
-
-	// Completion parameters
-	groups   []*group      // All of our suggestions tree is in here
-	sm       SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
-	selected Candidate     // The currently selected item, not yet a real part of the input line.
-	prefix   string        // The current tab completion prefix against which to build candidates
-	suffix   string        // The current word suffix
-	inserted []rune        // The selected candidate (inserted in line) without prefix or suffix.
-	usedY    int           // Comprehensive offset of the currently built completions
-	auto     bool          // Is the engine autocompleting ?
+	config        *inputrc.Config // The inputrc contains options relative to completion.
+	cached        Completer       // A cached completer function to use when updating.
+	autoCompleter Completer       // Completer used by things like autocomplete
+	hint          *ui.Hint        // The completions can feed hint/usage messages
 
 	// Line parameters
 	keys       *core.Keys      // The input keys reader
 	line       *core.Line      // The real input line of the shell.
 	cursor     *core.Cursor    // The cursor of the shell.
 	selection  *core.Selection // The line selection
-	completed  *core.Line      // A line that might include a virtually inserted candidate.
+	compLine   *core.Line      // A line that might include a virtually inserted candidate.
 	compCursor *core.Cursor    // The adjusted cursor.
-	keymaps    *keymap.Modes   // The main/local keymaps of the shell
+	keymap     *keymap.Engine  // The main/local keymaps of the shell
+
+	// Completion parameters
+	groups      []*group      // All of our suggestions tree is in here
+	sm          SuffixMatcher // The suffix matcher is kept for removal after actually inserting the candidate.
+	selected    Candidate     // The currently selected item, not yet a real part of the input line.
+	prefix      string        // The current tab completion prefix against which to build candidates
+	suffix      string        // The current word suffix
+	inserted    []rune        // The selected candidate (inserted in line) without prefix or suffix.
+	usedY       int           // Comprehensive size offset (terminal rows) of the currently built completions.
+	auto        bool          // Is the engine autocompleting ?
+	autoForce   bool          // Special autocompletion mode (isearch-style)
+	skipDisplay bool          // Don't display completions if there are some.
 
 	// Incremental search
-	isearchBuf    *core.Line     // The isearch minibuffer
-	isearchCur    *core.Cursor   // Cursor position in the minibuffer.
-	isearch       *regexp.Regexp // Holds the current search regex match
-	isearchName   string         // What is being incrementally searched for.
-	isearchInsert bool           // Whether to insert the first match in the line
+	isearchBuf       *core.Line     // The isearch minibuffer
+	isearchCur       *core.Cursor   // Cursor position in the minibuffer.
+	isearchRgx       *regexp.Regexp // Holds the current search regex match
+	isearchName      string         // What is being incrementally searched for.
+	isearchInsert    bool           // Whether to insert the first match in the line
+	isearchForward   bool           // Match results in forward order, or backward.
+	isearchSubstring bool           // Match results as a substring (regex), or as a prefix.
+	searchLast       string         // The last non-incremental buffer.
+	isearchModeExit  keymap.Mode    // The main keymap to restore after exiting isearch
 }
 
 // NewEngine initializes a new completion engine with the shell operating parameters.
-func NewEngine(k *core.Keys, l *core.Line, c *core.Cursor, s *core.Selection, h *ui.Hint, km *keymap.Modes, o *inputrc.Config) *Engine {
+func NewEngine(h *ui.Hint, km *keymap.Engine, o *inputrc.Config) *Engine {
 	return &Engine{
-		opts:       o,
-		keys:       k,
-		line:       l,
-		cursor:     c,
-		selection:  s,
-		completed:  l,
-		compCursor: c,
-		hint:       h,
-		keymaps:    km,
+		config: o,
+		hint:   h,
+		keymap: km,
 	}
+}
+
+// Init is used once at shell creation time to pass further parameters to the engine.
+func Init(eng *Engine, k *core.Keys, l *core.Line, cur *core.Cursor, s *core.Selection, comp Completer) {
+	eng.keys = k
+	eng.line = l
+	eng.cursor = cur
+	eng.selection = s
+	eng.compLine = l
+	eng.compCursor = cur
+	eng.autoCompleter = comp
 }
 
 // Generate uses a list of completions to group/order and prepares completions before printing them.
@@ -86,6 +97,12 @@ func (e *Engine) GenerateWith(completer Completer) {
 	// Call the provided/cached completer
 	// and use the completions as normal
 	e.Generate(e.cached())
+}
+
+// SkipDisplay avoids printing completions below the
+// input line, but still enables cycling through them.
+func (e *Engine) SkipDisplay() {
+	e.skipDisplay = true
 }
 
 // Select moves the completion selector by some X or Y value,
@@ -162,87 +179,33 @@ func (e *Engine) SelectTag(next bool) {
 	}
 }
 
-// Update should be called only once in between the two shell keymaps
-// (local/main), to either drop or confirm a virtually inserted candidate.
-func (e *Engine) Update() {
-	// If the user currently has a completion selected, any change
-	// in the input line will drop the current completion list, in
-	// effect deactivating the completion engine.
-	// This is so that when a user asks for the list of choices, but
-	// then deletes or types something in the input line, the list
-	// is still displayed to the user, otherwise it's removed.
-	// This does not apply when autocomplete is on.
-	choices := len(e.selected.Value) != 0
-	if !e.auto {
-		defer e.ClearMenu(choices)
-	}
-
-	// If autocomplete is on, we also drop the list of generated
-	// completions, because it will be recomputed shortly after.
-	// Do the same when using incremental search, except if the
-	// last key typed is an escape, in which case the user wants
-	// to quit incremental search but keeping any selected comp.
-	inserted := e.removeInserted()
-
-	e.Cancel(inserted, false)
-}
-
-func (e *Engine) removeInserted() bool {
-	// All other completion modes do not want
-	// the candidate to be removed from the line.
-	if e.keymaps.Local() != keymap.Isearch {
-		return false
-	}
-
-	// Normally, we should have a key.
-	key, empty := e.keys.Peek()
-	if empty {
-		return false
-	}
-
-	// Some keys trigger behavior different from the normal one:
-	// Ex: if the key is a letter, the isearch buffer is updated
-	// and the line-inserted match might be different, so remove.
-	// If the key is 'Enter', the line will likely be accepted
-	// with the currently inserted candidate.
-	switch key {
-	case inputrc.Esc, inputrc.Return:
-		return false
-	default:
-		return true
-	}
-}
-
 // Cancel exits the current completions with the following behavior:
 // - If inserted is true, any inserted candidate is removed.
 // - If cached is true, any cached completer function is dropped.
-// This function does not exit the completion keymap,
-// so any active completion menu will still be kept.
+//
+// This function does not exit the completion keymap, so
+// any active completion menu will still be kept/displayed.
 func (e *Engine) Cancel(inserted, cached bool) {
 	if cached {
 		e.cached = nil
+		e.hint.Reset()
 	}
 
 	if len(e.selected.Value) == 0 && !inserted {
 		return
 	}
 
-	// In the end, there is no completed line anymore.
 	defer e.cancelCompletedLine()
 
-	// Either drop the inserted candidate.
+	// Either drop the inserted candidate,
+	// or make it part of the real input line.
 	if inserted {
-		cpos := e.cursor.Pos()
-		e.cursor.Move(-1 * len(e.inserted))
-		e.line.Cut(e.cursor.Pos(), cpos)
-		e.line.Insert(e.cursor.Pos(), []rune(e.suffix)...)
-
-		return
+		e.compLine.Set(*e.line...)
+		e.compCursor.Set(e.cursor.Pos())
+	} else {
+		e.line.Set(*e.compLine...)
+		e.cursor.Set(e.compCursor.Pos())
 	}
-
-	// Or make it part of the real input line.
-	e.line.Set(*e.completed...)
-	e.cursor.Set(e.compCursor.Pos())
 }
 
 // ResetForce drops any currently inserted candidate from the line,
@@ -250,20 +213,23 @@ func (e *Engine) Cancel(inserted, cached bool) {
 // the incremental-search mode.
 // All those steps are performed whether or not the engine is active.
 func (e *Engine) ResetForce() {
-	e.Cancel(true, true)
+	e.Cancel(!e.autoForce, true)
 	e.ClearMenu(true)
 	e.IsearchStop()
+	e.autoForce = false
 }
 
 // Reset accepts the currently inserted candidate (if any), clears the current
 // list of completions and exits the incremental-search mode if active.
 // If the completion engine was not active to begin with, nothing will happen.
 func (e *Engine) Reset() {
+	e.autoForce = false
 	if !e.IsActive() {
+		e.ClearMenu(true)
 		return
 	}
 
-	e.Cancel(false, false)
+	e.Cancel(false, true)
 	e.ClearMenu(true)
 	e.IsearchStop()
 }
@@ -271,19 +237,26 @@ func (e *Engine) Reset() {
 // ClearMenu exits the current completion keymap (if set) and clears
 // the current list of generated completions (if completions is true).
 func (e *Engine) ClearMenu(completions bool) {
+	e.skipDisplay = false
+
 	e.resetValues(completions, false)
 
-	if e.keymaps.Local() == keymap.MenuSelect {
-		e.keymaps.SetLocal("")
+	if e.keymap.Local() == keymap.MenuSelect {
+		e.keymap.SetLocal("")
 	}
 }
 
 // IsActive indicates if the engine is currently in possession of a
 // non-empty list of generated completions (following all constraints).
 func (e *Engine) IsActive() bool {
-	return e.keymaps.Local() == keymap.MenuSelect ||
-		e.keymaps.Local() == keymap.Isearch ||
-		e.auto
+	return e.keymap.Local() == keymap.MenuSelect ||
+		e.keymap.Local() == keymap.Isearch ||
+		e.auto || e.autoForce
+}
+
+// IsInserting returns true if a candidate is currently virtually inserted.
+func (e *Engine) IsInserting() bool {
+	return e.selected.Value != ""
 }
 
 // Matches returns the number of completion candidates
@@ -299,7 +272,7 @@ func (e *Engine) Matches() int {
 // When the line returned is the completed one, the corresponding, adjusted cursor.
 func (e *Engine) Line() (*core.Line, *core.Cursor) {
 	if len(e.selected.Value) > 0 {
-		return e.completed, e.compCursor
+		return e.compLine, e.compCursor
 	}
 
 	return e.line, e.cursor
@@ -325,35 +298,22 @@ func (e *Engine) Autocomplete() {
 	}
 
 	// Regenerate the completions.
-	if e.defaut != nil {
-		e.prepare(e.defaut())
+	if e.cached != nil {
+		e.prepare(e.cached())
+	} else if e.autoCompleter != nil {
+		e.prepare(e.autoCompleter())
 	}
 }
 
-// SetAutocompleter sets the default completer to use in autocomplete mode.
-// This completer is different from the one passed to e.GenerateWith()
-// This is used so that autocomplete does not use lists such as history,
-// Vim registers, etc, instead of just generating normal command completion.
-func (e *Engine) SetAutocompleter(comp Completer) {
-	e.defaut = comp
+// Enable as-you-type autocomplete on the real input line,
+// even if the current cursor position is 0.
+func (e *Engine) AutocompleteForce() {
+	e.autoForce = true
 }
 
-// CompleteSyntax updates the line with either user-defined syntax completers, or with the builtin ones.
-func (e *Engine) CompleteSyntax(completer func([]rune, int) ([]rune, int)) {
-	if completer == nil {
-		return
-	}
-
-	line := []rune(*e.line)
-	pos := e.cursor.Pos() - 1
-
-	newLine, newPos := completer(line, pos)
-	if string(newLine) == string(line) {
-		return
-	}
-
-	newPos++
-
-	e.line.Set(newLine...)
-	e.cursor.Set(newPos)
+// AutoCompleting returns true if the completion engine is an
+// autocompletion mode that has been triggered by a particular
+// command (like history-search-forward/backward).
+func (e *Engine) AutoCompleting() bool {
+	return e.keymap.Local() == keymap.Isearch || e.autoForce
 }

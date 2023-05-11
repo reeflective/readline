@@ -3,19 +3,21 @@ package term
 import (
 	"fmt"
 	"os"
-	"regexp"
-	"unicode/utf8"
 
 	"golang.org/x/term"
 )
+
+// fallback terminal width when we can't get it through query.
+var defaultTermWidth = 80
 
 // GetWidth returns the width of Stdout or 80 if the width cannot be established.
 func GetWidth() (termWidth int) {
 	var err error
 	fd := int(os.Stdout.Fd())
 	termWidth, _, err = GetSize(fd)
+
 	if err != nil {
-		termWidth = 80 // The defacto standard on older terms
+		termWidth = defaultTermWidth
 	}
 
 	return
@@ -25,8 +27,9 @@ func GetWidth() (termWidth int) {
 // (Y length), or 80 if it cannot be established.
 func GetLength() int {
 	width, _, err := term.GetSize(0)
+
 	if err != nil || width == 0 {
-		return 80
+		return defaultTermWidth
 	}
 
 	return width
@@ -35,12 +38,4 @@ func GetLength() int {
 func printf(format string, a ...interface{}) {
 	s := fmt.Sprintf(format, a...)
 	fmt.Print(s)
-}
-
-var rxAnsiSgr = regexp.MustCompile("\x1b\\[[:;0-9]+m")
-
-// Gets the number of runes in a string.
-func strLen(s string) int {
-	s = rxAnsiSgr.ReplaceAllString(s, "")
-	return utf8.RuneCountInString(s)
 }

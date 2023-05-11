@@ -1,9 +1,5 @@
 
 <div align="center">
-  <a href="https://github.com/reeflective/readline">
-    <img alt="" src="" width="600">
-  </a>
-
   <br> <h1> Readline </h1>
   <p>  Shell library with modern and simple UI features </p>
 </div>
@@ -32,7 +28,7 @@
   </a>
 
   <a href="https://codecov.io/gh/reeflective/readline">
-    <img src="https://codecov.io/gh/reeflective/readline/branch/main/graph/badge.svg"
+    <img src="https://codecov.io/gh/reeflective/readline/branch/master/graph/badge.svg"
       alt="codecov" />
   </a>
 
@@ -50,29 +46,41 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 
 ## Features
 
-### Editing
-- Near-native Emacs and Vim modes.
-- Configurable bind keymaps, with live reload and sane defaults.
-- [Extended list](https://github.com/reeflective/readline/wiki/Keymaps-&-Widgets) of edition/movement/control widgets (Emacs and Vim).
-- Extended surround select/change/add fonctionality, with highlighting.
-- Keywords switching (operators, booleans, hex/binary/digit) with iterations.
-- Support for Vim Visual/Operator pending mode & cursor styles indications.
-- Vim Insert and Replace (once/many).
-- Many Vim text objects.
-- All Vim registers, with completion support.
-- Undo/redo history.
-- Command-line edition in `$EDITOR`.
-- Support for an arbitrary number of history sources.
+### Core 
+- Pure Go, almost-only standard library
+- Full `.inputrc` support (all commands/options)
+- Extensive test suite and full coverage of core code
+- [Extended list](https://github.com/reeflective/readline/wiki/Keymaps-&-Widgets) of additional commands/options (edition/completion/history)
+- Complete multiline edition/movement support
+- Command-line edition in `$EDITOR`/`$VISUAL` support
+- Programmable API, with failure-safe access to core components
+- Support for an arbitrary number of history sources
+
+### Emacs / Standard
+- Native Emacs commands
+- Emacs-style macro engine (not working accross multiple calls)
+- Keywords switching (operators, booleans, hex/binary/digit) with iterations
+- Command/mode cursor status indicator
+- Complete undo/redo history
+- Command status/arg/iterations hint display
+
+### Vim
+- Near-native Vim mode
+- Vim text objects (code blocks/words/blank/shellwords)
+- Extended surround select/change/add fonctionality, with highlighting
+- Vim Visual/Operator pending mode & cursor styles indications
+- Vim Insert and Replace (once/many)
+- All Vim registers, with completion support
+- Vim-style macro recording (`q<a>`) and invocation (`@<a>`)
 
 ### Interface
-- Support for most of [oh-my-posh](https://github.com/JanDeDobbeleer/oh-my-posh) prompts (PS1/PS2/RPROMPT/transient/tooltip).
-- Extended completion system, keymap-based and configurable, easy to populate & use.
+- Support for PS1/PS2/RPROMPT/transient/tooltip prompts (compatible with [oh-my-posh](https://github.com/JanDeDobbeleer/oh-my-posh))
+- Extended completion system, keymap-based and configurable, easy to populate & use
 - Multiple completion display styles, with color support.
 - Completion & History incremental search system & highlighting (fuzzy-search).
 - Automatic & context-aware suffix removal for efficient flags/path/list completion.
-- Optional asynchronous autocomplete.
-- Usage/hint message display.
-- Support for syntax highlighting
+- Optional asynchronous autocomplete
+- Builtin & programmable syntax highlighting
 
 
 ## Documentation

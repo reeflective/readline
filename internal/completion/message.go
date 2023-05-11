@@ -5,6 +5,9 @@ import (
 	"sort"
 )
 
+// Messages is a list of messages to be displayed
+// below the input line, above completions. It is
+// used to show usage and/or error status hints.
 type Messages struct {
 	messages map[string]bool
 }

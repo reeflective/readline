@@ -59,27 +59,3 @@ func (h *memory) Len() int {
 func (h *memory) Dump() interface{} {
 	return h.items
 }
-
-// null is a null History interface for when you don't
-// want line entries remembered eg password input.
-type null struct{}
-
-// Write to history.
-func (h *null) Write(s string) (int, error) {
-	return 0, nil
-}
-
-// GetLine returns a line from history.
-func (h *null) GetLine(i int) (string, error) {
-	return "", nil
-}
-
-// Len returns the number of lines in history.
-func (h *null) Len() int {
-	return 0
-}
-
-// Dump returns the entire history.
-func (h *null) Dump() interface{} {
-	return []string{}
-}

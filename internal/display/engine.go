@@ -9,26 +9,34 @@ import (
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
+	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/reeflective/readline/internal/ui"
+)
+
+var (
+	oneThirdTerminalHeight = 3
+	halfTerminalHeight     = 2
 )
 
 // Engine handles all display operations: it refreshes the terminal
 // interface and stores the necessary offsets of each components.
 type Engine struct {
 	// Operating parameters
-	highlighter func(line []rune) string
-	startCols   int
-	startRows   int
-	lineCol     int
-	lineRows    int
-	cursorRow   int
-	cursorCol   int
-	compRows    int
+	highlighter    func(line []rune) string
+	startCols      int
+	startRows      int
+	lineCol        int
+	lineRows       int
+	cursorRow      int
+	cursorCol      int
+	compRows       int
+	primaryPrinted bool
 
 	// UI components
 	keys      *core.Keys
 	line      *core.Line
+	suggested core.Line
 	cursor    *core.Cursor
 	selection *core.Selection
 	histories *history.Sources
@@ -54,50 +62,50 @@ func NewEngine(k *core.Keys, s *core.Selection, h *history.Sources, p *ui.Prompt
 // Init computes some base coordinates needed before displaying the line and helpers.
 // The shell syntax highlighter is also provided here, since any consumer library will
 // have bound it after instantiating a new shell instance.
-func (e *Engine) Init(highlighter func([]rune) string) {
+func Init(e *Engine, highlighter func([]rune) string) {
 	e.highlighter = highlighter
-
-	var line *core.Line
-
-	// Some coordinates must be available before all else.
-	line, e.cursor = e.completer.Line()
-	suggested := e.histories.Suggest(line)
-	e.computeCoordinates(suggested)
 }
 
 // Refresh recomputes and redisplays the entire readline interface, except
 // the first lines of the primary prompt when the latter is a multiline one.
 func (e *Engine) Refresh() {
-	// Clear everything below the current input line.
 	fmt.Print(term.HideCursor)
-	e.CursorBelowLine()
-	e.CursorHintToLineStart()
 
-	// Get the new input line and auto-suggested one.
-	e.line, e.cursor = e.completer.Line()
-	suggested := e.histories.Suggest(e.line)
+	// Go back to the first column, and if the primary prompt
+	// was not printed yet, back up to the line's beginning row.
+	term.MoveCursorBackwards(term.GetWidth())
+
+	if !e.primaryPrinted {
+		term.MoveCursorUp(e.cursorRow)
+	}
+
+	// Print either all or the last line of the prompt.
+	e.prompt.LastPrint()
 
 	// Get all positions required for the redisplay to come:
 	// prompt end (thus indentation), cursor positions, etc.
-	e.computeCoordinates(suggested)
-
-	// term.MoveCursorBackwards(e.startCols)
-	// e.prompt.LastPrint()
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.startCols)
+	e.computeCoordinates()
 
 	// Print the line, right prompt, hints and completions.
-	e.displayLine(suggested)
+	e.displayLine()
 	e.prompt.RightPrint(e.lineCol, true)
 	e.displayHelpers()
 
 	// Go back to the start of the line, then to cursor.
-	e.CursorHintToLineStart()
-	e.LineStartToCursorPos()
+	e.cursorHintToLineStart()
+	e.lineStartToCursorPos()
 	fmt.Print(term.ShowCursor)
 }
 
-// ClearHelpers clears and resets the hint and completion sections.
+// PrintPrimaryPrompt redraws the primary prompt.
+// There are relatively few cases where you want to use this.
+// It is currently only used when using clear-screen commands.
+func (e *Engine) PrintPrimaryPrompt() {
+	e.prompt.PrimaryPrint()
+	e.primaryPrinted = true
+}
+
+// ClearHelpers clears the hint and completion sections below the line.
 func (e *Engine) ClearHelpers() {
 	e.CursorBelowLine()
 	fmt.Print(term.ClearScreenBelow)
@@ -121,8 +129,7 @@ func (e *Engine) ResetHelpers() {
 func (e *Engine) AcceptLine() {
 	e.CursorToLineStart()
 
-	line, _ := e.completer.Line()
-	e.computeCoordinates(*line)
+	e.computeCoordinates()
 
 	// Go back to the end of the non-suggested line.
 	term.MoveCursorBackwards(term.GetWidth())
@@ -135,76 +142,95 @@ func (e *Engine) AcceptLine() {
 
 	// Go below this non-suggested line and clear everything.
 	fmt.Println()
-	// term.MoveCursorBackwards(term.GetWidth())
-	// term.MoveCursorDown(1)
 }
 
-// CursorBelowLine moves the cursor to the leftmost column
-// of the first row after the last line of input.
-func (e *Engine) CursorBelowLine() {
-	term.MoveCursorUp(e.cursorRow)
-	term.MoveCursorDown(e.lineRows)
-	term.MoveCursorDown(1)
-}
+// RefreshTransient goes back to the first line of the input buffer
+// and displays the transient prompt, then redisplays the input line.
+func (e *Engine) RefreshTransient() {
+	if !e.opts.GetBool("prompt-transient") {
+		return
+	}
 
-// CursorToPos moves the cursor back to where the cursor is on the input line.
-func (e *Engine) CursorToPos() {
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.cursorCol)
+	// Go to the beginning of the primary prompt.
+	e.CursorToLineStart()
+	term.MoveCursorUp(e.prompt.PrimaryUsed())
 
-	term.MoveCursorUp(e.lineRows)
-	term.MoveCursorDown(e.cursorRow)
-}
-
-// LineStartToCursorPos can be used if the cursor is currently
-// at the very start of the input line, that is just after the
-// last character of the prompt.
-func (e *Engine) LineStartToCursorPos() {
-	term.MoveCursorDown(e.cursorRow)
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.cursorCol)
-}
-
-// CursorBelowHint moves the cursor to the leftmost
-// column of the first line after the hint section.
-func (e *Engine) CursorBelowHint() {
-	term.MoveCursorDown(e.lineRows - e.cursorRow)
-	term.MoveCursorBackwards(term.GetWidth())
+	// And redisplay the transient/primary/line.
+	e.prompt.TransientPrint()
+	e.displayLine()
+	fmt.Println()
 }
 
 // CursorToLineStart moves the cursor just after the primary prompt.
+// This function should only be called when the cursor is on its
+// "cursor" position on the input line.
 func (e *Engine) CursorToLineStart() {
 	term.MoveCursorBackwards(e.cursorCol)
 	term.MoveCursorUp(e.cursorRow)
-	term.MoveCursorForwards(e.startCols - 1)
+	term.MoveCursorForwards(e.startCols)
+}
+
+// CursorBelowLine moves the cursor to the leftmost
+// column of the first row after the last line of input.
+// This function should only be called when the cursor
+// is on its "cursor" position on the input line.
+func (e *Engine) CursorBelowLine() {
+	term.MoveCursorUp(e.cursorRow)
+	term.MoveCursorDown(e.lineRows)
+	fmt.Println()
+}
+
+// lineStartToCursorPos can be used if the cursor is currently
+// at the very start of the input line, that is just after the
+// last character of the prompt.
+func (e *Engine) lineStartToCursorPos() {
+	term.MoveCursorDown(e.cursorRow)
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorForwards(e.cursorCol)
 }
 
 // cursor is on the line below the last line of input.
-func (e *Engine) CursorHintToLineStart() {
+func (e *Engine) cursorHintToLineStart() {
 	term.MoveCursorUp(1)
 	term.MoveCursorUp(e.lineRows - e.cursorRow)
 	e.CursorToLineStart()
 }
 
-func (e *Engine) computeCoordinates(suggested core.Line) {
-	// Get the cursor position through terminal query:
-	// we have printed our prompt, and we are at the start pos.
+func (e *Engine) computeCoordinates() {
+	// Get the new input line and auto-suggested one.
+	e.line, e.cursor = e.completer.Line()
+	if e.completer.IsInserting() {
+		e.suggested = *e.line
+	} else {
+		e.suggested = e.histories.Suggest(e.line)
+	}
+
+	// Get the position of the line's beginning by querying
+	// the terminal for the cursor position.
 	e.startCols, e.startRows = e.keys.GetCursorPos()
 
+	if e.startCols > 0 {
+		e.startCols--
+	}
+
+	// Cursor position might be misleading if invalid (negative).
 	if e.startCols == -1 {
 		e.startCols = e.prompt.LastUsed()
 	}
 
-	e.cursorCol, e.cursorRow = e.cursor.Coordinates(e.startCols)
+	e.cursorCol, e.cursorRow = core.CoordinatesCursor(e.cursor, e.startCols)
 
+	// Get the number of rows used by the line, and the end line X pos.
 	if e.opts.GetBool("history-autosuggest") {
-		e.lineCol, e.lineRows = suggested.Coordinates(e.startCols)
+		e.lineCol, e.lineRows = core.CoordinatesLine(&e.suggested, e.startCols)
 	} else {
-		e.lineCol, e.lineRows = e.line.Coordinates(e.startCols)
+		e.lineCol, e.lineRows = core.CoordinatesLine(e.line, e.startCols)
 	}
+
+	e.primaryPrinted = false
 }
 
-func (e *Engine) displayLine(suggested core.Line) {
+func (e *Engine) displayLine() {
 	var line string
 
 	// Apply user-defined highlighter to the input line.
@@ -214,21 +240,30 @@ func (e *Engine) displayLine(suggested core.Line) {
 		line = string(*e.line)
 	}
 
-	// Apply visual selections highlighting if any.
-	line = ui.Highlight([]rune(line), *e.selection)
-
-	// Get the subset of the suggested line to print.
-	if len(suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
-		line += color.FgBlackBright + string(suggested[e.line.Len():]) + color.Reset
+	// Highlight matching parenthesis
+	if e.opts.GetBool("blink-matching-paren") {
+		core.HighlightMatchers(e.selection)
+		defer core.ResetMatchers(e.selection)
 	}
 
+	// Apply visual selections highlighting if any
+	line = e.highlightLine([]rune(line), *e.selection)
+
+	// Get the subset of the suggested line to print.
+	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
+		line += color.FgBlackBright + string(e.suggested[e.line.Len():]) + color.Reset
+	}
+
+	// Format tabs as spaces, for consistent display
+	line = strutil.FormatTabs(line)
+
 	// And display the line.
-	suggested.Set([]rune(line)...)
-	suggested.Display(e.startCols)
+	e.suggested.Set([]rune(line)...)
+	core.DisplayLine(&e.suggested, e.startCols)
 
 	// Adjust the cursor if the line fits exactly in the terminal width.
 	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
-		term.MoveCursorDown(1)
+		fmt.Println()
 	}
 }
 
@@ -236,24 +271,27 @@ func (e *Engine) displayLine(suggested core.Line) {
 // It assumes that the cursor is on the last line of input,
 // and goes back to this same line after displaying this.
 func (e *Engine) displayHelpers() {
-	// Clear everything below the input line.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorDown(1)
+	fmt.Println()
 
 	// Recompute completions and hints if autocompletion is on.
 	e.completer.Autocomplete()
 
 	// Compute the number of available lines we have for displaying completions.
+	// Use half the terminal if we currently have less than 1/3rd of it below.
 	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
-	compLines := termHeight - e.startRows - e.lineRows - e.hint.Coordinates() - 1
+	compLines := termHeight - e.startRows - e.lineRows - ui.CoordinatesHint(e.hint) - 1
+
+	if compLines < (termHeight / oneThirdTerminalHeight) {
+		compLines = (termHeight / halfTerminalHeight) - 1
+	}
 
 	// Display hint and completions.
-	e.hint.Display()
-	e.completer.Display(compLines)
-	e.compRows = e.completer.Coordinates()
+	ui.DisplayHint(e.hint)
+	completion.Display(e.completer, compLines)
+	e.compRows = completion.Coordinates(e.completer)
 
 	// Go back to the first line below the input line.
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorUp(e.compRows)
-	term.MoveCursorUp(e.hint.Coordinates())
+	term.MoveCursorUp(ui.CoordinatesHint(e.hint))
 }

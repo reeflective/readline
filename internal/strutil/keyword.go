@@ -74,7 +74,7 @@ func lineSlice(line []rune, cpos, adjust int) (slice string) {
 	return
 }
 
-func switchNumber(word string, increase bool, times int) (done bool, switched string, bpos, epos int) {
+func switchNumber(word string, _ bool, times int) (done bool, switched string, bpos, epos int) {
 	if done, switched, bpos, epos = switchHexa(word, times); done {
 		return
 	}
@@ -163,7 +163,7 @@ func switchHexa(word string, inc int) (done bool, switched string, bpos, epos in
 	hexVal = fmt.Sprintf("%x", num)
 	switched = prefix + hexVal
 
-	return
+	return done, switched, bpos, epos
 }
 
 // Binary cases:
@@ -181,8 +181,9 @@ func switchHexa(word string, inc int) (done bool, switched string, bpos, epos in
 // 0b0 =>
 // 0x1111111111111111111111111111111111111111111111111111111111111111.
 func switchBinary(word string, inc int) (done bool, switched string, bpos, epos int) {
-	binary, _ := regexp.Compile(`[^0-9]?(0[bB][01]*)`)
+	binary := regexp.MustCompile(`[^0-9]?(0[bB][01]*)`)
 	match := binary.FindString(word)
+
 	if match == "" {
 		return
 	}
@@ -210,27 +211,29 @@ func switchBinary(word string, inc int) (done bool, switched string, bpos, epos 
 
 	numBefore := num
 
-	if sum.Cmp(zero) < 0 {
+	switch {
+	case sum.Cmp(zero) < 0:
 		offset := bigInc.Sub(max64Bit, sum.Abs(sum))
 		if offset.IsInt64() {
 			num = offset.Int64()
 		} else {
 			num = math.MaxInt64
 		}
-	} else if sum.CmpAbs(max64Bit) >= 0 {
+	case sum.CmpAbs(max64Bit) >= 0:
 		offset := bigInc.Sub(sum, max64Bit)
 		if offset.IsInt64() {
 			num = offset.Int64()
 		} else {
 			num = int64(inc) - (num - numBefore)
 		}
-	} else {
+	default:
 		num = sum.Int64()
 	}
 
 	binVal = fmt.Sprintf("%b", num)
 	switched = prefix + binVal
-	return
+
+	return done, switched, bpos, epos
 }
 
 // Decimal cases:
@@ -316,7 +319,7 @@ func switchBoolean(word string, _ bool, _ int) (done bool, switched string, bpos
 		switched = string(upper) + switched[1:]
 	}
 
-	return
+	return done, switched, bpos, epos
 }
 
 func switchWeekday(word string, inc bool, _ int) (done bool, switched string, bpos, epos int) {
@@ -359,5 +362,5 @@ func switchOperator(word string, _ bool, _ int) (done bool, switched string, bpo
 		switched = string(upper) + switched[1:]
 	}
 
-	return
+	return done, switched, bpos, epos
 }

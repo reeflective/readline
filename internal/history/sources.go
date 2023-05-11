@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
@@ -14,34 +15,61 @@ import (
 
 // Sources manages and serves all history sources for the current shell.
 type Sources struct {
-	list       map[string]Source // Sources of history lines
-	names      []string          // Names of histories stored in rl.histories
-	sourcePos  int               // The index of the currently used history
-	buf        string            // The current line saved when we are on another history line
-	pos        int               // Index used for navigating the history lines with arrows/j/k
-	infer      bool              // If the last command ran needs to infer the history line.
-	accepted   bool              // The line has been accepted and must be returned.
-	acceptHold bool              // Should we reuse the same accepted line on the next loop.
-	acceptLine core.Line         // The line to return to the caller.
-	acceptErr  error             // An error to return to the caller.
-
 	// Shell parameters
 	line   *core.Line
 	cursor *core.Cursor
 	hint   *ui.Hint
+	config *inputrc.Config
+
+	// History sources
+	list       map[string]Source // Sources of history lines
+	names      []string          // Names of histories stored in rl.histories
+	maxEntries int               // Inputrc configured maximum number of entries.
+	sourcePos  int               // The index of the currently used history
+	hpos       int               // Index used for navigating the history lines with arrows/j/k
+	cpos       int               // A temporary cursor position used when searching/moving around.
+
+	// Line changes history
+	skip    bool                            // Skip saving the current line state.
+	undoing bool                            // The last command executed was an undo.
+	last    inputrc.Bind                    // The last command being ran.
+	lines   map[string]map[int]*lineHistory // Each line in each history source has its own buffer history.
+
+	// Lines accepted
+	infer      bool      // If the last command ran needs to infer the history line.
+	accepted   bool      // The line has been accepted and must be returned.
+	acceptHold bool      // Should we reuse the same accepted line on the next loop.
+	acceptLine core.Line // The line to return to the caller.
+	acceptErr  error     // An error to return to the caller.
 }
 
 // NewSources is a required constructor for the history sources manager type.
-func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint) *Sources {
+func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint, opts *inputrc.Config) *Sources {
 	sources := &Sources{
-		list:   make(map[string]Source),
+		// History sourcces
+		list: make(map[string]Source),
+		// Line history
+		lines: make(map[string]map[int]*lineHistory),
+		// Shell parameters
 		line:   line,
 		cursor: cur,
+		cpos:   -1,
 		hint:   hint,
+		config: opts,
 	}
 
 	sources.names = append(sources.names, defaultSourceName)
 	sources.list[defaultSourceName] = new(memory)
+
+	// Inputrc settings.
+	sources.maxEntries = opts.GetInt("history-size")
+	sizeSet := opts.GetString("history-size") != ""
+
+	if sources.maxEntries == 0 && !sizeSet {
+		sources.maxEntries = -1
+	} else if sources.maxEntries == 0 && sizeSet {
+		sources.maxEntries = 500
+	}
 
 	return sources
 }
@@ -49,32 +77,43 @@ func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint) *Sources {
 // Init initializes the history sources positions and buffers
 // at the start of each readline loop. If the last command asked
 // to infer a command line from the history, it is performed now.
-func (h *Sources) Init() {
-	h.sourcePos = 0
-	h.accepted = false
-	h.acceptErr = nil
-	h.acceptLine = nil
+func Init(hist *Sources) {
+	defer func() {
+		hist.sourcePos = 0
+		hist.accepted = false
+		hist.acceptLine = nil
+		hist.acceptErr = nil
+		hist.cpos = -1
+	}()
 
-	if !h.infer {
-		h.pos = 0
+	if hist.acceptHold {
+		hist.hpos = 0
+		hist.line.Set(hist.acceptLine...)
+		hist.cursor.Set(hist.line.Len())
+
 		return
 	}
 
-	switch h.pos {
-	case -1:
-		h.pos = 0
-	case 0:
-		h.InferNext()
-	default:
-		h.Walk(-1)
+	if !hist.infer {
+		hist.hpos = 0
+		return
 	}
 
-	h.infer = false
+	switch hist.hpos {
+	case -1:
+		hist.hpos = 0
+	case 0:
+		hist.InferNext()
+	default:
+		hist.Walk(-1)
+	}
+
+	hist.infer = false
 }
 
-// Add adds a source of history lines bound to a given name (printed above
-// this source when used). When only the default in-memory history is bound,
-// it's replaced with the provided source. Following ones are added to the list.
+// Add adds a source of history lines bound to a given name (printed above this source when used).
+// If the shell currently has only an in-memory (default) history source available, the call will
+// drop this source and replace it with the provided one. Following calls add to the list.
 func (h *Sources) Add(name string, hist Source) {
 	if len(h.list) == 1 && h.names[0] == defaultSourceName {
 		delete(h.list, defaultSourceName)
@@ -85,11 +124,13 @@ func (h *Sources) Add(name string, hist Source) {
 	h.list[name] = hist
 }
 
-// New creates a new History populated from, and writing to a file.
+// AddFromFile registers a new History populated from, and writing to a file.
 func (h *Sources) AddFromFile(name, file string) {
 	hist := new(fileHistory)
 	hist.file = file
 	hist.lines, _ = openHist(file)
+
+	h.Add(name, hist)
 }
 
 // Delete deletes one or more history source by name.
@@ -115,16 +156,14 @@ func (h *Sources) Delete(sources ...string) {
 
 	h.sourcePos = 0
 	if !h.infer {
-		h.pos = 0
+		h.hpos = 0
 	}
 }
 
 // Walk goes to the next or previous history line in the active source.
-// If at the end of the history, the last history line is kept.
-// If going back to the beginning of it, the saved line buffer is restored.
+// If at the beginning of the history, the first history line is kept.
+// If at the end of it, the main input buffer and cursor position is restored.
 func (h *Sources) Walk(pos int) {
-	// We used to force using the main history.
-	// h.historySourcePos = 0
 	history := h.Current()
 
 	if history == nil || history.Len() == 0 {
@@ -133,40 +172,65 @@ func (h *Sources) Walk(pos int) {
 
 	// When we are on the last/first item, don't do anything,
 	// as it would change things like cursor positions.
-	if (pos < 0 && h.pos == 0) || (pos > 0 && h.pos == history.Len()) {
+	if (pos < 0 && h.hpos == 0) || (pos > 0 && h.hpos == history.Len()) {
 		return
 	}
 
 	// Save the current line buffer if we are leaving it.
-	if h.pos == 0 && (h.pos+pos) == 1 {
-		h.buf = string(*h.line)
+	if h.hpos == 0 && (h.hpos+pos) == 1 {
+		h.skip = false
+		h.Save()
+		h.cpos = -1
 	}
 
-	h.pos += pos
+	h.hpos += pos
 
 	switch {
-	case h.pos > history.Len():
-		h.pos = history.Len()
-	case h.pos < 0:
-		h.pos = 0
-	case h.pos == 0:
-		h.line.Set([]rune(h.buf)...)
-		h.cursor.Set(h.line.Len())
-	}
-
-	if h.pos == 0 {
+	case h.hpos > history.Len():
+		h.hpos = history.Len()
+	case h.hpos < 0:
+		h.hpos = 0
+	case h.hpos == 0:
+		h.restoreLineBuffer()
 		return
 	}
 
-	// We now have the correct history index, fetch the line.
-	next, err := history.GetLine(history.Len() - h.pos)
+	var line string
+	var err error
+
+	// When there is an available change history for
+	// this line, use it instead of the fetched line.
+	if hist := h.getLineHistory(); hist != nil && len(hist.items) > 0 {
+		line = hist.items[len(hist.items)-1].line
+	} else if line, err = history.GetLine(history.Len() - h.hpos); err != nil {
+		h.hint.Set(color.FgRed + "history error: " + err.Error())
+		return
+	}
+
+	// Update line buffer and cursor position.
+	h.setLineCursorMatch(line)
+}
+
+// Fetch fetches the history event at the provided
+// index position and makes it the current buffer.
+func (h *Sources) Fetch(pos int) {
+	history := h.Current()
+
+	if history == nil || history.Len() == 0 {
+		return
+	}
+
+	if pos < 0 || pos >= history.Len() {
+		return
+	}
+
+	line, err := history.GetLine(pos)
 	if err != nil {
 		h.hint.Set(color.FgRed + "history error: " + err.Error())
 		return
 	}
 
-	h.line.Set([]rune(next)...)
-	h.cursor.Set(h.line.Len())
+	h.setLineCursorMatch(line)
 }
 
 // GetLast returns the last saved history line in the active history source.
@@ -186,7 +250,8 @@ func (h *Sources) GetLast() string {
 }
 
 // Cycle checks for the next history source (if any) and makes it the active one.
-// If next is false, the source cycles to the previous source.
+// The active one is used in completions, and all history-related commands.
+// If next is false, the engine cycles to the previous source.
 func (h *Sources) Cycle(next bool) {
 	switch next {
 	case true:
@@ -220,9 +285,8 @@ func (h *Sources) Current() Source {
 }
 
 // Write writes the accepted input line to all available sources.
-// If infer is true, the next history initialization will automatically
-// insert the next history line found after the first match of the line
-// that has just been written (thus, normally, accepted/executed).
+// If infer is true, the next history initialization will automatically insert the next
+// history line event after the first match of the line, which one is then NOT written.
 func (h *Sources) Write(infer bool) {
 	if infer {
 		h.infer = true
@@ -240,23 +304,29 @@ func (h *Sources) Write(infer bool) {
 			continue
 		}
 
-		var err error
-
-		// Don't write the line if it's identical to the last one.
-		last, err := history.GetLine(0)
-		if err == nil && last != "" && last == line {
+		// Don't write it if the history source has reached
+		// the maximum number of lines allowed (inputrc)
+		if h.maxEntries == 0 || h.maxEntries >= history.Len() {
 			continue
 		}
 
+		var err error
+
+		// Don't write the line if it's identical to the last one.
+		last, err := history.GetLine(history.Len() - 1)
+		if err == nil && last != "" && last == line {
+			return
+		}
+
 		// Save the line and notify through hints if an error raised.
-		h.pos, err = history.Write(line)
+		h.hpos, err = history.Write(line)
 		if err != nil {
 			h.hint.Set(color.FgRed + err.Error())
 		}
 	}
 }
 
-// Accept signals the line has been accepted by the user and must be
+// Accept is used to signal the line has been accepted by the user and must be
 // returned to the readline caller. If hold is true, the line is preserved
 // and redisplayed on the next loop. If infer, the line is not written to
 // the history, but preserved as a line to match against on the next loop.
@@ -267,8 +337,11 @@ func (h *Sources) Accept(hold, infer bool, err error) {
 	h.acceptLine = *h.line
 	h.acceptErr = err
 
-	// Simply write the line to the history sources.
-	h.Write(infer)
+	// Write the line to the history sources only when the line is not
+	// returned along with an error (generally, a CtrlC/CtrlD keypress).
+	if err == nil {
+		h.Write(infer)
+	}
 }
 
 // LineAccepted returns true if the user has accepted the line, signaling
@@ -282,17 +355,30 @@ func (h *Sources) LineAccepted() (bool, string, error) {
 		return false, "", nil
 	}
 
+	line := string(h.acceptLine)
+
 	// Remove all comments before returning the line to the caller.
-	// TODO: Replace # with configured comment sign
-	commentsMatch := regexp.MustCompile(`(^|\s)#.*`)
-	line := commentsMatch.ReplaceAllString(string(h.acceptLine), "")
+	comment := strings.Trim(h.config.GetString("comment-begin"), "\"")
+	commentPattern := fmt.Sprintf(`(^|\s)%s.*`, comment)
+
+	if commentsMatch, err := regexp.Compile(commentPattern); err == nil {
+		line = commentsMatch.ReplaceAllString(line, "")
+	}
+
+	// Revert all state changes to all lines.
+	if h.config.GetBool("revert-all-at-newline") {
+		for source := range h.lines {
+			h.lines[source] = make(map[int]*lineHistory)
+		}
+	}
 
 	return true, line, h.acceptErr
 }
 
-// InsertMatch replaces the line buffer with the first history line
-// in the active source that matches the input line as a prefix.
-func (h *Sources) InsertMatch(forward bool) {
+// InsertMatch replaces the buffer with the first history line matching the
+// provided buffer, either as a substring (if regexp is true), or as a prefix.
+// If the line argument is nil, the current line buffer is used to match against.
+func (h *Sources) InsertMatch(line *core.Line, cur *core.Cursor, usePos, fwd, regexp bool) {
 	if len(h.list) == 0 {
 		return
 	}
@@ -301,19 +387,44 @@ func (h *Sources) InsertMatch(forward bool) {
 		return
 	}
 
-	line, pos, found := h.matchFirst(forward)
-	if !found {
+	// When the provided line is empty, we must use
+	// the last known state of the main input line.
+	line, cur = h.getLine(line, cur)
+	preservePoint := cur.Pos() != 0
+
+	// Don't go back to the beginning of
+	// history if we are at the end of it.
+	if fwd && h.hpos <= 0 {
+		h.hpos = 0
 		return
 	}
 
-	h.pos = pos
-	h.buf = string(*h.line)
-	h.line.Set([]rune(line)...)
-	h.cursor.Set(h.line.Len())
+	match, pos, found := h.match(line, cur, usePos, fwd, regexp)
+
+	// If no match was found, return anyway, but if we were going forward
+	// (down to the current input line), reinstore the main line buffer.
+	if !found {
+		if fwd {
+			h.hpos = 0
+			h.Undo()
+		}
+
+		return
+	}
+
+	// Update the line/cursor, and save the history position
+	h.hpos = h.Current().Len() - pos
+	h.line.Set([]rune(match)...)
+
+	if preservePoint {
+		h.cursor.Set(cur.Pos())
+	} else {
+		h.cursor.Set(h.line.Len())
+	}
 }
 
 // InferNext finds a line matching the current line in the history,
-// finds the next line after it and, if any, inserts it.
+// then finds the line event following it and, if any, inserts it.
 func (h *Sources) InferNext() {
 	if len(h.list) == 0 {
 		return
@@ -324,7 +435,7 @@ func (h *Sources) InferNext() {
 		return
 	}
 
-	_, pos, found := h.matchFirst(false)
+	_, pos, found := h.match(h.line, nil, false, false, false)
 	if !found {
 		return
 	}
@@ -356,13 +467,7 @@ func (h *Sources) Suggest(line *core.Line) core.Line {
 		return *line
 	}
 
-	// Don't autosuggest when the line is not
-	// the current input line: we are completing.
-	if line != h.line {
-		return *line
-	}
-
-	suggested, _, found := h.matchFirst(false)
+	suggested, _, found := h.match(line, nil, false, false, false)
 	if !found {
 		return *line
 	}
@@ -389,9 +494,11 @@ func (h *Sources) Complete(forward, filter bool) completion.Values {
 	compLines := make([]completion.Candidate, 0)
 
 	// Set up iteration clauses
-	var histPos int
-	var done func(i int) bool
-	var move func(inc int) int
+	var (
+		histPos int
+		done    func(i int) bool
+		move    func(inc int) int
+	)
 
 	if forward {
 		histPos = -1
@@ -455,7 +562,7 @@ func (h *Sources) Name() string {
 	return h.names[h.sourcePos]
 }
 
-func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
+func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex bool) (line string, pos int, found bool) {
 	if len(h.list) == 0 {
 		return
 	}
@@ -470,7 +577,7 @@ func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
 	var done func(i int) bool
 	var move func(inc int) int
 
-	if forward {
+	if fwd {
 		histPos = -1
 		done = func(i int) bool { return i < history.Len() }
 		move = func(pos int) int { return pos + 1 }
@@ -480,7 +587,12 @@ func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
 		move = func(pos int) int { return pos - 1 }
 	}
 
+	if usePos && h.hpos > 0 {
+		histPos = history.Len() - h.hpos
+	}
+
 	for done(histPos) {
+		// Fetch the next/prev line and adapt its length.
 		histPos = move(histPos)
 
 		histline, err := history.GetLine(histPos)
@@ -488,15 +600,29 @@ func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
 			return
 		}
 
-		// If too short
-		if len(histline) < h.line.Len() {
-			continue
+		cline := string(*match)
+		if cur != nil && cur.Pos() < match.Len() {
+			cline = cline[:cur.Pos()]
 		}
 
-		// Or if not fully matching
-		if !strings.HasPrefix(histline, string(*h.line)) {
-			// if !strings.HasPrefix(string(*h.line), histline) {
-			continue
+		// Matching: either as substring (regex) or since beginning.
+		switch {
+		case regex:
+			regexLine, err := regexp.Compile(regexp.QuoteMeta(cline))
+			if err != nil {
+				continue
+			}
+
+			// Go to next line if not matching as a substring.
+			if !regexLine.MatchString(histline) {
+				continue
+			}
+
+		default:
+			// If too short or if not fully matching
+			if len(histline) < len(cline) || (len(cline) > 0 && !strings.HasPrefix(histline, cline)) {
+				continue
+			}
 		}
 
 		// Else we have our history match.
@@ -505,4 +631,57 @@ func (h *Sources) matchFirst(forward bool) (line string, pos int, found bool) {
 
 	// We should have returned a match from the loop.
 	return "", 0, false
+}
+
+// use the "main buffer" and its cursor if no line/cursor has been provided to match against.
+func (h *Sources) getLine(line *core.Line, cur *core.Cursor) (*core.Line, *core.Cursor) {
+	if h.hpos == 0 {
+		skip := h.skip
+		h.skip = false
+		h.Save()
+		h.skip = skip
+	}
+
+	if line == nil {
+		line = new(core.Line)
+		cur = core.NewCursor(line)
+
+		hist := h.getHistoryLineChanges()
+		if hist == nil {
+			return line, cur
+		}
+
+		lh := hist[0]
+		if lh == nil || len(lh.items) == 0 {
+			return line, cur
+		}
+
+		undo := lh.items[len(lh.items)-1]
+		line.Set([]rune(undo.line)...)
+		cur.Set(undo.pos)
+	}
+
+	if cur == nil {
+		cur = core.NewCursor(line)
+	}
+
+	return line, cur
+}
+
+// when walking down/up the lines (not search-matching them),
+// this updates the buffer and the cursor position.
+func (h *Sources) setLineCursorMatch(next string) {
+	// Save the current cursor position when not saved before.
+	if h.cpos == -1 && h.line.Len() > 0 && h.cursor.Pos() <= h.line.Len() {
+		h.cpos = h.cursor.Pos()
+	}
+
+	h.line.Set([]rune(next)...)
+
+	// Set cursor depending on inputrc options and line length.
+	if h.config.GetBool("history-preserve-point") && h.line.Len() > h.cpos && h.cpos != -1 {
+		h.cursor.Set(h.cpos)
+	} else {
+		h.cursor.Set(h.line.Len())
+	}
 }

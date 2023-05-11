@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -79,7 +79,7 @@ func readTempFile(name string) ([]byte, error) {
 		return nil, fmt.Errorf("%w: %s", ErrOpen, err.Error())
 	}
 
-	buf, err := ioutil.ReadAll(file)
+	buf, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrRead, err.Error())
 	}
@@ -105,4 +105,22 @@ func readTempFile(name string) ([]byte, error) {
 	}
 
 	return buf, nil
+}
+
+func getSystemEditor(emacsDefault bool) (editor string) {
+	editor = os.Getenv("VISUAL")
+	if editor == "" {
+		return
+	}
+
+	editor = os.Getenv("EDITOR")
+	if editor == "" {
+		return
+	}
+
+	if emacsDefault {
+		return "emacs"
+	}
+
+	return "vi"
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/reeflective/readline/inputrc"
@@ -22,6 +23,7 @@ type Tokenizer func(cursorPos int) (split []string, index int, newPos int)
 type Line []rune
 
 // Set replaces the line contents altogether with a new slice of characters.
+// If no charaters are passed, the line is thus made empty.
 func (l *Line) Set(chars ...rune) {
 	*l = chars
 }
@@ -124,39 +126,42 @@ func (l *Line) CutRune(pos int) {
 	}
 }
 
-// Len returns the length of the line.
+// Len returns the length of the line, as given by ut8.RuneCount.
+// This should NOT confused with the length of the line in terms of
+// how many terminal columns its printed representation will take.
 func (l *Line) Len() int {
 	return utf8.RuneCountInString(string(*l))
 }
 
-// SelectWord returns the full non-blank word around the specified position.
+// SelectWord returns the begin and end index positions of a word
+// (separated by punctuation or spaces) around the specified position.
 func (l *Line) SelectWord(pos int) (bpos, epos int) {
-	pos, valid := l.checkPos(pos)
-	if !valid {
+	if l.Len() == 0 {
 		return
 	}
 
+	pos = l.checkPosRange(pos)
 	if pos == l.Len() {
 		pos--
 	}
 
-	pattern := "[0-9a-zA-Z_]"
+	wordRgx := regexp.MustCompile("[0-9a-zA-Z_]")
 	bpos, epos = pos, pos
 
-	if match, _ := regexp.MatchString(pattern, string((*l)[pos])); !match {
-		pattern = "[^0-9a-zA-Z_ ]"
+	if match := wordRgx.MatchString(string((*l)[pos])); !match {
+		wordRgx = regexp.MustCompile(`\s`)
 	}
 
 	// To first space found backward
 	for ; bpos >= 0; bpos-- {
-		if match, _ := regexp.MatchString(pattern, string((*l)[bpos])); !match {
+		if match := wordRgx.MatchString(string((*l)[bpos])); !match {
 			break
 		}
 	}
 
 	// And to first space found forward
 	for ; epos < l.Len(); epos++ {
-		if match, _ := regexp.MatchString(pattern, string((*l)[epos])); !match {
+		if match := wordRgx.MatchString(string((*l)[epos])); !match {
 			break
 		}
 	}
@@ -171,34 +176,35 @@ func (l *Line) SelectWord(pos int) (bpos, epos int) {
 	return bpos, epos
 }
 
-// SelectBlankWord returns the full bigword around the specified position.
+// SelectBlankWord returns the begin and end index positions
+// of a full bigword (blank word) around the specified position.
 func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
-	pos, valid := l.checkPos(pos)
-	if !valid {
+	if l.Len() == 0 {
 		return
 	}
 
+	pos = l.checkPosRange(pos)
 	if pos == l.Len() {
 		pos--
 	}
 
-	pattern := `[^\s\\]`
+	blankWordRgx := regexp.MustCompile(`[^\s\\]`)
 	bpos, epos = pos, pos
 
-	if match, _ := regexp.MatchString(pattern, string((*l)[pos])); !match {
-		pattern = `[^\s\\ ]`
+	if match := blankWordRgx.MatchString(string((*l)[pos])); !match {
+		blankWordRgx = regexp.MustCompile(`\s`)
 	}
 
 	// To first space found backward
 	for ; bpos >= 0; bpos-- {
-		if match, _ := regexp.MatchString(pattern, string((*l)[bpos])); !match {
+		if match := blankWordRgx.MatchString(string((*l)[bpos])); !match {
 			break
 		}
 	}
 
 	// And to first space found forward
 	for ; epos < l.Len(); epos++ {
-		if match, _ := regexp.MatchString(pattern, string((*l)[epos])); !match {
+		if match := blankWordRgx.MatchString(string((*l)[epos])); !match {
 			break
 		}
 	}
@@ -215,6 +221,12 @@ func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
 
 // Find returns the index position of a target rune, or -1 if not found.
 func (l *Line) Find(char rune, pos int, forward bool) int {
+	if l.Len() == 0 {
+		return -1
+	}
+
+	pos = l.checkPosRange(pos)
+
 	for {
 		if forward {
 			pos++
@@ -224,16 +236,8 @@ func (l *Line) Find(char rune, pos int, forward bool) int {
 		} else {
 			pos--
 			if pos < 0 {
-				pos++
 				break
 			}
-		}
-
-		// Check positions
-		if pos < 0 {
-			pos = 0
-		} else if pos > l.Len()-1 {
-			pos = l.Len() - 1
 		}
 
 		// Check if character matches
@@ -253,20 +257,6 @@ func (l *Line) FindSurround(char rune, pos int) (bpos, epos int, bchar, echar ru
 
 	bpos = l.Find(bchar, pos+1, false)
 	epos = l.Find(echar, pos-1, true)
-
-	if bpos == epos {
-		pos++
-		epos = l.Find(echar, pos, true)
-
-		if epos == -1 {
-			pos--
-			epos = l.Find(echar, pos, false)
-
-			if epos != -1 {
-				bpos, epos = epos, bpos
-			}
-		}
-	}
 
 	return
 }
@@ -292,7 +282,6 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 
 	next, prev := epos, bpos
 
-	// Recursively search for occurrences, forward and backward.
 	for {
 		if prev != -1 {
 			before++
@@ -319,7 +308,73 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 	}
 
 	// Or we possibly are (but not mandatorily: bpos/epos can be -1)
-	return
+	return bpos, epos
+}
+
+// Display prints the line to stdout, starting at the current terminal
+// cursor position, assuming it is at the end of the shell prompt string.
+// Params:
+// @indent -    Used to align all lines (except the first) together on a single column.
+func DisplayLine(l *Line, indent int) {
+	lines := strings.Split(string(*l), "\n")
+
+	if strings.HasSuffix(string(*l), "\n") {
+		lines = append(lines, "")
+	}
+
+	for num, line := range lines {
+		// Don't let any visual selection go further than length.
+		line += color.BgDefault
+
+		// Clear everything before each line, except the first.
+		if num > 0 {
+			term.MoveCursorForwards(indent)
+			line = term.ClearLineBefore + line
+		}
+
+		// Clear everything after each line, except the last.
+		if num < len(lines)-1 {
+			line += term.ClearLineAfter
+			line += "\n"
+		}
+
+		line += term.ClearLineAfter
+
+		fmt.Print(line)
+	}
+}
+
+// Coordinates returns the number of real terminal lines on which the input line spans, considering
+// any contained newlines, any overflowing line, and the indent passed as parameter. The values
+// also take into account an eventual suggestion added to the line before printing.
+// Params:
+// @indent - Coordinates to align all lines (except the first) together on a single column.
+// Returns:
+// @x - The number of columns, starting from the terminal left, to the end of the last line.
+// @y - The number of actual lines on which the line spans, accounting for line wrap.
+func CoordinatesLine(l *Line, indent int) (x, y int) {
+	line := string(*l)
+	lines := strings.Split(line, "\n")
+	usedY, usedX := 0, 0
+
+	for i, line := range lines {
+		x, y := strutil.LineSpan([]rune(line), i, indent)
+		usedY += y
+		usedX = x
+	}
+
+	return usedX, usedY
+}
+
+// Lines returns the number of real lines in the input buffer.
+// If there are no newlines, the result is 0, otherwise it's
+// the number of lines - 1.
+func (l *Line) Lines() int {
+	line := string(*l)
+	nl := regexp.MustCompile(string(inputrc.Newline))
+	lines := nl.FindAllStringIndex(line, -1)
+
+	return len(lines)
 }
 
 // Forward returns the offset to the beginning of the next
@@ -347,15 +402,13 @@ func (l *Line) ForwardEnd(tokenizer Tokenizer, pos int) (adjust int) {
 		return
 	}
 
-	word := strutil.TrimWhiteSpaceRight(split[index])
+	word := strings.TrimRightFunc(split[index], unicode.IsSpace)
 
 	switch {
-	case len(split) == 0:
-		return
 	case index == len(split)-1 && pos >= len(word)-1:
 		return
 	case pos >= len(word)-1:
-		word = strutil.TrimWhiteSpaceRight(split[index+1])
+		word = strings.TrimRightFunc(split[index+1], unicode.IsSpace)
 		adjust = len(split[index]) - pos
 		adjust += len(word) - 1
 	default:
@@ -386,16 +439,13 @@ func (l *Line) Backward(tokenizer Tokenizer, pos int) (adjust int) {
 
 // Tokenize splits the line on each word, that is, split on every punctuation or space.
 func (l *Line) Tokenize(cpos int) ([]string, int, int) {
-	cpos, valid := l.checkPos(cpos)
-	if !valid {
-		return nil, 0, 0
-	}
-
 	line := *l
 
-	if len(line) == 0 {
+	if line.Len() == 0 {
 		return nil, 0, 0
 	}
+
+	cpos = l.checkPosRange(cpos)
 
 	var index, pos int
 	var punc bool
@@ -404,7 +454,7 @@ func (l *Line) Tokenize(cpos int) ([]string, int, int) {
 
 	for i, char := range line {
 		switch {
-		case strutil.IsPunctuation(char):
+		case unicode.IsPunct(char):
 			if i > 0 && line[i-1] != char {
 				split = append(split, "")
 			}
@@ -455,24 +505,23 @@ func (l *Line) Tokenize(cpos int) ([]string, int, int) {
 
 // Tokenize splits the line on each WORD (blank word), that is, split on every space.
 func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
-	cpos, valid := l.checkPos(cpos)
-	if !valid {
-		return nil, 0, 0
-	}
-
 	line := *l
 
-	if len(line) == 0 {
+	if line.Len() == 0 {
 		return nil, 0, 0
 	}
+
+	cpos = l.checkPosRange(cpos)
 
 	var index, pos int
 	split := make([]string, 1)
+	var newline bool
 
 	for i, char := range line {
 		switch char {
 		case ' ', '\t':
 			split[len(split)-1] += string(char)
+			newline = false
 
 		case '\n':
 			// Newlines are a word of their own only
@@ -483,12 +532,14 @@ func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
 			}
 
 			split[len(split)-1] += string(char)
+			newline = true
 
 		default:
-			if i > 0 && (line[i-1] == ' ' || line[i-1] == '\t') {
+			if (i > 0 && (line[i-1] == ' ' || line[i-1] == '\t')) || newline {
 				split = append(split, "")
 			}
 
+			newline = false
 			split[len(split)-1] += string(char)
 		}
 
@@ -512,19 +563,19 @@ func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
 // TokenizeBlock splits the line into arguments delimited either by
 // brackets, braces and parenthesis, and/or single and double quotes.
 func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
-	cpos, valid := l.checkPos(cpos)
-	if !valid {
+	line := *l
+
+	if line.Len() == 0 {
 		return nil, 0, 0
 	}
 
+	cpos = l.checkPosRange(cpos)
 	if cpos == l.Len() {
 		cpos--
 	}
 
-	line := *l
-
 	var (
-		bpos, epos     rune
+		opener, closer rune
 		split          []string
 		count          int
 		pos            = make(map[int]int)
@@ -534,14 +585,14 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 
 	switch line[cpos] {
 	case '(', ')', '{', '[', '}', ']':
-		bpos, epos = strutil.MatchSurround(line[cpos])
+		opener, closer = strutil.MatchSurround(line[cpos])
 
 	default:
 		return nil, 0, 0
 	}
 
-	for i := range line {
-		switch line[i] {
+	for idx := range line {
+		switch line[idx] {
 		case '\'':
 			if !single {
 				double = !double
@@ -552,37 +603,23 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 				single = !single
 			}
 
-		case bpos:
+		case opener:
 			if !single && !double {
-				count++
-
-				pos[count] = i
-
-				if i == cpos {
-					match = count
-					split = []string{string(line[:i-1])}
-				}
-			} else if i == cpos {
+				count, match, split = openToken(idx, count, cpos, match, pos, line, split)
+			} else if idx == cpos {
 				return nil, 0, 0
 			}
 
-		case epos:
+		case closer:
 			if !single && !double {
+				count, split = closeToken(idx, count, cpos, match, pos, line, split)
+
 				if match == count {
-					split = append(split, string(line[pos[count]:i]))
 					return split, 1, 0
-				}
-
-				if i == cpos {
-					split = []string{
-						string(line[:pos[count]-1]),
-						string(line[pos[count]:i]),
-					}
-
+				} else if idx == cpos {
 					return split, 1, len(split[1])
 				}
-				count--
-			} else if i == cpos {
+			} else if idx == cpos {
 				return nil, 0, 0
 			}
 		}
@@ -591,72 +628,50 @@ func (l *Line) TokenizeBlock(cpos int) ([]string, int, int) {
 	return nil, 0, 0
 }
 
-// Display prints the line to stdout, starting at the current terminal
-// cursor position, assuming it is at the end of the shell prompt string.
-// Params:
-// @indent -    Used to align all lines (except the first) together on a single column.
-func (l *Line) Display(indent int) {
-	lines := strings.Split(string(*l), "\n")
+// add a new block token to the list of split tokens.
+func openToken(idx, count, cpos, match int, pos map[int]int, line []rune, split []string) (int, int, []string) {
+	count++
 
-	if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
-		lines = append(lines, "")
+	pos[count] = idx
+
+	if idx != cpos {
+		return count, match, split
 	}
 
-	for num, line := range lines {
-		// Don't let any visual selection go further than length.
-		line += color.BgDefault
-
-		// Clear everything before each line, except the first.
-		if num > 0 {
-			term.MoveCursorForwards(indent)
-			line = term.ClearLineBefore + line
-		}
-
-		// Clear everything after each line, except the last.
-		if num < len(lines)-1 {
-			line += term.ClearLineAfter
-			line += "\n"
-		}
-
-		line += term.ClearLineAfter
-
-		fmt.Print(line)
+	// Important: don't index a negative below.
+	if idx == 0 {
+		idx++
 	}
+
+	match = count
+	split = []string{string(line[:idx-1])}
+
+	return count, match, split
 }
 
-// Coordinates returns the number of real terminal lines on which the input line spans, considering
-// any contained newlines, any overflowing line, and the indent passed as parameter. The values
-// also take into account an eventual suggestion added to the line before printing.
-// Params:
-// @indent - Coordinates to align all lines (except the first) together on a single column.
-// Returns:
-// @x - The number of columns, starting from the terminal left, to the end of the last line.
-// @y - The number of actual lines on which the line spans, accounting for line wrap.
-func (l *Line) Coordinates(indent int) (x, y int) {
-	newlines := l.newlines()
-	bpos := 0
-	usedY, usedX := 0, 0
-
-	for i, newline := range newlines {
-		bline := (*l)[bpos:newline[0]]
-		bpos = newline[0]
-		x, y := strutil.LineSpan(bline, i, indent)
-		usedY += y
-		usedX = x
+// close the current block token if any.
+func closeToken(idx, count, cpos, match int, pos map[int]int, line []rune, split []string) (int, []string) {
+	if match == count {
+		split = append(split, string(line[pos[count]:idx]))
+		return count, split
 	}
 
-	return usedX, usedY
-}
+	if idx == cpos {
+		start := pos[count]
+		if start == 0 {
+			start++
+		}
 
-// Lines returns the number of real lines in the input buffer.
-// If there are no newlines, the result is 1, otherwise it's
-// the number of newlines + 1.
-func (l *Line) Lines() int {
-	line := string(*l)
-	nl := regexp.MustCompile(string(inputrc.Newline))
-	lines := nl.FindAllStringIndex(line, -1)
+		split = []string{
+			string(line[:start-1]),
+			string(line[pos[count]:idx]),
+		}
 
-	return len(lines)
+		return count, split
+	}
+	count--
+
+	return count, split
 }
 
 // newlines gives the indexes of all newline characters in the line.
@@ -691,10 +706,16 @@ func (l *Line) checkRange(bpos, epos int) (int, int, bool) {
 	return bpos, epos, true
 }
 
-func (l *Line) checkPos(pos int) (int, bool) {
-	if pos < 0 || pos > l.Len() || l.Len() == 0 {
-		return -1, false
+// similar to checkPos, but won't fail: will bring
+// the position back onto a valid index on the line.
+func (l *Line) checkPosRange(pos int) int {
+	if pos < 0 {
+		return 0
 	}
 
-	return pos, true
+	if pos > l.Len() {
+		return l.Len()
+	}
+
+	return pos
 }

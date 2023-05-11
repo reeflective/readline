@@ -41,20 +41,22 @@ func (c *Cursor) Set(pos int) {
 
 // Pos returns the current cursor position.
 // This function cannot return an invalid cursor position: it cannot be negative, nor it
-// can be greater than the length of the line (note it still can be out of line by 1).
+// can be greater than the length of the line (note that it still can be out of line by 1).
 func (c *Cursor) Pos() int {
 	c.CheckAppend()
 	return c.pos
 }
 
-// Inc increments the cursor position by 1, if it's not at the end of the line.
+// Inc increments the cursor position by 1,
+// if it's not at the end of the line.
 func (c *Cursor) Inc() {
 	if c.pos < c.line.Len() {
 		c.pos++
 	}
 }
 
-// Dec decrements the cursor position by 1, if it's not at the beginning of the line.
+// Dec decrements the cursor position by 1,
+// if it's not at the beginning of the line.
 func (c *Cursor) Dec() {
 	if c.pos > 0 {
 		c.pos--
@@ -66,6 +68,44 @@ func (c *Cursor) Dec() {
 func (c *Cursor) Move(offset int) {
 	defer c.CheckAppend()
 	c.pos += offset
+}
+
+// Char returns the rune (unicode point) under the cursor.
+// If the line is empty, or if the cursor is appending to
+// the line, the returned rune is 0 (rune(0)).
+func (c *Cursor) Char() rune {
+	c.CheckAppend()
+
+	if c.line.Len() == 0 {
+		return rune(0)
+	}
+
+	if c.pos >= c.line.Len() {
+		return rune(0)
+	}
+
+	return (*c.line)[c.pos]
+}
+
+// ReplaceWith replaces the rune (unicode point) under the cursor with the provided one.
+// If the cursor is appending to the line, the character is simply added at the end of it.
+func (c *Cursor) ReplaceWith(char rune) {
+	c.CheckAppend()
+
+	switch {
+	case c.pos == c.line.Len():
+		c.line.Insert(c.line.Len(), char)
+	default:
+		(*c.line)[c.pos] = char
+	}
+}
+
+// InsertAt inserts the given runes into the line at the current cursor position.
+func (c *Cursor) InsertAt(r ...rune) {
+	c.CheckAppend()
+
+	c.line.Insert(c.pos, r...)
+	c.pos += len(r)
 }
 
 // ToFirstNonSpace moves the cursor either backward or forward to
@@ -80,15 +120,13 @@ func (c *Cursor) ToFirstNonSpace(forward bool) {
 
 	defer c.CheckAppend()
 
-	if c.pos == c.line.Len() {
+	if c.pos >= c.line.Len() {
 		forward = false
-		c.pos--
+		c.pos = c.line.Len() - 1
 	}
 
 	// At line bounds
-	if forward && c.pos >= c.line.Len()-1 {
-		return
-	} else if !forward && c.pos == 0 {
+	if !forward && c.pos == 0 {
 		return
 	}
 
@@ -103,10 +141,9 @@ func (c *Cursor) ToFirstNonSpace(forward bool) {
 			c.pos--
 		}
 
-		if c.pos <= 0 && c.pos >= c.line.Len() {
+		if c.pos <= 0 {
 			return
 		}
-
 	}
 }
 
@@ -123,8 +160,9 @@ func (c *Cursor) BeginningOfLine() {
 	}
 }
 
-// EndOfLine moves the cursor to the end of the current line, (marked by
-// a newline) or if no newline found, to the position of the last character.
+// EndOfLine moves the cursor to the end of the current line,
+// (marked by a newline) or if no newline found, to the position
+// of the last character in the buffer.
 func (c *Cursor) EndOfLine() {
 	defer c.CheckCommand()
 
@@ -141,10 +179,14 @@ func (c *Cursor) EndOfLine() {
 	}
 }
 
-// EndOfLineAppend moves the cursor to the very end of the line,
-// that is, equal to len(Line), as in when appending in insert mode.
+// EndOfLineAppend moves the cursor to the end of either current line
+// (if buffer is multiline), or the whole buffer, in append-mode.
 func (c *Cursor) EndOfLineAppend() {
 	defer c.CheckAppend()
+
+	if c.OnEmptyLine() {
+		return
+	}
 
 	newlinePos := c.line.Find(inputrc.Newline, c.pos, true)
 
@@ -166,15 +208,15 @@ func (c *Cursor) Mark() int {
 	return c.mark
 }
 
-// ResetMark resets the insertion point mark.
+// ResetMark resets the insertion point mark (-1).
 func (c *Cursor) ResetMark() {
 	c.mark = -1
 }
 
-// Line returns the index of the current line on which the cursor is.
+// LinePos returns the index of the current line on which the cursor is.
 // A line is defined as a sequence of runes between one or two newline
 // characters, between end and/or beginning of buffer, or a mix of both.
-func (c *Cursor) Line() int {
+func (c *Cursor) LinePos() int {
 	c.CheckAppend()
 
 	newlines := c.line.newlines()
@@ -240,7 +282,7 @@ func (c *Cursor) OnEmptyLine() bool {
 // of the line buffer, or on the first character after the previous newline.
 func (c *Cursor) AtBeginningOfLine() bool {
 	if c.pos == 0 {
-		return false
+		return true
 	}
 
 	newlines := c.line.newlines()
@@ -248,6 +290,25 @@ func (c *Cursor) AtBeginningOfLine() bool {
 	for line := 0; line < len(newlines); line++ {
 		epos := newlines[line][0]
 		if epos == c.pos-1 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// AtEndOfLine returns true if the cursor is either at the end of the
+// buffer, or if the character immediately following it is a newline.
+func (c *Cursor) AtEndOfLine() bool {
+	if c.pos >= c.line.Len()-1 {
+		return true
+	}
+
+	newlines := c.line.newlines()
+
+	for line := 0; line < len(newlines); line++ {
+		epos := newlines[line][0]
+		if epos == c.pos+1 {
 			return true
 		}
 	}
@@ -273,13 +334,13 @@ func (c *Cursor) CheckAppend() {
 		c.mark = -1
 	}
 
-	if c.mark > c.line.Len() {
+	if c.mark > c.line.Len()-1 {
 		c.mark = -1
 	}
 }
 
 // CheckCommand is like CheckAppend, but ensures the cursor position is never greater
-// than the length of the line minus 1, since in command mode, the cursor is on a char.
+// than the length of the line minus 1, since in Vim command mode, the cursor is on a char.
 func (c *Cursor) CheckCommand() {
 	c.CheckAppend()
 
@@ -289,35 +350,34 @@ func (c *Cursor) CheckCommand() {
 
 	// The cursor can also not be on a newline sign,
 	// as it will induce the line rendering into an error.
-	if c.line.Len() > 0 && c.pos < c.line.Len() && (*c.line)[c.pos] == '\n' && !c.OnEmptyLine() {
+	if c.line.Len() > 0 && c.pos < c.line.Len() && c.Char() == '\n' && !c.OnEmptyLine() {
 		c.Dec()
 	}
 }
 
 // Coordinates returns the number of real terminal lines above the cursor position
 // (y value), and the number of columns since the beginning of the current line (x value).
-// Params:
 // @indent -    Used to align all lines (except the first) together on a single column.
-func (c *Cursor) Coordinates(indent int) (x, y int) {
-	c.CheckAppend()
+func CoordinatesCursor(cur *Cursor, indent int) (x, y int) {
+	cur.CheckAppend()
 
-	newlines := c.line.newlines()
+	newlines := cur.line.newlines()
 	bpos := 0
 	usedY := 0
 
 	for pos, newline := range newlines {
 		switch {
-		case newline[0] < c.pos:
+		case newline[0] < cur.pos:
 			// Until we didn't reach the cursor line,
 			// simply care about the line count.
-			line := (*c.line)[bpos:newline[0]]
+			line := (*cur.line)[bpos:newline[0]]
 			bpos = newline[0] + 1
 			_, y := strutil.LineSpan(line, pos, indent)
 			usedY += y
 
 		default:
 			// On the cursor line, use both line and column count.
-			line := (*c.line)[bpos:c.pos]
+			line := (*cur.line)[bpos:cur.pos]
 			usedX, y := strutil.LineSpan(line, pos, indent)
 			usedY += y
 
@@ -336,14 +396,14 @@ func (c *Cursor) moveLineDown() {
 
 	for line := 0; line < len(newlines); line++ {
 		end := newlines[line][0]
-		if line < c.Line() {
+		if line < c.LinePos() {
 			begin = end
 			continue
 		}
 
 		// If we are on the current line,
 		// go at the end of it
-		if line == c.Line() {
+		if line == c.LinePos() {
 			cpos = c.pos - begin
 			begin = end
 
@@ -370,7 +430,7 @@ func (c *Cursor) moveLineUp() {
 	for line := len(newlines) - 1; line >= 0; line-- {
 		end := newlines[line][0]
 
-		if line > c.Line() {
+		if line > c.LinePos() {
 			continue
 		}
 
@@ -384,7 +444,7 @@ func (c *Cursor) moveLineUp() {
 
 		// If we are on the current line,
 		// go at the beginning of the previous one.
-		if line == c.Line() {
+		if line == c.LinePos() {
 			cpos = c.pos - begin
 			continue
 		}
@@ -402,7 +462,7 @@ func (c *Cursor) moveLineUp() {
 }
 
 func (c *Cursor) onSpace() bool {
-	switch (*c.line)[c.pos] {
+	switch c.Char() {
 	case inputrc.Space, inputrc.Newline, inputrc.Tab:
 		return true
 	default:

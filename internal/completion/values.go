@@ -21,6 +21,8 @@ func (c RawValues) Filter(values ...string) RawValues {
 	return filtered
 }
 
+// Merge merges a set of values with the current ones,
+// include usage/message strings, meta settings, etc.
 func (c *Values) Merge(other Values) {
 	if other.Usage != "" {
 		c.Usage = other.Usage
@@ -36,7 +38,7 @@ func (c *Values) Merge(other Values) {
 	}
 }
 
-func (c RawValues) eachTag(f func(tag string, values RawValues)) {
+func (c RawValues) EachTag(tagF func(tag string, values RawValues)) {
 	tags := make([]string, 0)
 	tagGroups := make(map[string]RawValues)
 
@@ -51,6 +53,6 @@ func (c RawValues) eachTag(f func(tag string, values RawValues)) {
 	}
 
 	for _, tag := range tags {
-		f(tag, tagGroups[tag])
+		tagF(tag, tagGroups[tag])
 	}
 }

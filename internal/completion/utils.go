@@ -8,11 +8,8 @@ import (
 	"github.com/reeflective/readline/internal/term"
 )
 
-var (
-	maxValuesAreaRatio = 0.5 // Maximum ratio of the screen that described values can have.
-	maxRowsRatio       = 2   // Maximu ratio of the screen rows that we can use by default.
-	minRowsSpaceBelow  = 15  // Minimum acceptable space below cursor to use.
-)
+// Maximum ratio of the screen that described values can have.
+var maxValuesAreaRatio = 0.5
 
 var sanitizer = strings.NewReplacer(
 	"\n", ``,
@@ -20,8 +17,9 @@ var sanitizer = strings.NewReplacer(
 	"\t", ``,
 )
 
-// prepare builds the list of completions but does
-// not attempt any insertion/abortion on the line.
+// prepare builds the list of completions, hint/usage messages
+// and prefix/suffix strings, but does not attempt any candidate
+// insertion/abortion on the line.
 func (e *Engine) prepare(completions Values) {
 	e.groups = make([]*group, 0)
 
@@ -71,6 +69,13 @@ func (e *Engine) setSuffix(comps Values) {
 
 		if epos < cpos {
 			epos = cpos
+		}
+
+		// Add back single or double quotes in the character after epos is one of them.
+		if epos < e.line.Len() {
+			if (*e.line)[epos] == '\'' || (*e.line)[epos] == '"' {
+				epos++
+			}
 		}
 
 		e.suffix = strings.TrimSpace(string((*e.line)[cpos:epos]))
@@ -148,15 +153,19 @@ func (e *Engine) cyclePreviousGroup() {
 func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
 	cur := e.currentGroup()
 
-	keyRunes, _ := e.keys.PeekAll()
+	keyRunes := e.keys.Caller()
 	keys := string(keyRunes)
 
 	if row > 0 {
 		if cur.aliased && keys != term.ArrowRight && keys != term.ArrowDown {
 			row, column = 0, row
+		} else if keys == term.ArrowDown {
+			row, column = 0, row
 		}
 	} else {
 		if cur.aliased && keys != term.ArrowLeft && keys != term.ArrowUp {
+			row, column = 0, 1*row
+		} else if keys == term.ArrowUp {
 			row, column = 0, 1*row
 		}
 	}
@@ -164,10 +173,10 @@ func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
 	return row, column
 }
 
-// adjustSelectKeymap is only when the selector function has been used.
+// adjustSelectKeymap is only called when the selector function has been used.
 func (e *Engine) adjustSelectKeymap() {
-	if e.keymaps.Local() != keymap.Isearch {
-		e.keymaps.SetLocal(keymap.MenuSelect)
+	if e.keymap.Local() != keymap.Isearch {
+		e.keymap.SetLocal(keymap.MenuSelect)
 	}
 }
 
@@ -263,16 +272,20 @@ func (e *Engine) resetValues(comps, cached bool) {
 func (e *Engine) needsAutoComplete() bool {
 	// Autocomplete is not needed when already completing,
 	// or when the input line is empty (would always trigger)
-	needsComplete := e.opts.GetBool("autocomplete") &&
-		e.keymaps.Local() != keymap.MenuSelect &&
-		e.keymaps.Local() != keymap.Isearch &&
+	needsComplete := e.config.GetBool("autocomplete") &&
+		e.keymap.Local() != keymap.MenuSelect &&
+		e.keymap.Local() != keymap.Isearch &&
 		e.line.Len() > 0
 
 		// Not possible in Vim command mode either.
-	isCorrectMenu := e.keymaps.Main() != keymap.ViCmd &&
-		e.keymaps.Local() != keymap.Isearch
+	isCorrectMenu := e.keymap.Main() != keymap.ViCommand &&
+		e.keymap.Local() != keymap.Isearch
 
 	if needsComplete && isCorrectMenu && len(e.selected.Value) == 0 {
+		return true
+	}
+
+	if e.keymap.Local() != keymap.MenuSelect && e.autoForce {
 		return true
 	}
 

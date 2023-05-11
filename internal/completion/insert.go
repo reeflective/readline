@@ -2,13 +2,46 @@ package completion
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
+	"github.com/reeflective/readline/internal/keymap"
 )
 
+// UpdateInserted should be called only once in between the two shell keymaps
+// (local/main) in the main readline loop, to either drop or confirm a virtually
+// inserted candidate.
+func UpdateInserted(eng *Engine) {
+	// If the user currently has a completion selected, any change
+	// in the input line will drop the current completion list, in
+	// effect deactivating the completion engine.
+	// This is so that when a user asks for the list of choices, but
+	// then deletes or types something in the input line, the list
+	// is still displayed to the user, otherwise it's removed.
+	// This does not apply when autocomplete is on.
+	choices := len(eng.selected.Value) != 0
+	if !eng.auto {
+		defer eng.ClearMenu(choices)
+	}
+
+	// If autocomplete is on, we also drop the list of generated
+	// completions, because it will be recomputed shortly after.
+	// Do the same when using incremental search, except if the
+	// last key typed is an escape, in which case the user wants
+	// to quit incremental search but keeping any selected comp.
+	inserted := eng.mustRemoveInserted()
+	cached := eng.keymap.Local() != keymap.Isearch
+
+	eng.Cancel(inserted, cached)
+
+	if choices && eng.autoForce && len(eng.selected.Value) == 0 {
+		eng.Reset()
+	}
+}
+
 // TrimSuffix removes the last inserted completion's suffix if the required constraints
-// are satisfied, among which the index position, the suffix matching patterns, etc.
+// are satisfied (among which the index position, the suffix matching patterns, etc).
 func (e *Engine) TrimSuffix() {
 	if e.line.Len() == 0 || e.cursor.Pos() == 0 || len(e.selected.Value) > 0 {
 		return
@@ -22,7 +55,8 @@ func (e *Engine) TrimSuffix() {
 	}
 
 	suf := (*e.line)[e.cursor.Pos()-1]
-	key, _ := e.keys.Peek()
+	keys := e.keys.Caller()
+	key := keys[0]
 
 	// Special case when completing paths: if the comp is ended
 	// by a slash, only remove this slash if the inserted key is
@@ -31,15 +65,16 @@ func (e *Engine) TrimSuffix() {
 		return
 	}
 
-	// Remove the suffix if either:
-	switch {
-	case e.sm.Matches(string(key)):
-		// The key to be inserted matches the suffix matcher.
+	// If the key is a space or matches the suffix matcher, cut the suffix.
+	if e.sm.Matches(string(key)) || unicode.IsSpace(key) {
+		e.cursor.Dec()
 		e.line.CutRune(e.cursor.Pos())
+	}
 
-	case e.sm.Matches(string(suf)) && key == inputrc.Space:
-		// The end of the completion matches the suffix and we are inserting a space.
-		e.line.CutRune(e.cursor.Pos())
+	// But when the key is a space, we also drop the suffix matcher,
+	// beause the user is done with this precise completion (or group of).
+	if unicode.IsSpace(key) {
+		e.sm = SuffixMatcher{}
 	}
 }
 
@@ -59,6 +94,7 @@ func (e *Engine) refreshLine() {
 	if e.hasUniqueCandidate() {
 		e.acceptCandidate()
 		e.ClearMenu(true)
+		e.ResetForce()
 	} else {
 		e.insertCandidate()
 	}
@@ -81,9 +117,9 @@ func (e *Engine) acceptCandidate() {
 	// Remove the suffix from the line first.
 	e.line.Cut(e.cursor.Pos(), e.cursor.Pos()+len(e.suffix))
 
-	// Insert it in the line.
-	e.line.Insert(e.cursor.Pos(), e.inserted...)
-	e.cursor.Move(len(e.inserted))
+	// Insert it in the line and add the suffix back.
+	e.cursor.InsertAt(e.inserted...)
+	e.line.Insert(e.cursor.Pos(), []rune(e.suffix)...)
 
 	// And forget about this inserted completion.
 	e.inserted = make([]rune, 0)
@@ -111,17 +147,17 @@ func (e *Engine) insertCandidate() {
 
 	// Copy the current (uncompleted) line/cursor.
 	completed := core.Line(string(*e.line))
-	e.completed = &completed
+	e.compLine = &completed
 
-	e.compCursor = core.NewCursor(e.completed)
+	e.compCursor = core.NewCursor(e.compLine)
 	e.compCursor.Set(e.cursor.Pos())
 
-	// Remove the suffix from the line first.
-	e.completed.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.suffix))
+	// Remove the suffix from the line first, and insert the candidate.
+	e.compLine.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.suffix))
+	e.compCursor.InsertAt(e.inserted...)
 
-	// And insert it in the completed line.
-	e.completed.Insert(e.compCursor.Pos(), e.inserted...)
-	e.compCursor.Move(len(e.inserted))
+	// Then add the suffix back.
+	e.compLine.Insert(e.compCursor.Pos(), []rune(e.suffix)...)
 }
 
 // prepareSuffix caches any suffix matcher associated with the completion candidate
@@ -142,19 +178,14 @@ func (e *Engine) prepareSuffix() (comp string) {
 	}
 
 	suffix := rune(comp[len(comp)-1])
-	key, _ := e.keys.Peek()
+	keys := e.keys.Caller()
+	key := keys[0]
 
 	// If we are to even consider removing a suffix, we keep the suffix
 	// matcher for later: whatever the decision we take here will be identical
 	// to the one we take while removing suffix in "non-virtual comp" mode.
 	e.sm = cur.noSpace
 	e.sm.pos = e.cursor.Pos() + len(comp) - prefix - 1
-
-	// Add a space to suffix matcher when empty and the comp ends with a space.
-	// if cur.noSpace.string == "" && !e.opts.GetBool("autocomplete") {
-	if cur.noSpace.string == "" && suffix == inputrc.Space {
-		cur.noSpace.Add([]rune{' '}...)
-	}
 
 	// When the suffix matcher is a wildcard, that just means
 	// it's a noSpace directive: if the currently inserted key
@@ -172,22 +203,43 @@ func (e *Engine) prepareSuffix() (comp string) {
 		}
 	}
 
-	// Else if the suffix matches a pattern, remove
-	// if cur.noSpace.Matches(comp) {
-	// 	comp = comp[:len(comp)-1]
-	// }
-
 	return comp
 }
 
 func (e *Engine) cancelCompletedLine() {
 	// The completed line includes any currently selected
 	// candidate, just overwrite it with the normal line.
-	e.completed.Set(*e.line...)
+	e.compLine.Set(*e.line...)
 	e.compCursor.Set(e.cursor.Pos())
 
 	// And no virtual candidate anymore.
 	e.selected = Candidate{}
+}
+
+func (e *Engine) mustRemoveInserted() bool {
+	// All other completion modes do not want
+	// the candidate to be removed from the line.
+	if e.keymap.Local() != keymap.Isearch {
+		return false
+	}
+
+	// Normally, we should have a key.
+	key, empty := core.PeekKey(e.keys)
+	if empty {
+		return false
+	}
+
+	// Some keys trigger behavior different from the normal one:
+	// Ex: if the key is a letter, the isearch buffer is updated
+	// and the line-inserted match might be different, so remove.
+	// If the key is 'Enter', the line will likely be accepted
+	// with the currently inserted candidate.
+	switch rune(key) {
+	case inputrc.Esc, inputrc.Return:
+		return false
+	default:
+		return true
+	}
 }
 
 func notMatcher(key rune, matchers string) bool {

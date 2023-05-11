@@ -36,21 +36,21 @@ var cursors = map[CursorStyle]string{
 }
 
 var defaultCursors = map[Mode]CursorStyle{
-	ViIns:  cursorBlinkingBeam,
-	Vi:     cursorBlinkingBeam,
-	ViCmd:  cursorBlinkingBlock,
-	ViOpp:  cursorBlinkingUnderline,
-	Visual: cursorBlock,
-	Emacs:  cursorBlinkingBlock,
+	ViInsert:  cursorBlinkingBeam,
+	Vi:        cursorBlinkingBeam,
+	ViCommand: cursorBlinkingBlock,
+	ViOpp:     cursorBlinkingUnderline,
+	Visual:    cursorBlock,
+	Emacs:     cursorBlinkingBlock,
 }
 
 // PrintCursor prints the cursor for the given keymap mode,
 // either default value or the one specified in inputrc file.
-func (m *Modes) PrintCursor(keymap Mode) {
+func (m *Engine) PrintCursor(keymap Mode) {
 	var cursor CursorStyle
 
 	// Check for a configured cursor in .inputrc file.
-	modeSet := m.opts.GetString(string(keymap))
+	modeSet := m.config.GetString(string(keymap))
 	if modeSet != "" {
 		cursor = defaultCursors[Mode(modeSet)]
 	}

@@ -3,10 +3,14 @@ package core
 import (
 	"reflect"
 	"testing"
+
+	"github.com/reeflective/readline/internal/term"
 )
 
-// TODO: Add many more values to insert: Control characters,
-// and everything as weird as one can find in a terminal.
+// getTermWidth is used as a variable so that we can
+// use specific terminal widths in our tests.
+var getTermWidth = term.GetWidth
+
 func TestLine_Insert(t *testing.T) {
 	line := Line("multiple-ambiguous 10.203.23.45")
 
@@ -20,6 +24,12 @@ func TestLine_Insert(t *testing.T) {
 		args args
 		want string
 	}{
+		{
+			name: "Append to empty line",
+			l:    new(Line),
+			args: args{pos: 0, r: []rune("127.0.0.1")},
+			want: "127.0.0.1",
+		},
 		{
 			name: "Append to end of line",
 			l:    &line,
@@ -38,14 +48,21 @@ func TestLine_Insert(t *testing.T) {
 			args: args{pos: 100, r: []rune("dropped")},
 			want: "root multiple-ambiguous 10.203.23.45 127.0.0.1",
 		},
+		{
+			name: "Insert a null-terminated slice",
+			l:    &line,
+			args: args{pos: 0, r: []rune("example " + string(rune(0)))},
+			want: "example root multiple-ambiguous 10.203.23.45 127.0.0.1",
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.l.Insert(tt.args.pos, tt.args.r...)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.l.Insert(test.args.pos, test.args.r...)
 		})
-		if string(line) != tt.want {
-			t.Errorf("Line: '%s', wanted '%s'", string(line), tt.want)
+
+		if string(*test.l) != test.want {
+			t.Errorf("Line: '%s', wanted '%s'", string(*test.l), test.want)
 		}
 	}
 }
@@ -89,14 +106,21 @@ func TestLine_InsertBetween(t *testing.T) {
 			args: args{bpos: 23, epos: 29, r: []rune(" 10.10.10.10")},
 			want: "root multiple-ambiguous 10.10.10.10 10.203.23.45 127.0.0.1",
 		},
+		{
+			name: "Insert at invalid position (negative bpos/epos)",
+			l:    &line,
+			args: args{bpos: -1, epos: -1, r: []rune("root ")},
+			want: "root multiple-ambiguous 10.10.10.10 10.203.23.45 127.0.0.1",
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.l.InsertBetween(tt.args.bpos, tt.args.epos, tt.args.r...)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.l.InsertBetween(test.args.bpos, test.args.epos, test.args.r...)
 		})
-		if string(line) != tt.want {
-			t.Errorf("Line: '%s', wanted '%s'", string(line), tt.want)
+
+		if string(*test.l) != test.want {
+			t.Errorf("Line: '%s', wanted '%s'", string(*test.l), test.want)
 		}
 	}
 }
@@ -127,19 +151,26 @@ func TestLine_Cut(t *testing.T) {
 			want: "\"commands.go\" -cp=/usr",
 		},
 		{
-			name: "Cut with range out of bounds",
+			name: "Cut with range out of bounds (epos greater than line)",
 			l:    &line,
 			args: args{bpos: 13, epos: len(line) + 1},
 			want: "\"commands.go\"",
 		},
+		{
+			name: "Cut trailing range (epos -1)",
+			l:    &line,
+			args: args{bpos: 9, epos: -1},
+			want: "\"commands",
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.l.Cut(tt.args.bpos, tt.args.epos)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.l.Cut(test.args.bpos, test.args.epos)
 		})
-		if string(line) != tt.want {
-			t.Errorf("Line: '%s', wanted '%s'", string(line), tt.want)
+
+		if string(*test.l) != test.want {
+			t.Errorf("Line: '%s', wanted '%s'", string(*test.l), test.want)
 		}
 	}
 }
@@ -174,14 +205,21 @@ func TestLine_CutRune(t *testing.T) {
 			args: args{pos: len(line) + 1},
 			want: "basic -f \"commands.go,ine.go\" -cp=/us",
 		},
+		{
+			name: "Cut rune at beginning",
+			l:    &line,
+			args: args{pos: 0},
+			want: "asic -f \"commands.go,ine.go\" -cp=/us",
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.l.CutRune(tt.args.pos)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.l.CutRune(test.args.pos)
 		})
-		if string(line) != tt.want {
-			t.Errorf("Line: '%s', wanted '%s'", string(line), tt.want)
+
+		if string(*test.l) != test.want {
+			t.Errorf("Line: '%s', wanted '%s'", string(*test.l), test.want)
 		}
 	}
 }
@@ -238,7 +276,7 @@ func TestLine_SelectWord(t *testing.T) {
 			wantEpos: 4,
 		},
 		{
-			name:     "Select shell word flag",
+			name:     "Select command flag",
 			l:        &line,
 			args:     args{10},
 			wantBpos: 9,
@@ -247,9 +285,16 @@ func TestLine_SelectWord(t *testing.T) {
 		{
 			name:     "Select numeric expression",
 			l:        &line,
-			args:     args{len(line) - 1},
+			args:     args{len(line)},
 			wantBpos: len(line) - 2,
 			wantEpos: len(line) - 1,
+		},
+		{
+			name:     "Select between words (only select spaces)",
+			l:        &line,
+			args:     args{5},
+			wantBpos: 5,
+			wantEpos: 5,
 		},
 	}
 
@@ -266,7 +311,76 @@ func TestLine_SelectWord(t *testing.T) {
 	}
 }
 
-// TODO: Add special characters.
+func TestLine_SelectBlankWord(t *testing.T) {
+	line := Line("basic -c true -f long-argument with 'quotes here'")
+
+	type args struct {
+		pos int
+	}
+	tests := []struct {
+		name     string
+		l        *Line
+		args     args
+		wantBpos int
+		wantEpos int
+	}{
+		{
+			name:     "Select word from start",
+			l:        &line,
+			args:     args{0},
+			wantBpos: 0,
+			wantEpos: 4,
+		},
+		{
+			name:     "Select word in middle of word",
+			l:        &line,
+			args:     args{2},
+			wantBpos: 0,
+			wantEpos: 4,
+		},
+		{
+			name:     "Select command flag",
+			l:        &line,
+			args:     args{10},
+			wantBpos: 9,
+			wantEpos: 12,
+		},
+		{
+			name:     "Select dash word",
+			l:        &line,
+			args:     args{21},
+			wantBpos: 17,
+			wantEpos: 29,
+		},
+		{
+			name:     "Select in middle of shell word (quoted)",
+			l:        &line,
+			args:     args{len(line)},
+			wantBpos: 44,
+			wantEpos: 48,
+		},
+		{
+			name:     "Select between words (only select spaces)",
+			l:        &line,
+			args:     args{30},
+			wantBpos: 30,
+			wantEpos: 30,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			gotBpos, gotEpos := test.l.SelectBlankWord(test.args.pos)
+			if gotBpos != test.wantBpos {
+				t.Errorf("Line.SelectWord() gotBpos = %v, want %v", gotBpos, test.wantBpos)
+			}
+			if gotEpos != test.wantEpos {
+				t.Errorf("Line.SelectWord() gotEpos = %v, want %v", gotEpos, test.wantEpos)
+			}
+		})
+	}
+}
+
 func TestLine_Find(t *testing.T) {
 	line := Line("basic -f \"commands.go,line.go\" -cp=/usr --option [value1 value2]")
 	pos := 0 // We reuse the same updated position for each next test case.
@@ -283,6 +397,12 @@ func TestLine_Find(t *testing.T) {
 		wantRpos int
 	}{
 		// Forward
+		{
+			name:     "Find on empty line",
+			l:        new(Line),
+			args:     args{r: '"', pos: pos, forward: true},
+			wantRpos: -1,
+		},
 		{
 			name:     "Find first quote from beginning of line",
 			l:        &line,
@@ -315,6 +435,12 @@ func TestLine_Find(t *testing.T) {
 			wantRpos: 49,
 		},
 		{
+			name:     "Find first opening bracket from end of line (out-of-range)",
+			l:        &line,
+			args:     args{r: '[', pos: len(line) + 1, forward: false},
+			wantRpos: 49,
+		},
+		{
 			name:     "Search for non existent rune in the line",
 			l:        &line,
 			args:     args{r: '%', pos: len(line), forward: false},
@@ -328,6 +454,182 @@ func TestLine_Find(t *testing.T) {
 				t.Errorf("Line.Next() = %v, want %v", gotRpos, tt.wantRpos)
 			}
 			pos = tt.wantRpos
+		})
+	}
+}
+
+func TestLine_FindSurround(t *testing.T) {
+	line := Line("basic -f \"commands.go,line.go\" -cp=/usr --option [value1 value2]")
+
+	type args struct {
+		r   rune
+		pos int
+	}
+	tests := []struct {
+		name      string
+		l         *Line
+		args      args
+		wantBpos  int
+		wantEpos  int
+		wantBchar rune
+		wantEchar rune
+	}{
+		{
+			name:      "Find double quotes (success)",
+			l:         &line,
+			args:      args{r: '"', pos: 15},
+			wantBpos:  9,
+			wantEpos:  29,
+			wantBchar: '"',
+			wantEchar: '"',
+		},
+		{
+			name:      "Find double quotes (fail)",
+			l:         &line,
+			args:      args{r: '"', pos: 0},
+			wantBpos:  -1,
+			wantEpos:  9,
+			wantBchar: '"',
+			wantEchar: '"',
+		},
+		{
+			name:      "Find brackets (success)",
+			l:         &line,
+			args:      args{r: '[', pos: line.Len() - 1},
+			wantBpos:  line.Len() - 15,
+			wantEpos:  line.Len() - 1,
+			wantBchar: '[',
+			wantEchar: ']',
+		},
+		{
+			name:      "Find brackets (fail)",
+			l:         &line,
+			args:      args{r: '[', pos: 35},
+			wantBpos:  -1,
+			wantEpos:  line.Len() - 1,
+			wantBchar: '[',
+			wantEchar: ']',
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			gotBpos, gotEpos, gotBchar, gotEchar := test.l.FindSurround(test.args.r, test.args.pos)
+
+			// Pos
+			if gotBpos != test.wantBpos {
+				t.Errorf("Line.FindSurround() (bpos) = %v, want %v", gotBpos, test.wantBpos)
+			}
+			if gotEpos != test.wantEpos {
+				t.Errorf("Line.FindSurround() (epos) = %v, want %v", gotEpos, test.wantEpos)
+			}
+
+			// Chars
+			if gotBchar != test.wantBchar {
+				t.Errorf("Line.FindSurround() (bchar) = %v, want %v", gotBchar, test.wantBchar)
+			}
+			if gotEchar != test.wantEchar {
+				t.Errorf("Line.FindSurround() (gotEchar) = %v, want %v", gotEchar, test.wantEchar)
+			}
+		})
+	}
+}
+
+func TestLine_SurroundQuotes(t *testing.T) {
+	line := Line("basic -f \"commands.go,line.go\" -cp=/usr \"another\" --option 'value1 value2'")
+
+	type args struct {
+		single bool
+		pos    int
+	}
+	tests := []struct {
+		name     string
+		l        *Line
+		args     args
+		wantBpos int
+		wantEpos int
+	}{
+		{
+			name:     "Find double quotes (success)",
+			l:        &line,
+			args:     args{single: false, pos: 15},
+			wantBpos: 9,
+			wantEpos: 29,
+		},
+		{
+			name:     "Find double quotes (fail)",
+			l:        &line,
+			args:     args{single: false, pos: 0},
+			wantBpos: -1,
+			wantEpos: 9,
+		},
+		{
+			name:     "Find double quotes (fail not surrounding pos)",
+			l:        &line,
+			args:     args{single: false, pos: 35},
+			wantBpos: -1,
+			wantEpos: -1,
+		},
+		{
+			name:     "Find single quotes (success)",
+			l:        &line,
+			args:     args{single: true, pos: line.Len() - 3},
+			wantBpos: line.Len() - 15,
+			wantEpos: line.Len() - 1,
+		},
+		{
+			name:     "Find single quotes (fail)",
+			l:        &line,
+			args:     args{single: true, pos: 35},
+			wantBpos: -1,
+			wantEpos: line.Len() - 15,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			gotBpos, gotEpos := test.l.SurroundQuotes(test.args.single, test.args.pos)
+
+			// Pos
+			if gotBpos != test.wantBpos {
+				t.Errorf("Line.SurroundQuotes() (bpos) = %v, want %v", gotBpos, test.wantBpos)
+			}
+			if gotEpos != test.wantEpos {
+				t.Errorf("Line.SurroundQuotes() (epos) = %v, want %v", gotEpos, test.wantEpos)
+			}
+		})
+	}
+}
+
+func TestLine_Lines(t *testing.T) {
+	tests := []struct {
+		name      string
+		l         Line
+		wantLines int
+	}{
+		{
+			name:      "Single line",
+			l:         Line("lonely\twords end\\n here"),
+			wantLines: 0,
+		},
+		{
+			name:      "Empty line (middle)",
+			l:         Line("lonely\n\twords\n\nend\\n here"),
+			wantLines: 3,
+		},
+		{
+			name:      "Empty line (trailing & middle)",
+			l:         Line("lonely\n\twords\n\nend\\n here\n"),
+			wantLines: 4,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			gotLines := test.l.Lines()
+
+			if gotLines != test.wantLines {
+				t.Errorf("Line.Lines() = %v, want %v", gotLines, test.wantLines)
+			}
 		})
 	}
 }
@@ -383,6 +685,7 @@ func TestLine_Forward(t *testing.T) {
 
 func TestLine_ForwardEnd(t *testing.T) {
 	line := Line("basic -f \"commands.go,line.go\" -cp=/usr --option [value1 value2]")
+	emptyLine := new(Line)
 
 	type args struct {
 		split Tokenizer
@@ -395,13 +698,25 @@ func TestLine_ForwardEnd(t *testing.T) {
 		wantAdjust int
 	}{
 		{
-			name:       "Forward word end",
+			name:       "Forward word end (empty line)",
+			l:          emptyLine,
+			args:       args{split: emptyLine.Tokenize, pos: 0},
+			wantAdjust: 0,
+		},
+		{
+			name:       "Forward word end (beginning of line)",
 			l:          &line,
 			args:       args{split: line.Tokenize, pos: 0},
 			wantAdjust: 4,
 		},
 		{
-			name:       "Forward blank word end",
+			name:       "Forward word end (end of line)",
+			l:          &line,
+			args:       args{split: line.Tokenize, pos: line.Len()},
+			wantAdjust: 0,
+		},
+		{
+			name:       "Forward blank word end (middle of line)",
 			l:          &line,
 			args:       args{split: line.TokenizeSpace, pos: 10},
 			wantAdjust: 19,
@@ -419,6 +734,7 @@ func TestLine_ForwardEnd(t *testing.T) {
 
 func TestLine_Backward(t *testing.T) {
 	line := Line("basic -f \"commands.go,line.go\" -cp=/usr --option [value1 value2]")
+	emptyLine := new(Line)
 
 	type args struct {
 		split Tokenizer
@@ -431,7 +747,19 @@ func TestLine_Backward(t *testing.T) {
 		wantAdjust int
 	}{
 		{
-			name:       "Backward word",
+			name:       "Backward word (empty line)",
+			l:          emptyLine,
+			args:       args{split: emptyLine.Tokenize, pos: 0},
+			wantAdjust: 0,
+		},
+		{
+			name:       "Backward word (beginning of line)",
+			l:          &line,
+			args:       args{split: line.Tokenize, pos: 0},
+			wantAdjust: 0,
+		},
+		{
+			name:       "Backward word (middle of line)",
 			l:          &line,
 			args:       args{split: line.Tokenize, pos: 6},
 			wantAdjust: -6,
@@ -468,6 +796,7 @@ func TestLine_Backward(t *testing.T) {
 
 func TestLine_Tokenize(t *testing.T) {
 	line := Line("basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -c")
+	emptyLines := Line("basic -f \"commands.go \n\nanother testing\" --alternate \"another\nquote\" -c")
 
 	type args struct {
 		pos int
@@ -486,6 +815,18 @@ func TestLine_Tokenize(t *testing.T) {
 			l:    &line,
 			want: []string{
 				"basic ", "-", "f ", "\"", "commands", ".", "go \n",
+				"another ", "testing", "\" ", "--", "alternate ", "\"", "another\n",
+				"quote", "\" ", "-", "c",
+			},
+			want1: 17,
+			want2: 0,
+		},
+		{
+			name: "Tokenize line (with empty lines)",
+			args: args{pos: line.Len() - 1},
+			l:    &emptyLines,
+			want: []string{
+				"basic ", "-", "f ", "\"", "commands", ".", "go \n", "\n",
 				"another ", "testing", "\" ", "--", "alternate ", "\"", "another\n",
 				"quote", "\" ", "-", "c",
 			},
@@ -512,6 +853,8 @@ func TestLine_Tokenize(t *testing.T) {
 
 func TestLine_TokenizeSpace(t *testing.T) {
 	line := Line("basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -c")
+	emptyLine := new(Line)
+	emptyLines := Line("basic -f \"commands.go \n\nanother testing\" --alternate \"another\nquote\" -c")
 
 	type args struct {
 		pos int
@@ -525,14 +868,31 @@ func TestLine_TokenizeSpace(t *testing.T) {
 		want2 int
 	}{
 		{
-			name: "Tokenize spaces",
+			name:  "Empty line",
+			args:  args{0},
+			l:     emptyLine,
+			want1: 0,
+			want2: 0,
+		},
+		{
+			name: "With newlines (cursor append)",
 			args: args{pos: line.Len() - 1},
 			l:    &line,
 			want: []string{
-				"basic ", "-f ", "\"commands.go \nanother ", "testing\" ", "--alternate ", "\"another\nquote\" ", "-c",
+				"basic ", "-f ", "\"commands.go \n", "another ", "testing\" ", "--alternate ", "\"another\n", "quote\" ", "-c",
 			},
-			want1: 6,
+			want1: 8, // equal len(want) -1 since we are at the end of the line.
 			want2: 1,
+		},
+		{
+			name: "With empty lines (cursor on last char)",
+			args: args{pos: emptyLines.Len()},
+			l:    &emptyLines,
+			want: []string{
+				"basic ", "-f ", "\"commands.go \n", "\n", "another ", "testing\" ", "--alternate ", "\"another\n", "quote\" ", "-c",
+			},
+			want1: 9, // equal len(want) -1 since we are at the end of the line.
+			want2: 2,
 		},
 	}
 
@@ -553,7 +913,11 @@ func TestLine_TokenizeSpace(t *testing.T) {
 }
 
 func TestLine_TokenizeBlock(t *testing.T) {
+	noBlocks := Line("basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\"")
+	blockStart := Line("{ expression here } -a [value1 value2]")
 	line := Line("basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -v { expression here } -a [value1 value2]")
+	quotedLine := Line("basic -f \"commands.go \nanother testing\" '--alternate \"another\nquote\" -v { expression here }' -a [value1 value2]")
+	emptyLine := new(Line)
 
 	type args struct {
 		pos int
@@ -567,14 +931,80 @@ func TestLine_TokenizeBlock(t *testing.T) {
 		want2 int
 	}{
 		{
-			name: "Tokenize blocks",
-			args: args{pos: line.Len()}, // Note that we are in append-eol mode
+			name:  "Empty line",
+			args:  args{0},
+			l:     emptyLine,
+			want1: 0,
+			want2: 0,
+		},
+		{
+			name:  "No blocks",
+			args:  args{noBlocks.Len()},
+			l:     &noBlocks,
+			want1: 0,
+			want2: 0,
+		},
+		{
+			name:  "Braces at line start, cursor on closing brace (find/move)",
+			args:  args{18},
+			l:     &blockStart,
+			want:  []string{"", "{ expression here "},
+			want1: 1,
+			want2: 18,
+		},
+		{
+			name:  "Braces at line start, cursor at line start (find/move)",
+			args:  args{0},
+			l:     &blockStart,
+			want:  []string{"", "{ expression here "},
+			want1: 1,
+			want2: 0,
+		},
+		{
+			name: "With newlines (cursor append) (find/move)",
+			args: args{pos: line.Len()},
 			l:    &line,
 			want: []string{
 				"basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -v { expression here } -a", "[value1 value2",
 			},
 			want1: 1,
 			want2: 14,
+		},
+		{
+			name: "With newlines (cursor on closing brace) (find/move)",
+			args: args{pos: 89}, // 71
+			l:    &line,
+			want: []string{
+				"basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -v", "{ expression here ",
+			},
+			want1: 1,
+			want2: 18,
+		},
+		{
+			name: "With newlines (cursor on open brace) (fail)",
+			args: args{pos: 71},
+			l:    &line,
+			want: []string{
+				"basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -v", "{ expression here ",
+			},
+			want1: 1,
+			want2: 0,
+		},
+		{
+			name:  "With braces inside quotes (cursor on closing brace) (fail)",
+			args:  args{pos: 90},
+			l:     &quotedLine,
+			want:  nil,
+			want1: 0,
+			want2: 0,
+		},
+		{
+			name:  "With braces inside quotes (cursor on opening brace) (fail)",
+			args:  args{pos: 72},
+			l:     &quotedLine,
+			want:  nil,
+			want1: 0,
+			want2: 0,
 		},
 	}
 
@@ -594,7 +1024,7 @@ func TestLine_TokenizeBlock(t *testing.T) {
 	}
 }
 
-func TestLine_Display(t *testing.T) {
+func TestDisplayLine(t *testing.T) {
 	type args struct {
 		indent int
 	}
@@ -608,12 +1038,12 @@ func TestLine_Display(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.l.Display(tt.args.indent)
+			DisplayLine(tt.l, tt.args.indent)
 		})
 	}
 }
 
-func TestLine_Coordinates(t *testing.T) {
+func TestCoordinatesLine(t *testing.T) {
 	indent := 10
 	line := Line("basic -f \"commands.go,line.go\" -cp=/usr --option [value1 value2]")
 	multiline := Line("basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -v { expression here } -a [value1 value2]")
@@ -644,18 +1074,18 @@ func TestLine_Coordinates(t *testing.T) {
 			l:     &multiline,
 			args:  args{indent: indent},
 			wantY: 2,
-			wantX: indent + 49,
+			wantX: indent + 48,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gotX, gotY := test.l.Coordinates(test.args.indent)
+			gotX, gotY := CoordinatesLine(test.l, test.args.indent)
 			if gotX != test.wantX {
-				t.Errorf("Line.Used() gotX = %v, want %v", gotX, test.wantX)
+				t.Errorf("CoordinatesLine() gotX = %v, want %v", gotX, test.wantX)
 			}
 			if gotY != test.wantY {
-				t.Errorf("Line.Used() gotY = %v, want %v", gotY, test.wantY)
+				t.Errorf("CoordinatesLine() gotY = %v, want %v", gotY, test.wantY)
 			}
 		})
 	}

@@ -28,6 +28,7 @@ type Values struct {
 	ListLong map[string]bool
 	NoSort   map[string]bool
 	ListSep  map[string]string
+	Pad      map[string]bool
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor.
@@ -48,5 +49,6 @@ func AddRaw(values []Candidate) Values {
 		ListLong: make(map[string]bool),
 		NoSort:   make(map[string]bool),
 		ListSep:  make(map[string]string),
+		Pad:      make(map[string]bool),
 	}
 }

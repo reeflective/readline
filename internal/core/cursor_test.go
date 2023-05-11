@@ -13,6 +13,23 @@ var (
 	cursorMultiline = Line("git command -c \n second line of input before an empty line \n\n and then a last one")
 )
 
+func TestNewCursor(t *testing.T) {
+	line := Line("test line")
+	cursor := NewCursor(&line)
+
+	if cursor.pos != 0 {
+		t.Errorf("Cursor position: %d, should be %d", cursor.pos, 0)
+	}
+
+	if cursor.mark != -1 {
+		t.Errorf("Cursor mark: %d, should be %d", cursor.mark, -1)
+	}
+
+	if cursor.line != &line {
+		t.Errorf("Cursor line: %d, should be %d", cursor.line, line)
+	}
+}
+
 func TestCursor_Set(t *testing.T) {
 	type fields struct {
 		pos  int
@@ -247,6 +264,182 @@ func TestCursor_Move(t *testing.T) {
 	}
 }
 
+func TestCursor_Char(t *testing.T) {
+	type fields struct {
+		pos  int
+		mark int
+		line *Line
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   rune
+	}{
+		{
+			name:   "Valid position",
+			fields: fields{line: &cursorLine, pos: 5},
+			want:   'o',
+		},
+		{
+			name:   "Negative position (start char)",
+			fields: fields{line: &cursorLine, pos: -1},
+			want:   'g',
+		},
+		{
+			name:   "Empty line",
+			fields: fields{line: new(Line), pos: 0},
+			want:   0,
+		},
+		{
+			name:   "Append-mode position",
+			fields: fields{line: &cursorLine, pos: cursorLine.Len()},
+			want:   0,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cur := &Cursor{
+				pos:  test.fields.pos,
+				mark: test.fields.mark,
+				line: test.fields.line,
+			}
+
+			if cur.Char() != test.want {
+				t.Errorf("Cursor.Char() = %v, want %v", cur.Char(), test.want)
+			}
+		})
+	}
+}
+
+func TestCursor_ReplaceWith(t *testing.T) {
+	type fields struct {
+		pos  int
+		mark int
+		line *Line
+	}
+	type args struct {
+		char rune
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   rune
+	}{
+		{
+			name:   "Valid position",
+			fields: fields{line: &cursorLine, pos: 0},
+			args:   args{char: 's'},
+			want:   's',
+		},
+		{
+			name:   "Negative position (start char)",
+			fields: fields{line: &cursorLine, pos: -1},
+			args:   args{char: 's'},
+			want:   's',
+		},
+		{
+			name:   "Empty line (equivalent to append-mode)",
+			fields: fields{line: new(Line), pos: 0},
+			args:   args{char: 's'},
+			want:   's',
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cur := &Cursor{
+				pos:  test.fields.pos,
+				mark: test.fields.mark,
+				line: test.fields.line,
+			}
+			cur.ReplaceWith(test.args.char)
+
+			if cur.Char() != test.want {
+				t.Errorf("Cursor.Char() = %v, want %v", cur.Char(), test.want)
+			}
+		})
+	}
+}
+
+func TestCursor_ToFirstNonSpace(t *testing.T) {
+	tabLine := Line("\t git command")
+
+	type fields struct {
+		pos  int
+		mark int
+		line *Line
+	}
+	type args struct {
+		forward bool
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   int
+	}{
+		{
+			name:   "Empty line",
+			fields: fields{line: new(Line)},
+			args:   args{forward: true},
+			want:   0,
+		},
+		{
+			name:   "Single line (on space)",
+			fields: fields{line: &cursorLine, pos: 3},
+			args:   args{forward: true},
+			want:   4,
+		},
+		{
+			name:   "Single line (tab beginning)",
+			fields: fields{line: &tabLine, pos: 1},
+			args:   args{forward: false},
+			want:   0,
+		},
+		{
+			name:   "Single line (beginning of line)",
+			fields: fields{line: &cursorLine, pos: 0},
+			args:   args{forward: false},
+			want:   0,
+		},
+		{
+			name:   "Single line backward (on space)",
+			fields: fields{line: &cursorLine, pos: 3},
+			args:   args{forward: false},
+			want:   2,
+		},
+		{
+			name:   "Single line forward (end-of-line backward)",
+			fields: fields{line: &cursorLine, pos: cursorLine.Len()},
+			args:   args{forward: true},
+			want:   cursorLine.Len() - 1,
+		},
+		{
+			name:   "Multiline line forward",
+			fields: fields{line: &cursorMultiline, pos: 14},
+			args:   args{forward: true},
+			want:   17,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cur := &Cursor{
+				pos:  test.fields.pos,
+				mark: test.fields.mark,
+				line: test.fields.line,
+			}
+			cur.ToFirstNonSpace(test.args.forward)
+
+			if got := cur.Pos(); got != test.want {
+				t.Errorf("Cursor.ToFirstNonSpace() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestCursor_BeginningOfLine(t *testing.T) {
 	type fields struct {
 		pos  int
@@ -256,23 +449,36 @@ func TestCursor_BeginningOfLine(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
+		want   int
 	}{
 		{
-			name:   "Beginning of line",
+			name:   "Single line",
 			fields: fields{line: &cursorLine, pos: 5},
+			want:   0,
+		},
+		{
+			name:   "Multiline (non-empty line)",
+			fields: fields{line: &cursorMultiline, pos: 17},
+			want:   16,
+		},
+		{
+			name:   "Multiline (empty line, no move)",
+			fields: fields{line: &cursorMultiline, pos: cursorMultiline.Len() - 21},
+			want:   cursorMultiline.Len() - 21,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Cursor{
-				pos:  tt.fields.pos,
-				mark: tt.fields.mark,
-				line: tt.fields.line,
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cur := &Cursor{
+				pos:  test.fields.pos,
+				mark: test.fields.mark,
+				line: test.fields.line,
 			}
-			c.BeginningOfLine()
-			if c.pos != 0 {
-				t.Errorf("Cursor: %d, should be 0", c.pos)
+			cur.BeginningOfLine()
+
+			if cur.pos != test.want {
+				t.Errorf("Cursor.BeginningOfLine(): %d, should be %d", cur.pos, test.want)
 			}
 		})
 	}
@@ -287,23 +493,35 @@ func TestCursor_EndOfLine(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
+		want   int
 	}{
 		{
-			name:   "End of line",
+			name:   "Single line",
 			fields: fields{line: &cursorLine, pos: 5},
+			want:   cursorLine.Len() - 1,
+		},
+		{
+			name:   "Multiline (non-empty line)",
+			fields: fields{line: &cursorMultiline, pos: 0},
+			want:   14,
+		},
+		{
+			name:   "Multiline (empty line, no move)",
+			fields: fields{line: &cursorMultiline, pos: cursorMultiline.Len() - 21},
+			want:   cursorMultiline.Len() - 21,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := &Cursor{
+			cur := &Cursor{
 				pos:  test.fields.pos,
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			c.EndOfLine()
-			if c.pos != len(*test.fields.line)-1 {
-				t.Errorf("Cursor: %d, should be %d", c.pos, len(*test.fields.line)-1)
+			cur.EndOfLine()
+			if cur.pos != test.want {
+				t.Errorf("Cursor.EndOfLine(): %d, should be %d", cur.pos, test.want)
 			}
 		})
 	}
@@ -318,22 +536,35 @@ func TestCursor_EndOfLineAppend(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
+		want   int
 	}{
 		{
-			name:   "End of line (append)",
+			name:   "Single line",
 			fields: fields{line: &cursorLine, pos: 5},
+			want:   cursorLine.Len(),
+		},
+		{
+			name:   "Multiline (non-empty line)",
+			fields: fields{line: &cursorMultiline, pos: 0},
+			want:   15,
+		},
+		{
+			name:   "Multiline (empty line, no move)",
+			fields: fields{line: &cursorMultiline, pos: cursorMultiline.Len() - 21},
+			want:   cursorMultiline.Len() - 21,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Cursor{
-				pos:  tt.fields.pos,
-				mark: tt.fields.mark,
-				line: tt.fields.line,
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cur := &Cursor{
+				pos:  test.fields.pos,
+				mark: test.fields.mark,
+				line: test.fields.line,
 			}
-			c.EndOfLineAppend()
-			if c.pos != len(*tt.fields.line) {
-				t.Errorf("Cursor: %d, should be %d", c.pos, len(*tt.fields.line))
+			cur.EndOfLineAppend()
+			if cur.pos != test.want {
+				t.Errorf("Cursor.EndOfLineAppend(): %d, should be %d", cur.pos, test.want)
 			}
 		})
 	}
@@ -359,17 +590,17 @@ func TestCursor_SetMark(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := &Cursor{
+			cur := &Cursor{
 				pos:  test.fields.pos,
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			c.SetMark()
-			if c.pos != test.expected {
-				t.Errorf("Mark: %d, should be %d", c.mark, test.expected)
+			cur.SetMark()
+			if cur.pos != test.expected {
+				t.Errorf("Mark: %d, should be %d", cur.mark, test.expected)
 			}
-			if c.pos != c.mark {
-				t.Errorf("Cpos: %d should be equal to mark: %d", c.pos, c.mark)
+			if cur.pos != cur.mark {
+				t.Errorf("Cpos: %d should be equal to mark: %d", cur.pos, cur.mark)
 			}
 		})
 	}
@@ -407,7 +638,7 @@ func TestCursor_Mark(t *testing.T) {
 	}
 }
 
-func TestCursor_Line(t *testing.T) {
+func TestCursor_LinePos(t *testing.T) {
 	type fields struct {
 		pos  int
 		mark int
@@ -419,18 +650,23 @@ func TestCursor_Line(t *testing.T) {
 		want   int
 	}{
 		{
-			name:   "Single line input",
+			name:   "Single line",
 			fields: fields{line: &cursorLine, pos: 10},
 			want:   0,
 		},
 		{
-			name:   "Multiline input (second line)",
+			name:   "Multiline (second line)",
 			fields: fields{line: &cursorMultiline, pos: 20},
 			want:   1, // Second line.
 		},
 		{
-			name:   "Multiline input (last line, eol)",
-			fields: fields{line: &cursorMultiline, pos: len(cursorMultiline) - 1},
+			name:   "Multiline (last line, eol)",
+			fields: fields{line: &cursorMultiline, pos: cursorMultiline.Len() - 1},
+			want:   len(strings.Split(string(cursorMultiline), "\n")) - 1,
+		},
+		{
+			name:   "Multiline (last line, append-mode)",
+			fields: fields{line: &cursorMultiline, pos: cursorMultiline.Len()},
 			want:   len(strings.Split(string(cursorMultiline), "\n")) - 1,
 		},
 	}
@@ -442,7 +678,7 @@ func TestCursor_Line(t *testing.T) {
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			if got := c.Line(); got != test.want {
+			if got := c.LinePos(); got != test.want {
 				t.Errorf("Cursor.Line() = %v, want %v", got, test.want)
 			}
 		})
@@ -529,13 +765,23 @@ func TestCursor_OnEmptyLine(t *testing.T) {
 		want   bool
 	}{
 		{
-			name:   "On empty line",
+			name:   "Empty line",
+			fields: fields{line: new(Line)},
+			want:   true,
+		},
+		{
+			name:   "Multiline (empty line)",
 			fields: fields{line: &cursorMultiline, pos: 60},
 			want:   true,
 		},
 		{
-			name:   "On non-empty line",
+			name:   "Multiline (non-empty line)",
 			fields: fields{line: &cursorMultiline, pos: 61},
+			want:   false,
+		},
+		{
+			name:   "Multiline (non-empty line, append-mode)",
+			fields: fields{line: &cursorMultiline, pos: cursorMultiline.Len()},
 			want:   false,
 		},
 	}
@@ -554,7 +800,7 @@ func TestCursor_OnEmptyLine(t *testing.T) {
 	}
 }
 
-func TestCursor_CheckAppend(t *testing.T) {
+func TestCursor_AtBeginningOfLine(t *testing.T) {
 	type fields struct {
 		pos  int
 		mark int
@@ -563,35 +809,147 @@ func TestCursor_CheckAppend(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   int
+		want   bool
 	}{
 		{
-			name:   "Check with valid position",
-			fields: fields{line: &cursorLine, pos: 10},
-			want:   10,
+			name:   "Empty line",
+			fields: fields{line: new(Line)},
+			want:   true,
 		},
 		{
-			name:   "Check with out-of-range position",
-			fields: fields{line: &cursorMultiline, pos: len(cursorMultiline) + 10},
-			want:   len(cursorMultiline),
+			name:   "Multiline (empty line)",
+			fields: fields{line: &cursorMultiline, pos: 60},
+			want:   true,
 		},
 		{
-			name:   "Check with negative position",
-			fields: fields{line: &cursorMultiline, pos: -1},
-			want:   0,
+			name:   "Multiline (non-empty line) (at beginning)",
+			fields: fields{line: &cursorMultiline, pos: 61},
+			want:   true,
+		},
+		{
+			name:   "Multiline (non-empty line) (not beginning)",
+			fields: fields{line: &cursorMultiline, pos: 62},
+			want:   false,
+		},
+		{
+			name:   "Multiline (non-empty line, append-mode)",
+			fields: fields{line: &cursorMultiline, pos: cursorMultiline.Len()},
+			want:   false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := &Cursor{
+			cur := &Cursor{
 				pos:  test.fields.pos,
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			c.CheckAppend()
-			if got := c.Pos(); got != test.want {
+			if got := cur.AtBeginningOfLine(); got != test.want {
+				t.Errorf("Cursor.AtBeginningOfLine() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestCursor_AtEndOfLine(t *testing.T) {
+	type fields struct {
+		pos  int
+		mark int
+		line *Line
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name:   "Empty line",
+			fields: fields{line: new(Line)},
+			want:   true,
+		},
+		{
+			name:   "Multiline (empty line)",
+			fields: fields{line: &cursorMultiline, pos: 59},
+			want:   true,
+		},
+		{
+			name:   "Multiline (non-empty line) (at end)",
+			fields: fields{line: &cursorMultiline, pos: 58},
+			want:   true,
+		},
+		{
+			name:   "Multiline (non-empty line) (not end)",
+			fields: fields{line: &cursorMultiline, pos: 57},
+			want:   false,
+		},
+		{
+			name:   "Multiline (non-empty line, append-mode)",
+			fields: fields{line: &cursorMultiline, pos: cursorMultiline.Len()},
+			want:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Cursor{
+				pos:  tt.fields.pos,
+				mark: tt.fields.mark,
+				line: tt.fields.line,
+			}
+			if got := c.AtEndOfLine(); got != tt.want {
+				t.Errorf("Cursor.AtEndOfLine() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCursor_CheckAppend(t *testing.T) {
+	type fields struct {
+		pos  int
+		mark int
+		line *Line
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		want     int
+		wantMark int
+	}{
+		{
+			name:     "Check with valid position",
+			fields:   fields{line: &cursorLine, pos: 10, mark: -2},
+			want:     10,
+			wantMark: -1,
+		},
+		{
+			name:     "Check with out-of-range position",
+			fields:   fields{line: &cursorMultiline, pos: len(cursorMultiline) + 10, mark: 3},
+			want:     len(cursorMultiline),
+			wantMark: 3,
+		},
+		{
+			name:     "Check with negative position",
+			fields:   fields{line: &cursorMultiline, pos: -1, mark: cursorMultiline.Len()},
+			want:     0,
+			wantMark: -1,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cur := &Cursor{
+				pos:  test.fields.pos,
+				mark: test.fields.mark,
+				line: test.fields.line,
+			}
+			cur.CheckAppend()
+
+			if got := cur.Pos(); got != test.want {
 				t.Errorf("Cursor.Pos() = %v, want %v", got, test.want)
+			}
+			if gotMark := cur.Mark(); gotMark != test.wantMark {
+				t.Errorf("Cursor.Pos() = %v, want %v", gotMark, test.wantMark)
 			}
 		})
 	}
@@ -647,7 +1005,7 @@ func TestCursor_Coordinates(t *testing.T) {
 				mark: test.fields.mark,
 				line: test.fields.line,
 			}
-			gotX, gotY := c.Coordinates(indent)
+			gotX, gotY := CoordinatesCursor(c, indent)
 			if gotX != test.wantX {
 				t.Errorf("Cursor.Coordinates() gotX = %v, want %v", gotX, test.wantX)
 			}

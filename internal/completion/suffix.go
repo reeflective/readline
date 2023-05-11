@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// SuffixMatcher is a type managing suffixes for a given list of completions.
 type SuffixMatcher struct {
 	string
 	pos int // Used to know if the saved suffix matcher is deprecated
