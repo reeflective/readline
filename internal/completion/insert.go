@@ -1,7 +1,6 @@
 package completion
 
 import (
-	"strings"
 	"unicode"
 
 	"github.com/reeflective/readline/inputrc"
@@ -177,31 +176,11 @@ func (e *Engine) prepareSuffix() (comp string) {
 		return
 	}
 
-	suffix := rune(comp[len(comp)-1])
-	keys := e.keys.Caller()
-	key := keys[0]
-
 	// If we are to even consider removing a suffix, we keep the suffix
 	// matcher for later: whatever the decision we take here will be identical
 	// to the one we take while removing suffix in "non-virtual comp" mode.
 	e.sm = cur.noSpace
 	e.sm.pos = e.cursor.Pos() + len(comp) - prefix - 1
-
-	// When the suffix matcher is a wildcard, that just means
-	// it's a noSpace directive: if the currently inserted key
-	// is a space, don't remove anything, but keep it for later.
-	if cur.noSpace.string == "*" && suffix != inputrc.Space && key == inputrc.Space {
-		return
-	}
-
-	// Special case when completing paths: if the comp is ended
-	// by a slash, only remove this slash if the inserted key is
-	// one of the suffix matchers and not a space, otherwise keep it.
-	if strings.HasSuffix(comp, "/") && key != inputrc.Space {
-		if notMatcher(key, cur.noSpace.string) {
-			return
-		}
-	}
 
 	return comp
 }
