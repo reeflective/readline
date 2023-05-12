@@ -53,8 +53,11 @@ func (m *Engine) Register(commands map[string]func()) {
 }
 
 // SetMain sets the main keymap of the shell.
-func (m *Engine) SetMain(keymap Mode) {
-	m.main = keymap
+// Valid builtin keymaps are:
+// - emacs, emacs-meta, emacs-ctlx, emacs-standard.
+// - vi, vi-insert, vi-command, vi-move.
+func (m *Engine) SetMain(keymap string) {
+	m.main = Mode(keymap)
 	m.UpdateCursor()
 }
 
@@ -64,8 +67,11 @@ func (m *Engine) Main() Mode {
 }
 
 // SetLocal sets the local keymap of the shell.
-func (m *Engine) SetLocal(keymap Mode) {
-	m.local = keymap
+// Valid builtin keymaps are:
+// - vi-opp, vi-visual. (used in commands like yank, change, delete, etc.)
+// - isearch, menu-select (used in search and completion).
+func (m *Engine) SetLocal(keymap string) {
+	m.local = Mode(keymap)
 	m.UpdateCursor()
 }
 

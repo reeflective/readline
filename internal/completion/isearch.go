@@ -192,7 +192,7 @@ func (e *Engine) resetIsearchInsertMode() {
 	}
 
 	if e.keymap.Main() != e.isearchModeExit {
-		e.keymap.SetMain(e.isearchModeExit)
+		e.keymap.SetMain(string(e.isearchModeExit))
 		e.isearchModeExit = ""
 	}
 
