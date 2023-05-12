@@ -295,3 +295,15 @@ func (e *Engine) displayHelpers() {
 	term.MoveCursorUp(e.compRows)
 	term.MoveCursorUp(ui.CoordinatesHint(e.hint))
 }
+
+// AvailableHelperLines returns the number of lines available below the hint section.
+func (e *Engine) AvailableHelperLines() int {
+	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
+	compLines := termHeight - e.startRows - e.lineRows - ui.CoordinatesHint(e.hint) - 1
+
+	if compLines < (termHeight / oneThirdTerminalHeight) {
+		compLines = (termHeight / halfTerminalHeight) - 1
+	}
+
+	return compLines
+}

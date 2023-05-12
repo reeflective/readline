@@ -181,6 +181,7 @@ Additionally:
 - Please open a PR or an issue if you face any bug, and it will be promptly resolved.
 - Don't hesitate proposing a new feature or a PR if you deem it to be useful to most users.
 
+
 ## Credits
 
 - Big thanks to @kenshaw for his `.inputrc` parsing package, which brings much wider compatiblity to this library.

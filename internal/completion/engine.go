@@ -39,9 +39,9 @@ type Engine struct {
 	skipDisplay bool          // Don't display completions if there are some.
 
 	// Incremental search
+	IsearchRegex     *regexp.Regexp // Holds the current search regex match
 	isearchBuf       *core.Line     // The isearch minibuffer
 	isearchCur       *core.Cursor   // Cursor position in the minibuffer.
-	isearchRgx       *regexp.Regexp // Holds the current search regex match
 	isearchName      string         // What is being incrementally searched for.
 	isearchInsert    bool           // Whether to insert the first match in the line
 	isearchForward   bool           // Match results in forward order, or backward.

@@ -5,6 +5,7 @@ import (
 
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
+	"github.com/reeflective/readline/internal/history"
 	"github.com/reeflective/readline/internal/keymap"
 )
 
@@ -245,7 +246,9 @@ func (rl *Shell) historyCompletion(forward, filterLine, substring bool) {
 
 		// Generate the completions with specified behavior.
 		completer := func() completion.Values {
-			return rl.History.Complete(forward, filterLine)
+			maxLines := rl.Display.AvailableHelperLines()
+			return history.Complete(rl.History, forward, filterLine, maxLines, rl.completer.IsearchRegex)
+			// return rl.History.Complete(forward, filterLine)
 		}
 
 		if substring {

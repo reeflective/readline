@@ -479,7 +479,7 @@ func (h *Sources) Suggest(line *core.Line) core.Line {
 // If forward is true, the completions are proposed from the most ancient
 // line in the history source to the most recent. If filter is true,
 // only lines that match the current input line as a prefix are given.
-func (h *Sources) Complete(forward, filter bool) completion.Values {
+func Complete(h *Sources, forward, filter bool, maxLines int, regex *regexp.Regexp) completion.Values {
 	if len(h.list) == 0 {
 		return completion.Values{}
 	}
@@ -502,16 +502,15 @@ func (h *Sources) Complete(forward, filter bool) completion.Values {
 
 	if forward {
 		histPos = -1
-		done = func(i int) bool { return i < history.Len()-1 }
+		done = func(i int) bool { return i < history.Len()-1 && maxLines >= 0 }
 		move = func(pos int) int { return pos + 1 }
 	} else {
 		histPos = history.Len()
-		done = func(i int) bool { return i > 0 }
+		done = func(i int) bool { return i > 0 && maxLines >= 0 }
 		move = func(pos int) int { return pos - 1 }
 	}
 
 	// And generate the completions.
-nextLine:
 	for done(histPos) {
 		histPos = move(histPos)
 
@@ -526,15 +525,11 @@ nextLine:
 
 		if filter && !strings.HasPrefix(line, string(*h.line)) {
 			continue
+		} else if regex != nil && !regex.MatchString(line) {
+			continue
 		}
 
 		display := strings.ReplaceAll(line, "\n", ` `)
-
-		for _, comp := range compLines {
-			if comp.Display == line {
-				continue nextLine
-			}
-		}
 
 		// Proper pad for indexes
 		indexStr := strconv.Itoa(histPos)
@@ -547,6 +542,8 @@ nextLine:
 		}
 
 		compLines = append(compLines, value)
+
+		maxLines--
 	}
 
 	comps := completion.AddRaw(compLines)
