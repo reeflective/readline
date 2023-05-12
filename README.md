@@ -50,7 +50,7 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 - Pure Go, almost-only standard library
 - Full `.inputrc` support (all commands/options)
 - Extensive test suite and full coverage of core code
-- [Extended list](https://github.com/reeflective/readline/wiki/Keymaps-&-Widgets) of additional commands/options (edition/completion/history)
+- [Extended list](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands) of additional commands/options (edition/completion/history)
 - Complete [multiline edition/movement support](https://github.com/reeflective/readline/wiki/Multiline)
 - Command-line edition in `$EDITOR`/`$VISUAL` support
 - Programmable API, with failure-safe access to core components
@@ -75,7 +75,7 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 
 ### Interface
 - Support for PS1/PS2/RPROMPT/transient/tooltip [prompts](https://github.com/reeflective/readline/wiki/Prompts) (compatible with [oh-my-posh](https://github.com/JanDeDobbeleer/oh-my-posh))
-- Extended completion system, [keymap-based and configurable](https://github.com/reeflective/readline/wiki/Keymaps-&-Widgets#completion), easy to populate & use
+- Extended completion system, [keymap-based and configurable](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands#completion), easy to populate & use
 - Multiple completion display styles, with color support.
 - Completion & History incremental search system & highlighting (fuzzy-search).
 - Automatic & context-aware suffix removal for efficient flags/path/list completion.
@@ -90,7 +90,7 @@ functionality provided by readline and its default configuration, install and st
 
 * [Introduction](https://github.com/reeflective/readline/wiki/Introduction-&-Features)
 * [Configuration file](https://github.com/reeflective/readline/wiki/Configuration-File)
-* [Keymaps & Widgets](https://github.com/reeflective/readline/wiki/Keymaps-&-Widgets)
+* [Keymaps & Commands](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands)
 * [Default Binds & Options](https://github.com/reeflective/readline/wiki/Default-Binds-&-Options)
 * [Prompts](https://github.com/reeflective/readline/wiki/Prompts)
 * [History Sources](https://github.com/reeflective/readline/wiki/History-Sources)

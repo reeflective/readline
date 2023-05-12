@@ -57,14 +57,15 @@ func (rl *Shell) viCommands() commands {
 		"vi-backward-end-bigword": rl.viBackwardBlankWordEnd,
 
 		// Changing text
-		"vi-change-to":   rl.viChangeTo,
-		"vi-delete-to":   rl.viDeleteTo,
-		"vi-delete":      rl.viDeleteChar,
-		"vi-change-char": rl.viChangeChar,
-		"vi-replace":     rl.viReplace, // missing vi-overstrike-delete
-		"vi-overstrike":  rl.viReplace,
-		"vi-change-case": rl.viChangeCase,
-		"vi-subst":       rl.viSubstitute,
+		"vi-change-to":            rl.viChangeTo,
+		"vi-delete-to":            rl.viDeleteTo,
+		"vi-delete":               rl.viDeleteChar,
+		"vi-change-char":          rl.viChangeChar,
+		"vi-backward-delete-char": rl.backwardDeleteChar,
+		"vi-replace":              rl.viReplace, // missing vi-overstrike-delete
+		"vi-overstrike":           rl.viReplace,
+		"vi-change-case":          rl.viChangeCase,
+		"vi-subst":                rl.viSubstitute,
 
 		"vi-change-eol":      rl.viChangeEol,
 		"vi-add-surround":    rl.viAddSurround,
