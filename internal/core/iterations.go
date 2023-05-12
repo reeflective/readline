@@ -84,7 +84,7 @@ func (i *Iterations) Reset() {
 	i.pending = false
 }
 
-// Reset resets the iterations if the last command was not one to set them.
+// ResetPostRunIterations resets the iterations if the last command didn't set them.
 // If the reset operated on active iterations, this function returns true.
 func ResetPostRunIterations(iter *Iterations) (hint string) {
 	if iter.pending {
