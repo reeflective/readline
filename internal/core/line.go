@@ -61,7 +61,7 @@ func (l *Line) Insert(pos int, chars ...rune) {
 	}
 }
 
-// InsertAt inserts one or more runes into the line, between the specified
+// InsertBetween inserts one or more runes into the line, between the specified
 // begin and end position, effectively deleting everything in between those.
 // If either or these positions is equal to -1, the selection content
 // is inserted at the other position. If both are -1, nothing is done.
@@ -311,7 +311,7 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 	return bpos, epos
 }
 
-// Display prints the line to stdout, starting at the current terminal
+// DisplayLine prints the line to stdout, starting at the current terminal
 // cursor position, assuming it is at the end of the shell prompt string.
 // Params:
 // @indent -    Used to align all lines (except the first) together on a single column.
@@ -344,9 +344,9 @@ func DisplayLine(l *Line, indent int) {
 	}
 }
 
-// Coordinates returns the number of real terminal lines on which the input line spans, considering
-// any contained newlines, any overflowing line, and the indent passed as parameter. The values
-// also take into account an eventual suggestion added to the line before printing.
+// CoordinatesLine returns the number of real terminal lines on which the input line spans, considering
+// any contained newlines, any overflowing line, and the indent passed as parameter. The values also
+// take into account an eventual suggestion added to the line before printing.
 // Params:
 // @indent - Coordinates to align all lines (except the first) together on a single column.
 // Returns:
@@ -503,7 +503,7 @@ func (l *Line) Tokenize(cpos int) ([]string, int, int) {
 	return split, index, pos
 }
 
-// Tokenize splits the line on each WORD (blank word), that is, split on every space.
+// TokenizeSpace splits the line on each WORD (blank word), that is, split on every space.
 func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
 	line := *l
 

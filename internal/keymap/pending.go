@@ -12,7 +12,7 @@ type action struct {
 	command inputrc.Bind
 }
 
-// AddPending registers a command as waiting for another command to run first,
+// Pending registers a command as waiting for another command to run first,
 // such as yank/delete/change actions, which accept/require a movement command.
 func (m *Engine) Pending() {
 	m.SetLocal(ViOpp)

@@ -305,8 +305,8 @@ func (e *Engine) Autocomplete() {
 	}
 }
 
-// Enable as-you-type autocomplete on the real input line,
-// even if the current cursor position is 0.
+// AutocompleteForce forces as-you-type autocomplete on the
+// real input line, even if the current cursor position is 0.
 func (e *Engine) AutocompleteForce() {
 	e.autoForce = true
 }

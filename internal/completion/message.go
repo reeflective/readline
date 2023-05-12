@@ -18,16 +18,19 @@ func (m *Messages) init() {
 	}
 }
 
+// IsEmpty returns true if there are no messages to display.
 func (m Messages) IsEmpty() bool {
 	// TODO replacement for Action.skipCache - does this need to consider suppressed messages or is this fine?
 	return len(m.messages) == 0
 }
 
+// Add adds a message to the list of messages.
 func (m *Messages) Add(s string) {
 	m.init()
 	m.messages[s] = true
 }
 
+// Get returns the list of messages to display.
 func (m Messages) Get() []string {
 	messages := make([]string, 0)
 	for message := range m.messages {
@@ -39,6 +42,7 @@ func (m Messages) Get() []string {
 	return messages
 }
 
+// Suppress removes messages matching the given regular expressions from the list of messages.
 func (m *Messages) Suppress(expr ...string) error {
 	m.init()
 
@@ -58,6 +62,7 @@ func (m *Messages) Suppress(expr ...string) error {
 	return nil
 }
 
+// Merge merges the given messages into the current list of messages.
 func (m *Messages) Merge(other Messages) {
 	if other.messages == nil {
 		return

@@ -159,7 +159,7 @@ func (c Completions) Usage(usage string, args ...interface{}) Completions {
 	})
 }
 
-// Usage sets the usage using a function.
+// UsageF sets the usage using a function.
 func (c Completions) UsageF(f func() string) Completions {
 	if usage := f(); usage != "" {
 		c.usage = usage
@@ -178,7 +178,7 @@ func (c Completions) Style(style string) Completions {
 	})
 }
 
-// Style sets the style using a reference
+// StyleR sets the style using a reference
 //
 //	CompleteValues("value").StyleR(&style.Value)
 //	CompleteValues("description").StyleR(&style.Value)
@@ -190,7 +190,7 @@ func (c Completions) StyleR(style *string) Completions {
 	return c
 }
 
-// Style sets the style using a function
+// StyleF sets the style using a function
 //
 //	CompleteValues("dir/", "test.txt").StyleF(myStyleFunc)
 //	CompleteValues("true", "false").StyleF(styleForKeyword)
@@ -211,7 +211,7 @@ func (c Completions) Tag(tag string) Completions {
 	})
 }
 
-// Tag sets the tag using a function.
+// TagF sets the tag using a function.
 //
 //	CompleteValues("192.168.1.1", "127.0.0.1").TagF(func(value string) string {
 //		return "interfaces"
