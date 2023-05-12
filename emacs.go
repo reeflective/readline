@@ -1059,8 +1059,13 @@ func (rl *Shell) copyPrevShellWord() {
 // but strips the Alt modifier used in Emacs mode.
 func (rl *Shell) digitArgument() {
 	rl.History.SkipSave()
-
 	keys := rl.Keys.Caller()
+
+	// Strip the Alt modifier.
+	if len(keys) > 1 && keys[0] == inputrc.Esc {
+		keys = keys[1:]
+	}
+
 	rl.Iterations.Add(string(keys))
 }
 
