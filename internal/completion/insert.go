@@ -31,7 +31,7 @@ func UpdateInserted(eng *Engine) {
 	// last key typed is an escape, in which case the user wants
 	// to quit incremental search but keeping any selected comp.
 	inserted := eng.mustRemoveInserted()
-	cached := eng.keymap.Local() != keymap.Isearch
+	cached := eng.keymap.Local() != keymap.Isearch && !eng.autoForce
 
 	eng.Cancel(inserted, cached)
 
