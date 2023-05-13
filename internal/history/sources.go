@@ -177,7 +177,7 @@ func (h *Sources) Walk(pos int) {
 	}
 
 	// Save the current line buffer if we are leaving it.
-	if h.hpos == 0 && (h.hpos+pos) == 1 {
+	if h.hpos == 0 && pos > 0 {
 		h.skip = false
 		h.Save()
 		h.cpos = -1
@@ -319,7 +319,7 @@ func (h *Sources) Write(infer bool) {
 		}
 
 		// Save the line and notify through hints if an error raised.
-		h.hpos, err = history.Write(line)
+		_, err = history.Write(line)
 		if err != nil {
 			h.hint.Set(color.FgRed + err.Error())
 		}

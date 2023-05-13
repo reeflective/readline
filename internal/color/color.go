@@ -71,19 +71,19 @@ var (
 
 // Text effects.
 const (
-	sgrStart     = "\x1b["
-	fgColorStart = "38;05;"
-	bgColorStart = "48;05;"
-	sgrEnd       = "m"
+	SGRStart     = "\x1b["
+	FgColorStart = "38;05;"
+	BgColorStart = "48;05;"
+	SGREnd       = "m"
 )
 
 // SGR formats a color code as an ANSI escaped color sequence.
 func SGR(color string, fg bool) string {
 	if fg {
-		return sgrStart + color + sgrEnd
+		return SGRStart + color + SGREnd
 	}
 
-	return sgrStart + bgColorStart + color + sgrEnd
+	return SGRStart + BgColorStart + color + SGREnd
 }
 
 // HasEffects returns true if colors and effects are supported

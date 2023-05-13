@@ -4,22 +4,18 @@
 //
 // Example usage:
 //
-//		rl, err := readline.NewShell()
-//		if err != nil {
-//		    panic(err)
-//		}
+//	     // Create a new shell with a custom prompt.
+//			rl := readline.NewShell()
+//			rl.Prompt.Primary(func() string { return "> "} )
 //
-//		// Set a custom prompt.
-//		rl.Prompt.Primary(func() string { return "> "} )
-//
-//	    // Display the prompt, read user input.
-//	    for {
-//	        line, err := rl.Readline()
-//	        if err != nil {
-//	            break
-//	        }
-//	        fmt.Println(line)
-//	    }
+//		 // Display the prompt, read user input.
+//		 for {
+//		     line, err := rl.Readline()
+//		     if err != nil {
+//		         break
+//		     }
+//		     fmt.Println(line)
+//		 }
 package readline
 
 import (

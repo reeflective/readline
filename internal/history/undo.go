@@ -215,12 +215,20 @@ func (h *Sources) getLineHistory() *lineHistory {
 		return &lineHistory{}
 	}
 
-	if hist[h.hpos] == nil {
-		hist[h.hpos] = &lineHistory{}
+	// Compute the position of the current line in the history.
+	linePos := 0
+
+	history := h.Current()
+	if h.hpos > 0 && history != nil {
+		linePos = history.Len() - h.hpos
+	}
+
+	if hist[linePos] == nil {
+		hist[linePos] = &lineHistory{}
 	}
 
 	// Return the state changes of the current line.
-	return hist[h.hpos]
+	return hist[linePos]
 }
 
 func (h *Sources) restoreLineBuffer() {
