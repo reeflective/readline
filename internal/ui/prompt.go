@@ -262,11 +262,6 @@ func (p *Prompt) formatLastPrompt(prompt string) string {
 	status = begin.ReplaceAllString(status, "")
 	status = end.ReplaceAllString(status, "")
 
-	// Remove ClearScreenBelow sequence to avoid flickering
-	prompt = strings.ReplaceAll(prompt, term.ClearScreenBelow, "")
-	prompt = strings.ReplaceAll(prompt, term.ClearLineAfter, "")
-	prompt = strings.ReplaceAll(prompt, term.ClearLine, "")
-
 	return status + prompt
 }
 
@@ -284,7 +279,7 @@ func (p *Prompt) formatRightPrompt(rprompt string, startColumn int) (prompt stri
 	// Check that we have room for a right/tooltip prompt.
 	canPrint = (startColumn+promptLen < termWidth) || startColumn == termWidth
 	if canPrint {
-		prompt = fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt) // + term.ClearLineAfter
+		prompt = fmt.Sprintf("%s%s", strings.Repeat(" ", padLen), rprompt)
 	}
 
 	return

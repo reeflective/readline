@@ -30,6 +30,7 @@ type Engine struct {
 	lineRows       int
 	cursorRow      int
 	cursorCol      int
+	hintRows       int
 	compRows       int
 	primaryPrinted bool
 
@@ -278,6 +279,7 @@ func (e *Engine) displayHelpers() {
 
 	// Display hint and completions.
 	ui.DisplayHint(e.hint)
+	e.hintRows = ui.CoordinatesHint(e.hint)
 	completion.Display(e.completer, e.AvailableHelperLines())
 	e.compRows = completion.Coordinates(e.completer)
 
@@ -291,7 +293,7 @@ func (e *Engine) displayHelpers() {
 // It returns half the terminal space if we currently have less than 1/3rd of it below.
 func (e *Engine) AvailableHelperLines() int {
 	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
-	compLines := termHeight - e.startRows - e.lineRows - ui.CoordinatesHint(e.hint) - 1
+	compLines := termHeight - e.startRows - e.lineRows - e.hintRows - 1
 
 	if compLines < (termHeight / oneThirdTerminalHeight) {
 		compLines = (termHeight / halfTerminalHeight) - 1

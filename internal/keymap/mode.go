@@ -8,19 +8,19 @@ type Mode string
 // Their functioning is similar to how ZSH organizes keymaps.
 const (
 	// Editor.
-	Emacs         Mode = "emacs"
-	EmacsMeta     Mode = "emacs-meta"
-	EmacsCtrlX    Mode = "emacs-ctlx"
-	EmacsStandard Mode = "emacs-standard"
+	Emacs         = "emacs"
+	EmacsMeta     = "emacs-meta"
+	EmacsCtrlX    = "emacs-ctlx"
+	EmacsStandard = "emacs-standard"
 
-	ViInsert  Mode = "vi-insert"
-	Vi        Mode = "vi"
-	ViCommand Mode = "vi-command"
-	ViMove    Mode = "vi-move"
-	Visual    Mode = "vi-visual"
-	ViOpp     Mode = "vi-opp"
+	ViInsert  = "vi-insert"
+	Vi        = "vi"
+	ViCommand = "vi-command"
+	ViMove    = "vi-move"
+	Visual    = "vi-visual"
+	ViOpp     = "vi-opp"
 
 	// Completion and search.
-	Isearch    Mode = "isearch"
-	MenuSelect Mode = "menu-select"
+	Isearch    = "isearch"
+	MenuSelect = "menu-select"
 )
