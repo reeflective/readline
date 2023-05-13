@@ -34,14 +34,14 @@ func (rl *Shell) AddHistoryFromFile(name, filepath string) {
 	rl.History.AddFromFile(name, filepath)
 }
 
-// Add adds a source of history lines bound to a given name (printed above
+// AddHistory adds a history source bound to a given name (printed above
 // this source when used). When only the default in-memory history is bound,
 // it's replaced with the provided source. Following ones are added to the list.
 func (rl *Shell) AddHistory(name string, source history.Source) {
 	rl.History.Add(name, source)
 }
 
-// Delete deletes one or more history source by name.
+// DeleteHistory deletes one or more history source by name.
 // If no arguments are passed, all currently bound sources are removed.
 func (rl *Shell) DeleteHistory(sources ...string) {
 	rl.History.Delete(sources...)

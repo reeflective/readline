@@ -98,7 +98,7 @@ func HasEffects() bool {
 	return true
 }
 
-// Disable will disable all colors and effects.
+// DisableEffects will disable all colors and effects.
 func DisableEffects() {
 	// Effects
 	Reset = ""

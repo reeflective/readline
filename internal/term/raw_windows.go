@@ -5,22 +5,23 @@
 //go:build windows
 // +build windows
 
-// Package terminal provides support functions for dealing with terminals, as
-// core.y found on UNIX systems.
+// Package term provides support functions for dealing with terminals,
+// as commonly found on UNIX systems.
 //
-// Putting a terminal into raw mode is the most core.requirement:
+// Putting a terminal into raw mode is the most common requirement:
 //
-// 	oldState, err := terminal.MakeRaw(0)
-// 	if err != nil {
-// 	        panic(err)
-// 	}
-// 	defer terminal.Restore(0, oldState)
+//	oldState, err := terminal.MakeRaw(0)
+//	if err != nil {
+//	        panic(err)
+//	}
+//	defer terminal.Restore(0, oldState)
 package term
 
 import (
 	"golang.org/x/sys/windows"
 )
 
+// State contains the state of a terminal.
 type State struct {
 	mode uint32
 }

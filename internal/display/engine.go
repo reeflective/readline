@@ -276,8 +276,20 @@ func (e *Engine) displayHelpers() {
 	// Recompute completions and hints if autocompletion is on.
 	e.completer.Autocomplete()
 
-	// Compute the number of available lines we have for displaying completions.
-	// Use half the terminal if we currently have less than 1/3rd of it below.
+	// Display hint and completions.
+	ui.DisplayHint(e.hint)
+	completion.Display(e.completer, e.AvailableHelperLines())
+	e.compRows = completion.Coordinates(e.completer)
+
+	// Go back to the first line below the input line.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorUp(e.compRows)
+	term.MoveCursorUp(ui.CoordinatesHint(e.hint))
+}
+
+// AvailableHelperLines returns the number of lines available below the hint section.
+// It returns half the terminal space if we currently have less than 1/3rd of it below.
+func (e *Engine) AvailableHelperLines() int {
 	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
 	compLines := termHeight - e.startRows - e.lineRows - ui.CoordinatesHint(e.hint) - 1
 
@@ -285,13 +297,5 @@ func (e *Engine) displayHelpers() {
 		compLines = (termHeight / halfTerminalHeight) - 1
 	}
 
-	// Display hint and completions.
-	ui.DisplayHint(e.hint)
-	completion.Display(e.completer, compLines)
-	e.compRows = completion.Coordinates(e.completer)
-
-	// Go back to the first line below the input line.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorUp(e.compRows)
-	term.MoveCursorUp(ui.CoordinatesHint(e.hint))
+	return compLines
 }

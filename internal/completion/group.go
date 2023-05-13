@@ -364,7 +364,7 @@ func (g *group) canFitInRow(termWidth int) bool {
 // we ask each of them to filter its own items and return the results to the shell for aggregating them.
 // The rx parameter is passed, as the shell already checked that the search pattern is valid.
 func (g *group) updateIsearch(eng *Engine) {
-	if eng.isearchRgx == nil {
+	if eng.IsearchRegex == nil {
 		return
 	}
 
@@ -374,9 +374,9 @@ func (g *group) updateIsearch(eng *Engine) {
 		row := g.values[i]
 
 		for _, val := range row {
-			if eng.isearchRgx.MatchString(val.Value) {
+			if eng.IsearchRegex.MatchString(val.Value) {
 				suggs = append(suggs, val)
-			} else if val.Description != "" && eng.isearchRgx.MatchString(val.Description) {
+			} else if val.Description != "" && eng.IsearchRegex.MatchString(val.Description) {
 				suggs = append(suggs, val)
 			}
 		}
@@ -609,10 +609,10 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 	reset := color.SGR(val.Style, true)
 	candidate = g.displayTrimmed(val.Display)
 
-	if eng.isearchRgx != nil && eng.isearchBuf.Len() > 0 {
-		match := eng.isearchRgx.FindString(candidate)
+	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
+		match := eng.IsearchRegex.FindString(candidate)
 		match = color.BgBlackBright + match + color.Reset + cell + reset
-		candidate = eng.isearchRgx.ReplaceAllLiteralString(candidate, match)
+		candidate = eng.IsearchRegex.ReplaceAllLiteralString(candidate, match)
 	}
 
 	switch {
@@ -644,10 +644,10 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	desc = g.descriptionTrimmed(val.Description)
 
-	if eng.isearchRgx != nil && eng.isearchBuf.Len() > 0 {
-		match := eng.isearchRgx.FindString(desc)
+	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
+		match := eng.IsearchRegex.FindString(desc)
 		match = color.BgBlackBright + match + color.Reset + color.Dim
-		desc = eng.isearchRgx.ReplaceAllLiteralString(desc, match)
+		desc = eng.IsearchRegex.ReplaceAllLiteralString(desc, match)
 	}
 
 	// If the comp is currently selected, overwrite any highlighting already applied.

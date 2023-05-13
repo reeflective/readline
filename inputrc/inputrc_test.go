@@ -81,6 +81,7 @@ func TestEncontrolDecontrol(t *testing.T) {
 		{'J', '\n'},
 		{'M', '\r'},
 	}
+
 	for i, test := range tests {
 		c := Encontrol(test.d)
 		if exp := test.e; c != exp {
@@ -326,7 +327,7 @@ func readTestdata(name string) ([]byte, error) {
 	}
 	v := bytes.Split(buf, []byte(delimiter))
 	if len(v) != 3 {
-		return nil, fmt.Errorf("test data %s is invalid!", name)
+		return nil, fmt.Errorf("test data %s is invalid", name)
 	}
 	return v[1], nil
 }

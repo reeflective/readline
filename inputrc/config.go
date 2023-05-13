@@ -130,7 +130,7 @@ type Bind struct {
 // ConfigOption is a inputrc config handler option.
 type ConfigOption func(*Config)
 
-// WithConfigReadFileReadFile is a inputrc config option to set the func used
+// WithConfigReadFileReadFileFunc is a inputrc config option to set the func used
 // for ReadFile operations.
 func WithConfigReadFileFunc(readFileFunc func(string) ([]byte, error)) ConfigOption {
 	return func(cfg *Config) {

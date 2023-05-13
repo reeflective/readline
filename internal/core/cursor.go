@@ -355,7 +355,7 @@ func (c *Cursor) CheckCommand() {
 	}
 }
 
-// Coordinates returns the number of real terminal lines above the cursor position
+// CoordinatesCursor returns the number of real terminal lines above the cursor position
 // (y value), and the number of columns since the beginning of the current line (x value).
 // @indent -    Used to align all lines (except the first) together on a single column.
 func CoordinatesCursor(cur *Cursor, indent int) (x, y int) {

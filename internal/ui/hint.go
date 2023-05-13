@@ -110,7 +110,7 @@ func DisplayHint(hint *Hint) {
 	}
 }
 
-// Coordinates returns the number of terminal rows used by the hint.
+// CoordinatesHint returns the number of terminal rows used by the hint.
 func CoordinatesHint(hint *Hint) int {
 	var text string
 

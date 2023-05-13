@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	ErrUnterminatedSingleQuote = errors.New("unterminated single-quoted string")
-	ErrUnterminatedDoubleQuote = errors.New("unterminated double-quoted string")
-	ErrUnterminatedEscape      = errors.New("unterminated backslash-escape")
+	errUnterminatedSingleQuote = errors.New("unterminated single-quoted string")
+	errUnterminatedDoubleQuote = errors.New("unterminated double-quoted string")
+	errUnterminatedEscape      = errors.New("unterminated backslash-escape")
 )
 
 var (
@@ -44,7 +44,7 @@ func Split(input string) (words []string, err error) {
 			// Look ahead for escaped newline so we can skip over it
 			next := input[l:]
 			if len(next) == 0 {
-				err = ErrUnterminatedEscape
+				err = errUnterminatedEscape
 				return
 			}
 			c2, l2 := utf8.DecodeRuneInString(next)
@@ -100,7 +100,7 @@ raw:
 escape:
 	{
 		if len(input) == 0 {
-			return "", "", ErrUnterminatedEscape
+			return "", "", errUnterminatedEscape
 		}
 		c, l := utf8.DecodeRuneInString(input)
 		if c == '\n' {
@@ -116,7 +116,7 @@ single:
 	{
 		i := strings.IndexRune(input, singleChar)
 		if i == -1 {
-			return "", "", ErrUnterminatedSingleQuote
+			return "", "", errUnterminatedSingleQuote
 		}
 		buf.WriteString(input[0:i])
 		input = input[i+1:]
@@ -148,7 +148,7 @@ double:
 				}
 			}
 		}
-		return "", "", ErrUnterminatedDoubleQuote
+		return "", "", errUnterminatedDoubleQuote
 	}
 
 done:

@@ -22,7 +22,7 @@ const (
 // @epos     => Offset to end position.
 type KeywordSwitcher func(word string, increase bool, times int) (done bool, switched string, bpos, epos int)
 
-// keywordSwitchers returns all keywordSwitchers of the shell.
+// KeywordSwitchers returns all keywordSwitchers of the shell.
 func KeywordSwitchers() []KeywordSwitcher {
 	return []KeywordSwitcher{
 		switchNumber,

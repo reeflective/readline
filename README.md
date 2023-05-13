@@ -175,8 +175,12 @@ This library is now in a release status, as it has underwent several major rewri
 feature-complete, with a solid testing suite to ensure safe and smooth operation to the best extent possible.
 New releases will be regularly pushed when bugs are found and corrected.
 
+Additionally:
+- Key dispatch/flushing, meta-key enable, etc might still contain some bugs/wrong behavior: 
+  30 years of legacy support for 3000 different terminal emulators cannot be done right by me alone.
 - Please open a PR or an issue if you face any bug, and it will be promptly resolved.
 - Don't hesitate proposing a new feature or a PR if you deem it to be useful to most users.
+
 
 ## Credits
 

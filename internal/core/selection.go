@@ -71,7 +71,7 @@ func (s *Selection) MarkRange(bpos, epos int) {
 	s.bg = color.BgBlue
 }
 
-// MarkSurroundA creates two distinct selections each containing one rune.
+// MarkSurround creates two distinct selections each containing one rune.
 // The first area starts at bpos, and the second one at epos. If either bpos
 // is negative or epos is > line.Len()-1, no selection is created.
 func (s *Selection) MarkSurround(bpos, epos int) {

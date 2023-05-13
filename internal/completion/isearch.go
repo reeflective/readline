@@ -31,7 +31,7 @@ func (e *Engine) IsearchStop() {
 	e.auto = false
 	e.autoForce = false
 	e.isearchBuf = nil
-	e.isearchRgx = nil
+	e.IsearchRegex = nil
 	e.isearchCur = nil
 
 	e.resetIsearchInsertMode()
@@ -111,7 +111,7 @@ func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
 func (e *Engine) NonIsearchStop() {
 	e.searchLast = string(*e.isearchBuf)
 	e.isearchBuf = nil
-	e.isearchRgx = nil
+	e.IsearchRegex = nil
 	e.isearchCur = nil
 	e.isearchForward = false
 	e.isearchSubstring = false
@@ -141,7 +141,7 @@ func (e *Engine) updateIncrementalSearch() {
 	}
 
 	var err error
-	e.isearchRgx, err = regexp.Compile(regexStr)
+	e.IsearchRegex, err = regexp.Compile(regexStr)
 
 	if err != nil {
 		e.hint.Set(color.FgRed + "Failed to compile i-search regexp")

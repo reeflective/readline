@@ -73,7 +73,6 @@ func (m *Engine) dispatch(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd
 	var keys, matched []byte
 
 	for {
-		// Read keys one by one, and abort once exhausted.
 		key, empty := core.PopKey(m.keys)
 		if empty {
 			break

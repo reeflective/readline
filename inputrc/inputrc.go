@@ -62,10 +62,7 @@ func UserDefault(u *user.User, cfg *Config, opts ...Option) error {
 		case err != nil:
 			return err
 		}
-		if err := ParseBytes(buf, cfg, append(opts, WithName(name))...); err != nil {
-			return err
-		}
-		return nil
+		return ParseBytes(buf, cfg, append(opts, WithName(name))...)
 	}
 	return nil
 }
@@ -84,7 +81,7 @@ func Escape(s string) string {
 	})
 }
 
-// Escape escapes a inputrc macro.
+// EscapeMacro escapes a inputrc macro.
 func EscapeMacro(s string) string {
 	return escape(s, map[rune]string{
 		Delete: `\d`,
