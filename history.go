@@ -76,6 +76,7 @@ func (rl *Shell) historyCommands() commands {
 		"accept-and-hold":                    rl.acceptAndHold,
 		"accept-and-infer-next-history":      rl.acceptAndInferNextHistory,
 		"down-line-or-history":               rl.downLineOrHistory,
+		"vi-down-line-or-history":            rl.viDownLineOrHistory,
 		"up-line-or-history":                 rl.upLineOrHistory,
 		"up-line-or-search":                  rl.upLineOrSearch,
 		"down-line-or-select":                rl.downLineOrSelect,
@@ -207,7 +208,6 @@ func (rl *Shell) nonIncrementalReverseSearchHistory() {
 // Search forward through the history for the string of characters
 // between the start of the current line and the point.  The search
 // string must match at the beginning of a history line.
-// This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchForward() {
 	rl.History.Save()
 
@@ -221,7 +221,6 @@ func (rl *Shell) historySearchForward() {
 // Search backward through the history for the string of characters
 // between the start of the current line and the point.  The search
 // string must match at the beginning of a history line.
-// This shows the completions in autocomplete mode.
 func (rl *Shell) historySearchBackward() {
 	rl.History.Save()
 
@@ -417,6 +416,14 @@ func (rl *Shell) downLineOrHistory() {
 	if times > 0 {
 		rl.History.Walk(times * -1)
 	}
+}
+
+// Move down a line in the buffer, or if already at the
+// bottom line, move to the next event in the history list.
+// Then move to the first non-blank character on the line.
+func (rl *Shell) viDownLineOrHistory() {
+	rl.downLineOrHistory()
+	rl.viFirstPrint()
 }
 
 // Move up a line in the buffer, or if already at the top

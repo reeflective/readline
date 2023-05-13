@@ -88,7 +88,7 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 Readline is used by the [console library](https://github.com/reeflective/console) and its [example binary](https://github.com/reeflective/console/tree/main/example). To get a grasp of the 
 functionality provided by readline and its default configuration, install and start the binary.
 
-* [Introduction](https://github.com/reeflective/readline/wiki/Introduction-&-Features)
+* [Introduction](https://github.com/reeflective/readline/wiki/Introduction)
 * [Configuration file](https://github.com/reeflective/readline/wiki/Configuration-File)
 * [Keymaps & Commands](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands)
 * [Default Binds & Options](https://github.com/reeflective/readline/wiki/Default-Binds-&-Options)

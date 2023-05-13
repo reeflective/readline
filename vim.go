@@ -61,7 +61,7 @@ func (rl *Shell) viCommands() commands {
 		"vi-delete-to":            rl.viDeleteTo,
 		"vi-delete":               rl.viDeleteChar,
 		"vi-change-char":          rl.viChangeChar,
-		"vi-backward-delete-char": rl.backwardDeleteChar,
+		"vi-backward-delete-char": rl.viBackwardDeleteChar,
 		"vi-replace":              rl.viReplace, // missing vi-overstrike-delete
 		"vi-overstrike":           rl.viReplace,
 		"vi-change-case":          rl.viChangeCase,
@@ -674,6 +674,13 @@ func (rl *Shell) viChangeChar() {
 	}
 }
 
+// Delete the character behind the cursor, without changing lines.
+func (rl *Shell) viBackwardDeleteChar() {
+	if !rl.cursor.AtBeginningOfLine() {
+		rl.backwardDeleteChar()
+	}
+}
+
 // Enter overwrite mode.
 func (rl *Shell) viReplace() {
 	// The the standard emacs replace loop,
@@ -1255,6 +1262,9 @@ func (rl *Shell) viEOFMaybe() {
 	rl.endOfFile()
 }
 
+// Search forward or backward through the history for the string
+// of characters between the start of the current line and the point.
+// This is a non-incremental search.
 func (rl *Shell) viSearch() {
 	var forward bool
 
@@ -1270,6 +1280,10 @@ func (rl *Shell) viSearch() {
 	rl.completer.NonIsearchStart(rl.History.Name()+" "+string(keys[0]), false, forward, true)
 }
 
+// Search again, through the history for the string of characters
+// between the start of the current line and the point, using the
+// same search string used by the previous search.
+// This is a non-incremental search.
 func (rl *Shell) viSearchAgain() {
 	var forward bool
 	var hint string
