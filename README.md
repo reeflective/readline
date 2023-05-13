@@ -88,18 +88,7 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 Readline is used by the [console library](https://github.com/reeflective/console) and its [example binary](https://github.com/reeflective/console/tree/main/example). To get a grasp of the 
 functionality provided by readline and its default configuration, install and start the binary.
 
-* [Introduction](https://github.com/reeflective/readline/wiki/Introduction)
-* [Configuration file](https://github.com/reeflective/readline/wiki/Configuration-File)
-* [Keymaps & Commands](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands)
-* [Default Binds & Options](https://github.com/reeflective/readline/wiki/Default-Binds-&-Options)
-* [Prompts](https://github.com/reeflective/readline/wiki/Prompts)
-* [History Sources](https://github.com/reeflective/readline/wiki/History-Sources)
-* [Vim mode](https://github.com/reeflective/readline/wiki/Vim-Mode)
-* [Custom callbacks](https://github.com/reeflective/readline/wiki/Custom-Callbacks)
-* [Programmable Commands](https://github.com/reeflective/readline/wiki/Programmable-Commands)
-* [Completions & Hints](https://github.com/reeflective/readline/wiki/Completions-&-Hints)
-* [Other features](https://github.com/reeflective/readline/wiki/Other-Features)
-* [Multiline support](https://github.com/reeflective/readline/wiki/Multiline)
+The documentation is available on the [repository wiki](https://github.com/reeflective/readline/wiki), for both users and developers.
 
 
 ## Showcases
