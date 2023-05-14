@@ -10,7 +10,6 @@ import (
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
-	"github.com/reeflective/readline/internal/editor"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
@@ -1507,7 +1506,7 @@ func (rl *Shell) editAndExecuteCommand() {
 	buffer := *rl.line
 
 	// Edit in editor
-	edited, err := editor.EditBuffer(buffer, "", "", rl.Keymap.IsEmacs())
+	edited, err := rl.Buffers.EditBuffer(buffer, "", "", rl.Keymap.IsEmacs())
 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
 		rl.History.SkipSave()
 
@@ -1529,7 +1528,7 @@ func (rl *Shell) editCommandLine() {
 	keymapCur := rl.Keymap.Main()
 
 	// Edit in editor
-	edited, err := editor.EditBuffer(buffer, "", "", rl.Keymap.IsEmacs())
+	edited, err := rl.Buffers.EditBuffer(buffer, "", "", rl.Keymap.IsEmacs())
 	if err != nil || (len(edited) == 0 && len(buffer) != 0) {
 		rl.History.SkipSave()
 

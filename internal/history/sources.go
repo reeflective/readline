@@ -124,7 +124,8 @@ func (h *Sources) Add(name string, hist Source) {
 	h.list[name] = hist
 }
 
-// AddFromFile registers a new History populated from, and writing to a file.
+// AddFromFile adds a command history source from a file path.
+// The name is used when using/searching the history source.
 func (h *Sources) AddFromFile(name, file string) {
 	hist := new(fileHistory)
 	hist.file = file

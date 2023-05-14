@@ -17,7 +17,7 @@ var ErrStart = errors.New("failed to start editor")
 // temp directory under this name.
 // If the filetype is not empty and if the system editor supports it, the
 // file will be opened with the specified filetype passed to the editor.
-func EditBuffer(buf []rune, filename, filetype string, emacs bool) ([]rune, error) {
+func (reg *Buffers) EditBuffer(buf []rune, filename, filetype string, emacs bool) ([]rune, error) {
 	name, err := writeToFile([]byte(string(buf)), filename)
 	if err != nil {
 		return buf, err
