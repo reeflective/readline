@@ -766,6 +766,7 @@ func (rl *Shell) keywordDecrease() {
 	rl.keywordSwitch(false)
 }
 
+// Switches the current word under the cursor, increasing or decreasing it.
 func (rl *Shell) keywordSwitch(increase bool) {
 	cpos := strutil.AdjustNumberOperatorPos(rl.cursor.Pos(), *rl.line)
 
@@ -1181,6 +1182,8 @@ func (rl *Shell) reReadInitFile() {
 }
 
 // Abort the current editing command.
+// If one of the completion or non/incremental-search modes
+// are active, only cancel them and nothing else.
 func (rl *Shell) abort() {
 	// Reset any visual selection and iterations.
 	rl.Iterations.Reset()
@@ -1521,8 +1524,6 @@ func (rl *Shell) editAndExecuteCommand() {
 	rl.History.Accept(false, false, nil)
 }
 
-// Invoke an editor on the current command line.
-// Readline attempts to invoke $VISUAL, $EDITOR, and emacs as the editor, in that order.
 func (rl *Shell) editCommandLine() {
 	buffer := *rl.line
 	keymapCur := rl.Keymap.Main()

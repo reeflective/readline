@@ -56,6 +56,7 @@ func (rl *Shell) possibleCompletions() {
 	rl.startMenuComplete(rl.commandCompletion)
 }
 
+// Insert all completions for the current word into the line.
 func (rl *Shell) insertCompletions() {
 	rl.History.Save()
 

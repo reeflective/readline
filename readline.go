@@ -1,3 +1,21 @@
+// Package readline provides a modern, pure Go `readline` shell implementation,
+// with full `.inputrc` and legacy readline command/option support, and extended
+// with various commands,options and tools commonly found in more modern shells.
+//
+// Example usage:
+//
+//	     // Create a new shell with a custom prompt.
+//			rl := readline.NewShell()
+//			rl.Prompt.Primary(func() string { return "> "} )
+//
+//		 // Display the prompt, read user input.
+//		 for {
+//		     line, err := rl.Readline()
+//		     if err != nil {
+//		         break
+//		     }
+//		     fmt.Println(line)
+//		 }
 package readline
 
 import (

@@ -56,18 +56,6 @@ type Shell struct {
 	// It takes the readline line ([]rune) and cursor pos as parameters,
 	// and returns completions with their associated metadata/settings.
 	Completer func(line []rune, cursor int) Completions
-
-	// SyntaxCompletion is used to autocomplete code syntax (like braces and
-	// quotation marks). If you want to complete words or phrases then you might
-	// be better off using the Completer function.
-	// SyntaxCompletion takes the line ([]rune) and cursor position, and returns
-	// the new line and cursor position.
-	SyntaxCompleter func(line []rune, cursor int) ([]rune, int)
-
-	// HintText is a helper function which displays hint text below the line.
-	// HintText takes the line input from the promt and the cursor position.
-	// It returns the hint text to display.
-	HintText func(line []rune, cursor int) []rune
 }
 
 // NewShell returns a readline shell instance initialized with a default

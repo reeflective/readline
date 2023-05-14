@@ -70,14 +70,19 @@ func (e *Engine) group(comps Values) {
 func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals RawValues, aliased bool) {
 	var descriptions []string
 
+	prefix := ""
+	if e.prefix != "\"\"" && e.prefix != "''" {
+		prefix = e.prefix
+	}
+
 	for _, val := range values {
 		// Ensure all values have a display string.
 		if val.Display == "" {
 			val.Display = val.Value
 		}
 
-		// NOTE: Currently this is because errors are passed as completions.
-		if strings.HasPrefix(val.Value, e.prefix+"ERR") || strings.HasPrefix(val.Value, e.prefix+"_") {
+		// Currently this is because errors are passed as completions.
+		if strings.HasPrefix(val.Value, prefix+"ERR") || strings.HasPrefix(val.Value, prefix+"_") {
 			if val.Description != "" && comps != nil {
 				comps.Messages.Add(color.FgRed + val.Description)
 			}
