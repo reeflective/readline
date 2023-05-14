@@ -18,34 +18,15 @@ import (
 // Users who want an easy to use, file-based history should use NewHistoryFromFile().
 type History = history.Source
 
-// NewHistoryFromFile creates a new command history source writing to
-// and reading from a file. The caller should bind the history source
-// returned from this call to the readline instance, with AddHistory().
+// NewHistoryFromFile creates a new command history source writing to and reading
+// from a file. The caller should bind the history source returned from this call
+// to the readline instance, with shell.History.Add().
 var NewHistoryFromFile = history.NewSourceFromFile
 
 // NewInMemoryHistory creates a new in-memory command history source.
 // The caller should bind the history source returned from this call
-// to the readline instance, with AddHistory().
+// to the readline instance, with shell.History.Add().
 var NewInMemoryHistory = history.NewInMemoryHistory
-
-// AddHistoryFromFile adds a command history source from a file path.
-// The name is used when using/searching the history source.
-func (rl *Shell) AddHistoryFromFile(name, filepath string) {
-	rl.History.AddFromFile(name, filepath)
-}
-
-// AddHistory adds a history source bound to a given name (printed above
-// this source when used). When only the default in-memory history is bound,
-// it's replaced with the provided source. Following ones are added to the list.
-func (rl *Shell) AddHistory(name string, source history.Source) {
-	rl.History.Add(name, source)
-}
-
-// DeleteHistory deletes one or more history source by name.
-// If no arguments are passed, all currently bound sources are removed.
-func (rl *Shell) DeleteHistory(sources ...string) {
-	rl.History.Delete(sources...)
-}
 
 // historyCommands returns all history commands.
 // Under each comment are gathered all commands related to the comment's
