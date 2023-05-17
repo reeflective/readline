@@ -94,26 +94,16 @@ func (p *Prompt) PrimaryPrint() {
 		return
 	}
 
-	var prompt, lastPrompt string
+	prompt := p.primaryF()
 
-	prompt = p.primaryF()
-
-	// Get all the lines but the last.
-	lines := strings.Split(prompt, "\n")
-
-	if len(lines) > 1 {
-		prompt = strings.Join(lines[:len(lines)-1], "\n")
-		lastPrompt = lines[len(lines)-1]
-	} else {
-		lastPrompt, prompt = prompt, ""
-	}
+	prompt, lastPrompt := p.formatPrimaryLines(prompt)
 
 	// Format the last line with the editing status.
 	lastPrompt = p.formatLastPrompt(lastPrompt)
 
 	// Print the various lines.
 	if prompt != "" {
-		fmt.Println(prompt)
+		fmt.Print(prompt)
 	}
 
 	fmt.Print(lastPrompt)
@@ -283,4 +273,18 @@ func (p *Prompt) formatRightPrompt(rprompt string, startColumn int) (prompt stri
 	}
 
 	return
+}
+
+func (p *Prompt) formatPrimaryLines(prompt string) (multi, lastPrompt string) {
+	// Get all the lines but the last.
+	lines := strings.Split(prompt, "\n")
+
+	if len(lines) > 1 {
+		multi = strings.Join(lines[:len(lines)-1], "\n") + "\n"
+		lastPrompt = lines[len(lines)-1]
+	} else {
+		lastPrompt, multi = prompt, ""
+	}
+
+	return multi, lastPrompt
 }

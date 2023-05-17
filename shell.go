@@ -162,7 +162,7 @@ func (rl *Shell) PrintTransientf(msg string, args ...any) (n int, err error) {
 	rl.Display.CursorToLineStart()
 	term.MoveCursorBackwards(term.GetWidth())
 
-	term.MoveCursorUp(rl.Prompt.PrimaryUsed() + 1)
+	term.MoveCursorUp(rl.Prompt.PrimaryUsed())
 	fmt.Print(term.ClearScreenBelow)
 
 	// Print the logged message.
