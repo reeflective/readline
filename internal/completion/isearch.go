@@ -10,14 +10,21 @@ import (
 
 // IsearchStart starts incremental search (fuzzy-finding)
 // with values matching the isearch minibuffer as a regexp.
-func (e *Engine) IsearchStart(name string, autoinsert bool) {
-	e.keymap.SetLocal(keymap.Isearch)
-	e.auto = true
+func (e *Engine) IsearchStart(name string, autoinsert, replaceLine bool) {
+	// Prepare all buffers and cursors.
 	e.isearchInsert = autoinsert
-	e.adaptIsearchInsertMode()
+	e.isearchReplaceLine = replaceLine
+
+	e.isearchStartBuf = string(*e.line)
+	e.isearchStartCursor = e.cursor.Pos()
 
 	e.isearchBuf = new(core.Line)
 	e.isearchCur = core.NewCursor(e.isearchBuf)
+
+	// Prepare all keymaps and modes.
+	e.auto = true
+	e.keymap.SetLocal(keymap.Isearch)
+	e.adaptIsearchInsertMode()
 
 	// Hints
 	e.isearchName = name
@@ -27,13 +34,25 @@ func (e *Engine) IsearchStart(name string, autoinsert bool) {
 // IsearchStop exists the incremental search mode,
 // and drops the currently used regexp matcher.
 func (e *Engine) IsearchStop() {
-	e.keymap.SetLocal("")
-	e.auto = false
-	e.autoForce = false
+	// Reset all buffers and cursors.
 	e.isearchBuf = nil
 	e.IsearchRegex = nil
 	e.isearchCur = nil
 
+	// Reset the original line when needed.
+	if e.isearchReplaceLine {
+		e.line.Set([]rune(e.isearchStartBuf)...)
+		e.cursor.Set(e.isearchStartCursor)
+	}
+
+	e.isearchStartBuf = ""
+	e.isearchStartCursor = 0
+	e.isearchReplaceLine = false
+
+	// And clear all related completion keymaps/modes.
+	e.auto = false
+	e.autoForce = false
+	e.keymap.SetLocal("")
 	e.resetIsearchInsertMode()
 }
 
@@ -91,7 +110,7 @@ func (e *Engine) UpdateIsearch() {
 func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
 	if repeat {
 		e.isearchBuf = new(core.Line)
-		e.isearchBuf.Set([]rune(e.searchLast)...)
+		e.isearchBuf.Set([]rune(e.isearchLast)...)
 	} else {
 		e.isearchBuf = new(core.Line)
 	}
@@ -109,7 +128,7 @@ func (e *Engine) NonIsearchStart(name string, repeat, forward, substring bool) {
 
 // NonIsearchStop exits the non-incremental search mode.
 func (e *Engine) NonIsearchStop() {
-	e.searchLast = string(*e.isearchBuf)
+	e.isearchLast = string(*e.isearchBuf)
 	e.isearchBuf = nil
 	e.IsearchRegex = nil
 	e.isearchCur = nil
@@ -168,7 +187,17 @@ func (e *Engine) updateIncrementalSearch() {
 
 	// And update the inserted candidate if autoinsert is enabled.
 	if e.isearchInsert && e.Matches() > 0 && e.isearchBuf.Len() > 0 {
+		// History incremental searches must replace the whole line.
+		if e.isearchReplaceLine {
+			e.line.Set()
+			e.cursor.Set(0)
+		}
+
 		e.Select(1, 0)
+	} else if e.isearchReplaceLine {
+		// Else no matches, restore the original line.
+		e.line.Set([]rune(e.isearchStartBuf)...)
+		e.cursor.Set(e.isearchStartCursor)
 	}
 }
 

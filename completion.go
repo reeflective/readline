@@ -189,7 +189,7 @@ func (rl *Shell) menuIncrementalSearch() {
 		rl.completer.GenerateWith(rl.commandCompletion)
 	}
 
-	rl.completer.IsearchStart("completions", false)
+	rl.completer.IsearchStart("completions", false, false)
 }
 
 //
@@ -254,7 +254,7 @@ func (rl *Shell) historyCompletion(forward, filterLine, substring bool) {
 
 		if substring {
 			rl.completer.GenerateWith(completer)
-			rl.completer.IsearchStart(rl.History.Name(), true)
+			rl.completer.IsearchStart(rl.History.Name(), true, true)
 		} else {
 			rl.startMenuComplete(completer)
 			rl.completer.AutocompleteForce()

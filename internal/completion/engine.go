@@ -39,15 +39,18 @@ type Engine struct {
 	skipDisplay bool          // Don't display completions if there are some.
 
 	// Incremental search
-	IsearchRegex     *regexp.Regexp // Holds the current search regex match
-	isearchBuf       *core.Line     // The isearch minibuffer
-	isearchCur       *core.Cursor   // Cursor position in the minibuffer.
-	isearchName      string         // What is being incrementally searched for.
-	isearchInsert    bool           // Whether to insert the first match in the line
-	isearchForward   bool           // Match results in forward order, or backward.
-	isearchSubstring bool           // Match results as a substring (regex), or as a prefix.
-	searchLast       string         // The last non-incremental buffer.
-	isearchModeExit  keymap.Mode    // The main keymap to restore after exiting isearch
+	IsearchRegex       *regexp.Regexp // Holds the current search regex match
+	isearchBuf         *core.Line     // The isearch minibuffer
+	isearchCur         *core.Cursor   // Cursor position in the minibuffer.
+	isearchName        string         // What is being incrementally searched for.
+	isearchInsert      bool           // Whether to insert the first match in the line
+	isearchForward     bool           // Match results in forward order, or backward.
+	isearchSubstring   bool           // Match results as a substring (regex), or as a prefix.
+	isearchReplaceLine bool           // Replace the current line with the search result
+	isearchStartBuf    string         // The buffer before starting isearch
+	isearchStartCursor int            // The cursor position before starting isearch
+	isearchLast        string         // The last non-incremental buffer.
+	isearchModeExit    keymap.Mode    // The main keymap to restore after exiting isearch
 }
 
 // NewEngine initializes a new completion engine with the shell operating parameters.
