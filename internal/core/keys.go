@@ -16,6 +16,11 @@ const (
 	keyScanBufSize = 1024
 )
 
+// Stdin is used by the Keys struct to read and write keys.
+// It can be overwritten to use other file descriptors or
+// custom io.Readers, such as the one used on Windows.
+var Stdin io.ReadCloser = os.Stdin
+
 var rxRcvCursorPos = regexp.MustCompile(`\x1b\[([0-9]+);([0-9]+)R`)
 
 // Keys is used read, manage and use keys input by the shell user.
@@ -248,10 +253,8 @@ func (k *Keys) Feed(begin bool, keys ...rune) {
 
 	if begin {
 		k.macroKeys = append(keyBuf, k.macroKeys...)
-		// k.buf = append(keyBuf, k.buf...)
 	} else {
 		k.macroKeys = append(k.macroKeys, keyBuf...)
-		// k.buf = append(k.buf, keyBuf...)
 	}
 }
 
@@ -348,7 +351,7 @@ func (k *Keys) readInputFiltered() (keys []byte, err error) {
 	// send by ourselves, because we pause reading.
 	buf := make([]byte, keyScanBufSize)
 
-	read, err := os.Stdin.Read(buf)
+	read, err := Stdin.Read(buf)
 	if err != nil && errors.Is(err, io.EOF) {
 		return
 	}
