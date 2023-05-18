@@ -190,6 +190,7 @@ func (e *Engine) updateIncrementalSearch() {
 	if e.isearchInsert && e.Matches() > 0 && e.isearchBuf.Len() > 0 {
 		// History incremental searches must replace the whole line.
 		if e.isearchReplaceLine {
+			e.prefix = ""
 			e.line.Set()
 			e.cursor.Set(0)
 		}
