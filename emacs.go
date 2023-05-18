@@ -147,7 +147,7 @@ func (rl *Shell) emacsEditingMode() {
 // Move forward one character.
 func (rl *Shell) forwardChar() {
 	// Only exception where we actually don't forward a character.
-	if rl.Config.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
+	if rl.Config.GetBool("history-autosuggest") && rl.cursor.Pos() >= rl.line.Len()-1 {
 		rl.autosuggestAccept()
 		return
 	}
