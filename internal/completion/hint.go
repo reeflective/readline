@@ -1,7 +1,6 @@
 package completion
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/reeflective/readline/internal/color"
@@ -14,18 +13,12 @@ func (e *Engine) hintCompletions(comps Values) {
 	// and only if we don't have completions.
 	if len(comps.values) == 0 || e.config.GetBool("usage-hint-always") {
 		if comps.Usage != "" {
-			hint += color.Dim + comps.Usage + "\n"
+			hint += color.Dim + comps.Usage + color.Reset + "\n"
 		}
 	}
 
 	// And all further messages
-	for _, message := range comps.Messages.Get() {
-		if message == "" {
-			continue
-		}
-
-		hint += fmt.Sprintf("%s\n", message)
-	}
+	hint += strings.Join(comps.Messages.Get(), "\n")
 
 	if e.Matches() == 0 && hint == "" && !e.auto {
 		hint = e.hintNoMatches()
@@ -37,7 +30,7 @@ func (e *Engine) hintCompletions(comps Values) {
 	}
 
 	// Add the hint to the shell.
-	e.hint.Set(hint)
+	e.hint.Set(hint + color.Reset)
 }
 
 func (e *Engine) hintNoMatches() string {
