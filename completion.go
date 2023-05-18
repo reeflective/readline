@@ -185,10 +185,8 @@ func (rl *Shell) viRegistersComplete() {
 func (rl *Shell) menuIncrementalSearch() {
 	rl.History.SkipSave()
 
-	if !rl.completer.IsActive() {
-		rl.completer.GenerateWith(rl.commandCompletion)
-	}
-
+	// Always regenerate the list of completions.
+	rl.completer.GenerateWith(rl.commandCompletion)
 	rl.completer.IsearchStart("completions", false, false)
 }
 
