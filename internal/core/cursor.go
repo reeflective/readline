@@ -152,7 +152,7 @@ func (c *Cursor) ToFirstNonSpace(forward bool) {
 func (c *Cursor) BeginningOfLine() {
 	defer c.CheckCommand()
 
-	newlinePos := c.line.Find(inputrc.Newline, c.pos, false)
+	newlinePos := c.line.Find(inputrc.Newline, c.pos-1, false)
 	if newlinePos != -1 {
 		c.pos = newlinePos + 1
 	} else {
