@@ -155,13 +155,8 @@ func (rl *Shell) Printf(msg string, args ...any) (n int, err error) {
 func (rl *Shell) PrintTransientf(msg string, args ...any) (n int, err error) {
 	// First go back to the beginning of the line/prompt, and
 	// clear everything below (prompt/line/hints/completions).
-	// if rl.Prompt.Refreshing() {
-	// 	term.MoveCursorUp(1)
-	// }
-
 	rl.Display.CursorToLineStart()
 	term.MoveCursorBackwards(term.GetWidth())
-
 	term.MoveCursorUp(rl.Prompt.PrimaryUsed())
 	fmt.Print(term.ClearScreenBelow)
 

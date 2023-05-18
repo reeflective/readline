@@ -146,12 +146,18 @@ func (rl *Shell) emacsEditingMode() {
 
 // Move forward one character.
 func (rl *Shell) forwardChar() {
+	startPos := rl.cursor.Pos()
+
 	// Only exception where we actually don't forward a character.
 	if rl.Config.GetBool("history-autosuggest") && rl.cursor.Pos() >= rl.line.Len()-1 {
 		rl.autosuggestAccept()
+	}
+
+	if rl.cursor.Pos() > startPos {
 		return
 	}
 
+	// Else, we move forward.
 	rl.History.SkipSave()
 	vii := rl.Iterations.Get()
 
