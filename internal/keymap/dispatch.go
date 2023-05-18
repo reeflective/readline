@@ -175,7 +175,7 @@ func (m *Engine) exact(match inputrc.Bind) (inputrc.Bind, func(), bool) {
 // been pressed: it might exit completion/isearch menus, use the vi-movement-mode, etc.
 func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bool) {
 	switch {
-	case m.active.Action == "vi-movement-mode":
+	case m.prefixed.Action == "vi-movement-mode":
 		// The vi-movement-mode command always has precedence over
 		// other binds when we are currently using the main keymap.
 		bind = m.prefixed
