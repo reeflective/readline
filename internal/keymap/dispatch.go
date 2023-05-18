@@ -175,10 +175,19 @@ func (m *Engine) exact(match inputrc.Bind) (inputrc.Bind, func(), bool) {
 // been pressed: it might exit completion/isearch menus, use the vi-movement-mode, etc.
 func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bool) {
 	switch {
-	case m.prefixed.Action == "vi-movement-mode":
+	case m.active.Action == "vi-movement-mode":
 		// The vi-movement-mode command always has precedence over
 		// other binds when we are currently using the main keymap.
 		bind = m.prefixed
+
+	case !main && m.IsEmacs() && m.Local() == Isearch:
+		// There is no dedicated "soft-escape" of the incremental-search
+		// mode when in Emacs keymap, so we use the escape key to cancel
+		// the search and return to the main keymap.
+		bind = inputrc.Bind{Action: "emacs-editing-mode"}
+
+		m.keys.Pop()
+
 	case !main:
 		// When using the local keymap, we simply drop any prefixed
 		// or matched bind, so that the key will be matched against
@@ -199,7 +208,7 @@ func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bo
 		m.keys.Pop()
 	}
 
-	return
+	return bind, cmd, pref
 }
 
 func (m *Engine) isEscapeKey() bool {
