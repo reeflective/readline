@@ -81,7 +81,7 @@ func (rl *Shell) Readline() (string, error) {
 		// Block and wait for available user input keys.
 		// These might be read on stdin, or already available because
 		// the macro engine has fed some keys in bulk when running one.
-		core.WaitAvailableKeys(rl.Keys)
+		core.WaitAvailableKeys(rl.Keys, rl.Config)
 
 		// 1 - Local keymap (Completion/Isearch/Vim operator pending).
 		bind, command, prefixed := keymap.MatchLocal(rl.Keymap)

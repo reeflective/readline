@@ -5,6 +5,7 @@ import "github.com/reeflective/readline/inputrc"
 // emacsKeys are the default keymaps in Emacs mode.
 var emacsKeys = map[string]inputrc.Bind{
 	unescape(`\C-D`):     {Action: "end-of-file"},
+	unescape(`\C-h`):     {Action: "backward-kill-word"},
 	unescape(`\C-N`):     {Action: "down-line-or-history"},
 	unescape(`\C-P`):     {Action: "up-line-or-history"},
 	unescape(`\C-x\C-b`): {Action: "vi-match"},
@@ -26,6 +27,4 @@ var emacsKeys = map[string]inputrc.Bind{
 	unescape(`\M-u`):     {Action: "up-case-word"},
 	unescape(`\M-w`):     {Action: "kill-region"},
 	unescape(`\M-|`):     {Action: "vi-goto-column"},
-	unescape(`\M-[A`):    {Action: "up-line-or-search"},
-	unescape(`\M-[B`):    {Action: "down-line-or-select"},
 }

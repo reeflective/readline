@@ -117,8 +117,8 @@ func (m *Engine) dispatch(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd
 	// We're done matching input against binds.
 	if prefix {
 		// If we matched by prefix, whether or not we have an exact
-		// match amongst those or not, we should keep the keys for the
-		// next dispatch run.
+		// match amongst those, we should keep the keys for the next
+		// dispatch run.
 		core.MatchedPrefix(m.keys, keys...)
 	} else {
 		// Or mark the keys that FOR SURE matched against a command.
@@ -136,11 +136,7 @@ func (m *Engine) match(keys []byte, binds map[string]inputrc.Bind) (inputrc.Bind
 	var prefixed []inputrc.Bind
 
 	for sequence, kbind := range binds {
-		// When convert-meta is on, any meta-prefixed bind should
-		// be stripped and replaced with an escape meta instead.
-		if m.config.GetBool("convert-meta") {
-			sequence = strutil.ConvertMeta([]rune(sequence))
-		}
+		sequence = strutil.ConvertMeta([]rune(sequence))
 
 		// If the keys are a prefix of the bind, keep the bind
 		if len(string(keys)) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {

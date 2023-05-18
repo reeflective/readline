@@ -9,6 +9,7 @@ import (
 	"github.com/reeflective/readline/inputrc"
 )
 
+// Windows-specific special key codes.
 const (
 	VK_CANCEL   = 0x03
 	VK_BACK     = 0x08
@@ -36,8 +37,9 @@ const (
 )
 
 const (
-	CharTab       = 9
-	CharBackspace = 127
+	charTab       = 9
+	charCtrlH     = 8
+	charBackspace = 127
 )
 
 func init() {
@@ -106,12 +108,18 @@ next:
 	char := rune(ker.unicodeChar)
 
 	// Encode keys with modifiers.
-	if r.ctrlKey {
-		char = inputrc.Encontrol(char)
-	} else if r.altKey {
-		char = inputrc.Enmeta(char)
-	} else if r.shiftKey && char == 9 { // shift + tab
+	// Deal with the last (Windows) exceptions to the rule.
+	switch {
+	case r.shiftKey && char == charTab:
 		return r.writeEsc(buf, 91, 90)
+	case r.ctrlKey && char == charBackspace:
+		char = charCtrlH
+	case !r.ctrlKey && char == charCtrlH:
+		char = charBackspace
+	case r.ctrlKey:
+		char = inputrc.Encontrol(char)
+	case r.altKey:
+		char = inputrc.Enmeta(char)
 	}
 
 	// Else, the key is a normal character.
