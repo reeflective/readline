@@ -44,22 +44,23 @@ func init() {
 	Stdin = NewRawReader()
 }
 
-// RawReader translate input record to ANSI escape sequence.
-// To provides same behavior as unix terminal.
-type RawReader struct {
+// rawReader translates Windows input to ANSI sequences,
+// to provide the same behavior as Unix terminals.
+type rawReader struct {
 	ctrlKey  bool
 	altKey   bool
 	shiftKey bool
 }
 
-func NewRawReader() *RawReader {
-	r := new(RawReader)
+// NewRawReader returns a new rawReader for Windows.
+func NewRawReader() *rawReader {
+	r := new(rawReader)
 	return r
 }
 
 // Read reads input record from stdin on Windows.
 // It keeps reading until it gets a key event.
-func (r *RawReader) Read(buf []byte) (int, error) {
+func (r *rawReader) Read(buf []byte) (int, error) {
 	ir := new(_INPUT_RECORD)
 	var read int
 	var err error
@@ -117,23 +118,23 @@ next:
 	return r.write(buf, char)
 }
 
-func (r *RawReader) writeEsc(b []byte, char ...rune) (int, error) {
+// Close is a stub to satisfy io.Closer.
+func (r *rawReader) Close() error {
+	return nil
+}
+
+func (r *rawReader) writeEsc(b []byte, char ...rune) (int, error) {
 	b[0] = byte(inputrc.Esc)
 	n := copy(b[1:], []byte(string(char)))
 	return n + 1, nil
 }
 
-func (r *RawReader) write(b []byte, char ...rune) (int, error) {
+func (r *rawReader) write(b []byte, char ...rune) (int, error) {
 	n := copy(b, []byte(string(char)))
 	return n, nil
 }
 
-// Close is a stub to satisfy io.Closer.
-func (r *RawReader) Close() error {
-	return nil
-}
-
-func (r *RawReader) translateSeq(ker *_KEY_EVENT_RECORD) (modifiers []rune, target rune) {
+func (r *rawReader) translateSeq(ker *_KEY_EVENT_RECORD) (modifiers []rune, target rune) {
 	// Encode keys with modifiers by default,
 	// unless the modifier is pressed alone.
 	modifiers = append(modifiers, 91)
