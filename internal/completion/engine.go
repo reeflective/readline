@@ -215,11 +215,15 @@ func (e *Engine) Cancel(inserted, cached bool) {
 // drops any cached completer function and generated list, and exits
 // the incremental-search mode.
 // All those steps are performed whether or not the engine is active.
+// If revertLine is true, the line will be reverted to its original state.
 func (e *Engine) ResetForce() {
 	e.Cancel(!e.autoForce, true)
 	e.ClearMenu(true)
-	e.IsearchStop()
-	e.autoForce = false
+
+	revertLine := e.keymap.Local() == keymap.Isearch ||
+		e.keymap.Local() == keymap.MenuSelect
+
+	e.IsearchStop(revertLine)
 }
 
 // Reset accepts the currently inserted candidate (if any), clears the current
@@ -234,7 +238,7 @@ func (e *Engine) Reset() {
 
 	e.Cancel(false, true)
 	e.ClearMenu(true)
-	e.IsearchStop()
+	e.IsearchStop(false)
 }
 
 // ClearMenu exits the current completion keymap (if set) and clears

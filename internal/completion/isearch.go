@@ -33,14 +33,15 @@ func (e *Engine) IsearchStart(name string, autoinsert, replaceLine bool) {
 
 // IsearchStop exists the incremental search mode,
 // and drops the currently used regexp matcher.
-func (e *Engine) IsearchStop() {
+// If revertLine is true, the original line is restored.
+func (e *Engine) IsearchStop(revertLine bool) {
 	// Reset all buffers and cursors.
 	e.isearchBuf = nil
 	e.IsearchRegex = nil
 	e.isearchCur = nil
 
 	// Reset the original line when needed.
-	if e.isearchReplaceLine {
+	if e.isearchReplaceLine && revertLine {
 		e.line.Set([]rune(e.isearchStartBuf)...)
 		e.cursor.Set(e.isearchStartCursor)
 	}
