@@ -1,6 +1,7 @@
 package keymap
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/reeflective/readline/inputrc"
@@ -15,12 +16,25 @@ func MatchLocal(eng *Engine) (bind inputrc.Bind, command func(), prefix bool) {
 		return
 	}
 
+	// Several local keymaps are empty by default: instead we use restricted
+	// lists of commands, regardless of the key-sequence their bound to.
 	binds := eng.getContextBinds(false)
 	if len(binds) == 0 {
 		return
 	}
 
-	bind, command, prefix = eng.dispatch(binds)
+	// bind, command, prefix, keys := eng.dispatch(binds)
+	bind, prefix, read, matched := eng.dispatchKeys(binds)
+
+	if !bind.Macro {
+		command = eng.commands[bind.Action]
+	}
+
+	if prefix {
+		core.MatchedPrefix(eng.keys, read...)
+	} else {
+		core.MatchedKeys(eng.keys, matched, read[len(matched):]...)
+	}
 
 	// Similarly to the MatchMain() function, give a special treatment to the escape key
 	// (if it's alone): using escape in Viopp/menu-complete/isearch should cancel the
@@ -29,7 +43,7 @@ func MatchLocal(eng *Engine) (bind inputrc.Bind, command func(), prefix bool) {
 		bind, command, prefix = eng.handleEscape(false)
 	}
 
-	return
+	return bind, command, prefix
 }
 
 // MatchMain incrementally attempts to match cached input keys against the local keymap.
@@ -39,14 +53,28 @@ func MatchMain(eng *Engine) (bind inputrc.Bind, command func(), prefix bool) {
 		return
 	}
 
-	// Get relevant binds in the current context, possibly
-	// restrained to a subset when non/incrementally-searching.
+	// Get all binds present in the main keymap. Here, contrary
+	// to the local keymap matching, no keymap should be empty.
 	binds := eng.getContextBinds(true)
 	if len(binds) == 0 {
 		return
 	}
 
-	bind, command, prefix = eng.dispatch(binds)
+	// Find the target action, macro or command.
+	bind, prefix, read, _ := eng.dispatchKeys(binds)
+
+	if !bind.Macro {
+		command = eng.commands[bind.Action]
+	}
+
+	// In the main menu, all keys that have been tested against
+	// the binds will be dropped after command execution (wether
+	// or not there's actually a command to execute).
+	if prefix {
+		core.MatchedPrefix(eng.keys, read...)
+	} else {
+		core.MatchedKeys(eng.keys, read)
+	}
 
 	// Non-incremental search mode should always insert the keys
 	// if they did not exactly match one of the valid commands.
@@ -69,25 +97,28 @@ func MatchMain(eng *Engine) (bind inputrc.Bind, command func(), prefix bool) {
 	return bind, command, prefix
 }
 
-func (m *Engine) dispatch(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd func(), prefix bool) {
-	var keys, matched []byte
-
+func (m *Engine) dispatchKeys(binds map[string]inputrc.Bind) (bind inputrc.Bind, prefix bool, read, matched []byte) {
 	for {
+		// Read a single byte from the input buffer.
+		// This mimics the way Bash reads input when the inputrc option `byte-oriented` is set.
+		// This is because the default binds map is built with byte sequences, not runes, and this
+		// has some implications if the terminal is sending 8-bit characters (extanded alphabet).
 		key, empty := core.PopKey(m.keys)
 		if empty {
 			break
 		}
 
-		keys = append(keys, key)
+		read = append(read, key)
 
-		// Find binds (actions/macros)
-		// matching by prefix or perfectly.
-		match, prefixed := m.match(keys, binds)
+		match, prefixed := m.matchBind(read, binds)
 
 		// If the current keys have no matches but the previous
 		// matching process found a prefix, use it with the keys.
 		if match.Action == "" && len(prefixed) == 0 {
-			bind, cmd, prefix = m.exact(m.prefixed)
+			prefix = false
+			m.active = m.prefixed
+			m.prefixed = inputrc.Bind{}
+
 			break
 		}
 
@@ -95,57 +126,57 @@ func (m *Engine) dispatch(binds map[string]inputrc.Bind) (bind inputrc.Bind, cmd
 		// or exactly, so the key we popped is considered matched.
 		matched = append(matched, key)
 
-		// Handle different cases where we had more than one match.
-		switch {
-		case match.Action != "" && len(prefixed) > 0:
+		// If we matched a prefix, keep the matched bind for later.
+		if len(prefixed) > 0 {
 			prefix = true
-			m.prefixed = match
 
-			continue
+			if match.Action != "" {
+				m.prefixed = match
+			}
 
-		case len(prefixed) > 0:
-			prefix = true
 			continue
 		}
 
 		// Or an exact match, so drop any prefixed one.
-		bind, cmd, prefix = m.exact(match)
+		prefix = false
+		m.active = match
+		m.prefixed = inputrc.Bind{}
 
 		break
 	}
 
-	// We're done matching input against binds.
-	if prefix {
-		// If we matched by prefix, whether or not we have an exact
-		// match amongst those, we should keep the keys for the next
-		// dispatch run.
-		core.MatchedPrefix(m.keys, keys...)
-	} else {
-		// Or mark the keys that FOR SURE matched against a command.
-		// But if there are keys that have been tried but which didn't
-		// match the filtered list of previous matches, we feed them back.
-		keys = keys[len(matched):]
-		core.MatchedKeys(m.keys, matched, keys...)
-	}
-
-	return bind, cmd, prefix
+	return m.active, prefix, read, matched
 }
 
-func (m *Engine) match(keys []byte, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
+func (m *Engine) matchBind(keys []byte, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
 	var match inputrc.Bind
 	var prefixed []inputrc.Bind
 
-	for sequence, kbind := range binds {
+	// Make a sorted list with all keys in the binds map.
+	var sequences []string
+	for sequence := range binds {
+		sequences = append(sequences, sequence)
+	}
+
+	// Sort the list of sequences by alphabetical order and length.
+	sort.Slice(sequences, func(i, j int) bool {
+		if len(sequences[i]) == len(sequences[j]) {
+			return sequences[i] < sequences[j]
+		}
+		return len(sequences[i]) < len(sequences[j])
+	})
+
+	// Iterate over the sorted list of sequences and find all binds
+	// that match the sequence either by prefix or exactly.
+	for _, sequence := range sequences {
 		sequence = strutil.ConvertMeta([]rune(sequence))
 
-		// If the keys are a prefix of the bind, keep the bind
 		if len(string(keys)) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {
-			prefixed = append(prefixed, kbind)
+			prefixed = append(prefixed, binds[sequence])
 		}
 
-		// Else if the match is perfect, keep the bind
 		if string(keys) == sequence {
-			match = kbind
+			match = binds[sequence]
 		}
 	}
 
@@ -162,13 +193,6 @@ func (m *Engine) resolve(bind inputrc.Bind) func() {
 	}
 
 	return m.commands[bind.Action]
-}
-
-func (m *Engine) exact(match inputrc.Bind) (inputrc.Bind, func(), bool) {
-	m.prefixed = inputrc.Bind{}
-	m.active = match
-
-	return m.active, m.resolve(match), false
 }
 
 // handleEscape is used to override or change the matched command when the escape key has

@@ -2,6 +2,8 @@ package keymap
 
 import "github.com/reeflective/readline/inputrc"
 
+var unescape = inputrc.Unescape
+
 // emacsKeys are the default keymaps in Emacs mode.
 var emacsKeys = map[string]inputrc.Bind{
 	unescape(`\C-D`):     {Action: "end-of-file"},

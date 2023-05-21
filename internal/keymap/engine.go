@@ -7,8 +7,6 @@ import (
 	"github.com/reeflective/readline/internal/core"
 )
 
-var unescape = inputrc.Unescape
-
 // Engine is used to manage the main and local keymaps for the shell.
 type Engine struct {
 	local        Mode
@@ -179,9 +177,9 @@ func (m *Engine) InputIsTerminator() bool {
 		binds[sequence] = inputrc.Bind{Action: "abort", Macro: false}
 	}
 
-	bind, cmd, _ := m.dispatch(binds)
+	bind, _, _, _ := m.dispatchKeys(binds)
 
-	return bind.Action == "abort" && cmd != nil
+	return bind.Action == "abort"
 }
 
 // Commands returns the map of all command functions available to the shell.
