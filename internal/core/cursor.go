@@ -188,7 +188,7 @@ func (c *Cursor) EndOfLineAppend() {
 		return
 	}
 
-	newlinePos := c.line.Find(inputrc.Newline, c.pos, true)
+	newlinePos := c.line.Find(inputrc.Newline, c.pos-1, true)
 
 	if newlinePos != -1 {
 		c.pos = newlinePos

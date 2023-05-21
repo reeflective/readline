@@ -292,7 +292,7 @@ func (e *Engine) displayHelpers() {
 // AvailableHelperLines returns the number of lines available below the hint section.
 // It returns half the terminal space if we currently have less than 1/3rd of it below.
 func (e *Engine) AvailableHelperLines() int {
-	_, termHeight, _ := term.GetSize(int(os.Stdin.Fd()))
+	_, termHeight, _ := term.GetSize(int(os.Stdout.Fd()))
 	compLines := termHeight - e.startRows - e.lineRows - e.hintRows - 1
 
 	if compLines < (termHeight / oneThirdTerminalHeight) {

@@ -42,7 +42,7 @@ func (e *Engine) setPrefix(comps Values) {
 
 		// Safety checks and adjustments.
 		if bpos > cpos {
-			bpos = cpos
+			bpos, cpos = cpos, bpos
 		}
 
 		if cpos < e.line.Len() {
@@ -68,7 +68,7 @@ func (e *Engine) setSuffix(comps Values) {
 		}
 
 		if epos < cpos {
-			epos = cpos
+			epos, cpos = cpos, epos
 		}
 
 		// Add back single or double quotes in the character after epos is one of them.

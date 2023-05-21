@@ -315,7 +315,7 @@ func (h *Sources) Write(infer bool) {
 
 		// Don't write the line if it's identical to the last one.
 		last, err := history.GetLine(history.Len() - 1)
-		if err == nil && last != "" && last == line {
+		if err == nil && last != "" && strings.TrimSpace(last) == strings.TrimSpace(line) {
 			return
 		}
 

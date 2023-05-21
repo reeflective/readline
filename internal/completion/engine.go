@@ -39,15 +39,18 @@ type Engine struct {
 	skipDisplay bool          // Don't display completions if there are some.
 
 	// Incremental search
-	IsearchRegex     *regexp.Regexp // Holds the current search regex match
-	isearchBuf       *core.Line     // The isearch minibuffer
-	isearchCur       *core.Cursor   // Cursor position in the minibuffer.
-	isearchName      string         // What is being incrementally searched for.
-	isearchInsert    bool           // Whether to insert the first match in the line
-	isearchForward   bool           // Match results in forward order, or backward.
-	isearchSubstring bool           // Match results as a substring (regex), or as a prefix.
-	searchLast       string         // The last non-incremental buffer.
-	isearchModeExit  keymap.Mode    // The main keymap to restore after exiting isearch
+	IsearchRegex       *regexp.Regexp // Holds the current search regex match
+	isearchBuf         *core.Line     // The isearch minibuffer
+	isearchCur         *core.Cursor   // Cursor position in the minibuffer.
+	isearchName        string         // What is being incrementally searched for.
+	isearchInsert      bool           // Whether to insert the first match in the line
+	isearchForward     bool           // Match results in forward order, or backward.
+	isearchSubstring   bool           // Match results as a substring (regex), or as a prefix.
+	isearchReplaceLine bool           // Replace the current line with the search result
+	isearchStartBuf    string         // The buffer before starting isearch
+	isearchStartCursor int            // The cursor position before starting isearch
+	isearchLast        string         // The last non-incremental buffer.
+	isearchModeExit    keymap.Mode    // The main keymap to restore after exiting isearch
 }
 
 // NewEngine initializes a new completion engine with the shell operating parameters.
@@ -212,11 +215,15 @@ func (e *Engine) Cancel(inserted, cached bool) {
 // drops any cached completer function and generated list, and exits
 // the incremental-search mode.
 // All those steps are performed whether or not the engine is active.
+// If revertLine is true, the line will be reverted to its original state.
 func (e *Engine) ResetForce() {
 	e.Cancel(!e.autoForce, true)
 	e.ClearMenu(true)
-	e.IsearchStop()
-	e.autoForce = false
+
+	revertLine := e.keymap.Local() == keymap.Isearch ||
+		e.keymap.Local() == keymap.MenuSelect
+
+	e.IsearchStop(revertLine)
 }
 
 // Reset accepts the currently inserted candidate (if any), clears the current
@@ -231,7 +238,7 @@ func (e *Engine) Reset() {
 
 	e.Cancel(false, true)
 	e.ClearMenu(true)
-	e.IsearchStop()
+	e.IsearchStop(false)
 }
 
 // ClearMenu exits the current completion keymap (if set) and clears

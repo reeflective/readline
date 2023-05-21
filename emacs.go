@@ -137,6 +137,19 @@ func (rl *Shell) standardCommands() commands {
 
 // When in vi command mode, this causes a switch to emacs editing mode.
 func (rl *Shell) emacsEditingMode() {
+	// Reset any visual selection and iterations.
+	rl.selection.Reset()
+	rl.Iterations.Reset()
+	rl.Buffers.Reset()
+
+	// Cancel completions and hints if any, and reassign the
+	// current line/cursor/selection for the cursor check below
+	// to be effective. This is needed when in isearch mode.
+	rl.Hint.Reset()
+	rl.completer.Reset()
+	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
+
+	// Update the keymap.
 	rl.Keymap.SetMain(keymap.Emacs)
 }
 
@@ -146,12 +159,18 @@ func (rl *Shell) emacsEditingMode() {
 
 // Move forward one character.
 func (rl *Shell) forwardChar() {
+	startPos := rl.cursor.Pos()
+
 	// Only exception where we actually don't forward a character.
-	if rl.Config.GetBool("history-autosuggest") && rl.cursor.Pos() == rl.line.Len()-1 {
+	if rl.Config.GetBool("history-autosuggest") && rl.cursor.Pos() >= rl.line.Len()-1 {
 		rl.autosuggestAccept()
+	}
+
+	if rl.cursor.Pos() > startPos {
 		return
 	}
 
+	// Else, we move forward.
 	rl.History.SkipSave()
 	vii := rl.Iterations.Get()
 

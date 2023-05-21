@@ -68,6 +68,7 @@ func (rl *Shell) historyCommands() commands {
 		"end-of-line-hist":                   rl.endOfLineHist,
 		"incremental-forward-search-history": rl.incrementalForwardSearchHistory,
 		"incremental-reverse-search-history": rl.incrementalReverseSearchHistory,
+		"save-line":                          rl.saveLine,
 		"history-source-next":                rl.historySourceNext,
 		"history-source-prev":                rl.historySourcePrev,
 		"autosuggest-accept":                 rl.autosuggestAccept,
@@ -549,6 +550,12 @@ func (rl *Shell) incrementalReverseSearchHistory() {
 	regexp := false
 
 	rl.historyCompletion(forward, filter, regexp)
+}
+
+// Write the current line to the history if it is not empty, and clear the line buffer.
+func (rl *Shell) saveLine() {
+	rl.History.Write(false)
+	rl.History.Revert()
 }
 
 // If more than one source of command history is bound to the shell,

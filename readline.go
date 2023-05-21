@@ -59,6 +59,7 @@ func (rl *Shell) Readline() (string, error) {
 
 	rl.Prompt.PrimaryPrint()
 	defer rl.Display.RefreshTransient()
+	defer fmt.Print(keymap.CursorStyle("default"))
 
 	rl.init()
 
@@ -80,7 +81,7 @@ func (rl *Shell) Readline() (string, error) {
 		// Block and wait for available user input keys.
 		// These might be read on stdin, or already available because
 		// the macro engine has fed some keys in bulk when running one.
-		core.WaitAvailableKeys(rl.Keys)
+		core.WaitAvailableKeys(rl.Keys, rl.Config)
 
 		// 1 - Local keymap (Completion/Isearch/Vim operator pending).
 		bind, command, prefixed := keymap.MatchLocal(rl.Keymap)
@@ -88,7 +89,7 @@ func (rl *Shell) Readline() (string, error) {
 			continue
 		}
 
-		accepted, line, err := rl.run(bind, command)
+		accepted, line, err := rl.run(false, bind, command)
 		if accepted {
 			return line, err
 		} else if command != nil {
@@ -107,7 +108,7 @@ func (rl *Shell) Readline() (string, error) {
 			continue
 		}
 
-		accepted, line, err = rl.run(bind, command)
+		accepted, line, err = rl.run(true, bind, command)
 		if accepted {
 			return line, err
 		}
@@ -144,7 +145,13 @@ func (rl *Shell) init() {
 
 // run wraps the execution of a target command/sequence with various pre/post actions
 // and setup steps (buffers setup, cursor checks, iterations, key flushing, etc...)
-func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
+func (rl *Shell) run(main bool, bind inputrc.Bind, command func()) (bool, string, error) {
+	// An empty bind match in the local keymap means nothing
+	// should be done, the main keymap must work it out.
+	if !main && bind.Action == "" {
+		return false, "", nil
+	}
+
 	// If the resolved bind is a macro itself, reinject its
 	// bound sequence back to the key stack.
 	if bind.Macro {
@@ -152,18 +159,14 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 		rl.Keys.Feed(false, []rune(macro)...)
 	}
 
-	// And don't do anything else if we don't have a command.
-	if command == nil {
-		return false, "", nil
-	}
-
 	// The completion system might have control of the
 	// input line and be using it with a virtual insertion,
 	// so it knows which line and cursor we should work on.
 	rl.line, rl.cursor, rl.selection = rl.completer.GetBuffer()
 
-	// The line and cursor are ready, we can run the command
-	// along with any pending ones, and reset iterations.
+	// The command might be nil, because the provided key sequence
+	// did not match any. We regardless execute everything related
+	// to the command, like any pending ones, and cursor checks.
 	rl.execute(command)
 
 	// Either print/clear iterations/active registers hints.
@@ -190,7 +193,9 @@ func (rl *Shell) run(bind inputrc.Bind, command func()) (bool, string, error) {
 // Run the dispatched command, any pending operator
 // commands (Vim mode) and some post-run checks.
 func (rl *Shell) execute(command func()) {
-	command()
+	if command != nil {
+		command()
+	}
 
 	// Only run pending-operator commands when the command we
 	// just executed has not had any influence on iterations.

@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/reeflective/readline/inputrc"
@@ -131,26 +130,16 @@ func CoordinatesHint(hint *Hint) int {
 	}
 
 	// Otherwise compute the real length/span.
-	line := color.Strip(text)
-	line += string(inputrc.Newline)
-	nl := regexp.MustCompile(string(inputrc.Newline))
-
-	newlines := nl.FindAllStringIndex(line, -1)
-
-	bpos := 0
 	usedY := 0
+	line := color.Strip(text)
+	lines := strings.Split(line, "\n")
 
-	for i, newline := range newlines {
-		bline := line[bpos:newline[0]]
-		bpos = newline[0]
-
-		x, lineY := strutil.LineSpan([]rune(bline), i, 0)
-
-		if x != 0 || lineY == 0 {
-			lineY++
+	for i, line := range lines {
+		x, y := strutil.LineSpan([]rune(line), i, 0)
+		if x != 0 && y == 0 {
+			y++
 		}
-
-		usedY += lineY
+		usedY += y
 	}
 
 	return usedY

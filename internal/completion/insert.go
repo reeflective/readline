@@ -48,7 +48,7 @@ func (e *Engine) TrimSuffix() {
 
 	// If our suffix matcher was registered at a different
 	// place in our line, then it's an orphan.
-	if e.sm.pos != e.cursor.Pos()-1 {
+	if e.sm.pos != e.cursor.Pos()-1 || e.sm.string == "" {
 		e.sm = SuffixMatcher{}
 		return
 	}

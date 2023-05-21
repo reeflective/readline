@@ -616,7 +616,7 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 
 	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.IsearchRegex.FindString(candidate)
-		match = color.BgBlackBright + match + color.Reset + cell + reset
+		match = color.BgBlackBright + match + color.Reset + reset
 		candidate = eng.IsearchRegex.ReplaceAllLiteralString(candidate, match)
 	}
 
@@ -632,7 +632,7 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 		// Highlight the prefix if any and configured for it.
 		if eng.config.GetBool("colored-completion-prefix") && eng.prefix != "" {
 			if prefixMatch, err := regexp.Compile(fmt.Sprintf("^%s", eng.prefix)); err == nil {
-				candidate = prefixMatch.ReplaceAllString(candidate, color.Bold+color.FgBlue+eng.prefix+color.BoldReset+reset)
+				candidate = prefixMatch.ReplaceAllString(candidate, color.Bold+color.FgBlue+eng.prefix+color.BoldReset+color.FgDefault+reset)
 			}
 		}
 
