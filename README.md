@@ -174,5 +174,6 @@ Additionally:
 ## Credits
 
 - Big thanks to @kenshaw for his `.inputrc` parsing package, which brings much wider compatiblity to this library.
+- The famous `chzyer/readline` for the Windows I/O code and everything related.
 - Some of the Vim code is inspired or translated from [zsh-vi-mode](https://github.com/jeffreytse/zsh-vi-mode).
-- Thanks to [lmorg/readline](https://github.com/lmorg/readline), for the core idea and the line tokenizers.
+- Thanks to [lmorg/readline](https://github.com/lmorg/readline), for the line tokenizers.
