@@ -616,7 +616,7 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 
 	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.IsearchRegex.FindString(candidate)
-		match = color.BgBlackBright + match + color.Reset + reset
+		match = color.SGR("244", false) + match + color.Reset + reset
 		candidate = eng.IsearchRegex.ReplaceAllLiteralString(candidate, match)
 	}
 
@@ -651,7 +651,7 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.IsearchRegex.FindString(desc)
-		match = color.BgBlackBright + match + color.Reset + color.Dim
+		match = color.SGR("244", false) + match + color.Reset + color.Dim
 		desc = eng.IsearchRegex.ReplaceAllLiteralString(desc, match)
 	}
 

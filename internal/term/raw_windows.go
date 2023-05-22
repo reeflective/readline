@@ -70,5 +70,9 @@ func GetSize(fd int) (width, height int, err error) {
 	if err := windows.GetConsoleScreenBufferInfo(windows.Handle(fd), &info); err != nil {
 		return 0, 0, err
 	}
-	return int(info.Size.X), int(info.Size.Y), nil
+
+	width = int(info.Size.X)
+	height = int(info.Size.Y) - 1 // Needs an adjustment
+
+	return width, height, nil
 }

@@ -247,7 +247,6 @@ func (rl *Shell) historyCompletion(forward, filterLine, substring bool) {
 		completer := func() completion.Values {
 			maxLines := rl.Display.AvailableHelperLines()
 			return history.Complete(rl.History, forward, filterLine, maxLines, rl.completer.IsearchRegex)
-			// return rl.History.Complete(forward, filterLine)
 		}
 
 		if substring {
