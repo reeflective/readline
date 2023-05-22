@@ -252,7 +252,7 @@ func (e *Engine) displayLine() {
 
 	// Get the subset of the suggested line to print.
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
-		line += color.Dim + color.FgWhite + string(e.suggested[e.line.Len():]) + color.Reset
+		line += color.Dim + color.SGR("243", true) + string(e.suggested[e.line.Len():]) + color.Reset
 	}
 
 	// Format tabs as spaces, for consistent display
@@ -263,7 +263,7 @@ func (e *Engine) displayLine() {
 	core.DisplayLine(&e.suggested, e.startCols)
 
 	// Adjust the cursor if the line fits exactly in the terminal width.
-	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
+	if e.lineCol == 0 && e.cursorCol == 0 {
 		fmt.Println()
 	}
 }
