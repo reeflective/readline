@@ -622,7 +622,7 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case selected:
-		candidate = color.Fmt("255") + color.FgBlackBright + g.displayTrimmed(color.Strip(val.Display))
+		candidate = color.Fmt(color.Bg+"255") + color.FgBlackBright + g.displayTrimmed(color.Strip(val.Display))
 		if g.aliased {
 			candidate += cell + color.Reset
 		}
@@ -656,7 +656,7 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	if row == g.posY && col == g.posX && g.isCurrent && !g.aliased {
-		desc = color.Fmt("255") + color.FgBlackBright + g.descriptionTrimmed(val.Description)
+		desc = color.Fmt(color.Bg+"255") + color.FgBlackBright + g.descriptionTrimmed(val.Description)
 	}
 
 	return color.Dim + desc + color.Reset

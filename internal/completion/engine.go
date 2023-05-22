@@ -83,7 +83,10 @@ func (e *Engine) Generate(completions Values) {
 		e.ClearMenu(true)
 	}
 
-	if e.hasUniqueCandidate() {
+	// Incremental search is a special case, because the user may
+	// want to keep searching for another match, so we don't drop
+	// the completion list and exit the incremental search mode.
+	if e.hasUniqueCandidate() && e.keymap.Local() != keymap.Isearch {
 		e.acceptCandidate()
 		e.ClearMenu(true)
 	}
