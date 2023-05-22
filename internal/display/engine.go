@@ -252,7 +252,7 @@ func (e *Engine) displayLine() {
 
 	// Get the subset of the suggested line to print.
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
-		line += color.Dim + color.SGR("243", true) + string(e.suggested[e.line.Len():]) + color.Reset
+		line += color.Dim + color.Fmt("243") + string(e.suggested[e.line.Len():]) + color.Reset
 	}
 
 	// Format tabs as spaces, for consistent display
