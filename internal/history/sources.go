@@ -172,6 +172,10 @@ func (h *Sources) Walk(pos int) {
 		return
 	}
 
+	if h.hpos == history.Len() && pos == 1 {
+		return
+	}
+
 	// Save the current line buffer if we are leaving it.
 	if h.hpos == -1 && pos > 0 {
 		h.skip = false
@@ -191,7 +195,6 @@ func (h *Sources) Walk(pos int) {
 		return
 	case h.hpos > history.Len():
 		h.hpos = history.Len()
-		return
 	}
 
 	var line string
