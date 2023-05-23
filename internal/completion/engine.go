@@ -259,9 +259,14 @@ func (e *Engine) ClearMenu(completions bool) {
 // IsActive indicates if the engine is currently in possession of a
 // non-empty list of generated completions (following all constraints).
 func (e *Engine) IsActive() bool {
-	return e.keymap.Local() == keymap.MenuSelect ||
-		e.keymap.Local() == keymap.Isearch ||
+	completing := e.keymap.Local() == keymap.MenuSelect
+
+	isearching := e.keymap.Local() == keymap.Isearch ||
 		e.auto || e.autoForce
+
+	nonIsearching, _, _ := e.NonIncrementallySearching()
+
+	return (completing || isearching) && !nonIsearching
 }
 
 // IsInserting returns true if a candidate is currently virtually inserted.
