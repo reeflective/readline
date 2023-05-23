@@ -35,7 +35,7 @@ func (e *Engine) highlightLine(line []rune, selection core.Selection) string {
 	commentPattern := fmt.Sprintf(`(^|\s)%s.*`, comment)
 
 	if commentsMatch, err := regexp.Compile(commentPattern); err == nil {
-		commentColor := color.SGRStart + color.FgColorStart + "248" + color.SGREnd
+		commentColor := color.SGRStart + color.Fg + "244" + color.SGREnd
 		highlighted = commentsMatch.ReplaceAllString(highlighted, fmt.Sprintf("%s${0}%s", commentColor, color.Reset))
 	}
 

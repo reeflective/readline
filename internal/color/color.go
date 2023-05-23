@@ -71,19 +71,15 @@ var (
 
 // Text effects.
 const (
-	SGRStart     = "\x1b["
-	FgColorStart = "38;05;"
-	BgColorStart = "48;05;"
-	SGREnd       = "m"
+	SGRStart = "\x1b["
+	Fg       = "38;05;"
+	Bg       = "48;05;"
+	SGREnd   = "m"
 )
 
-// SGR formats a color code as an ANSI escaped color sequence.
-func SGR(color string, fg bool) string {
-	if fg {
-		return SGRStart + color + SGREnd
-	}
-
-	return SGRStart + BgColorStart + color + SGREnd
+// Fmt formats a color code as an ANSI escaped color sequence.
+func Fmt(color string) string {
+	return SGRStart + color + SGREnd
 }
 
 // HasEffects returns true if colors and effects are supported
@@ -163,3 +159,14 @@ var re = regexp.MustCompile(ansi)
 func Strip(str string) string {
 	return re.ReplaceAllString(str, "")
 }
+
+// wrong: reapplies fg/bg escapes regardless of the string passed.
+// Users should be in charge of applying any effect as they wish.
+// func SGR(color string, fg bool) string {
+// 	if fg {
+// 		return SGRStart + FgColorStart + color + SGREnd
+// 		// return SGRStart + color + SGREnd
+// 	}
+//
+// 	return SGRStart + BgColorStart + color + SGREnd
+// }

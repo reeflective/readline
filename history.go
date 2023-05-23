@@ -641,7 +641,6 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 		defer rl.completer.NonIsearchStop()
 
 		line, cursor, _ := rl.completer.GetBuffer()
-
 		rl.History.InsertMatch(line, cursor, true, forward, substring)
 
 		return

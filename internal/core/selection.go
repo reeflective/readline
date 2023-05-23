@@ -578,7 +578,7 @@ func HighlightMatchers(sel *Selection) {
 			visual: true,
 			bpos:   ppos,
 			epos:   ppos,
-			bg:     color.SGR("240", false),
+			bg:     color.Fmt("240"),
 			line:   sel.line,
 			cursor: sel.cursor,
 		})

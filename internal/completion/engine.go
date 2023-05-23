@@ -83,7 +83,10 @@ func (e *Engine) Generate(completions Values) {
 		e.ClearMenu(true)
 	}
 
-	if e.hasUniqueCandidate() {
+	// Incremental search is a special case, because the user may
+	// want to keep searching for another match, so we don't drop
+	// the completion list and exit the incremental search mode.
+	if e.hasUniqueCandidate() && e.keymap.Local() != keymap.Isearch {
 		e.acceptCandidate()
 		e.ClearMenu(true)
 	}
@@ -256,9 +259,14 @@ func (e *Engine) ClearMenu(completions bool) {
 // IsActive indicates if the engine is currently in possession of a
 // non-empty list of generated completions (following all constraints).
 func (e *Engine) IsActive() bool {
-	return e.keymap.Local() == keymap.MenuSelect ||
-		e.keymap.Local() == keymap.Isearch ||
+	completing := e.keymap.Local() == keymap.MenuSelect
+
+	isearching := e.keymap.Local() == keymap.Isearch ||
 		e.auto || e.autoForce
+
+	nonIsearching, _, _ := e.NonIncrementallySearching()
+
+	return (completing || isearching) && !nonIsearching
 }
 
 // IsInserting returns true if a candidate is currently virtually inserted.

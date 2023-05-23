@@ -156,3 +156,17 @@ func GetConsoleCursorInfo() (*_CONSOLE_CURSOR_INFO, error) {
 func SetConsoleCursorPosition(c *_COORD) error {
 	return kernel.SetConsoleCursorPosition(stdout, c.ptr())
 }
+
+// GetCursorPos returns the current cursor position on Windows.
+func (k *Keys) GetCursorPos() (x, y int) {
+	t := new(_CONSOLE_SCREEN_BUFFER_INFO)
+	kernel.GetConsoleScreenBufferInfo(
+		stdout,
+		uintptr(unsafe.Pointer(t)),
+	)
+
+	x = int(t.dwCursorPosition.x) + 1
+	y = int(t.dwCursorPosition.y)
+
+	return
+}

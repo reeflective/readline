@@ -136,9 +136,10 @@ func CoordinatesHint(hint *Hint) int {
 
 	for i, line := range lines {
 		x, y := strutil.LineSpan([]rune(line), i, 0)
-		if x != 0 && y == 0 {
+		if x != 0 {
 			y++
 		}
+
 		usedY += y
 	}
 

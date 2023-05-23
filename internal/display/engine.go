@@ -252,7 +252,7 @@ func (e *Engine) displayLine() {
 
 	// Get the subset of the suggested line to print.
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
-		line += color.FgBlackBright + string(e.suggested[e.line.Len():]) + color.Reset
+		line += color.Dim + color.Fmt(color.Fg+"242") + string(e.suggested[e.line.Len():]) + color.Reset
 	}
 
 	// Format tabs as spaces, for consistent display
@@ -263,7 +263,7 @@ func (e *Engine) displayLine() {
 	core.DisplayLine(&e.suggested, e.startCols)
 
 	// Adjust the cursor if the line fits exactly in the terminal width.
-	if e.lineCol == 0 && e.cursorCol == 0 && e.cursorRow > 1 {
+	if e.lineCol == 0 && e.cursorCol == 0 {
 		fmt.Println()
 	}
 }
@@ -293,10 +293,10 @@ func (e *Engine) displayHelpers() {
 // It returns half the terminal space if we currently have less than 1/3rd of it below.
 func (e *Engine) AvailableHelperLines() int {
 	_, termHeight, _ := term.GetSize(int(os.Stdout.Fd()))
-	compLines := termHeight - e.startRows - e.lineRows - e.hintRows - 1
+	compLines := termHeight - e.startRows - e.lineRows - e.hintRows
 
 	if compLines < (termHeight / oneThirdTerminalHeight) {
-		compLines = (termHeight / halfTerminalHeight) - 1
+		compLines = (termHeight / halfTerminalHeight)
 	}
 
 	return compLines

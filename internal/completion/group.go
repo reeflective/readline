@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -611,19 +610,19 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 }
 
 func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string, selected bool) (candidate string) {
-	reset := color.SGR(val.Style, true)
+	reset := color.Fmt(val.Style)
 	candidate = g.displayTrimmed(val.Display)
 
 	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.IsearchRegex.FindString(candidate)
-		match = color.BgBlackBright + match + color.Reset + reset
+		match = color.Fmt(color.Bg+"244") + match + color.Reset + reset
 		candidate = eng.IsearchRegex.ReplaceAllLiteralString(candidate, match)
 	}
 
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case selected:
-		candidate = color.SGR(strconv.Itoa(255), false) + color.FgBlackBright + g.displayTrimmed(color.Strip(val.Display))
+		candidate = color.Fmt(color.Bg+"255") + color.FgBlackBright + g.displayTrimmed(color.Strip(val.Display))
 		if g.aliased {
 			candidate += cell + color.Reset
 		}
@@ -651,13 +650,13 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.IsearchRegex.FindString(desc)
-		match = color.BgBlackBright + match + color.Reset + color.Dim
+		match = color.Fmt("244") + match + color.Reset + color.Dim
 		desc = eng.IsearchRegex.ReplaceAllLiteralString(desc, match)
 	}
 
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	if row == g.posY && col == g.posX && g.isCurrent && !g.aliased {
-		desc = color.SGR(strconv.Itoa(255), false) + color.FgBlackBright + g.descriptionTrimmed(val.Description)
+		desc = color.Fmt(color.Bg+"255") + color.FgBlackBright + g.descriptionTrimmed(val.Description)
 	}
 
 	return color.Dim + desc + color.Reset
