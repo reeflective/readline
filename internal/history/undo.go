@@ -216,10 +216,10 @@ func (h *Sources) getLineHistory() *lineHistory {
 	}
 
 	// Compute the position of the current line in the history.
-	linePos := 0
+	linePos := -1
 
 	history := h.Current()
-	if h.hpos > 0 && history != nil {
+	if h.hpos > -1 && history != nil {
 		linePos = history.Len() - h.hpos
 	}
 
@@ -239,7 +239,7 @@ func (h *Sources) restoreLineBuffer() {
 
 	// Get the undo states for the line buffer
 	// (the last one, not any of the history ones)
-	lh := hist[0]
+	lh := hist[-1]
 	if lh == nil || len(lh.items) == 0 {
 		return
 	}

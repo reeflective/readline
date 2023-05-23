@@ -54,6 +54,7 @@ func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint, opts *inputrc.
 		line:   line,
 		cursor: cur,
 		cpos:   -1,
+		hpos:   -1,
 		hint:   hint,
 		config: opts,
 	}
@@ -87,7 +88,7 @@ func Init(hist *Sources) {
 	}()
 
 	if hist.acceptHold {
-		hist.hpos = 0
+		hist.hpos = -1
 		hist.line.Set(hist.acceptLine...)
 		hist.cursor.Set(hist.line.Len())
 
@@ -95,13 +96,13 @@ func Init(hist *Sources) {
 	}
 
 	if !hist.infer {
-		hist.hpos = 0
+		hist.hpos = -1
 		return
 	}
 
 	switch hist.hpos {
 	case -1:
-		hist.hpos = 0
+		// hist.hpos = 0
 	case 0:
 		hist.InferNext()
 	default:
@@ -157,7 +158,7 @@ func (h *Sources) Delete(sources ...string) {
 
 	h.sourcePos = 0
 	if !h.infer {
-		h.hpos = 0
+		h.hpos = -1
 	}
 }
 
@@ -171,14 +172,8 @@ func (h *Sources) Walk(pos int) {
 		return
 	}
 
-	// When we are on the last/first item, don't do anything,
-	// as it would change things like cursor positions.
-	if (pos < 0 && h.hpos == 0) || (pos > 0 && h.hpos == history.Len()) {
-		return
-	}
-
 	// Save the current line buffer if we are leaving it.
-	if h.hpos == 0 && pos > 0 {
+	if h.hpos == -1 && pos > 0 {
 		h.skip = false
 		h.Save()
 		h.cpos = -1
@@ -187,12 +182,14 @@ func (h *Sources) Walk(pos int) {
 	h.hpos += pos
 
 	switch {
-	case h.hpos > history.Len():
-		h.hpos = history.Len()
-	case h.hpos < 0:
-		h.hpos = 0
-	case h.hpos == 0:
+	case h.hpos < -1:
+		h.hpos = -1
+		return
+	case h.hpos == -1:
 		h.restoreLineBuffer()
+		return
+	case h.hpos >= history.Len():
+		h.hpos = history.Len() - 1
 		return
 	}
 
@@ -203,7 +200,7 @@ func (h *Sources) Walk(pos int) {
 	// this line, use it instead of the fetched line.
 	if hist := h.getLineHistory(); hist != nil && len(hist.items) > 0 {
 		line = hist.items[len(hist.items)-1].line
-	} else if line, err = history.GetLine(history.Len() - h.hpos); err != nil {
+	} else if line, err = history.GetLine(history.Len() - h.hpos - 1); err != nil {
 		h.hint.Set(color.FgRed + "history error: " + err.Error())
 		return
 	}
@@ -395,8 +392,8 @@ func (h *Sources) InsertMatch(line *core.Line, cur *core.Cursor, usePos, fwd, re
 
 	// Don't go back to the beginning of
 	// history if we are at the end of it.
-	if fwd && h.hpos <= 0 {
-		h.hpos = 0
+	if fwd && h.hpos <= -1 {
+		h.hpos = -1
 		return
 	}
 
@@ -406,7 +403,7 @@ func (h *Sources) InsertMatch(line *core.Line, cur *core.Cursor, usePos, fwd, re
 	// (down to the current input line), reinstore the main line buffer.
 	if !found {
 		if fwd {
-			h.hpos = 0
+			h.hpos = -1
 			h.Undo()
 		}
 
@@ -585,7 +582,7 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 		move = func(pos int) int { return pos - 1 }
 	}
 
-	if usePos && h.hpos > 0 {
+	if usePos && h.hpos > -1 {
 		histPos = history.Len() - h.hpos
 	}
 
@@ -633,7 +630,7 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 
 // use the "main buffer" and its cursor if no line/cursor has been provided to match against.
 func (h *Sources) getLine(line *core.Line, cur *core.Cursor) (*core.Line, *core.Cursor) {
-	if h.hpos == 0 {
+	if h.hpos == -1 {
 		skip := h.skip
 		h.skip = false
 		h.Save()
