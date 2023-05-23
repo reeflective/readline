@@ -232,6 +232,8 @@ func (h *Sources) getLineHistory() *lineHistory {
 }
 
 func (h *Sources) restoreLineBuffer() {
+	h.hpos = -1
+
 	hist := h.getHistoryLineChanges()
 	if hist == nil {
 		return
@@ -239,7 +241,7 @@ func (h *Sources) restoreLineBuffer() {
 
 	// Get the undo states for the line buffer
 	// (the last one, not any of the history ones)
-	lh := hist[-1]
+	lh := hist[h.hpos]
 	if lh == nil || len(lh.items) == 0 {
 		return
 	}

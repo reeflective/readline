@@ -177,6 +177,7 @@ func (h *Sources) Walk(pos int) {
 		h.skip = false
 		h.Save()
 		h.cpos = -1
+		h.hpos = 0
 	}
 
 	h.hpos += pos
@@ -185,11 +186,11 @@ func (h *Sources) Walk(pos int) {
 	case h.hpos < -1:
 		h.hpos = -1
 		return
-	case h.hpos == -1:
+	case h.hpos == 0:
 		h.restoreLineBuffer()
 		return
-	case h.hpos >= history.Len():
-		h.hpos = history.Len() - 1
+	case h.hpos > history.Len():
+		h.hpos = history.Len()
 		return
 	}
 
@@ -200,7 +201,7 @@ func (h *Sources) Walk(pos int) {
 	// this line, use it instead of the fetched line.
 	if hist := h.getLineHistory(); hist != nil && len(hist.items) > 0 {
 		line = hist.items[len(hist.items)-1].line
-	} else if line, err = history.GetLine(history.Len() - h.hpos - 1); err != nil {
+	} else if line, err = history.GetLine(history.Len() - h.hpos); err != nil {
 		h.hint.Set(color.FgRed + "history error: " + err.Error())
 		return
 	}
