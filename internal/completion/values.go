@@ -1,5 +1,7 @@
 package completion
 
+import "strings"
+
 // RawValues is a list of completion candidates.
 type RawValues []Candidate
 
@@ -56,4 +58,26 @@ func (c RawValues) EachTag(tagF func(tag string, values RawValues)) {
 	for _, tag := range tags {
 		tagF(tag, tagGroups[tag])
 	}
+}
+
+// FilterPrefix filters values with given prefix.
+// If matchCase is false, the filtering is made case-insensitive.
+func (c RawValues) FilterPrefix(prefix string, matchCase bool) RawValues {
+	filtered := make(RawValues, 0)
+
+	if !matchCase {
+		prefix = strings.ToLower(prefix)
+	}
+
+	for _, r := range c {
+		val := r.Value
+		if !matchCase {
+			val = strings.ToLower(val)
+		}
+
+		if strings.HasPrefix(val, prefix) {
+			filtered = append(filtered, r)
+		}
+	}
+	return filtered
 }

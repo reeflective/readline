@@ -47,6 +47,11 @@ func (e *Engine) group(comps Values) {
 		return
 	}
 
+	// Apply the prefix to the completions, and filter out any
+	// completions that don't match, optionally ignoring case.
+	matchCase := e.config.GetBool("completion-ignore-case")
+	comps.values = comps.values.FilterPrefix(e.prefix, !matchCase)
+
 	comps.values.EachTag(func(tag string, values RawValues) {
 		// Separate the completions that have a description and
 		// those which don't, and devise if there are aliases.
@@ -650,7 +655,7 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.IsearchRegex.FindString(desc)
-		match = color.Fmt("244") + match + color.Reset + color.Dim
+		match = color.Fmt(color.Bg+"244") + match + color.Reset + color.Dim
 		desc = eng.IsearchRegex.ReplaceAllLiteralString(desc, match)
 	}
 

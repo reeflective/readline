@@ -1181,6 +1181,8 @@ func (rl *Shell) reReadInitFile() {
 		return
 	}
 
+	defer rl.Keymap.UpdateCursor()
+
 	// Reload keymap settings and cursor
 	newMain := rl.Keymap.Main()
 

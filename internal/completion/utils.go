@@ -122,9 +122,14 @@ func (e *Engine) cycleNextGroup() {
 		}
 	}
 
-	next := e.currentGroup()
-	if len(next.values) == 0 {
-		e.cycleNextGroup()
+	for {
+		next := e.currentGroup()
+		if len(next.values) == 0 {
+			e.cycleNextGroup()
+			continue
+		}
+
+		return
 	}
 }
 
@@ -144,9 +149,14 @@ func (e *Engine) cyclePreviousGroup() {
 		}
 	}
 
-	prev := e.currentGroup()
-	if len(prev.values) == 0 {
-		e.cyclePreviousGroup()
+	for {
+		prev := e.currentGroup()
+		if len(prev.values) == 0 {
+			e.cyclePreviousGroup()
+			continue
+		}
+
+		return
 	}
 }
 
@@ -182,20 +192,25 @@ func (e *Engine) adjustSelectKeymap() {
 
 func (e *Engine) completionCount() (comps int, used int) {
 	for _, group := range e.groups {
-		for _, row := range group.values {
-			comps += len(row)
-		}
+		groupComps := 0
 
-		used++
+		for _, row := range group.values {
+			groupComps += len(row)
+			comps += groupComps
+		}
 
 		if group.maxY > len(group.values) {
 			used += len(group.values)
 		} else {
 			used += group.maxY
 		}
+
+		if groupComps > 0 {
+			used++
+		}
 	}
 
-	return
+	return comps, used
 }
 
 func (e *Engine) hasUniqueCandidate() bool {
@@ -297,6 +312,16 @@ func (e *Engine) getAbsPos() int {
 	var foundCurrent bool
 
 	for _, grp := range e.groups {
+		groupComps := 0
+
+		for _, row := range grp.values {
+			groupComps += len(row)
+		}
+
+		if groupComps == 0 {
+			continue
+		}
+
 		if grp.tag != "" {
 			prev++
 		}
