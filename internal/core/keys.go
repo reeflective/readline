@@ -54,6 +54,7 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 
 	keys.mutex.Lock()
 	keys.waiting = true
+	keys.cursor = make(chan []byte)
 	keys.mutex.Unlock()
 
 	defer func() {

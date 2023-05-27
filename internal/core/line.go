@@ -188,7 +188,8 @@ func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
 		pos--
 	}
 
-	blankWordRgx := regexp.MustCompile(`[^\s\\]`)
+	blankWordRgx := regexp.MustCompile(`[^\s]`)
+
 	bpos, epos = pos, pos
 
 	if match := blankWordRgx.MatchString(string((*l)[pos])); !match {
@@ -197,14 +198,16 @@ func (l *Line) SelectBlankWord(pos int) (bpos, epos int) {
 
 	// To first space found backward
 	for ; bpos >= 0; bpos-- {
-		if match := blankWordRgx.MatchString(string((*l)[bpos])); !match {
+		escaped := bpos > 0 && (*l)[bpos-1] == '\\'
+		if match := blankWordRgx.MatchString(string((*l)[bpos])); !match && !escaped {
 			break
 		}
 	}
 
 	// And to first space found forward
 	for ; epos < l.Len(); epos++ {
-		if match := blankWordRgx.MatchString(string((*l)[epos])); !match {
+		escaped := epos > 0 && (*l)[epos-1] == '\\'
+		if match := blankWordRgx.MatchString(string((*l)[epos])); !match && !escaped {
 			break
 		}
 	}

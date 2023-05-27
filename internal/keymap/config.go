@@ -16,7 +16,7 @@ func (m *Engine) ReloadConfig(opts ...inputrc.Option) (err error) {
 	// Builtin Go binds (in addition to default readline binds)
 	m.loadBuiltinBinds()
 
-	user, err := user.Current()
+	user, _ := user.Current()
 
 	// Parse library-specific configurations.
 	//
@@ -47,8 +47,6 @@ func (m *Engine) ReloadConfig(opts ...inputrc.Option) (err error) {
 	// Some configuration variables might have an
 	// effect on our various keymaps and bindings.
 	m.overrideBindsSpecial()
-
-	defer m.UpdateCursor()
 
 	// Startup editing mode
 	switch m.config.GetString("editing-mode") {
