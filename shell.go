@@ -15,9 +15,14 @@ import (
 	"github.com/reeflective/readline/internal/ui"
 )
 
-// Shell is used to encapsulate the parameter group and run time of any given
-// readline instance so that you can reuse the readline API for multiple entry
-// captures without having to repeatedly unload configuration.
+// Shell is the main readline shell instance. It contains all the readline state
+// and methods to run the line editor, manage the inputrc configuration, keymaps
+// and commands.
+// Although each instance contains everything needed to run a line editor, it is
+// recommended to use a single instance per application, and to share it between
+// all the goroutines that need to read user input.
+// Please refer to the README and documentation for more details about the shell
+// and its components, and how to use them.
 type Shell struct {
 	// Core editor
 	line       *core.Line       // The input line buffer and its management methods.
@@ -116,12 +121,14 @@ func NewShell(opts ...inputrc.Option) *Shell {
 // split itself with tokenizers, and displaying itself.
 //
 // When the shell is in incremental-search mode, this line is the minibuffer.
+// The line returned here is thus the input buffer of interest at call time.
 func (rl *Shell) Line() *core.Line { return rl.line }
 
 // Cursor is the cursor position in the current line buffer.
 // Contains methods to set, move, describe and check itself.
 //
 // When the shell is in incremental-search mode, this cursor is the minibuffer's one.
+// The cursor returned here is thus the input buffer cursor of interest at call time.
 func (rl *Shell) Cursor() *core.Cursor { return rl.cursor }
 
 // Selection contains all regions of an input line that are currently selected/marked

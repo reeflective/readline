@@ -43,7 +43,7 @@ const (
 )
 
 func init() {
-	Stdin = NewRawReader()
+	Stdin = newRawReader()
 }
 
 // rawReader translates Windows input to ANSI sequences,
@@ -54,8 +54,8 @@ type rawReader struct {
 	shiftKey bool
 }
 
-// NewRawReader returns a new rawReader for Windows.
-func NewRawReader() *rawReader {
+// newRawReader returns a new rawReader for Windows.
+func newRawReader() *rawReader {
 	r := new(rawReader)
 	return r
 }
