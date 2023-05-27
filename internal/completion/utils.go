@@ -195,12 +195,9 @@ func (e *Engine) completionCount() (comps int, used int) {
 		groupComps := 0
 
 		for _, row := range group.values {
-			comps += len(row)
 			groupComps += len(row)
 			comps += groupComps
 		}
-
-		used++
 
 		if group.maxY > len(group.values) {
 			used += len(group.values)
@@ -213,7 +210,7 @@ func (e *Engine) completionCount() (comps int, used int) {
 		}
 	}
 
-	return
+	return comps, used
 }
 
 func (e *Engine) hasUniqueCandidate() bool {
