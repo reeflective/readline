@@ -113,14 +113,12 @@ func (e *Engine) acceptCandidate() {
 	// Prepare the completion candidate, remove the
 	// prefix part and save its sufffixes for later.
 	completion := e.prepareSuffix()
-	e.inserted = []rune(completion[len(e.prefix):])
+	e.inserted = []rune(completion)
 
-	// Remove the suffix from the line first.
-	e.line.Cut(e.cursor.Pos(), e.cursor.Pos()+len(e.suffix))
-
-	// Insert it in the line and add the suffix back.
+	// Remove the line prefix and insert the candidate.
+	e.cursor.Move(-1 * len(e.prefix))
+	e.line.Cut(e.cursor.Pos(), e.cursor.Pos()+len(e.prefix))
 	e.cursor.InsertAt(e.inserted...)
-	e.line.Insert(e.cursor.Pos(), []rune(e.suffix)...)
 
 	// And forget about this inserted completion.
 	e.inserted = make([]rune, 0)
@@ -144,7 +142,7 @@ func (e *Engine) insertCandidate() {
 	// Prepare the completion candidate, remove the
 	// prefix part and save its sufffixes for later.
 	completion := e.prepareSuffix()
-	e.inserted = []rune(completion[len(e.prefix):])
+	e.inserted = []rune(completion)
 
 	// Copy the current (uncompleted) line/cursor.
 	completed := core.Line(string(*e.line))
@@ -153,12 +151,10 @@ func (e *Engine) insertCandidate() {
 	e.compCursor = core.NewCursor(e.compLine)
 	e.compCursor.Set(e.cursor.Pos())
 
-	// Remove the suffix from the line first, and insert the candidate.
-	e.compLine.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.suffix))
+	// Remove the line prefix and insert the candidate.
+	e.compCursor.Move(-1 * len(e.prefix))
+	e.compLine.Cut(e.compCursor.Pos(), e.compCursor.Pos()+len(e.prefix))
 	e.compCursor.InsertAt(e.inserted...)
-
-	// Then add the suffix back.
-	e.compLine.Insert(e.compCursor.Pos(), []rune(e.suffix)...)
 }
 
 // prepareSuffix caches any suffix matcher associated with the completion candidate
