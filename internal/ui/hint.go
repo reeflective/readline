@@ -102,6 +102,8 @@ func DisplayHint(hint *Hint) {
 		return
 	}
 
+	text = strings.Join(strings.Split(text, "\n"), "\n"+term.ClearLineAfter)
+
 	text = "\r" + strings.TrimSuffix(text, "\n") + term.ClearLineAfter + string(inputrc.Newline) + color.Reset
 
 	if len(text) > 0 {

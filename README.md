@@ -39,8 +39,8 @@
 </p>
 
 This library is a modern, pure Go `readline` shell implementation, with full `.inputrc` and legacy
-readline command/option support, and extended with various commands,options and tools commonly
-found in more modern shells. Its architecture and completion system is heavily inspired from Z-Shell.
+readline command/option support, and extended with various commands, options and tools commonly
+found in modern shells. Its architecture and completion system is heavily inspired from Z-Shell.   
 It is used, between others, to power the [console](https://github.com/reeflective/console) library.
 
 

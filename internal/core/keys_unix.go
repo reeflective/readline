@@ -11,8 +11,6 @@ import (
 // GetCursorPos returns the current cursor position in the terminal.
 // It is safe to call this function even if the shell is reading input.
 func (k *Keys) GetCursorPos() (x, y int) {
-	k.cursor = make(chan []byte)
-
 	disable := func() (int, int) {
 		os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
 		return -1, -1
