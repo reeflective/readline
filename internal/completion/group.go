@@ -732,7 +732,7 @@ func (g *group) descriptionTrimmed(desc string) string {
 
 	g.maxDescWidth = termWidth - g.tcMaxLength - len(g.listSeparator) - 1
 
-	if len(desc) > g.maxDescWidth {
+	if len(desc) >= g.maxDescWidth {
 		offset := 4
 		if !g.aliased {
 			offset++
