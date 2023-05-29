@@ -168,7 +168,7 @@ func (m *Engine) PrintBinds(inputrcFormat bool) {
 func (m *Engine) InputIsTerminator() bool {
 	terminators := []string{
 		inputrc.Unescape(`\C-G`),
-		inputrc.Unescape(`C-]`),
+		inputrc.Unescape(`\C-]`),
 	}
 
 	binds := make(map[string]inputrc.Bind)

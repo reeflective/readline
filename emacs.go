@@ -1225,7 +1225,7 @@ func (rl *Shell) abort() {
 	// And only return to the caller if the abort was
 	// called by one of the builtin/config terminators.
 	// All others should generally be OS signals.
-	if rl.Keymap.InputIsTerminator() {
+	if !rl.Keymap.InputIsTerminator() {
 		return
 	}
 
