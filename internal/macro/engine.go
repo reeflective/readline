@@ -45,7 +45,7 @@ func RecordKeys(eng *Engine) {
 		return
 	}
 
-	keys := eng.keys.Caller()
+	keys := core.MacroKeys(eng.keys)
 	if len(keys) == 0 {
 		return
 	}

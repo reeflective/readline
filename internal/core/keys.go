@@ -24,15 +24,14 @@ var rxRcvCursorPos = regexp.MustCompile(`\x1b\[([0-9]+);([0-9]+)R`)
 
 // Keys is used read, manage and use keys input by the shell user.
 type Keys struct {
-	buf        []byte      // Keys read and waiting to be used.
-	matched    []rune      // Keys that have been successfully matched against a bind.
-	matchedLen int         // Number of keys matched against commands.
-	macroKeys  []rune      // Keys that have been fed by a macro.
-	mustWait   bool        // Keys are in the stack, but we must still read stdin.
-	waiting    bool        // Currently waiting for keys on stdin.
-	reading    bool        // Currently reading keys out of the main loop.
-	keysOnce   chan []byte // Passing keys from the main routine.
-	cursor     chan []byte // Cursor coordinates has been read on stdin.
+	buf       []byte      // Keys read and waiting to be used.
+	matched   []rune      // Keys that have been successfully matched against a bind.
+	macroKeys []rune      // Keys that have been fed by a macro.
+	mustWait  bool        // Keys are in the stack, but we must still read stdin.
+	waiting   bool        // Currently waiting for keys on stdin.
+	reading   bool        // Currently reading keys out of the main loop.
+	keysOnce  chan []byte // Passing keys from the main routine.
+	cursor    chan []byte // Cursor coordinates has been read on stdin.
 
 	cfg   *inputrc.Config // Configuration file used for meta key settings
 	mutex sync.RWMutex    // Concurrency safety
@@ -98,7 +97,7 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 }
 
 // PopKey is used to pop a key off the key stack without
-// yet marking this key as having matched a command.
+// yet marking this key as having matched a bind command.
 func PopKey(keys *Keys) (key byte, empty bool) {
 	switch {
 	case len(keys.buf) > 0:
@@ -133,13 +132,14 @@ func PeekKey(keys *Keys) (key byte, empty bool) {
 // This function should normally not be used by external users of the library.
 func MatchedKeys(keys *Keys, matched []byte, args ...byte) {
 	if len(matched) > 0 {
-		keys.matched = append(keys.matched, []rune(string(matched))...)
-		keys.matchedLen += len(matched)
+		keys.matched = []rune(string(matched))
 	}
 
 	if len(args) > 0 {
 		keys.buf = append(args, keys.buf...)
 	}
+
+	keys.mustWait = false
 }
 
 // MatchedPrefix is similar to MatchedKeys, except that the provided keys
@@ -158,26 +158,46 @@ func MatchedPrefix(keys *Keys, prefix ...byte) {
 	// call to WaitAvailableKeys() should block for new keys.
 	keys.mustWait = len(keys.buf) == 0
 	keys.buf = append(prefix, keys.buf...)
-
 	keys.matched = []rune(string(prefix))
-	keys.matchedLen = len(prefix)
+}
+
+// PopForce is used to force-remove a key from the buffer, without marking
+// it as having matched a bind command. This is used, for example, when the
+// escape has been handled specially as a Vim escape.
+func PopForce(keys *Keys) (key byte, empty bool) {
+	switch {
+	case len(keys.buf) > 0:
+		key = keys.buf[0]
+		keys.buf = keys.buf[1:]
+	case len(keys.macroKeys) > 0:
+		key = byte(keys.macroKeys[0])
+		keys.macroKeys = keys.macroKeys[1:]
+	default:
+		return byte(0), true
+	}
+
+	// Force the macro recorder to use the matched keys.
+	keys.mustWait = false
+
+	return key, false
+}
+
+// MacroKeys returns the keys that have matched a given command, and thus can be recorded
+// as a part of the current macro. This function is different from keys.Caller() in that it
+// won't return keys that have only matched a prefix, to avoid recording them twice.
+func MacroKeys(keys *Keys) []rune {
+	if keys.mustWait {
+		return nil
+	}
+
+	return keys.matched
 }
 
 // FlushUsed drops the keys that have matched a given command.
 func FlushUsed(keys *Keys) {
 	keys.mutex.Lock()
-	defer keys.mutex.Unlock()
-
-	defer func() {
-		keys.matchedLen = 0
-		keys.matched = nil
-	}()
-
-	if keys.matchedLen == 0 {
-		return
-	}
-
 	keys.matched = nil
+	defer keys.mutex.Unlock()
 }
 
 // ReadKey reads keys from stdin like Read(), but immediately
@@ -212,7 +232,6 @@ func (k *Keys) ReadKey() (key rune, isAbort bool) {
 	// if the macro engine is recording, it will
 	// capture them
 	k.matched = append(k.matched, key)
-	k.matchedLen++
 
 	return key, key == inputrc.Esc
 }
@@ -238,7 +257,6 @@ func (k *Keys) Pop() (key byte, empty bool) {
 	}
 
 	k.matched = append(k.matched, rune(key))
-	k.matchedLen++
 
 	return key, false
 }
