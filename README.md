@@ -49,7 +49,7 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 - Pure Go, almost-only standard library
 - Cross-platform (Linux / MacOS / Windows)
 - Full `.inputrc` support (all commands/options)
-- Extensive test suite and full coverage of core code
+- Extensive test suite and almost full coverage of core code
 - [Extended list](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands) of additional commands/options (edition/completion/history)
 - Complete [multiline edition/movement support](https://github.com/reeflective/readline/wiki/Multiline)
 - Command-line edition in `$EDITOR`/`$VISUAL` support
@@ -130,7 +130,7 @@ The documentation is available on the [repository wiki](https://github.com/reefl
 </details>
 <details>
   <summary>- History movements/completion/use/search </summary>
- <dd>History movement, completion and some other other widgets<em></em></dd>
+ <dd><em>History movement, completion and some other other widgets</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/history.gif"/>
 </details>
 <details>
@@ -155,6 +155,13 @@ The documentation is available on the [repository wiki](https://github.com/reefl
 <details>
   <summary>- Multiline edition </summary>
 <img src="https://github.com/reeflective/readline/blob/assets/multiline.gif"/>
+</details>
+<details>
+  <summary>- Macros </summary>
+ <dd><em>Emacs</em></dd>
+<img src="https://github.com/reeflective/readline/blob/assets/emacs-macros.gif"/>
+ <dd><em>Vim</em></dd>
+<img src="https://github.com/reeflective/readline/blob/assets/vim-macros.gif"/>
 </details>
 
 

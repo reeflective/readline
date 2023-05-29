@@ -45,7 +45,7 @@ func RecordKeys(eng *Engine) {
 		return
 	}
 
-	keys := eng.keys.Caller()
+	keys := core.MacroKeys(eng.keys)
 	if len(keys) == 0 {
 		return
 	}
@@ -82,7 +82,7 @@ func (e *Engine) StartRecord(key rune) {
 
 // StopRecord stops using key input as part of a macro.
 // The hint section displaying the currently saved sequence is cleared.
-func (e *Engine) StopRecord(keys []rune) {
+func (e *Engine) StopRecord(keys ...rune) {
 	e.recording = false
 
 	// Remove the hint.
@@ -92,8 +92,8 @@ func (e *Engine) StopRecord(keys []rune) {
 		return
 	}
 
-	seq := strings.TrimSuffix(string(e.current), string(keys))
-	macro := inputrc.EscapeMacro(seq)
+	e.current = append(e.current, keys...)
+	macro := inputrc.EscapeMacro(string(e.current))
 
 	e.macros[e.currentKey] = macro
 	e.macros[rune(0)] = macro

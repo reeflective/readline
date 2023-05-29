@@ -552,7 +552,8 @@ func (rl *Shell) incrementalReverseSearchHistory() {
 	rl.historyCompletion(forward, filter, regexp)
 }
 
-// Write the current line to the history if it is not empty, and clear the line buffer.
+// Write the current line to the history if it is not empty
+// (without executing it), and clear the line buffer.
 func (rl *Shell) saveLine() {
 	rl.History.Write(false)
 	rl.History.Revert()
@@ -651,8 +652,7 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 
 	// Without multiline support, we always return the line.
 	if rl.AcceptMultiline == nil {
-		keys := rl.Keys.Caller()
-		rl.Macros.StopRecord(keys)
+		rl.Macros.StopRecord(rl.Keys.Caller()...)
 
 		rl.Display.AcceptLine()
 		rl.History.Accept(hold, infer, nil)
@@ -663,8 +663,7 @@ func (rl *Shell) acceptLineWith(infer, hold bool) {
 	// Ask the caller if the line should be accepted
 	// as is, save the command line and accept it.
 	if rl.AcceptMultiline(*rl.line) {
-		keys := rl.Keys.Caller()
-		rl.Macros.StopRecord(keys)
+		rl.Macros.StopRecord(rl.Keys.Caller()...)
 
 		rl.Display.AcceptLine()
 		rl.History.Accept(hold, infer, nil)
