@@ -46,11 +46,11 @@ func (c *_COORD) ptr() uintptr {
 }
 
 const (
-	EVENT_KEY                = 0x0001
-	EVENT_MOUSE              = 0x0002
-	EVENT_WINDOW_BUFFER_SIZE = 0x0004
-	EVENT_MENU               = 0x0008
-	EVENT_FOCUS              = 0x0010
+	EVENT_KEY                = 0x0001 // Event for key press/release
+	EVENT_MOUSE              = 0x0002 // Event for mouse action
+	EVENT_WINDOW_BUFFER_SIZE = 0x0004 // Event for window resize
+	EVENT_MENU               = 0x0008 // Event for the menu keys
+	EVENT_FOCUS              = 0x0010 // Event for focus change
 )
 
 type _KEY_EVENT_RECORD struct {
@@ -96,6 +96,7 @@ type _CONSOLE_CURSOR_INFO struct {
 // CallFunc is a function that calls a Windows API function.
 type CallFunc func(u ...uintptr) error
 
+// NewKernel returns a new Kernel with all the required Windows API functions.
 func NewKernel() *Kernel {
 	k := &Kernel{}
 	kernel32 := syscall.NewLazyDLL("kernel32.dll")
@@ -109,6 +110,7 @@ func NewKernel() *Kernel {
 	return k
 }
 
+// Wrap wraps a Windows API function into a callback function.
 func (k *Kernel) Wrap(p *syscall.LazyProc) CallFunc {
 	return func(args ...uintptr) error {
 		var r0 uintptr
@@ -130,15 +132,15 @@ func (k *Kernel) Wrap(p *syscall.LazyProc) CallFunc {
 		if int(r0) == 0 {
 			if e1 != 0 {
 				return error(e1)
-			} else {
-				return syscall.EINVAL
 			}
+			return syscall.EINVAL
 		}
 		return nil
 	}
 }
 
-func GetConsoleScreenBufferInfo() (*_CONSOLE_SCREEN_BUFFER_INFO, error) {
+// getConsoleScreenBufferInfo returns the current screen buffer information on Windows.
+func getConsoleScreenBufferInfo() (*_CONSOLE_SCREEN_BUFFER_INFO, error) {
 	t := new(_CONSOLE_SCREEN_BUFFER_INFO)
 	err := kernel.GetConsoleScreenBufferInfo(
 		stdout,
@@ -147,13 +149,15 @@ func GetConsoleScreenBufferInfo() (*_CONSOLE_SCREEN_BUFFER_INFO, error) {
 	return t, err
 }
 
-func GetConsoleCursorInfo() (*_CONSOLE_CURSOR_INFO, error) {
+// getConsoleCursorInfo returns the current cursor information on Windows.
+func getConsoleCursorInfo() (*_CONSOLE_CURSOR_INFO, error) {
 	t := new(_CONSOLE_CURSOR_INFO)
 	err := kernel.GetConsoleCursorInfo(stdout, uintptr(unsafe.Pointer(t)))
 	return t, err
 }
 
-func SetConsoleCursorPosition(c *_COORD) error {
+// setConsoleCursorInfo sets the cursor position on Windows.
+func setConsoleCursorPosition(c *_COORD) error {
 	return kernel.SetConsoleCursorPosition(stdout, c.ptr())
 }
 

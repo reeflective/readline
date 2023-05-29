@@ -80,7 +80,6 @@ func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint, opts *inputrc.
 // to infer a command line from the history, it is performed now.
 func Init(hist *Sources) {
 	defer func() {
-		hist.sourcePos = 0
 		hist.accepted = false
 		hist.acceptLine = nil
 		hist.acceptErr = nil
@@ -97,12 +96,14 @@ func Init(hist *Sources) {
 
 	if !hist.infer {
 		hist.hpos = -1
+		undoHist := hist.getHistoryLineChanges()
+		undoHist[hist.hpos] = &lineHistory{}
+
 		return
 	}
 
 	switch hist.hpos {
 	case -1:
-		// hist.hpos = 0
 	case 0:
 		hist.InferNext()
 	default:
@@ -172,6 +173,7 @@ func (h *Sources) Walk(pos int) {
 		return
 	}
 
+	// Can't go back further than the first line.
 	if h.hpos == history.Len() && pos == 1 {
 		return
 	}

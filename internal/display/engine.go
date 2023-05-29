@@ -142,6 +142,7 @@ func (e *Engine) AcceptLine() {
 	e.prompt.RightPrint(e.lineCol, false)
 
 	// Go below this non-suggested line and clear everything.
+	term.MoveCursorBackwards(term.GetWidth())
 	fmt.Println()
 }
 

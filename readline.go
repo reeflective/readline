@@ -57,7 +57,7 @@ func (rl *Shell) Readline() (string, error) {
 	}
 	defer term.Restore(descriptor, state)
 
-	rl.Prompt.PrimaryPrint()
+	rl.Display.PrintPrimaryPrompt()
 	defer rl.Display.RefreshTransient()
 	defer fmt.Print(keymap.CursorStyle("default"))
 

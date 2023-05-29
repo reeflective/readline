@@ -1,7 +1,6 @@
 
 <div align="center">
   <br> <h1> Readline </h1>
-  <p>  Shell library with modern and simple UI features </p>
 </div>
 
 
@@ -48,25 +47,26 @@ It is used, between others, to power the [console](https://github.com/reeflectiv
 
 ### Core 
 - Pure Go, almost-only standard library
+- Cross-platform (Linux / MacOS / Windows)
 - Full `.inputrc` support (all commands/options)
 - Extensive test suite and full coverage of core code
 - [Extended list](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands) of additional commands/options (edition/completion/history)
 - Complete [multiline edition/movement support](https://github.com/reeflective/readline/wiki/Multiline)
 - Command-line edition in `$EDITOR`/`$VISUAL` support
-- Programmable API, with failure-safe access to core components
+- [Programmable API](https://github.com/reeflective/readline/wiki/Programmable-Commands), with failure-safe access to core components
 - Support for an [arbitrary number of history sources](https://github.com/reeflective/readline/wiki/History-Sources)
 
 ### Emacs / Standard
 - Native Emacs commands
 - Emacs-style [macro engine](https://github.com/reeflective/readline/wiki/Macros#emacs) (not working accross multiple calls)
-- Keywords switching (operators, booleans, hex/binary/digit) with iterations
+- Keywords [switching](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands#modifying-text) (operators, booleans, hex/binary/digit) with iterations
 - Command/mode cursor status indicator
 - Complete undo/redo history
 - Command status/arg/iterations hint display
 
 ### Vim
 - Near-native Vim mode
-- Vim text objects (code blocks/words/blank/shellwords)
+- Vim [text objects](https://github.com/reeflective/readline/wiki/Keymaps-&-Commands#text-objects) (code blocks, words/blank/shellwords)
 - Extended surround select/change/add fonctionality, with highlighting
 - Vim Visual/Operator pending mode & cursor styles indications
 - Vim Insert and Replace (once/many)
@@ -107,8 +107,11 @@ The documentation is available on the [repository wiki](https://github.com/reefl
 <img src="https://github.com/reeflective/readline/blob/assets/undo.gif"/>
 </details>
 <details>
-  <summary>- Keyword switching </summary>
+  <summary>- Keyword switching & selection </summary>
+ <dd><em>Switching various keywords</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/switch-keywords.gif"/>
+ <dd><em>Using regexp-based selection to grab parts of words (here, URL components)</em></dd>
+<img src="https://github.com/reeflective/readline/blob/assets/select-keywords.gif"/>
 </details>
 <details>
   <summary>- Vim selection & movements (basic) </summary>
@@ -116,32 +119,25 @@ The documentation is available on the [repository wiki](https://github.com/reefl
 </details>
 <details>
   <summary>- Vim surround (selection and change) </summary>
- <dd><em>Basic surround selection changes/adds</em></dd>
+ <dd><em>Selecting/adding/changing surround regions</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/vim-surround.gif"/>
  <dd><em>Surround and change in shellwords, matching brackets, etc.</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/vim-surround-2.gif"/>
 </details>
 <details>
   <summary>- Vim registers (with completion) </summary>
-<img src="https://github.com/reeflective/readline/blob/assets/vim-registers.gif"/>
+<img src="https://github.com/reeflective/readline/blob/assets/registers.gif"/>
 </details>
 <details>
   <summary>- History movements/completion/use/search </summary>
- <dd><em></em></dd>
-History movement, completion and some other other widgets
+ <dd>History movement, completion and some other other widgets<em></em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/history.gif"/>
- <dd><em>History cycling and search</em></dd>
-<img src="https://github.com/reeflective/readline/blob/assets/history-search.gif"/>
 </details>
 <details>
   <summary>- Completion </summary>
  <dd><em>Classic mode & incremental search mode</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/completion.gif"/>
- <dd><em>Smart terminal estate management</em></dd>
-<img src="https://github.com/reeflective/readline/blob/assets/completion-size.gif"/>
-</details>
-<details>
-  <summary>- Suffix autoremoval </summary>
+ <dd><em>Suffix-autoremoval </em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/suffix-autoremoval.gif"/>
 </details>
 <details>
@@ -153,8 +149,12 @@ History movement, completion and some other other widgets
 <img src="https://github.com/reeflective/readline/blob/assets/logging.gif"/>
 </details>
 <details>
-  <summary>- Configuration hot-reload </summary>
-<img src="https://github.com/reeflective/readline/blob/assets/configuration-reload.gif"/>
+  <summary>- Inputrc init file reload </summary>
+<img src="https://github.com/reeflective/readline/blob/assets/config-reload.gif"/>
+</details>
+<details>
+  <summary>- Multiline edition </summary>
+<img src="https://github.com/reeflective/readline/blob/assets/multiline.gif"/>
 </details>
 
 
@@ -173,7 +173,7 @@ Additionally:
 
 ## Credits
 
-- Big thanks to @kenshaw for his `.inputrc` parsing package, which brings much wider compatiblity to this library.
-- The famous `chzyer/readline` for the Windows I/O code and everything related.
+- @kenshaw for his `.inputrc` parsing package, which brings much wider compatibility to this library.
+- `chzyer/readline` for the Windows I/O code and everything related.
 - Some of the Vim code is inspired or translated from [zsh-vi-mode](https://github.com/jeffreytse/zsh-vi-mode).
-- Thanks to [lmorg/readline](https://github.com/lmorg/readline), for the line tokenizers.
+- [lmorg/readline](https://github.com/lmorg/readline), for the line tokenizers.
