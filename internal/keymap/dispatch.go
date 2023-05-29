@@ -169,13 +169,13 @@ func (m *Engine) matchBind(keys []byte, binds map[string]inputrc.Bind) (inputrc.
 	// Iterate over the sorted list of sequences and find all binds
 	// that match the sequence either by prefix or exactly.
 	for _, sequence := range sequences {
-		sequence = strutil.ConvertMeta([]rune(sequence))
+		seq := strutil.ConvertMeta([]rune(sequence))
 
-		if len(string(keys)) < len(sequence) && strings.HasPrefix(sequence, string(keys)) {
+		if len(string(keys)) < len(seq) && strings.HasPrefix(seq, string(keys)) {
 			prefixed = append(prefixed, binds[sequence])
 		}
 
-		if string(keys) == sequence {
+		if string(keys) == seq {
 			match = binds[sequence]
 		}
 	}
