@@ -107,8 +107,11 @@ The documentation is available on the [repository wiki](https://github.com/reefl
 <img src="https://github.com/reeflective/readline/blob/assets/undo.gif"/>
 </details>
 <details>
-  <summary>- Keyword switching </summary>
+  <summary>- Keyword switching & selection </summary>
+ <dd><em>Switching various keywords</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/switch-keywords.gif"/>
+ <dd><em>Using regexp-based selection to grab parts of words (here, URL components)</em></dd>
+<img src="https://github.com/reeflective/readline/blob/assets/select-keywords.gif"/>
 </details>
 <details>
   <summary>- Vim selection & movements (basic) </summary>
@@ -116,32 +119,25 @@ The documentation is available on the [repository wiki](https://github.com/reefl
 </details>
 <details>
   <summary>- Vim surround (selection and change) </summary>
- <dd><em>Basic surround selection changes/adds</em></dd>
+ <dd><em>Selecting/adding/changing surround regions</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/vim-surround.gif"/>
  <dd><em>Surround and change in shellwords, matching brackets, etc.</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/vim-surround-2.gif"/>
 </details>
 <details>
   <summary>- Vim registers (with completion) </summary>
-<img src="https://github.com/reeflective/readline/blob/assets/vim-registers.gif"/>
+<img src="https://github.com/reeflective/readline/blob/assets/registers.gif"/>
 </details>
 <details>
   <summary>- History movements/completion/use/search </summary>
- <dd><em></em></dd>
-History movement, completion and some other other widgets
+ <dd>History movement, completion and some other other widgets<em></em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/history.gif"/>
- <dd><em>History cycling and search</em></dd>
-<img src="https://github.com/reeflective/readline/blob/assets/history-search.gif"/>
 </details>
 <details>
   <summary>- Completion </summary>
  <dd><em>Classic mode & incremental search mode</em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/completion.gif"/>
- <dd><em>Smart terminal estate management</em></dd>
-<img src="https://github.com/reeflective/readline/blob/assets/completion-size.gif"/>
-</details>
-<details>
-  <summary>- Suffix autoremoval </summary>
+ <dd><em>Suffix-autoremoval </em></dd>
 <img src="https://github.com/reeflective/readline/blob/assets/suffix-autoremoval.gif"/>
 </details>
 <details>
@@ -153,8 +149,12 @@ History movement, completion and some other other widgets
 <img src="https://github.com/reeflective/readline/blob/assets/logging.gif"/>
 </details>
 <details>
-  <summary>- Configuration hot-reload </summary>
-<img src="https://github.com/reeflective/readline/blob/assets/configuration-reload.gif"/>
+  <summary>- Inputrc init file reload </summary>
+<img src="https://github.com/reeflective/readline/blob/assets/config-reload.gif"/>
+</details>
+<details>
+  <summary>- Multiline edition </summary>
+<img src="https://github.com/reeflective/readline/blob/assets/multiline.gif"/>
 </details>
 
 
