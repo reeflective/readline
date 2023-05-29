@@ -552,7 +552,8 @@ func (rl *Shell) incrementalReverseSearchHistory() {
 	rl.historyCompletion(forward, filter, regexp)
 }
 
-// Write the current line to the history if it is not empty, and clear the line buffer.
+// Write the current line to the history if it is not empty
+// (without executing it), and clear the line buffer.
 func (rl *Shell) saveLine() {
 	rl.History.Write(false)
 	rl.History.Revert()
