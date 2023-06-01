@@ -86,7 +86,7 @@ func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals 
 		}
 
 		// Currently this is because errors are passed as completions.
-		if strings.HasPrefix(val.Value, prefix+"ERR") || strings.HasPrefix(val.Value, prefix+"_") {
+		if strings.HasPrefix(val.Value, prefix+"ERR") && val.Value == prefix+"_" {
 			if val.Description != "" && comps != nil {
 				comps.Messages.Add(color.FgRed + val.Description)
 			}

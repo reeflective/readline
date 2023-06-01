@@ -132,8 +132,7 @@ func CoordinatesHint(hint *Hint) int {
 
 	// Otherwise compute the real length/span.
 	usedY := 0
-	line := color.Strip(text)
-	lines := strings.Split(line, "\n")
+	lines := strings.Split(text, "\n")
 
 	for i, line := range lines {
 		x, y := strutil.LineSpan([]rune(line), i, 0)
