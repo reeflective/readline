@@ -1438,7 +1438,7 @@ func (rl *Shell) dumpFunctions() {
 	}()
 
 	inputrcFormat := rl.Iterations.IsSet()
-	rl.Keymap.PrintBinds(inputrcFormat)
+	rl.Keymap.PrintBinds(string(rl.Keymap.Main()), inputrcFormat)
 }
 
 // Print all of the settable variables and their values to
