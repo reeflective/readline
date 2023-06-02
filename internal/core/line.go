@@ -337,11 +337,11 @@ func DisplayLine(l *Line, indent int) {
 
 		// Clear everything after each line, except the last.
 		if num < len(lines)-1 {
-			line += term.ClearLineAfter
+			if len(line)+indent < term.GetWidth() {
+				line += term.ClearLineAfter
+			}
 			line += "\n"
 		}
-
-		line += term.ClearLineAfter
 
 		fmt.Print(line)
 	}

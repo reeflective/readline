@@ -264,8 +264,9 @@ func (e *Engine) displayLine() {
 	core.DisplayLine(&e.suggested, e.startCols)
 
 	// Adjust the cursor if the line fits exactly in the terminal width.
-	if e.lineCol == 0 && e.cursorCol == 0 {
+	if e.lineCol == 0 {
 		fmt.Println()
+		fmt.Print(term.ClearLineAfter)
 	}
 }
 

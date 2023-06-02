@@ -57,11 +57,16 @@ func (rl *Shell) Readline() (string, error) {
 	}
 	defer term.Restore(descriptor, state)
 
+	// Prompts and cursor styles
 	rl.Display.PrintPrimaryPrompt()
 	defer rl.Display.RefreshTransient()
 	defer fmt.Print(keymap.CursorStyle("default"))
 
 	rl.init()
+
+	// Terminal resize events
+	resize := display.WatchResize(rl.Display)
+	defer close(resize)
 
 	for {
 		// Whether or not the command is resolved, let the macro
