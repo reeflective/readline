@@ -113,8 +113,6 @@ func printBindsReadable(commands []string, all map[string][]string) {
 
 		switch {
 		case len(commandBinds) == 0:
-			fmt.Printf("%s is not bound to any keys\n", command)
-
 		case len(commandBinds) > 5:
 			var firstBinds []string
 
@@ -143,10 +141,7 @@ func printBindsInputrc(commands []string, all map[string][]string) {
 		commandBinds := all[command]
 		sort.Strings(commandBinds)
 
-		switch {
-		case len(commandBinds) == 0:
-			fmt.Printf("# %s (not bound)\n", command)
-		default:
+		if len(commandBinds) > 0 {
 			for _, bind := range commandBinds {
 				fmt.Printf("\"%s\": %s\n", bind, command)
 			}

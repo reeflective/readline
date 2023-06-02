@@ -129,7 +129,7 @@ func (m *Engine) IsEmacs() bool {
 // PrintBinds displays a list of currently bound commands (and their sequences)
 // to the screen. If inputrcFormat is true, it displays it formatted such that
 // the output can be reused in an .inputrc file.
-func (m *Engine) PrintBinds(inputrcFormat bool) {
+func (m *Engine) PrintBinds(keymap string, inputrcFormat bool) {
 	var commands []string
 
 	for command := range m.commands {
@@ -138,7 +138,10 @@ func (m *Engine) PrintBinds(inputrcFormat bool) {
 
 	sort.Strings(commands)
 
-	binds := m.config.Binds[string(m.Main())]
+	binds := m.config.Binds[keymap]
+	if binds == nil {
+		return
+	}
 
 	// Make a list of all sequences bound to each command.
 	allBinds := make(map[string][]string)
