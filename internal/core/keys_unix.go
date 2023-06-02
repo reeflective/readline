@@ -3,7 +3,9 @@
 package core
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 )
@@ -79,4 +81,26 @@ func (k *Keys) GetCursorPos() (x, y int) {
 	}
 
 	return x, y
+}
+
+func (k *Keys) readInputFiltered() (keys []byte, err error) {
+	// Start reading from os.Stdin in the background.
+	// We will either read keys from user, or an EOF
+	// send by ourselves, because we pause reading.
+	buf := make([]byte, keyScanBufSize)
+
+	read, err := Stdin.Read(buf)
+	if err != nil && errors.Is(err, io.EOF) {
+		return
+	}
+
+	// Always attempt to extract cursor position info.
+	// If found, strip it and keep the remaining keys.
+	cursor, keys := k.extractCursorPos(buf[:read])
+
+	if len(cursor) > 0 {
+		k.cursor <- cursor
+	}
+
+	return keys, nil
 }

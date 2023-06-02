@@ -32,6 +32,7 @@ type Keys struct {
 	reading   bool        // Currently reading keys out of the main loop.
 	keysOnce  chan []byte // Passing keys from the main routine.
 	cursor    chan []byte // Cursor coordinates has been read on stdin.
+	resize    chan bool   // Resize events on Windows are sent on stdin.
 
 	cfg   *inputrc.Config // Configuration file used for meta key settings
 	mutex sync.RWMutex    // Concurrency safety
@@ -296,26 +297,4 @@ func (k *Keys) extractCursorPos(keys []byte) (cursor, remain []byte) {
 	remain = rxRcvCursorPos.ReplaceAll(keys, nil)
 
 	return
-}
-
-func (k *Keys) readInputFiltered() (keys []byte, err error) {
-	// Start reading from os.Stdin in the background.
-	// We will either read keys from user, or an EOF
-	// send by ourselves, because we pause reading.
-	buf := make([]byte, keyScanBufSize)
-
-	read, err := Stdin.Read(buf)
-	if err != nil && errors.Is(err, io.EOF) {
-		return
-	}
-
-	// Always attempt to extract cursor position info.
-	// If found, strip it and keep the remaining keys.
-	cursor, keys := k.extractCursorPos(buf[:read])
-
-	if len(cursor) > 0 {
-		k.cursor <- cursor
-	}
-
-	return keys, nil
 }

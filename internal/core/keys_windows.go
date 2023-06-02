@@ -4,6 +4,8 @@
 package core
 
 import (
+	"errors"
+	"io"
 	"unsafe"
 
 	"github.com/reeflective/readline/inputrc"
@@ -36,6 +38,12 @@ const (
 	VK_NEXT     = 0x22
 )
 
+// Use an undefined Virtual Key sequence to pass
+// Windows terminal resize events from the reader.
+const (
+	WINDOWS_RESIZE = 0x07
+)
+
 const (
 	charTab       = 9
 	charCtrlH     = 8
@@ -44,6 +52,49 @@ const (
 
 func init() {
 	Stdin = newRawReader()
+}
+
+// GetTerminalResize sends booleans over a channel to notify resize events on Windows.
+// This functions uses the keys reader because on Windows, resize events are sent through
+// stdin, not with syscalls like unix's syscall.SIGWINCH.
+func GetTerminalResize(keys *Keys) <-chan bool {
+	keys.resize = make(chan bool, 1)
+
+	return keys.resize
+}
+
+// readInputFiltered on Windows needs to check for terminal resize events.
+func (k *Keys) readInputFiltered() (keys []byte, err error) {
+	for {
+		// Start reading from os.Stdin in the background.
+		// We will either read keys from user, or an EOF
+		// send by ourselves, because we pause reading.
+		buf := make([]byte, keyScanBufSize)
+
+		read, err := Stdin.Read(buf)
+		if err != nil && errors.Is(err, io.EOF) {
+			return keys, err
+		}
+
+		input := buf[:read]
+
+		// On Windows, windows resize events are sent through stdin,
+		// so if one is detected, send it back to the display engine.
+		if len(input) == 1 && input[0] == WINDOWS_RESIZE {
+			k.resize <- true
+			continue
+		}
+
+		// Always attempt to extract cursor position info.
+		// If found, strip it and keep the remaining keys.
+		cursor, keys := k.extractCursorPos(input)
+
+		if len(cursor) > 0 {
+			k.cursor <- cursor
+		}
+
+		return keys, nil
+	}
 }
 
 // rawReader translates Windows input to ANSI sequences,
@@ -77,6 +128,12 @@ next:
 	if err != nil {
 		return 0, err
 	}
+
+	// Keep resize events for the display engine to use.
+	if ir.EventType == EVENT_WINDOW_BUFFER_SIZE {
+		return r.write(buf, WINDOWS_RESIZE)
+	}
+
 	if ir.EventType != EVENT_KEY {
 		goto next
 	}
