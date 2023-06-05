@@ -41,7 +41,7 @@ func GetWidth() (termWidth int) {
 // GetLength returns the length of the terminal
 // (Y length), or 80 if it cannot be established.
 func GetLength() int {
-	width, _, err := term.GetSize(int(stdoutTerm.Fd()))
+	width, _, err := term.GetSize(0)
 
 	if err != nil || width == 0 {
 		return defaultTermWidth
