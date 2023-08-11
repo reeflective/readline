@@ -3,6 +3,8 @@ package color
 import (
 	"os"
 	"regexp"
+	"strconv"
+	"strings"
 )
 
 // Base text effects.
@@ -80,6 +82,18 @@ const (
 // Fmt formats a color code as an ANSI escaped color sequence.
 func Fmt(color string) string {
 	return SGRStart + color + SGREnd
+}
+
+// UnquoteRC removes the `\e` escape used in readline .inputrc
+// configuration values and replaces it with the printable escape.
+func UnquoteRC(color string) string {
+	color = strings.ReplaceAll(color, `\e`, "\x1b")
+
+	if unquoted, err := strconv.Unquote(color); err == nil {
+		return unquoted
+	}
+
+	return color
 }
 
 // HasEffects returns true if colors and effects are supported

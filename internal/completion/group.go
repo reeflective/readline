@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -150,13 +151,12 @@ func (e *Engine) justifyGroups(values Values) {
 
 func (e *Engine) newGroup(comps Values, tag string, vals RawValues, aliased bool) {
 	grp := &group{
-		tag:           tag,
-		noSpace:       comps.NoSpace,
-		listSeparator: "--",
-		posX:          -1,
-		posY:          -1,
-		aliased:       aliased,
-		columnsWidth:  []int{0},
+		tag:          tag,
+		noSpace:      comps.NoSpace,
+		posX:         -1,
+		posY:         -1,
+		aliased:      aliased,
+		columnsWidth: []int{0},
 	}
 
 	// Check that all comps have a display value,
@@ -164,7 +164,7 @@ func (e *Engine) newGroup(comps Values, tag string, vals RawValues, aliased bool
 	vals = grp.checkDisplays(vals)
 
 	// Set sorting options, various display styles, etc.
-	grp.setOptions(comps, tag, vals)
+	grp.setOptions(e, comps, tag, vals)
 
 	// Keep computing/devising some parameters and constraints.
 	// This does not do much when we have aliased completions.
@@ -197,11 +197,18 @@ func (g *group) checkDisplays(vals RawValues) RawValues {
 	return vals
 }
 
-func (g *group) setOptions(comps Values, tag string, vals RawValues) {
+func (g *group) setOptions(eng *Engine, comps Values, tag string, vals RawValues) {
 	// Override grid/list displays
 	_, g.list = comps.ListLong[tag]
 	if _, all := comps.ListLong["*"]; all && len(comps.ListLong) == 1 {
 		g.list = true
+	}
+
+	listSep, err := strconv.Unquote(eng.config.GetString("completion-list-separator"))
+	if err != nil {
+		g.listSeparator = "--"
+	} else {
+		g.listSeparator = listSep
 	}
 
 	// Always list long commands when they have descriptions.
@@ -621,7 +628,9 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case selected:
-		candidate = color.Fmt(color.Bg+"255") + color.FgBlackBright + g.displayTrimmed(color.Strip(val.Display))
+		selectionHighlightStyle := color.Fmt(color.Bg+"255") + color.UnquoteRC(eng.config.GetString("completion-selection-style")) // + color.FgBlackBright
+		candidate = selectionHighlightStyle + g.displayTrimmed(color.Strip(val.Display))
+
 		if g.aliased {
 			candidate += cell + color.Reset
 		}
@@ -655,10 +664,13 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	if row == g.posY && col == g.posX && g.isCurrent && !g.aliased {
-		desc = color.Fmt(color.Bg+"255") + color.FgBlackBright + g.descriptionTrimmed(val.Description)
+		selectionHighlightStyle := color.Fmt(color.Bg+"255") + color.UnquoteRC(eng.config.GetString("completion-selection-style")) // + color.FgBlackBright
+		desc = selectionHighlightStyle + desc
 	}
 
-	return color.Dim + desc + color.Reset
+	compDescStyle := color.UnquoteRC(eng.config.GetString("completion-description-style"))
+
+	return compDescStyle + desc + color.Reset
 }
 
 func (g *group) padCandidate(row []Candidate, val Candidate, col int) (cell, pad string) {
