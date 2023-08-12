@@ -326,33 +326,28 @@ func (g *group) setColumnsWidth(vals *RawValues, compDisplayWidth int) {
 
 func (g *group) makeMatrix(vals RawValues) {
 nextValue:
-	for _, val := range vals {
-		valLen := utf8.RuneCountInString(val.Display)
+	for i := range vals {
+		val := vals[i]
+		valLen := utf8.RuneCountInString(val.Display) + 1
 
-		// If we have an alias, and we must get the right
-		// column and the right padding for this column.
-		if g.aliased {
-			for i, row := range g.rows {
-				if row[0].Description == val.Description {
-					g.rows[i] = append(row, val)
-					g.columnsWidth = getColumnPad(g.columnsWidth, valLen+1, len(g.rows[i]))
+		// Look up each existing row.
+		for i := range g.rows {
+			row := g.rows[i]
 
-					continue nextValue
-				}
+			if val.Description != "" && row[0].Description != val.Description {
+				continue
+			}
+
+			if g.fitsInRow(valLen, len(append(row, val)), val.Display) && !g.list {
+				g.rows[i] = append(g.rows[i], val)
+				continue nextValue
 			}
 		}
 
-		// Else, either add it to the current row if there is still room
-		// on it for this candidate, or add a new one. We only do that when
-		// we know we don't have aliases, or when we don't have to display list.
-		if !g.aliased && g.canFitInRow(term.GetWidth()) && !g.list {
-			g.rows[len(g.rows)-1] = append(g.rows[len(g.rows)-1], val)
-		} else {
-			// Else create a new row, and update the row pad.
-			g.rows = append(g.rows, []Candidate{val})
-			if g.columnsWidth[0] < valLen+1 {
-				g.columnsWidth[0] = valLen + 1
-			}
+		// Else create a new row, and update the row pad.
+		g.rows = append(g.rows, []Candidate{val})
+		if g.columnsWidth[0] < valLen {
+			g.columnsWidth[0] = valLen
 		}
 	}
 
@@ -367,13 +362,31 @@ nextValue:
 	}
 }
 
-func (g *group) canFitInRow(termWidth int) bool {
-	if len(g.rows) == 0 {
-		return false
-	}
+func (g *group) fitsInRow(valLen int, numAliases int, val string) bool {
+	columns := g.columnsWidth
 
-	if termWidth/(g.maxCellLength)-1 < len(g.rows[len(g.rows)-1]) {
+	switch {
+	// We must either reuse one of the columns:
+	// we don't have room on the right for a new one.
+	case numAliases > len(columns) && ((sum(columns) + len(columns) + valLen + 1) > (term.GetWidth() / 4)):
+		columnX := numAliases % len(columns)
+		if columns[columnX] < valLen {
+			columns[columnX] = valLen
+		}
+
 		return false
+
+		// Or add a new column
+	case numAliases > len(columns):
+		g.columnsWidth = append(columns, valLen)
+
+		return true
+
+		// Or we are already on an existing one.
+	case columns[numAliases-1] < valLen:
+		columns[numAliases-1] = valLen
+
+		return true
 	}
 
 	return true
@@ -612,7 +625,7 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 		}
 
 		// Add the fully-styled and trimmed candidate display.
-		comp += g.highlightCandidate(eng, val, "", isSelected)
+		comp += g.highlightCandidate(eng, val, " ", isSelected)
 
 		// And pad this completion grid with space if needed.
 		maxLen := g.longestValueLen + 1
@@ -628,7 +641,7 @@ func (g *group) writeRow(eng *Engine, row int) (comp string) {
 
 	// If we are on the last column anyway, add the descriptions.
 	val := current[0]
-	comp += g.highlightDescription(eng, val, len(current)-1, row)
+	comp += g.highlightDescription(eng, val, row, len(current)-1)
 	comp += term.ClearLineAfter + term.NewlineReturn
 
 	return
@@ -650,7 +663,9 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, pad string, selec
 		userStyle := color.UnquoteRC(eng.config.GetString("completion-selection-style"))
 		selectionHighlightStyle := color.Fmt(color.Bg+"255") + userStyle
 		candidate = selectionHighlightStyle + g.displayTrimmed(color.Strip(val.Display))
-		candidate += color.Reset
+		if g.aliased {
+			candidate += color.Reset
+		}
 
 	default:
 		// Highlight the prefix if any and configured for it.
@@ -675,7 +690,10 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	desc = g.descriptionTrimmed(val.Description)
 
-	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
+	// If the next row has the same completions, replace the description with our hint.
+	if len(g.rows) > row+1 && g.rows[row+1][0].Description == val.Description {
+		desc = "|"
+	} else if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
 		match := eng.IsearchRegex.FindString(desc)
 		match = color.Fmt(color.Bg+"244") + match + color.Reset + color.Dim
 		desc = eng.IsearchRegex.ReplaceAllLiteralString(desc, match)
@@ -692,7 +710,7 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	compDescStyle := color.UnquoteRC(eng.config.GetString("completion-description-style"))
 
-	return " " + compDescStyle + desc + color.Reset
+	return compDescStyle + desc + color.Reset
 }
 
 func (g *group) displayTrimmed(val string) string {

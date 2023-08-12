@@ -349,31 +349,6 @@ func (e *Engine) getAbsPos() int {
 	return prev
 }
 
-// getColumnPad either updates or adds a new column for an alias.
-func getColumnPad(columns []int, valLen int, numAliases int) []int {
-	switch {
-	// We must either reuse one of the columns:
-	// we don't have room on the right for a new one.
-	case (sum(columns) + valLen) >
-		(term.GetWidth() / 2):
-		columnX := numAliases % len(columns)
-
-		if columns[columnX] < valLen {
-			columns[columnX] = valLen
-		}
-
-		// Or add a new column
-	case numAliases > len(columns):
-		columns = append(columns, valLen)
-
-		// Or we are already on an existing one.
-	case columns[numAliases-1] < valLen:
-		columns[numAliases-1] = valLen
-	}
-
-	return columns
-}
-
 func stringInSlice(s string, sl []string) bool {
 	for _, str := range sl {
 		if s == str {
