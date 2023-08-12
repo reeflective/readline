@@ -265,7 +265,7 @@ func (g *group) computeCells(eng *Engine, vals RawValues) {
 	for _, val := range vals {
 		candidate := g.displayTrimmed(color.Strip(val.Display))
 		pad := strings.Repeat(" ", g.tcMaxLength-len(candidate))
-		desc := g.descriptionTrimmed(val.Description)
+		desc := g.descriptionTrimmed(color.Strip(val.Description))
 		display := fmt.Sprintf("%s%s%s", candidate, pad+" ", desc)
 		valLen := utf8.RuneCountInString(display)
 
@@ -643,9 +643,9 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 	switch {
 	// If the comp is currently selected, overwrite any highlighting already applied.
 	case selected:
-		selectionHighlightStyle := color.Fmt(color.Bg+"255") + color.UnquoteRC(eng.config.GetString("completion-selection-style")) // + color.FgBlackBright
+		userStyle := color.UnquoteRC(eng.config.GetString("completion-selection-style"))
+		selectionHighlightStyle := color.Fmt(color.Bg+"255") + userStyle
 		candidate = selectionHighlightStyle + g.displayTrimmed(color.Strip(val.Display))
-
 		if g.aliased {
 			candidate += cell + color.Reset
 		}
@@ -678,8 +678,11 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 	}
 
 	// If the comp is currently selected, overwrite any highlighting already applied.
+	// Replace all background reset escape sequences in it, to ensure correct display.
 	if row == g.posY && col == g.posX && g.isCurrent && !g.aliased {
-		selectionHighlightStyle := color.Fmt(color.Bg+"255") + color.UnquoteRC(eng.config.GetString("completion-selection-style")) // + color.FgBlackBright
+		userDescStyle := color.UnquoteRC(eng.config.GetString("completion-selection-style"))
+		selectionHighlightStyle := color.Fmt(color.Bg+"255") + userDescStyle
+		desc = strings.ReplaceAll(desc, color.BgDefault, userDescStyle)
 		desc = selectionHighlightStyle + desc
 	}
 
@@ -715,9 +718,12 @@ func (g *group) padDescription(row []Candidate, val Candidate, valPad int) (pad 
 		return 1
 	}
 
-	candidateLen := len(g.displayTrimmed(val.Display)) + valPad + 1
+	displayNoEscapes := g.displayTrimmed(color.Strip(val.Display))
+	descNoEscapes := g.descriptionTrimmed(color.Strip(val.Description))
+
+	candidateLen := len(displayNoEscapes) + valPad + 1
 	individualRest := (term.GetWidth() % g.maxCellLength) / (g.maxX + len(row))
-	pad = g.maxCellLength - candidateLen - len(g.descriptionTrimmed(val.Description)) + individualRest
+	pad = g.maxCellLength - candidateLen - len(descNoEscapes) + individualRest
 
 	if pad > 1 {
 		pad--
