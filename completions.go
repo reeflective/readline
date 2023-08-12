@@ -22,6 +22,7 @@ type Completions struct {
 	noSort   map[string]bool
 	listSep  map[string]string
 	pad      map[string]bool
+	escapes  map[string]bool
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor.
@@ -93,7 +94,7 @@ func CompleteRaw(values []Completion) Completions {
 }
 
 // Message displays a help messages in places where no completions can be generated.
-func Message(msg string, args ...interface{}) Completions {
+func Message(msg string, args ...any) Completions {
 	comps := Completions{}
 
 	if len(args) > 0 {
@@ -153,7 +154,7 @@ func (c Completions) Suffix(suffix string) Completions {
 }
 
 // Usage sets the usage.
-func (c Completions) Usage(usage string, args ...interface{}) Completions {
+func (c Completions) Usage(usage string, args ...any) Completions {
 	return c.UsageF(func() string {
 		return fmt.Sprintf(usage, args...)
 	})
@@ -322,6 +323,35 @@ func (c Completions) JustifyDescriptions(tags ...string) Completions {
 	return c
 }
 
+// PreserveEscapes forces the completion engine to keep all escaped characters in
+// the inserted completion (c.Value of the Completion type). By default, those are
+// stripped out and only kept in the completion.Display. If no arguments are given,
+// escape sequence preservation will apply to all tags.
+//
+// This has very few use cases: one of them might be when you want to read a string
+// from the readline shell that might include color sequences to be preserved.
+// In such cases, this function gives a double advantage: the resulting completion
+// is still "color-displayed" in the input line, and returned to the readline with
+// them. A classic example is where you want to read a prompt string configuration.
+//
+// Note that this option might have various undefined behaviors when it comes to
+// completion prefix matching, insertion, removal and related things.
+func (c Completions) PreserveEscapes(tags ...string) Completions {
+	if c.escapes == nil {
+		c.escapes = make(map[string]bool)
+	}
+
+	if len(tags) == 0 {
+		c.escapes["*"] = true
+	}
+
+	for _, tag := range tags {
+		c.escapes[tag] = true
+	}
+
+	return c
+}
+
 // Merge merges Completions (existing values are overwritten)
 //
 //	a := CompleteValues("A", "B").Invoke(c)
@@ -400,6 +430,7 @@ func (c *Completions) convert() completion.Values {
 	comps.NoSort = c.noSort
 	comps.ListSep = c.listSep
 	comps.Pad = c.pad
+	comps.Escapes = c.escapes
 
 	return comps
 }

@@ -29,6 +29,7 @@ type Values struct {
 	NoSort   map[string]bool
 	ListSep  map[string]string
 	Pad      map[string]bool
+	Escapes  map[string]bool
 
 	// Initially this will be set to the part of the current word
 	// from the beginning of the word up to the position of the cursor.

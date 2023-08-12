@@ -15,19 +15,20 @@ import (
 // group is used to structure different types of completions with different
 // display types, autosuffix removal matchers, under their tag heading.
 type group struct {
-	tag           string        // Printed on top of the group's completions
-	values        [][]Candidate // Values are grouped by aliases/rows, with computed paddings.
-	noSpace       SuffixMatcher // Suffixes to remove if a space or non-nil character is entered after the completion.
-	columnsWidth  []int         // Computed width for each column of completions, when aliases
-	listSeparator string        // This is used to separate completion candidates from their descriptions.
-	list          bool          // Force completions to be listed instead of grided
-	noSort        bool          // Don't sort completions
-	aliased       bool          // Are their aliased completions
-	isCurrent     bool          // Currently cycling through this group, for highlighting choice
-	maxLength     int           // Each group can be limited in the number of comps offered
-	tcMaxLength   int           // Used when display is map/list, for determining message width
-	maxDescWidth  int
-	maxCellLength int
+	tag             string        // Printed on top of the group's completions
+	values          [][]Candidate // Values are grouped by aliases/rows, with computed paddings.
+	noSpace         SuffixMatcher // Suffixes to remove if a space or non-nil character is entered after the completion.
+	columnsWidth    []int         // Computed width for each column of completions, when aliases
+	listSeparator   string        // This is used to separate completion candidates from their descriptions.
+	list            bool          // Force completions to be listed instead of grided
+	noSort          bool          // Don't sort completions
+	aliased         bool          // Are their aliased completions
+	preserveEscapes bool          // Preserve escape sequences in the completion inserted values.
+	isCurrent       bool          // Currently cycling through this group, for highlighting choice
+	maxLength       int           // Each group can be limited in the number of comps offered
+	tcMaxLength     int           // Used when display is map/list, for determining message width
+	maxDescWidth    int
+	maxCellLength   int
 
 	// Selectors (position/bounds) management
 	posX int
@@ -84,6 +85,7 @@ func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals 
 		// Ensure all values have a display string.
 		if val.Display == "" {
 			val.Display = val.Value
+			// val.Value = color.Strip(val.Display)
 		}
 
 		// Currently this is because errors are passed as completions.
@@ -164,7 +166,7 @@ func (e *Engine) newGroup(comps Values, tag string, vals RawValues, aliased bool
 	vals = grp.checkDisplays(vals)
 
 	// Set sorting options, various display styles, etc.
-	grp.setOptions(e, comps, tag, vals)
+	grp.setOptions(e, &comps, tag, vals)
 
 	// Keep computing/devising some parameters and constraints.
 	// This does not do much when we have aliased completions.
@@ -197,19 +199,27 @@ func (g *group) checkDisplays(vals RawValues) RawValues {
 	return vals
 }
 
-func (g *group) setOptions(eng *Engine, comps Values, tag string, vals RawValues) {
+func (g *group) setOptions(eng *Engine, comps *Values, tag string, vals RawValues) {
 	// Override grid/list displays
 	_, g.list = comps.ListLong[tag]
 	if _, all := comps.ListLong["*"]; all && len(comps.ListLong) == 1 {
 		g.list = true
 	}
 
+	// Description list separator
 	listSep, err := strconv.Unquote(eng.config.GetString("completion-list-separator"))
 	if err != nil {
 		g.listSeparator = "--"
 	} else {
 		g.listSeparator = listSep
 	}
+
+	// Strip escaped characters in the value component.
+	preserve, yes := comps.Escapes[g.tag]
+	if !yes {
+		preserve, _ = comps.Escapes["*"]
+	}
+	g.preserveEscapes = preserve
 
 	// Always list long commands when they have descriptions.
 	if strings.HasSuffix(g.tag, "commands") && len(vals) > 0 && vals[0].Description != "" {
@@ -437,6 +447,12 @@ func (g *group) lastCell() {
 }
 
 func (g *group) selected() (comp Candidate) {
+	defer func() {
+		if !g.preserveEscapes {
+			comp.Value = color.Strip(comp.Value)
+		}
+	}()
+
 	if g.posY == -1 || g.posX == -1 {
 		return g.values[0][0]
 	}
