@@ -16,7 +16,7 @@ import (
 // display types, autosuffix removal matchers, under their tag heading.
 type group struct {
 	tag             string        // Printed on top of the group's completions
-	values          [][]Candidate // Values are grouped by aliases/rows, with computed paddings.
+	rows            [][]Candidate // Values are grouped by aliases/rows, with computed paddings.
 	noSpace         SuffixMatcher // Suffixes to remove if a space or non-nil character is entered after the completion.
 	columnsWidth    []int         // Computed width for each column of completions, when aliases
 	listSeparator   string        // This is used to separate completion candidates from their descriptions.
@@ -334,10 +334,10 @@ nextValue:
 		// If we have an alias, and we must get the right
 		// column and the right padding for this column.
 		if g.aliased {
-			for i, row := range g.values {
+			for i, row := range g.rows {
 				if row[0].Description == val.Description {
-					g.values[i] = append(row, val)
-					g.columnsWidth = getColumnPad(g.columnsWidth, valLen, len(g.values[i]))
+					g.rows[i] = append(row, val)
+					g.columnsWidth = getColumnPad(g.columnsWidth, valLen, len(g.rows[i]))
 
 					continue nextValue
 				}
@@ -348,10 +348,10 @@ nextValue:
 		// on it for this candidate, or add a new one. We only do that when
 		// we know we don't have aliases, or when we don't have to display list.
 		if !g.aliased && g.canFitInRow(term.GetWidth()) && !g.list {
-			g.values[len(g.values)-1] = append(g.values[len(g.values)-1], val)
+			g.rows[len(g.rows)-1] = append(g.rows[len(g.rows)-1], val)
 		} else {
 			// Else create a new row, and update the row pad.
-			g.values = append(g.values, []Candidate{val})
+			g.rows = append(g.rows, []Candidate{val})
 			if g.columnsWidth[0] < valLen+1 {
 				g.columnsWidth[0] = valLen + 1
 			}
@@ -363,18 +363,18 @@ nextValue:
 		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth) + 1
 	}
 
-	g.maxY = len(g.values)
+	g.maxY = len(g.rows)
 	if g.maxY > g.maxLength && g.maxLength != 0 {
 		g.maxY = g.maxLength
 	}
 }
 
 func (g *group) canFitInRow(termWidth int) bool {
-	if len(g.values) == 0 {
+	if len(g.rows) == 0 {
 		return false
 	}
 
-	if termWidth/(g.maxCellLength)-1 < len(g.values[len(g.values)-1]) {
+	if termWidth/(g.maxCellLength)-1 < len(g.rows[len(g.rows)-1]) {
 		return false
 	}
 
@@ -395,8 +395,8 @@ func (g *group) updateIsearch(eng *Engine) {
 
 	suggs := make([]Candidate, 0)
 
-	for i := range g.values {
-		row := g.values[i]
+	for i := range g.rows {
+		row := g.rows[i]
 
 		for _, val := range row {
 			if eng.IsearchRegex.MatchString(val.Value) {
@@ -408,7 +408,7 @@ func (g *group) updateIsearch(eng *Engine) {
 	}
 
 	// Reset the group parameters
-	g.values = make([][]Candidate, 0)
+	g.rows = make([][]Candidate, 0)
 	g.posX = -1
 	g.posY = -1
 	g.columnsWidth = []int{0}
@@ -435,13 +435,13 @@ func (g *group) firstCell() {
 }
 
 func (g *group) lastCell() {
-	g.posY = len(g.values) - 1
+	g.posY = len(g.rows) - 1
 	g.posX = len(g.columnsWidth) - 1
 
 	if g.aliased {
 		g.findFirstCandidate(0, -1)
 	} else {
-		g.posX = len(g.values[g.posY]) - 1
+		g.posX = len(g.rows[g.posY]) - 1
 	}
 }
 
@@ -453,10 +453,10 @@ func (g *group) selected() (comp Candidate) {
 	}()
 
 	if g.posY == -1 || g.posX == -1 {
-		return g.values[0][0]
+		return g.rows[0][0]
 	}
 
-	return g.values[g.posY][g.posX]
+	return g.rows[g.posY][g.posX]
 }
 
 func (g *group) moveSelector(x, y int) (done, next bool) {
@@ -484,7 +484,7 @@ func (g *group) moveSelector(x, y int) (done, next bool) {
 		}
 
 		g.posY--
-		g.posX = len(g.values[g.posY]) - 1
+		g.posX = len(g.rows[g.posY]) - 1
 	}
 
 	// 2) If we are reverse-cycling and currently on the first candidate,
@@ -497,7 +497,7 @@ func (g *group) moveSelector(x, y int) (done, next bool) {
 			return true, false
 		}
 
-		g.posY = len(g.values) - 1
+		g.posY = len(g.rows) - 1
 		g.posX--
 	}
 
@@ -513,7 +513,7 @@ func (g *group) moveSelector(x, y int) (done, next bool) {
 	}
 
 	// 4) If we are on the last column, go to next row or next group
-	if g.posX > len(g.values[g.posY])-1 {
+	if g.posX > len(g.rows[g.posY])-1 {
 		if g.aliased {
 			return g.findFirstCandidate(x, y)
 		}
@@ -535,7 +535,7 @@ func (g *group) moveSelector(x, y int) (done, next bool) {
 // otherwise loop in the direction wished until one is found, or go next/
 // previous column, and so on.
 func (g *group) findFirstCandidate(x, y int) (done, next bool) {
-	for g.posX > len(g.values[g.posY])-1 {
+	for g.posX > len(g.rows[g.posY])-1 {
 		g.posY += y
 		g.posY += x
 
@@ -548,7 +548,7 @@ func (g *group) findFirstCandidate(x, y int) (done, next bool) {
 				return true, false
 			}
 
-			g.posY = len(g.values) - 1
+			g.posY = len(g.rows) - 1
 			g.posX--
 		}
 
@@ -567,7 +567,7 @@ func (g *group) findFirstCandidate(x, y int) (done, next bool) {
 }
 
 func (g *group) writeComps(eng *Engine) (comp string) {
-	if len(g.values) == 0 {
+	if len(g.rows) == 0 {
 		return
 	}
 
@@ -579,7 +579,7 @@ func (g *group) writeComps(eng *Engine) (comp string) {
 	// Base parameters
 	var columns, rows int
 
-	for range g.values {
+	for range g.rows {
 		// Generate the completion string for this row (comp/aliases
 		// and/or descriptions), and apply any styles and isearch
 		// highlighting with pattern replacement,
@@ -599,7 +599,7 @@ func (g *group) writeComps(eng *Engine) (comp string) {
 }
 
 func (g *group) writeRow(eng *Engine, row int) (comp string) {
-	current := g.values[row]
+	current := g.rows[row]
 
 	writeDesc := func(val Candidate, x, y, pad int) string {
 		desc := g.highlightDescription(eng, val, y, x)

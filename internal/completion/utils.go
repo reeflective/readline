@@ -95,7 +95,7 @@ func (e *Engine) currentGroup() (grp *group) {
 	// If there are groups but no current, make first one the king.
 	if len(e.groups) > 0 {
 		for _, g := range e.groups {
-			if len(g.values) > 0 {
+			if len(g.rows) > 0 {
 				g.isCurrent = true
 				return g
 			}
@@ -124,7 +124,7 @@ func (e *Engine) cycleNextGroup() {
 
 	for {
 		next := e.currentGroup()
-		if len(next.values) == 0 {
+		if len(next.rows) == 0 {
 			e.cycleNextGroup()
 			continue
 		}
@@ -151,7 +151,7 @@ func (e *Engine) cyclePreviousGroup() {
 
 	for {
 		prev := e.currentGroup()
-		if len(prev.values) == 0 {
+		if len(prev.rows) == 0 {
 			e.cyclePreviousGroup()
 			continue
 		}
@@ -190,23 +190,26 @@ func (e *Engine) adjustSelectKeymap() {
 	}
 }
 
+// completionCount returns the number of completions for a given group,
+// as well as the number of real terminal lines it spans on, including
+// the group name if there is one.
 func (e *Engine) completionCount() (comps int, used int) {
 	for _, group := range e.groups {
-		groupComps := 0
 
-		for _, row := range group.values {
-			groupComps += len(row)
-			comps += groupComps
+		// First, agree on the number of comps.
+		for _, row := range group.rows {
+			comps += len(row)
 		}
 
-		if group.maxY > len(group.values) {
-			used += len(group.values)
-		} else {
-			used += group.maxY
-		}
-
-		if groupComps > 0 {
+		// One line for the group name
+		if group.tag != "" {
 			used++
+		}
+
+		if group.maxY > len(group.rows) {
+			used += group.maxY
+		} else {
+			used += len(group.rows)
 		}
 	}
 
@@ -224,18 +227,18 @@ func (e *Engine) hasUniqueCandidate() bool {
 			return false
 		}
 
-		if len(cur.values) == 1 {
-			return len(cur.values[0]) == 1
+		if len(cur.rows) == 1 {
+			return len(cur.rows[0]) == 1
 		}
 
-		return len(cur.values) == 1
+		return len(cur.rows) == 1
 
 	default:
 		var count int
 
 	GROUPS:
 		for _, group := range e.groups {
-			for _, row := range group.values {
+			for _, row := range group.rows {
 				count++
 				for range row {
 					count++
@@ -252,7 +255,7 @@ func (e *Engine) hasUniqueCandidate() bool {
 
 func (e *Engine) noCompletions() bool {
 	for _, group := range e.groups {
-		if len(group.values) > 0 {
+		if len(group.rows) > 0 {
 			return false
 		}
 	}
@@ -314,7 +317,7 @@ func (e *Engine) getAbsPos() int {
 	for _, grp := range e.groups {
 		groupComps := 0
 
-		for _, row := range grp.values {
+		for _, row := range grp.rows {
 			groupComps += len(row)
 		}
 
