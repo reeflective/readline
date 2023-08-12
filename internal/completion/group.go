@@ -85,7 +85,6 @@ func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals 
 		// Ensure all values have a display string.
 		if val.Display == "" {
 			val.Display = val.Value
-			// val.Value = color.Strip(val.Display)
 		}
 
 		// Currently this is because errors are passed as completions.
