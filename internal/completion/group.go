@@ -26,7 +26,7 @@ type group struct {
 	preserveEscapes bool          // Preserve escape sequences in the completion inserted values.
 	isCurrent       bool          // Currently cycling through this group, for highlighting choice
 	maxLength       int           // Each group can be limited in the number of comps offered
-	tcMaxLength     int           // Used when display is map/list, for determining message width
+	longestValueLen int           // Used when display is map/list, for determining message width
 	maxDescWidth    int
 	maxCellLength   int
 
@@ -138,13 +138,13 @@ func (e *Engine) justifyGroups(values Values) {
 
 		commandGroups = append(commandGroups, group)
 
-		if group.tcMaxLength > maxCellLength {
-			maxCellLength = group.tcMaxLength
+		if group.longestValueLen > maxCellLength {
+			maxCellLength = group.longestValueLen
 		}
 	}
 
 	for _, group := range commandGroups {
-		group.tcMaxLength = maxCellLength
+		group.longestValueLen = maxCellLength
 	}
 }
 
@@ -256,13 +256,13 @@ func (g *group) computeCells(eng *Engine, vals RawValues) {
 		return
 	}
 
-	g.tcMaxLength = g.columnsWidth[0]
+	g.longestValueLen = g.columnsWidth[0]
 
 	// Each value first computes the total amount of space
 	// it is going to take in a row (including the description)
 	for _, val := range vals {
 		candidate := g.displayTrimmed(color.Strip(val.Display))
-		pad := strings.Repeat(" ", g.tcMaxLength-len(candidate))
+		pad := strings.Repeat(" ", g.longestValueLen-len(candidate))
 		desc := g.descriptionTrimmed(color.Strip(val.Description))
 		display := fmt.Sprintf("%s%s%s", candidate, pad+" ", desc)
 		valLen := utf8.RuneCountInString(display)
@@ -335,7 +335,7 @@ nextValue:
 			for i, row := range g.rows {
 				if row[0].Description == val.Description {
 					g.rows[i] = append(row, val)
-					g.columnsWidth = getColumnPad(g.columnsWidth, valLen, len(g.rows[i]))
+					g.columnsWidth = getColumnPad(g.columnsWidth, valLen+1, len(g.rows[i]))
 
 					continue nextValue
 				}
@@ -358,7 +358,7 @@ nextValue:
 
 	if g.aliased {
 		g.maxX = len(g.columnsWidth)
-		g.tcMaxLength = sum(g.columnsWidth) + len(g.columnsWidth) + 1
+		g.longestValueLen = sum(g.columnsWidth) + len(g.columnsWidth) + 1
 	}
 
 	g.maxY = len(g.rows)
@@ -570,7 +570,8 @@ func (g *group) writeComps(eng *Engine) (comp string) {
 	}
 
 	if g.tag != "" {
-		comp += fmt.Sprintf("%s%s%s %s", color.Bold, color.FgYellow, g.tag, color.Reset) + term.ClearLineAfter + term.NewlineReturn
+		comp += fmt.Sprintf("%s%s%s %s", color.Bold, color.FgYellow, g.tag, color.Reset)
+		comp += term.ClearLineAfter + term.NewlineReturn
 		eng.usedY++
 	}
 
@@ -599,36 +600,41 @@ func (g *group) writeComps(eng *Engine) (comp string) {
 func (g *group) writeRow(eng *Engine, row int) (comp string) {
 	current := g.rows[row]
 
-	writeDesc := func(val Candidate, x, y, pad int) string {
-		desc := g.highlightDescription(eng, val, y, x)
-		descPad := g.padDescription(current, val, pad)
+	for col := range g.columnsWidth {
+		var val Candidate
 
-		if descPad > 0 {
-			desc += strings.Repeat(" ", descPad)
-		}
-
-		return desc
-	}
-
-	for col, val := range current {
-		// Generate the highlighted candidate with its padding
+		// Special highlighting for selected candidate.
 		isSelected := row == g.posY && col == g.posX && g.isCurrent
-		cell, pad := g.padCandidate(current, val, col)
-		comp += g.highlightCandidate(eng, val, cell, pad, isSelected) + " "
 
-		// And append the description only if at the end of the row,
-		// or if there are no aliases, in which case all comps are described.
-		if !g.aliased || col == len(current)-1 {
-			comp += writeDesc(val, col, row, len(cell)+len(pad))
+		// If for the given column, we have a candidate.
+		if len(current) > col {
+			val = current[col]
+		}
+
+		// Add the fully-styled and trimmed candidate display.
+		comp += g.highlightCandidate(eng, val, "", isSelected)
+
+		// And pad this completion grid with space if needed.
+		maxLen := g.longestValueLen + 1
+		if g.aliased {
+			maxLen = g.columnsWidth[col] + 1
+		}
+
+		displayPadLen := maxLen - len(g.displayTrimmed(val.Display))
+		if displayPadLen > 0 {
+			comp += strings.Repeat(" ", displayPadLen)
 		}
 	}
 
+	// If we are on the last column anyway, add the descriptions.
+	val := current[0]
+	comp += g.highlightDescription(eng, val, len(current)-1, row)
 	comp += term.ClearLineAfter + term.NewlineReturn
 
 	return
 }
 
-func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string, selected bool) (candidate string) {
+func (g *group) highlightCandidate(eng *Engine, val Candidate, pad string, selected bool) (candidate string) {
 	reset := color.Fmt(val.Style)
 	candidate = g.displayTrimmed(val.Display)
 
@@ -644,19 +650,19 @@ func (g *group) highlightCandidate(eng *Engine, val Candidate, cell, pad string,
 		userStyle := color.UnquoteRC(eng.config.GetString("completion-selection-style"))
 		selectionHighlightStyle := color.Fmt(color.Bg+"255") + userStyle
 		candidate = selectionHighlightStyle + g.displayTrimmed(color.Strip(val.Display))
-		if g.aliased {
-			candidate += cell + color.Reset
-		}
+		candidate += color.Reset
 
 	default:
 		// Highlight the prefix if any and configured for it.
 		if eng.config.GetBool("colored-completion-prefix") && eng.prefix != "" {
 			if prefixMatch, err := regexp.Compile(fmt.Sprintf("^%s", eng.prefix)); err == nil {
-				candidate = prefixMatch.ReplaceAllString(candidate, color.Bold+color.FgBlue+eng.prefix+color.BoldReset+color.FgDefault+reset)
+				prefixHighlighted := color.Bold + color.FgBlue + eng.prefix + color.BoldReset + color.FgDefault + reset
+				candidate = prefixMatch.ReplaceAllString(candidate, prefixHighlighted)
 			}
 		}
 
-		candidate = reset + candidate + color.Reset + cell
+		// candidate = reset + candidate + color.Reset + cell
+		candidate = reset + candidate + color.Reset
 	}
 
 	return candidate + pad
@@ -686,58 +692,17 @@ func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (
 
 	compDescStyle := color.UnquoteRC(eng.config.GetString("completion-description-style"))
 
-	return compDescStyle + desc + color.Reset
-}
-
-func (g *group) padCandidate(row []Candidate, val Candidate, col int) (cell, pad string) {
-	var cellLen, padLen int
-	valLen := utf8.RuneCountInString(val.Display)
-
-	if !g.aliased {
-		padLen = g.tcMaxLength - valLen
-		if padLen < 0 {
-			padLen = 0
-		}
-
-		return "", strings.Repeat(" ", padLen)
-	}
-
-	cellLen = g.columnsWidth[col] - valLen
-
-	if len(row) == 1 {
-		padLen = sum(g.columnsWidth) + len(g.columnsWidth) - g.columnsWidth[col] - 1
-	}
-
-	return strings.Repeat(" ", cellLen), strings.Repeat(" ", padLen)
-}
-
-func (g *group) padDescription(row []Candidate, val Candidate, valPad int) (pad int) {
-	if g.aliased {
-		return 1
-	}
-
-	displayNoEscapes := g.displayTrimmed(color.Strip(val.Display))
-	descNoEscapes := g.descriptionTrimmed(color.Strip(val.Description))
-
-	candidateLen := len(displayNoEscapes) + valPad + 1
-	individualRest := (term.GetWidth() % g.maxCellLength) / (g.maxX + len(row))
-	pad = g.maxCellLength - candidateLen - len(descNoEscapes) + individualRest
-
-	if pad > 1 {
-		pad--
-	}
-
-	return pad
+	return " " + compDescStyle + desc + color.Reset
 }
 
 func (g *group) displayTrimmed(val string) string {
 	termWidth := term.GetWidth()
-	if g.tcMaxLength > termWidth-1 {
-		g.tcMaxLength = termWidth - 1
+	if g.longestValueLen > termWidth-1 {
+		g.longestValueLen = termWidth - 1
 	}
 
-	if len(val) > g.tcMaxLength {
-		val = val[:g.tcMaxLength-3] + "..."
+	if len(val) > g.longestValueLen {
+		val = val[:g.longestValueLen-3] + "..."
 	}
 
 	val = sanitizer.Replace(val)
@@ -751,11 +716,11 @@ func (g *group) descriptionTrimmed(desc string) string {
 	}
 
 	termWidth := term.GetWidth()
-	if g.tcMaxLength > termWidth {
-		g.tcMaxLength = termWidth
+	if g.longestValueLen > termWidth {
+		g.longestValueLen = termWidth
 	}
 
-	g.maxDescWidth = termWidth - g.tcMaxLength - len(g.listSeparator) - 1
+	g.maxDescWidth = termWidth - g.longestValueLen - len(g.listSeparator) - 1
 
 	if len(desc) >= g.maxDescWidth {
 		offset := 4
