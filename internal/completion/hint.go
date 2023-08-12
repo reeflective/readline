@@ -18,10 +18,13 @@ func (e *Engine) hintCompletions(comps Values) {
 		}
 	}
 
-	// And all further messages
-	hint += strings.Join(comps.Messages.Get(), term.NewlineReturn)
+	// Add application-specific messages.
+	// There is full support for color in them, but in case those messages
+	// don't include any, we tame the color a little bit first, like hints.
+	hint += color.Dim + strings.Join(comps.Messages.Get(), term.NewlineReturn)
 
-	if e.Matches() == 0 && hint == "" && !e.auto {
+	// If we don't have any completions, and no messages, let's say it.
+	if e.Matches() == 0 && hint == color.Dim+term.NewlineReturn && !e.auto {
 		hint = e.hintNoMatches()
 	}
 

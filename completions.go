@@ -49,7 +49,7 @@ func CompleteValues(values ...string) Completions {
 // CompleteStyledValues is like CompleteValues but also accepts a style.
 func CompleteStyledValues(values ...string) Completions {
 	if length := len(values); length%2 != 0 {
-		return Message("invalid amount of arguments [CompleteStyledValues]: %v", length)
+		return CompleteMessage("invalid amount of arguments [CompleteStyledValues]: %v", length)
 	}
 
 	vals := make([]Completion, 0, len(values)/2)
@@ -63,7 +63,7 @@ func CompleteStyledValues(values ...string) Completions {
 // CompleteValuesDescribed completes arbitrary key (values) with an additional description (value, description pairs).
 func CompleteValuesDescribed(values ...string) Completions {
 	if length := len(values); length%2 != 0 {
-		return Message("invalid amount of arguments [CompleteValuesDescribed]: %v", length)
+		return CompleteMessage("invalid amount of arguments [CompleteValuesDescribed]: %v", length)
 	}
 
 	vals := make([]Completion, 0, len(values)/2)
@@ -77,7 +77,7 @@ func CompleteValuesDescribed(values ...string) Completions {
 // CompleteStyledValuesDescribed is like CompleteValues but also accepts a style.
 func CompleteStyledValuesDescribed(values ...string) Completions {
 	if length := len(values); length%3 != 0 {
-		return Message("invalid amount of arguments [CompleteStyledValuesDescribed]: %v", length)
+		return CompleteMessage("invalid amount of arguments [CompleteStyledValuesDescribed]: %v", length)
 	}
 
 	vals := make([]Completion, 0, len(values)/3)
@@ -86,6 +86,20 @@ func CompleteStyledValuesDescribed(values ...string) Completions {
 	}
 
 	return Completions{values: vals}
+}
+
+// CompleteMessage ads a help message to display along with
+// or in places where no completions can be generated.
+func CompleteMessage(msg string, args ...any) Completions {
+	comps := Completions{}
+
+	if len(args) > 0 {
+		msg = fmt.Sprintf(msg, args...)
+	}
+
+	comps.messages.Add(msg)
+
+	return comps
 }
 
 // CompleteRaw directly accepts a list of prepared Completion values.
@@ -109,7 +123,7 @@ func Message(msg string, args ...any) Completions {
 // Suppress suppresses specific error messages using regular expressions.
 func (c Completions) Suppress(expr ...string) Completions {
 	if err := c.messages.Suppress(expr...); err != nil {
-		return Message(err.Error())
+		return CompleteMessage(err.Error())
 	}
 
 	return c
@@ -256,7 +270,7 @@ func (c Completions) ListSeparator(seps ...string) Completions {
 	}
 
 	if length := len(seps); len(seps) > 1 && length%2 != 0 {
-		return Message("invalid amount of arguments (ListSeparator): %v", length)
+		return CompleteMessage("invalid amount of arguments (ListSeparator): %v", length)
 	}
 
 	if len(seps) == 1 {
