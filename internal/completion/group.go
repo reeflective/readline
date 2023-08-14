@@ -64,25 +64,7 @@ func (e *Engine) newCompletionGroup(comps Values, tag string, vals RawValues, de
 
 	// Initial processing of our assigned values:
 	// Compute color/no-color sizes, some max/min, etc.
-	for pos, value := range vals {
-		if value.Display == "" {
-			value.Display = value.Value
-		}
-
-		// Only pass for colors regex should be here.
-		value.displayLen = len(color.Strip(value.Display))
-		value.descLen = len(color.Strip(value.Description))
-
-		if value.displayLen > grp.longestValueLen {
-			grp.longestValueLen = value.displayLen
-		}
-
-		if value.descLen > grp.longestDescLen {
-			grp.longestDescLen = value.descLen
-		}
-
-		vals[pos] = value
-	}
+	grp.prepareValues(vals)
 
 	// Generate the full grid of completions.
 	// Special processing is needed when some values
@@ -179,6 +161,34 @@ func (g *group) initCompletionAliased(domains []Candidate) {
 	g.maxX = len(g.columnsWidth)
 }
 
+// This createDescribedRows function takes a list of values, a list of descriptions, and the
+// terminal width as input, and returns a list of rows based on the provided requirements:.
+func (g *group) createDescribedRows(values []Candidate) ([][]Candidate, []string) {
+	descriptionMap := make(map[string][]Candidate)
+	uniqueDescriptions := make([]string, 0)
+	rows := make([][]Candidate, 0)
+
+	// Separate duplicates and store them.
+	for i, description := range values {
+		if slices.Contains(uniqueDescriptions, description.Description) {
+			descriptionMap[description.Description] = append(descriptionMap[description.Description], values[i])
+		} else {
+			uniqueDescriptions = append(uniqueDescriptions, description.Description)
+			descriptionMap[description.Description] = []Candidate{values[i]}
+		}
+	}
+
+	// Sorting helps with easier grids.
+	for _, description := range uniqueDescriptions {
+		row := descriptionMap[description]
+		// slices.Sort(row)
+		// slices.Reverse(row)
+		rows = append(rows, row)
+	}
+
+	return rows, uniqueDescriptions
+}
+
 // Wraps all rows for which there are too many aliases to be displayed on a single one.
 func (g *group) wrapExcessAliases(grid [][]Candidate, descriptions []string) {
 	breakeven := 0
@@ -222,32 +232,150 @@ func (g *group) wrapExcessAliases(grid [][]Candidate, descriptions []string) {
 	g.columnsWidth = g.columnsWidth[:maxColumns]
 }
 
-// This createDescribedRows function takes a list of values, a list of descriptions, and the
-// terminal width as input, and returns a list of rows based on the provided requirements:.
-func (g *group) createDescribedRows(values []Candidate) ([][]Candidate, []string) {
-	descriptionMap := make(map[string][]Candidate)
-	uniqueDescriptions := make([]string, 0)
-	rows := make([][]Candidate, 0)
+// prepareValues ensures all of them have a display, and starts
+// gathering information on longest/shortest values, etc.
+func (g *group) prepareValues(vals RawValues) RawValues {
+	for pos, value := range vals {
+		if value.Display == "" {
+			value.Display = value.Value
+		}
 
-	// Separate duplicates and store them.
-	for i, description := range values {
-		if slices.Contains(uniqueDescriptions, description.Description) {
-			descriptionMap[description.Description] = append(descriptionMap[description.Description], values[i])
-		} else {
-			uniqueDescriptions = append(uniqueDescriptions, description.Description)
-			descriptionMap[description.Description] = []Candidate{values[i]}
+		// Only pass for colors regex should be here.
+		value.displayLen = len(color.Strip(value.Display))
+		value.descLen = len(color.Strip(value.Description))
+
+		if value.displayLen > g.longestValueLen {
+			g.longestValueLen = value.displayLen
+		}
+
+		if value.descLen > g.longestDescLen {
+			g.longestDescLen = value.descLen
+		}
+
+		vals[pos] = value
+	}
+
+	return vals
+}
+
+func (g *group) setMaximumSizes(col int) int {
+	// Get the length of the longest description in the same column.
+	maxDescLen := g.descriptionsWidth[col]
+	valuesRealLen := sum(g.columnsWidth) + len(g.columnsWidth) + len(g.listSep())
+
+	if valuesRealLen+maxDescLen > g.termWidth {
+		maxDescLen = g.termWidth - valuesRealLen
+	} else if valuesRealLen+maxDescLen < g.termWidth {
+		maxDescLen = g.termWidth - valuesRealLen
+	}
+
+	return maxDescLen
+}
+
+func (g *group) calculateMaxColumnWidths(grid [][]Candidate) {
+	var numColumns int
+
+	for _, row := range grid {
+		if len(row) > numColumns {
+			numColumns = len(row)
 		}
 	}
 
-	// Sorting helps with easier grids.
-	for _, description := range uniqueDescriptions {
-		row := descriptionMap[description]
-		// slices.Sort(row)
-		// slices.Reverse(row)
-		rows = append(rows, row)
+	maxColumnWidths := make([]int, numColumns)
+	maxDescWidths := make([]int, numColumns)
+
+	for _, row := range grid {
+		for columnIndex, value := range row {
+			if value.displayLen+1 > maxColumnWidths[columnIndex] {
+				maxColumnWidths[columnIndex] = value.displayLen + 1
+			}
+
+			if value.descLen > maxDescWidths[columnIndex] {
+				maxDescWidths[columnIndex] = value.descLen + 1
+			}
+		}
 	}
 
-	return rows, uniqueDescriptions
+	g.maxY = len(g.rows)
+	g.maxX = len(maxColumnWidths)
+	g.columnsWidth = maxColumnWidths
+	g.descriptionsWidth = maxDescWidths
+}
+
+func (g *group) longestValueDescribed(vals []Candidate) int {
+	var longestDesc, longestVal int
+
+	descSeparatorLen := 1 + len(g.listSeparator) + 1
+
+	// Get the length of the longest value
+	// and the length of the longest description.
+	for _, val := range vals {
+		if val.displayLen > longestVal {
+			longestVal = val.displayLen
+		}
+
+		if val.descLen > longestDesc {
+			longestDesc = val.descLen
+		}
+	}
+
+	if longestDesc > 0 {
+		longestDesc += descSeparatorLen
+	}
+
+	return longestVal + longestDesc
+}
+
+func (g *group) trimDisplay(comp Candidate, pad, col int) (candidate, padded string) {
+	val := comp.Display
+	if val == "" {
+		return "", padSpace(pad)
+	}
+
+	maxDisplayWidth := g.columnsWidth[col]
+
+	if maxDisplayWidth > g.termWidth {
+		maxDisplayWidth = g.termWidth
+	}
+
+	if len(val) > g.columnsWidth[col] {
+		val = val[:maxDisplayWidth-3] + "..."
+		val = g.listSep() + sanitizer.Replace(val)
+
+		return val, ""
+	}
+
+	return val, padSpace(pad)
+}
+
+func (g *group) trimDesc(val Candidate, pad int) (desc, padded string) {
+	desc = val.Description
+	if desc == "" {
+		return desc, padSpace(pad)
+	}
+
+	if pad > g.maxDescWidth {
+		pad = g.maxDescWidth - val.descLen
+	}
+
+	if len(desc) > g.maxDescWidth && g.maxDescWidth > 0 {
+		desc = desc[:g.maxDescWidth-3] + "..."
+		desc = g.listSep() + sanitizer.Replace(desc)
+
+		return desc, ""
+	}
+
+	if len(desc)+pad > g.maxDescWidth {
+		pad = g.maxDescWidth - len(desc)
+	}
+
+	desc = g.listSep() + sanitizer.Replace(desc)
+
+	return desc, padSpace(pad)
+}
+
+func (g *group) listSep() string {
+	return g.listSeparator + " "
 }
 
 //
@@ -280,22 +408,19 @@ func (g *group) updateIsearch(eng *Engine) {
 	g.rows = make([][]Candidate, 0)
 	g.posX = -1
 	g.posY = -1
-	g.columnsWidth = []int{0}
 
-	// Assign the filtered values: we don't need to check
-	// for a separate set of non-described values, as the
-	// completions have already been triaged when generated.
-	vals, _, descriptions := eng.groupNonDescribed(nil, suggs)
-	g.aliased = len(slices.Compact(descriptions)) < len(descriptions)
+	// Initial processing of our assigned values:
+	// Compute color/no-color sizes, some max/min, etc.
+	suggs = g.prepareValues(suggs)
 
-	if len(vals) == 0 {
-		return
+	// Generate the full grid of completions.
+	// Special processing is needed when some values
+	// share a common description, they are "aliased".
+	if completionsAreAliases(suggs) {
+		g.initCompletionAliased(suggs)
+	} else {
+		g.initCompletionsGrid(suggs)
 	}
-
-	// And perform the usual initialization routines.
-	// vals = g.checkDisplays(vals)
-	// g.computeCells(eng, vals)
-	// g.makeMatrix(vals)
 }
 
 func (g *group) selected() (comp Candidate) {
@@ -433,126 +558,6 @@ func (g *group) lastCell() {
 	} else {
 		g.posX = len(g.rows[g.posY]) - 1
 	}
-}
-
-func (g *group) trimDisplay(comp Candidate, pad, col int) (candidate, padded string) {
-	val := comp.Display
-	if val == "" {
-		return "", padSpace(pad)
-	}
-
-	maxDisplayWidth := g.columnsWidth[col]
-
-	if maxDisplayWidth > g.termWidth {
-		maxDisplayWidth = g.termWidth
-	}
-
-	if len(val) > g.columnsWidth[col] {
-		val = val[:maxDisplayWidth-3] + "..."
-		val = g.listSep() + sanitizer.Replace(val)
-
-		return val, ""
-	}
-
-	return val, padSpace(pad)
-}
-
-func (g *group) trimDesc(val Candidate, pad int) (desc, padded string) {
-	desc = val.Description
-	if desc == "" {
-		return desc, padSpace(pad)
-	}
-
-	if pad > g.maxDescWidth {
-		pad = g.maxDescWidth - val.descLen
-	}
-
-	if len(desc) > g.maxDescWidth && g.maxDescWidth > 0 {
-		desc = desc[:g.maxDescWidth-3] + "..."
-		desc = g.listSep() + sanitizer.Replace(desc)
-
-		return desc, ""
-	}
-
-	if len(desc)+pad > g.maxDescWidth {
-		pad = g.maxDescWidth - len(desc)
-	}
-
-	desc = g.listSep() + sanitizer.Replace(desc)
-
-	return desc, padSpace(pad)
-}
-
-func (g *group) setMaximumSizes(col int) int {
-	// Get the length of the longest description in the same column.
-	maxDescLen := g.descriptionsWidth[col]
-	valuesRealLen := sum(g.columnsWidth) + len(g.columnsWidth) + len(g.listSep())
-
-	if valuesRealLen+maxDescLen > g.termWidth {
-		maxDescLen = g.termWidth - valuesRealLen
-	} else if valuesRealLen+maxDescLen < g.termWidth {
-		maxDescLen = g.termWidth - valuesRealLen
-	}
-
-	return maxDescLen
-}
-
-func (g *group) calculateMaxColumnWidths(grid [][]Candidate) {
-	var numColumns int
-
-	for _, row := range grid {
-		if len(row) > numColumns {
-			numColumns = len(row)
-		}
-	}
-
-	maxColumnWidths := make([]int, numColumns)
-	maxDescWidths := make([]int, numColumns)
-
-	for _, row := range grid {
-		for columnIndex, value := range row {
-			if value.displayLen+1 > maxColumnWidths[columnIndex] {
-				maxColumnWidths[columnIndex] = value.displayLen + 1
-			}
-
-			if value.descLen > maxDescWidths[columnIndex] {
-				maxDescWidths[columnIndex] = value.descLen + 1
-			}
-		}
-	}
-
-	g.maxY = len(g.rows)
-	g.maxX = len(maxColumnWidths)
-	g.columnsWidth = maxColumnWidths
-	g.descriptionsWidth = maxDescWidths
-}
-
-func (g *group) longestValueDescribed(vals []Candidate) int {
-	var longestDesc, longestVal int
-
-	descSeparatorLen := 1 + len(g.listSeparator) + 1
-
-	// Get the length of the longest value
-	// and the length of the longest description.
-	for _, val := range vals {
-		if val.displayLen > longestVal {
-			longestVal = val.displayLen
-		}
-
-		if val.descLen > longestDesc {
-			longestDesc = val.descLen
-		}
-	}
-
-	if longestDesc > 0 {
-		longestDesc += descSeparatorLen
-	}
-
-	return longestVal + longestDesc
-}
-
-func (g *group) listSep() string {
-	return g.listSeparator + " "
 }
 
 func completionsAreAliases(values []Candidate) bool {
