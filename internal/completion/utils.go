@@ -4,12 +4,10 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/term"
 )
-
-// Maximum ratio of the screen that described values can have.
-var maxValuesAreaRatio = 0.5
 
 var sanitizer = strings.NewReplacer(
 	"\n", ``,
@@ -25,12 +23,33 @@ func (e *Engine) prepare(completions Values) {
 
 	e.setPrefix(completions)
 	e.setSuffix(completions)
-
-	e.group(completions)
+	e.generate(completions)
 }
 
-func (e *Engine) setPrefix(comps Values) {
-	switch comps.PREFIX {
+func (e *Engine) generate(completions Values) {
+	// Compute hints once we found either any errors,
+	// or if we have no completions but usage strings.
+	defer func() {
+		e.hintCompletions(completions)
+	}()
+
+	// Nothing else to do if no completions
+	if len(completions.values) == 0 {
+		return
+	}
+
+	// Apply the prefix to the completions, and filter out any
+	// completions that don't match, optionally ignoring case.
+	matchCase := e.config.GetBool("completion-ignore-case")
+	completions.values = completions.values.FilterPrefix(e.prefix, !matchCase)
+
+	// Classify, group together and initialize completions.
+	completions.values.EachTag(e.generateGroup(completions))
+	e.justifyGroups(completions)
+}
+
+func (e *Engine) setPrefix(completions Values) {
+	switch completions.PREFIX {
 	case "":
 		// Select the character just before the cursor.
 		cpos := e.cursor.Pos() - 1
@@ -52,12 +71,12 @@ func (e *Engine) setPrefix(comps Values) {
 		e.prefix = strings.TrimSpace(string((*e.line)[bpos:cpos]))
 
 	default:
-		e.prefix = comps.PREFIX
+		e.prefix = completions.PREFIX
 	}
 }
 
-func (e *Engine) setSuffix(comps Values) {
-	switch comps.SUFFIX {
+func (e *Engine) setSuffix(completions Values) {
+	switch completions.SUFFIX {
 	case "":
 		cpos := e.cursor.Pos()
 		_, epos := e.line.SelectBlankWord(cpos)
@@ -81,7 +100,7 @@ func (e *Engine) setSuffix(comps Values) {
 		e.suffix = strings.TrimSpace(string((*e.line)[cpos:epos]))
 
 	default:
-		e.suffix = comps.SUFFIX
+		e.suffix = completions.SUFFIX
 	}
 }
 
@@ -160,6 +179,35 @@ func (e *Engine) cyclePreviousGroup() {
 	}
 }
 
+func (e *Engine) justifyGroups(values Values) {
+	// commandGroups := make([]*group, 0)
+	// maxCellLength := 0
+
+	// for _, group := range e.groups {
+	// 	// Skip groups that are not to be justified
+	// 	if _, justify := values.Pad[group.tag]; !justify {
+	// 		if _, all := values.Pad["*"]; !all {
+	// 			continue
+	// 		}
+	// 	}
+	//
+	// 	// Skip groups that are aliased or have more than one column
+	// 	if group.aliased || len(group.columnsWidth) > 1 {
+	// 		continue
+	// 	}
+	//
+	// 	commandGroups = append(commandGroups, group)
+	//
+	// 	if group.longestValueLen > maxCellLength {
+	// 		maxCellLength = group.longestValueLen
+	// 	}
+	// }
+	//
+	// for _, group := range commandGroups {
+	// 	group.longestValueLen = maxCellLength
+	// }
+}
+
 func (e *Engine) adjustCycleKeys(row, column int) (int, int) {
 	cur := e.currentGroup()
 
@@ -195,7 +243,6 @@ func (e *Engine) adjustSelectKeymap() {
 // the group name if there is one.
 func (e *Engine) completionCount() (comps int, used int) {
 	for _, group := range e.groups {
-
 		// First, agree on the number of comps.
 		for _, row := range group.rows {
 			comps += len(row)
@@ -349,16 +396,6 @@ func (e *Engine) getAbsPos() int {
 	return prev
 }
 
-func stringInSlice(s string, sl []string) bool {
-	for _, str := range sl {
-		if s == str {
-			return true
-		}
-	}
-
-	return false
-}
-
 func sum(vals []int) (sum int) {
 	for _, val := range vals {
 		sum += val
@@ -375,4 +412,19 @@ func hasUpper(line []rune) bool {
 	}
 
 	return false
+}
+
+func longest(vals []string, trimEscapes bool) int {
+	var length int
+	for _, val := range vals {
+		if trimEscapes {
+			val = color.Strip(val)
+		}
+
+		if len(val) > length {
+			length = len(val)
+		}
+	}
+
+	return length
 }

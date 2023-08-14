@@ -1,79 +1,120 @@
 package completion
 
 import (
-	"fmt"
-	"regexp"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/term"
+	"golang.org/x/exp/slices"
 )
 
 // group is used to structure different types of completions with different
 // display types, autosuffix removal matchers, under their tag heading.
 type group struct {
-	tag             string        // Printed on top of the group's completions
-	rows            [][]Candidate // Values are grouped by aliases/rows, with computed paddings.
-	noSpace         SuffixMatcher // Suffixes to remove if a space or non-nil character is entered after the completion.
-	columnsWidth    []int         // Computed width for each column of completions, when aliases
-	listSeparator   string        // This is used to separate completion candidates from their descriptions.
-	list            bool          // Force completions to be listed instead of grided
-	noSort          bool          // Don't sort completions
-	aliased         bool          // Are their aliased completions
-	preserveEscapes bool          // Preserve escape sequences in the completion inserted values.
-	isCurrent       bool          // Currently cycling through this group, for highlighting choice
-	maxLength       int           // Each group can be limited in the number of comps offered
-	longestValueLen int           // Used when display is map/list, for determining message width
-	maxDescWidth    int
-	maxCellLength   int
+	tag               string        // Printed on top of the group's completions
+	rows              [][]Candidate // Values are grouped by aliases/rows, with computed paddings.
+	noSpace           SuffixMatcher // Suffixes to remove if a space or non-nil character is entered after the completion.
+	descriptions      []string
+	columnsWidth      []int  // Computed width for each column of completions, when aliases
+	descriptionsWidth []int  // Computed width for each column of completions, when aliases
+	listSeparator     string // This is used to separate completion candidates from their descriptions.
+	list              bool   // Force completions to be listed instead of grided
+	noSort            bool   // Don't sort completions
+	aliased           bool   // Are their aliased completions
+	preserveEscapes   bool   // Preserve escape sequences in the completion inserted values.
+	isCurrent         bool   // Currently cycling through this group, for highlighting choice
+	maxDescWidth      int
+	maxCellLength     int
+
+	longestValueLen int // Used when display is map/list, for determining message width
+	longestDescLen  int // Used to know how much descriptions can use when there are aliases.
 
 	// Selectors (position/bounds) management
 	posX int
 	posY int
 	maxX int
 	maxY int
+
+	// Constants passed by the engine.
+	termWidth int
 }
 
-func (e *Engine) group(comps Values) {
-	// Compute hints once we found either any errors,
-	// or if we have no completions but usage strings.
-	defer func() {
-		e.hintCompletions(comps)
-	}()
-
-	// Nothing else to do if no completions
-	if len(comps.values) == 0 {
-		return
-	}
-
-	// Apply the prefix to the completions, and filter out any
-	// completions that don't match, optionally ignoring case.
-	matchCase := e.config.GetBool("completion-ignore-case")
-	comps.values = comps.values.FilterPrefix(e.prefix, !matchCase)
-
-	comps.values.EachTag(func(tag string, values RawValues) {
+func (e *Engine) generateGroup(comps Values) func(tag string, values RawValues) {
+	return func(tag string, values RawValues) {
 		// Separate the completions that have a description and
 		// those which don't, and devise if there are aliases.
-		vals, noDescVals, aliased := e.groupValues(&comps, values)
+		vals, noDescVals, descriptions := e.groupNonDescribed(&comps, values)
 
 		// Create a "first" group with the "first" grouped values
-		e.newGroup(comps, tag, vals, aliased)
+		e.newCompletionGroup(comps, tag, vals, descriptions)
 
 		// If we have a remaining group of values without descriptions,
 		// we will print and use them in a separate, anonymous group.
 		if len(noDescVals) > 0 {
-			e.newGroup(comps, "", noDescVals, false)
+			e.newCompletionGroup(comps, "", vals, descriptions)
 		}
-	})
-
-	e.justifyGroups(comps)
+	}
 }
 
-// groupValues separates values based on whether they have descriptions, or are aliases of each other.
-func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals RawValues, aliased bool) {
+// newCompletionGroup initializes a group of completions to be displayed in the same area/header.
+func (e *Engine) newCompletionGroup(comps Values, tag string, vals RawValues, descriptions []string) {
+	grp := &group{
+		tag:            tag,
+		noSpace:        comps.NoSpace,
+		posX:           -1,
+		posY:           -1,
+		columnsWidth:   []int{0},
+		termWidth:      term.GetWidth(),
+		longestDescLen: longest(descriptions, true),
+	}
+
+	// Initialize all options for the group.
+	grp.initOptions(e, &comps, tag, vals)
+
+	// Global actions to take on all values.
+	if !grp.noSort {
+		sort.Stable(vals)
+	}
+
+	// Initial processing of our assigned values:
+	// Compute color/no-color sizes, some max/min, etc.
+	for pos, value := range vals {
+		if value.Display == "" {
+			value.Display = value.Value
+		}
+
+		// Only pass for colors regex should be here.
+		value.displayLen = len(color.Strip(value.Display))
+		value.descLen = len(color.Strip(value.Description))
+
+		if value.displayLen > grp.longestValueLen {
+			grp.longestValueLen = value.displayLen
+		}
+
+		if value.descLen > grp.longestDescLen {
+			grp.longestDescLen = value.descLen
+		}
+
+		vals[pos] = value
+	}
+
+	// Generate the full grid of completions.
+	// Special processing is needed when some values
+	// share a common description, they are "aliased".
+	if completionsAreAliases(vals) {
+		grp.initCompletionAliased(vals)
+	} else {
+		grp.initCompletionsGrid(vals)
+	}
+
+	e.groups = append(e.groups, grp)
+}
+
+// groupNonDescribed separates values based on whether they have descriptions, or are aliases of each other.
+func (e *Engine) groupNonDescribed(comps *Values, values RawValues) (vals, noDescVals RawValues, descs []string) {
 	var descriptions []string
 
 	prefix := ""
@@ -101,11 +142,6 @@ func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals 
 			continue
 		}
 
-		// List/map completions.
-		if stringInSlice(val.Description, descriptions) {
-			aliased = true
-		}
-
 		descriptions = append(descriptions, val.Description)
 		vals = append(vals, val)
 	}
@@ -116,87 +152,11 @@ func (e *Engine) groupValues(comps *Values, values RawValues) (vals, noDescVals 
 		noDescVals = make(RawValues, 0)
 	}
 
-	return vals, noDescVals, aliased
+	return vals, noDescVals, descriptions
 }
 
-func (e *Engine) justifyGroups(values Values) {
-	commandGroups := make([]*group, 0)
-	maxCellLength := 0
-
-	for _, group := range e.groups {
-		// Skip groups that are not to be justified
-		if _, justify := values.Pad[group.tag]; !justify {
-			if _, all := values.Pad["*"]; !all {
-				continue
-			}
-		}
-
-		// Skip groups that are aliased or have more than one column
-		if group.aliased || len(group.columnsWidth) > 1 {
-			continue
-		}
-
-		commandGroups = append(commandGroups, group)
-
-		if group.longestValueLen > maxCellLength {
-			maxCellLength = group.longestValueLen
-		}
-	}
-
-	for _, group := range commandGroups {
-		group.longestValueLen = maxCellLength
-	}
-}
-
-func (e *Engine) newGroup(comps Values, tag string, vals RawValues, aliased bool) {
-	grp := &group{
-		tag:          tag,
-		noSpace:      comps.NoSpace,
-		posX:         -1,
-		posY:         -1,
-		aliased:      aliased,
-		columnsWidth: []int{0},
-	}
-
-	// Check that all comps have a display value,
-	// and begin computing some parameters.
-	vals = grp.checkDisplays(vals)
-
-	// Set sorting options, various display styles, etc.
-	grp.setOptions(e, &comps, tag, vals)
-
-	// Keep computing/devising some parameters and constraints.
-	// This does not do much when we have aliased completions.
-	grp.computeCells(e, vals)
-
-	// Rearrange all candidates into a matrix of completions,
-	// based on most parameters computed above.
-	grp.makeMatrix(vals)
-
-	e.groups = append(e.groups, grp)
-}
-
-func (g *group) checkDisplays(vals RawValues) RawValues {
-	if g.aliased {
-		return vals
-	}
-
-	if len(vals) == 0 {
-		g.columnsWidth[0] = term.GetWidth() - 1
-	}
-
-	// Otherwise update the size of the longest candidate
-	for _, val := range vals {
-		valLen := utf8.RuneCountInString(val.Display)
-		if valLen > g.columnsWidth[0] {
-			g.columnsWidth[0] = valLen
-		}
-	}
-
-	return vals
-}
-
-func (g *group) setOptions(eng *Engine, comps *Values, tag string, vals RawValues) {
+// initOptions checks for global or group-specific options (display, behavior, grouping, etc).
+func (g *group) initOptions(eng *Engine, comps *Values, tag string, vals RawValues) {
 	// Override grid/list displays
 	_, g.list = comps.ListLong[tag]
 	if _, all := comps.ListLong["*"]; all && len(comps.ListLong) == 1 {
@@ -212,11 +172,10 @@ func (g *group) setOptions(eng *Engine, comps *Values, tag string, vals RawValue
 	}
 
 	// Strip escaped characters in the value component.
-	preserve, yes := comps.Escapes[g.tag]
-	if !yes {
-		preserve, _ = comps.Escapes["*"]
+	g.preserveEscapes = comps.Escapes[g.tag]
+	if !g.preserveEscapes {
+		g.preserveEscapes = comps.Escapes["*"]
 	}
-	g.preserveEscapes = preserve
 
 	// Always list long commands when they have descriptions.
 	if strings.HasSuffix(g.tag, "commands") && len(vals) > 0 && vals[0].Description != "" {
@@ -234,162 +193,109 @@ func (g *group) setOptions(eng *Engine, comps *Values, tag string, vals RawValue
 	}
 
 	// Override sorting or sort if needed
-	_, g.noSort = comps.NoSort[tag]
-	if _, all := comps.NoSort["*"]; all && len(comps.NoSort) == 1 {
+	g.noSort = comps.NoSort[tag]
+	if noSort, all := comps.NoSort["*"]; noSort && all && len(comps.NoSort) == 1 {
 		g.noSort = true
 	}
+}
 
-	if !g.noSort {
-		sort.Slice(vals, func(i, j int) bool {
-			return vals[i].Display < vals[j].Display
-		})
+// initCompletionsGrid arranges completions when there are no aliases.
+func (g *group) initCompletionsGrid(comps RawValues) {
+	pairLength := g.longestValueDescribed(comps)
+	maxColumns := g.termWidth / pairLength
+	rowCount := int(math.Ceil(float64(len(comps)) / (float64(maxColumns))))
+
+	g.rows = createGrid(comps, rowCount, maxColumns)
+	g.calculateMaxColumnWidths(g.rows, len(g.rows[0]))
+
+	for _, val := range comps {
+		g.descriptions = append(g.descriptions, val.Description)
 	}
 }
 
-func (g *group) computeCells(eng *Engine, vals RawValues) {
-	// Aliases will compute themselves individually, later.
-	if g.aliased {
-		return
-	}
+// initCompletionsGrid arranges completions when some of them share the same description.
+func (g *group) initCompletionAliased(domains []Candidate) {
+	g.aliased = true
 
-	if len(vals) == 0 {
-		return
-	}
+	// Filter out all duplicates: group aliased completions together.
+	grid, descriptions := g.createDescribedRows(domains)
 
-	g.longestValueLen = g.columnsWidth[0]
-
-	// Each value first computes the total amount of space
-	// it is going to take in a row (including the description)
-	for _, val := range vals {
-		candidate := g.displayTrimmed(color.Strip(val.Display))
-		pad := strings.Repeat(" ", g.longestValueLen-len(candidate))
-		desc := g.descriptionTrimmed(color.Strip(val.Description))
-		display := fmt.Sprintf("%s%s%s", candidate, pad+" ", desc)
-		valLen := utf8.RuneCountInString(display)
-
-		if valLen > g.maxCellLength {
-			g.maxCellLength = valLen
+	// Get the number of columns we use and optimize them.
+	var numColumns int
+	for i := range grid {
+		if len(grid[i]) > numColumns {
+			numColumns = len(grid[i])
 		}
 	}
 
-	// Adapt the maximum cell size based on inputrc settings.
-	compDisplayWidth := g.setMaxCellLength(eng)
+	g.calculateMaxColumnWidths(grid, numColumns)
 
-	// We now have the length of the longest completion for this group,
-	// so we devise how many columns we can use to display completions.
-	g.setColumnsWidth(&vals, compDisplayWidth)
-}
+	// Recursively pass over the values to
+	// find an optimized layout for them.
+	breakeven := 0
+	maxColumns := numColumns
+	for i, width := range g.columnsWidth {
+		if (breakeven + width + 2) > g.termWidth/2 {
+			maxColumns = i
+			break
+		}
 
-func (g *group) setMaxCellLength(eng *Engine) int {
-	termWidth := term.GetWidth()
-
-	compDisplayWidth := eng.config.GetInt("completion-display-width")
-	if compDisplayWidth > termWidth {
-		compDisplayWidth = -1
+		breakeven += width + 2
 	}
 
-	if compDisplayWidth > 0 && compDisplayWidth < termWidth {
-		if g.maxCellLength < compDisplayWidth {
-			g.maxCellLength = compDisplayWidth
+	var rows [][]Candidate
+	var descs []string
+
+	for i := range grid {
+		row := grid[i]
+		split := false
+		for len(row) > maxColumns {
+			rows = append(rows, row[:maxColumns])
+			row = row[maxColumns:]
+			descs = append(descs, "|_")
+			split = true
+		}
+
+		if split {
+			descs = append(descs, "|"+descriptions[i])
 		} else {
-			g.maxCellLength = termWidth
+			descs = append(descs, descriptions[i])
 		}
+
+		rows = append(rows, row)
 	}
 
-	return compDisplayWidth
+	g.rows = rows
+	g.columnsWidth = g.columnsWidth[:maxColumns]
+	g.descriptions = descs
 }
 
-func (g *group) setColumnsWidth(vals *RawValues, compDisplayWidth int) {
-	g.maxX = term.GetWidth() / (g.maxCellLength)
-	if g.maxX < 1 {
-		g.maxX = 1 // avoid a divide by zero error
-	}
+// This createDescribedRows function takes a list of values, a list of descriptions, and the
+// terminal width as input, and returns a list of rows based on the provided requirements:.
+func (g *group) createDescribedRows(values []Candidate) ([][]Candidate, []string) {
+	descriptionMap := make(map[string][]Candidate)
+	uniqueDescriptions := make([]string, 0)
+	rows := make([][]Candidate, 0)
 
-	if g.maxX > len(*vals) {
-		g.maxX = len(*vals)
-	}
-
-	if g.list || compDisplayWidth == 0 {
-		g.maxX = 1
-	}
-
-	if g.maxX > compDisplayWidth && compDisplayWidth > 0 {
-		g.maxX = compDisplayWidth
-	}
-
-	// We also have the width for each column
-	g.columnsWidth = make([]int, g.maxX)
-	for i := 0; i < g.maxX; i++ {
-		g.columnsWidth[i] = g.maxCellLength
-	}
-}
-
-func (g *group) makeMatrix(vals RawValues) {
-nextValue:
-	for i := range vals {
-		val := vals[i]
-		valLen := utf8.RuneCountInString(val.Display) + 1
-
-		// Look up each existing row.
-		for i := range g.rows {
-			row := g.rows[i]
-
-			if val.Description != "" && row[0].Description != val.Description {
-				continue
-			}
-
-			if g.fitsInRow(valLen, len(append(row, val)), val.Display) && !g.list {
-				g.rows[i] = append(g.rows[i], val)
-				continue nextValue
-			}
-		}
-
-		// Else create a new row, and update the row pad.
-		g.rows = append(g.rows, []Candidate{val})
-		if g.columnsWidth[0] < valLen {
-			g.columnsWidth[0] = valLen
+	// Separate duplicates and store them.
+	for i, description := range values {
+		if slices.Contains(uniqueDescriptions, description.Description) {
+			descriptionMap[description.Description] = append(descriptionMap[description.Description], values[i])
+		} else {
+			uniqueDescriptions = append(uniqueDescriptions, description.Description)
+			descriptionMap[description.Description] = []Candidate{values[i]}
 		}
 	}
 
-	if g.aliased {
-		g.maxX = len(g.columnsWidth)
-		g.longestValueLen = sum(g.columnsWidth) + len(g.columnsWidth) + 1
+	// Sorting helps with easier grids.
+	for _, description := range uniqueDescriptions {
+		row := descriptionMap[description]
+		// slices.Sort(row)
+		// slices.Reverse(row)
+		rows = append(rows, row)
 	}
 
-	g.maxY = len(g.rows)
-	if g.maxY > g.maxLength && g.maxLength != 0 {
-		g.maxY = g.maxLength
-	}
-}
-
-func (g *group) fitsInRow(valLen int, numAliases int, val string) bool {
-	columns := g.columnsWidth
-
-	switch {
-	// We must either reuse one of the columns:
-	// we don't have room on the right for a new one.
-	case numAliases > len(columns) && ((sum(columns) + len(columns) + valLen + 1) > (term.GetWidth() / 4)):
-		columnX := numAliases % len(columns)
-		if columns[columnX] < valLen {
-			columns[columnX] = valLen
-		}
-
-		return false
-
-		// Or add a new column
-	case numAliases > len(columns):
-		g.columnsWidth = append(columns, valLen)
-
-		return true
-
-		// Or we are already on an existing one.
-	case columns[numAliases-1] < valLen:
-		columns[numAliases-1] = valLen
-
-		return true
-	}
-
-	return true
+	return rows, uniqueDescriptions
 }
 
 //
@@ -427,33 +333,17 @@ func (g *group) updateIsearch(eng *Engine) {
 	// Assign the filtered values: we don't need to check
 	// for a separate set of non-described values, as the
 	// completions have already been triaged when generated.
-	vals, _, aliased := eng.groupValues(nil, suggs)
-	g.aliased = aliased
+	vals, _, descriptions := eng.groupNonDescribed(nil, suggs)
+	g.aliased = len(slices.Compact(descriptions)) < len(descriptions)
 
 	if len(vals) == 0 {
 		return
 	}
 
 	// And perform the usual initialization routines.
-	vals = g.checkDisplays(vals)
-	g.computeCells(eng, vals)
-	g.makeMatrix(vals)
-}
-
-func (g *group) firstCell() {
-	g.posX = 0
-	g.posY = 0
-}
-
-func (g *group) lastCell() {
-	g.posY = len(g.rows) - 1
-	g.posX = len(g.columnsWidth) - 1
-
-	if g.aliased {
-		g.findFirstCandidate(0, -1)
-	} else {
-		g.posX = len(g.rows[g.posY]) - 1
-	}
+	// vals = g.checkDisplays(vals)
+	// g.computeCells(eng, vals)
+	// g.makeMatrix(vals)
 }
 
 func (g *group) selected() (comp Candidate) {
@@ -577,179 +467,173 @@ func (g *group) findFirstCandidate(x, y int) (done, next bool) {
 	return
 }
 
-func (g *group) writeComps(eng *Engine) (comp string) {
-	if len(g.rows) == 0 {
-		return
-	}
-
-	if g.tag != "" {
-		comp += fmt.Sprintf("%s%s%s %s", color.Bold, color.FgYellow, g.tag, color.Reset)
-		comp += term.ClearLineAfter + term.NewlineReturn
-		eng.usedY++
-	}
-
-	// Base parameters
-	var columns, rows int
-
-	for range g.rows {
-		// Generate the completion string for this row (comp/aliases
-		// and/or descriptions), and apply any styles and isearch
-		// highlighting with pattern replacement,
-		comp += g.writeRow(eng, columns)
-
-		columns++
-		rows++
-
-		if rows > g.maxY {
-			break
-		}
-	}
-
-	eng.usedY += rows
-
-	return comp
+func (g *group) firstCell() {
+	g.posX = 0
+	g.posY = 0
 }
 
-func (g *group) writeRow(eng *Engine, row int) (comp string) {
-	current := g.rows[row]
+func (g *group) lastCell() {
+	g.posY = len(g.rows) - 1
+	g.posX = len(g.columnsWidth) - 1
 
-	for col := range g.columnsWidth {
-		var val Candidate
-
-		// Special highlighting for selected candidate.
-		isSelected := row == g.posY && col == g.posX && g.isCurrent
-
-		// If for the given column, we have a candidate.
-		if len(current) > col {
-			val = current[col]
-		}
-
-		// Add the fully-styled and trimmed candidate display.
-		comp += g.highlightCandidate(eng, val, " ", isSelected)
-
-		// And pad this completion grid with space if needed.
-		maxLen := g.longestValueLen + 1
-		if g.aliased {
-			maxLen = g.columnsWidth[col] + 1
-		}
-
-		displayPadLen := maxLen - len(g.displayTrimmed(val.Display))
-		if displayPadLen > 0 {
-			comp += strings.Repeat(" ", displayPadLen)
-		}
+	if g.aliased {
+		g.findFirstCandidate(0, -1)
+	} else {
+		g.posX = len(g.rows[g.posY]) - 1
 	}
-
-	// If we are on the last column anyway, add the descriptions.
-	val := current[0]
-	comp += g.highlightDescription(eng, val, row, len(current)-1)
-	comp += term.ClearLineAfter + term.NewlineReturn
-
-	return
 }
 
-func (g *group) highlightCandidate(eng *Engine, val Candidate, pad string, selected bool) (candidate string) {
-	reset := color.Fmt(val.Style)
-	candidate = g.displayTrimmed(val.Display)
-
-	if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
-		match := eng.IsearchRegex.FindString(candidate)
-		match = color.Fmt(color.Bg+"244") + match + color.Reset + reset
-		candidate = eng.IsearchRegex.ReplaceAllLiteralString(candidate, match)
+func (g *group) trimDisplay(comp Candidate, pad, col int) (candidate, padded string) {
+	val := comp.Display
+	if val == "" {
+		return "", padSpace(pad)
 	}
 
-	switch {
-	// If the comp is currently selected, overwrite any highlighting already applied.
-	case selected:
-		userStyle := color.UnquoteRC(eng.config.GetString("completion-selection-style"))
-		selectionHighlightStyle := color.Fmt(color.Bg+"255") + userStyle
-		candidate = selectionHighlightStyle + g.displayTrimmed(color.Strip(val.Display))
-		if g.aliased {
-			candidate += color.Reset
-		}
+	maxDisplayWidth := g.columnsWidth[col]
 
-	default:
-		// Highlight the prefix if any and configured for it.
-		if eng.config.GetBool("colored-completion-prefix") && eng.prefix != "" {
-			if prefixMatch, err := regexp.Compile(fmt.Sprintf("^%s", eng.prefix)); err == nil {
-				prefixHighlighted := color.Bold + color.FgBlue + eng.prefix + color.BoldReset + color.FgDefault + reset
-				candidate = prefixMatch.ReplaceAllString(candidate, prefixHighlighted)
+	if maxDisplayWidth > g.termWidth {
+		maxDisplayWidth = g.termWidth
+	}
+
+	if len(val) > g.columnsWidth[col] {
+		val = val[:maxDisplayWidth-3] + "..."
+		val = g.listSep() + sanitizer.Replace(val)
+
+		return val, ""
+	}
+
+	return val, padSpace(pad)
+}
+
+func (g *group) trimDesc(val Candidate, pad int) (desc, padded string) {
+	desc = val.Description
+	if desc == "" {
+		return desc, padSpace(pad)
+	}
+
+	if pad > g.maxDescWidth {
+		pad = g.maxDescWidth - val.descLen
+	}
+
+	if len(desc) > g.maxDescWidth && g.maxDescWidth > 0 {
+		desc = desc[:g.maxDescWidth-3] + "..."
+		desc = g.listSep() + sanitizer.Replace(desc)
+
+		return desc, ""
+	}
+
+	if len(desc)+pad > g.maxDescWidth {
+		pad = g.maxDescWidth - len(desc)
+	}
+
+	desc = g.listSep() + sanitizer.Replace(desc)
+
+	return desc, padSpace(pad)
+}
+
+func (g *group) setMaximumSizes(col int) int {
+	// Get the length of the longest description in the same column.
+	maxDescLen := g.descriptionsWidth[col]
+	valuesRealLen := sum(g.columnsWidth) + len(g.columnsWidth) + len(g.listSep())
+
+	if valuesRealLen+maxDescLen > g.termWidth {
+		maxDescLen = g.termWidth - valuesRealLen
+	} else if valuesRealLen+maxDescLen < g.termWidth {
+		maxDescLen = g.termWidth - valuesRealLen
+	}
+
+	return maxDescLen
+}
+
+func (g *group) calculateMaxColumnWidths(grid [][]Candidate, numColumns int) {
+	maxColumnWidths := make([]int, numColumns)
+	maxDescWidths := make([]int, numColumns)
+
+	for _, row := range grid {
+		for columnIndex, value := range row {
+			if value.displayLen+1 > maxColumnWidths[columnIndex] {
+				maxColumnWidths[columnIndex] = value.displayLen + 1
+			}
+
+			if value.descLen > maxDescWidths[columnIndex] {
+				maxDescWidths[columnIndex] = value.descLen + 1
 			}
 		}
-
-		// candidate = reset + candidate + color.Reset + cell
-		candidate = reset + candidate + color.Reset
 	}
 
-	return candidate + pad
+	g.maxY = len(g.rows)
+	g.maxX = len(maxColumnWidths)
+	g.columnsWidth = maxColumnWidths
+	g.descriptionsWidth = maxDescWidths
 }
 
-func (g *group) highlightDescription(eng *Engine, val Candidate, row, col int) (desc string) {
-	if val.Description == "" {
-		return color.Reset
-	}
+func (g *group) longestValueDescribed(vals []Candidate) int {
+	maxPairLength := 0
 
-	desc = g.descriptionTrimmed(val.Description)
+	descSeparatorLen := 1 + len(g.listSeparator) + 1
 
-	// If the next row has the same completions, replace the description with our hint.
-	if len(g.rows) > row+1 && g.rows[row+1][0].Description == val.Description {
-		desc = "|"
-	} else if eng.IsearchRegex != nil && eng.isearchBuf.Len() > 0 {
-		match := eng.IsearchRegex.FindString(desc)
-		match = color.Fmt(color.Bg+"244") + match + color.Reset + color.Dim
-		desc = eng.IsearchRegex.ReplaceAllLiteralString(desc, match)
-	}
+	for _, val := range vals {
+		pairLength := val.displayLen
 
-	// If the comp is currently selected, overwrite any highlighting already applied.
-	// Replace all background reset escape sequences in it, to ensure correct display.
-	if row == g.posY && col == g.posX && g.isCurrent && !g.aliased {
-		userDescStyle := color.UnquoteRC(eng.config.GetString("completion-selection-style"))
-		selectionHighlightStyle := color.Fmt(color.Bg+"255") + userDescStyle
-		desc = strings.ReplaceAll(desc, color.BgDefault, userDescStyle)
-		desc = selectionHighlightStyle + desc
-	}
-
-	compDescStyle := color.UnquoteRC(eng.config.GetString("completion-description-style"))
-
-	return compDescStyle + desc + color.Reset
-}
-
-func (g *group) displayTrimmed(val string) string {
-	termWidth := term.GetWidth()
-	if g.longestValueLen > termWidth-1 {
-		g.longestValueLen = termWidth - 1
-	}
-
-	if len(val) > g.longestValueLen {
-		val = val[:g.longestValueLen-3] + "..."
-	}
-
-	val = sanitizer.Replace(val)
-
-	return val
-}
-
-func (g *group) descriptionTrimmed(desc string) string {
-	if desc == "" {
-		return desc
-	}
-
-	termWidth := term.GetWidth()
-	if g.longestValueLen > termWidth {
-		g.longestValueLen = termWidth
-	}
-
-	g.maxDescWidth = termWidth - g.longestValueLen - len(g.listSeparator) - 1
-
-	if len(desc) >= g.maxDescWidth {
-		offset := 4
-		if !g.aliased {
-			offset++
+		if val.descLen > 0 {
+			pairLength += val.descLen + descSeparatorLen
 		}
 
-		desc = desc[:g.maxDescWidth-offset] + "..."
+		if pairLength > maxPairLength {
+			maxPairLength = pairLength
+		}
 	}
 
-	desc = g.listSeparator + " " + sanitizer.Replace(desc)
+	return maxPairLength
+}
 
-	return desc
+func (g *group) listSep() string {
+	return g.listSeparator + " "
+}
+
+func completionsAreAliases(values []Candidate) bool {
+	oddValueMap := make(map[string]bool)
+
+	for i, value := range values {
+		if i%2 == 0 && value.Description != "" {
+			oddValueMap[value.Description] = true
+		}
+	}
+
+	for i, value := range values {
+		if i%2 != 0 && oddValueMap[value.Description] && value.Description != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func createGrid(values []Candidate, rowCount, maxColumns int) [][]Candidate {
+	grid := make([][]Candidate, rowCount)
+
+	for i := 0; i < rowCount; i++ {
+		grid[i] = createRow(values, maxColumns, i)
+	}
+
+	return grid
+}
+
+func createRow(domains []Candidate, maxColumns, rowIndex int) []Candidate {
+	rowStart := rowIndex * maxColumns
+	rowEnd := (rowIndex + 1) * maxColumns
+
+	if rowEnd > len(domains) {
+		rowEnd = len(domains)
+	}
+
+	return domains[rowStart:rowEnd]
+}
+
+func padSpace(times int) string {
+	if times > 0 {
+		return strings.Repeat(" ", times)
+	}
+
+	return ""
 }

@@ -1,6 +1,8 @@
 package completion
 
-import "strings"
+import (
+	"strings"
+)
 
 // RawValues is a list of completion candidates.
 type RawValues []Candidate
@@ -80,4 +82,12 @@ func (c RawValues) FilterPrefix(prefix string, matchCase bool) RawValues {
 		}
 	}
 	return filtered
+}
+
+func (x RawValues) Len() int { return len(x) }
+
+func (x RawValues) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+
+func (x RawValues) Less(i, j int) bool {
+	return strings.ToLower(x[i].Value) < strings.ToLower(x[j].Display)
 }
