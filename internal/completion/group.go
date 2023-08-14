@@ -616,16 +616,16 @@ func (g *group) listSep() string {
 func completionsAreAliases(values []Candidate) bool {
 	oddValueMap := make(map[string]bool)
 
-	for i, value := range values {
-		if i%2 == 0 && value.Description != "" {
-			oddValueMap[value.Description] = true
+	for _, value := range values {
+		if value.Description == "" {
+			continue
 		}
-	}
 
-	for i, value := range values {
-		if i%2 != 0 && oddValueMap[value.Description] && value.Description != "" {
+		if _, found := oddValueMap[value.Description]; found {
 			return true
 		}
+
+		oddValueMap[value.Description] = true
 	}
 
 	return false
