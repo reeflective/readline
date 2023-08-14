@@ -89,9 +89,9 @@ func (e *Engine) renderCompletions(grp *group) string {
 			if !grp.aliased || onLast {
 				grp.maxDescWidth = grp.setMaximumSizes(columnIndex)
 
-				descPadding := grp.descriptionsWidth[columnIndex] - value.descLen
-				highlighted := e.highlightDesc(grp, value, descPadding, rowIndex, columnIndex)
-				builder.WriteString(highlighted)
+				descPad := grp.descriptionsWidth[columnIndex] - value.descLen
+				desc := e.highlightDesc(grp, value, descPad, rowIndex, columnIndex, isSelected)
+				builder.WriteString(desc)
 			}
 		}
 
@@ -111,7 +111,7 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 	reset := color.Fmt(val.Style)
 	candidate, padded := grp.trimDisplay(val, pad, col)
 
-	if e.IsearchRegex != nil && e.isearchBuf.Len() > 0 {
+	if e.IsearchRegex != nil && e.isearchBuf.Len() > 0 && !selected {
 		match := e.IsearchRegex.FindString(candidate)
 		match = color.Fmt(color.Bg+"244") + match + color.Reset + reset
 		candidate = e.IsearchRegex.ReplaceAllLiteralString(candidate, match)
@@ -122,6 +122,7 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 		userStyle := color.UnquoteRC(e.config.GetString("completion-selection-style"))
 		selectionHighlightStyle := color.Fmt(color.Bg+"255") + userStyle
 		candidate = selectionHighlightStyle + candidate
+
 		if grp.aliased {
 			candidate += color.Reset
 		}
@@ -129,8 +130,8 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 		// Highlight the prefix if any and configured for it.
 		if e.config.GetBool("colored-completion-prefix") && e.prefix != "" {
 			if prefixMatch, err := regexp.Compile(fmt.Sprintf("^%s", e.prefix)); err == nil {
-				prefixHighlighted := color.Bold + color.FgBlue + e.prefix + color.BoldReset + color.FgDefault + reset
-				candidate = prefixMatch.ReplaceAllString(candidate, prefixHighlighted)
+				prefixColored := color.Bold + color.FgBlue + e.prefix + color.BoldReset + color.FgDefault + reset
+				candidate = prefixMatch.ReplaceAllString(candidate, prefixColored)
 			}
 		}
 
@@ -140,7 +141,7 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 	return candidate + padded
 }
 
-func (e *Engine) highlightDesc(grp *group, val Candidate, pad, row, col int) (desc string) {
+func (e *Engine) highlightDesc(grp *group, val Candidate, pad, row, col int, selected bool) (desc string) {
 	if val.Description == "" {
 		return color.Reset
 	}
@@ -150,7 +151,7 @@ func (e *Engine) highlightDesc(grp *group, val Candidate, pad, row, col int) (de
 	// If the next row has the same completions, replace the description with our hint.
 	if len(grp.rows) > row+1 && grp.rows[row+1][0].Description == val.Description {
 		desc = "|"
-	} else if e.IsearchRegex != nil && e.isearchBuf.Len() > 0 {
+	} else if e.IsearchRegex != nil && e.isearchBuf.Len() > 0 && !selected {
 		match := e.IsearchRegex.FindString(desc)
 		match = color.Fmt(color.Bg+"244") + match + color.Reset + color.Dim
 		desc = e.IsearchRegex.ReplaceAllLiteralString(desc, match)
