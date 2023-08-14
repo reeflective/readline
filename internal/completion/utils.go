@@ -104,6 +104,66 @@ func (e *Engine) setSuffix(completions Values) {
 	}
 }
 
+// Returns a function to run on each completio group tag.
+func (e *Engine) generateGroup(comps Values) func(tag string, values RawValues) {
+	return func(tag string, values RawValues) {
+		// Separate the completions that have a description and
+		// those which don't, and devise if there are aliases.
+		vals, noDescVals, descriptions := e.groupNonDescribed(&comps, values)
+
+		// Create a "first" group with the "first" grouped values
+		e.newCompletionGroup(comps, tag, vals, descriptions)
+
+		// If we have a remaining group of values without descriptions,
+		// we will print and use them in a separate, anonymous group.
+		if len(noDescVals) > 0 {
+			e.newCompletionGroup(comps, "", vals, descriptions)
+		}
+	}
+}
+
+// groupNonDescribed separates values based on whether they have descriptions, or are aliases of each other.
+func (e *Engine) groupNonDescribed(comps *Values, values RawValues) (vals, noDescVals RawValues, descs []string) {
+	var descriptions []string
+
+	prefix := ""
+	if e.prefix != "\"\"" && e.prefix != "''" {
+		prefix = e.prefix
+	}
+
+	for _, val := range values {
+		// Ensure all values have a display string.
+		if val.Display == "" {
+			val.Display = val.Value
+		}
+
+		// Currently this is because errors are passed as completions.
+		if strings.HasPrefix(val.Value, prefix+"ERR") && val.Value == prefix+"_" {
+			comps.Messages.Add(color.FgRed + val.Display + val.Description)
+
+			continue
+		}
+
+		// Grid completions
+		if val.Description == "" {
+			noDescVals = append(noDescVals, val)
+
+			continue
+		}
+
+		descriptions = append(descriptions, val.Description)
+		vals = append(vals, val)
+	}
+
+	// if no candidates have a description, swap
+	if len(vals) == 0 {
+		vals = noDescVals
+		noDescVals = make(RawValues, 0)
+	}
+
+	return vals, noDescVals, descriptions
+}
+
 func (e *Engine) currentGroup() (grp *group) {
 	for _, g := range e.groups {
 		if g.isCurrent {

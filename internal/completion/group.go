@@ -42,24 +42,6 @@ type group struct {
 	termWidth int
 }
 
-// Returns a function to run on each completio group tag.
-func (e *Engine) generateGroup(comps Values) func(tag string, values RawValues) {
-	return func(tag string, values RawValues) {
-		// Separate the completions that have a description and
-		// those which don't, and devise if there are aliases.
-		vals, noDescVals, descriptions := e.groupNonDescribed(&comps, values)
-
-		// Create a "first" group with the "first" grouped values
-		e.newCompletionGroup(comps, tag, vals, descriptions)
-
-		// If we have a remaining group of values without descriptions,
-		// we will print and use them in a separate, anonymous group.
-		if len(noDescVals) > 0 {
-			e.newCompletionGroup(comps, "", vals, descriptions)
-		}
-	}
-}
-
 // newCompletionGroup initializes a group of completions to be displayed in the same area/header.
 func (e *Engine) newCompletionGroup(comps Values, tag string, vals RawValues, descriptions []string) {
 	grp := &group{
@@ -112,48 +94,6 @@ func (e *Engine) newCompletionGroup(comps Values, tag string, vals RawValues, de
 	}
 
 	e.groups = append(e.groups, grp)
-}
-
-// groupNonDescribed separates values based on whether they have descriptions, or are aliases of each other.
-func (e *Engine) groupNonDescribed(comps *Values, values RawValues) (vals, noDescVals RawValues, descs []string) {
-	var descriptions []string
-
-	prefix := ""
-	if e.prefix != "\"\"" && e.prefix != "''" {
-		prefix = e.prefix
-	}
-
-	for _, val := range values {
-		// Ensure all values have a display string.
-		if val.Display == "" {
-			val.Display = val.Value
-		}
-
-		// Currently this is because errors are passed as completions.
-		if strings.HasPrefix(val.Value, prefix+"ERR") && val.Value == prefix+"_" {
-			comps.Messages.Add(color.FgRed + val.Display + val.Description)
-
-			continue
-		}
-
-		// Grid completions
-		if val.Description == "" {
-			noDescVals = append(noDescVals, val)
-
-			continue
-		}
-
-		descriptions = append(descriptions, val.Description)
-		vals = append(vals, val)
-	}
-
-	// if no candidates have a description, swap
-	if len(vals) == 0 {
-		vals = noDescVals
-		noDescVals = make(RawValues, 0)
-	}
-
-	return vals, noDescVals, descriptions
 }
 
 // initOptions checks for global or group-specific options (display, behavior, grouping, etc).
@@ -216,7 +156,7 @@ func (g *group) initCompletionsGrid(comps RawValues) {
 	rowCount := int(math.Ceil(float64(len(comps)) / (float64(maxColumns))))
 
 	g.rows = createGrid(comps, rowCount, maxColumns)
-	g.calculateMaxColumnWidths(g.rows, len(g.rows[0]))
+	g.calculateMaxColumnWidths(g.rows)
 
 	for _, val := range comps {
 		g.descriptions = append(g.descriptions, val.Description)
@@ -229,57 +169,54 @@ func (g *group) initCompletionAliased(domains []Candidate) {
 
 	// Filter out all duplicates: group aliased completions together.
 	grid, descriptions := g.createDescribedRows(domains)
+	g.calculateMaxColumnWidths(grid)
+	g.wrapExcessAliases(grid, descriptions)
 
-	// Get the number of columns we use and optimize them.
-	var numColumns int
-	for i := range grid {
-		if len(grid[i]) > numColumns {
-			numColumns = len(grid[i])
-		}
-	}
+	g.maxY = len(g.rows)
+	g.maxX = len(g.columnsWidth)
+}
 
-	g.calculateMaxColumnWidths(grid, numColumns)
-
-	// Recursively pass over the values to
-	// find an optimized layout for them.
+// Wraps all rows for which there are too many aliases to be displayed on a single one.
+func (g *group) wrapExcessAliases(grid [][]Candidate, descriptions []string) {
 	breakeven := 0
-	maxColumns := numColumns
+	maxColumns := len(g.columnsWidth)
+
 	for i, width := range g.columnsWidth {
-		if (breakeven + width + 2) > g.termWidth/2 {
+		if (breakeven + width + 1) > g.termWidth/2 {
 			maxColumns = i
 			break
 		}
 
-		breakeven += width + 2
+		breakeven += width + 1
 	}
 
 	var rows [][]Candidate
 	var descs []string
 
-	for i := range grid {
-		row := grid[i]
+	for rowIndex := range grid {
+		row := grid[rowIndex]
 		split := false
+
 		for len(row) > maxColumns {
 			rows = append(rows, row[:maxColumns])
 			row = row[maxColumns:]
+
 			descs = append(descs, "|_")
 			split = true
 		}
 
 		if split {
-			descs = append(descs, "|"+descriptions[i])
+			descs = append(descs, "|"+descriptions[rowIndex])
 		} else {
-			descs = append(descs, descriptions[i])
+			descs = append(descs, descriptions[rowIndex])
 		}
 
 		rows = append(rows, row)
 	}
 
-	// g.calculateMaxColumnWidths(grid, numColumns)
-
 	g.rows = rows
-	g.columnsWidth = g.columnsWidth[:maxColumns]
 	g.descriptions = descs
+	g.columnsWidth = g.columnsWidth[:maxColumns]
 }
 
 // This createDescribedRows function takes a list of values, a list of descriptions, and the
@@ -557,7 +494,9 @@ func (g *group) setMaximumSizes(col int) int {
 	return maxDescLen
 }
 
-func (g *group) calculateMaxColumnWidths(grid [][]Candidate, numColumns int) {
+func (g *group) calculateMaxColumnWidths(grid [][]Candidate) {
+	var numColumns int
+
 	for _, row := range grid {
 		if len(row) > numColumns {
 			numColumns = len(row)
