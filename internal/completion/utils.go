@@ -180,32 +180,37 @@ func (e *Engine) cyclePreviousGroup() {
 }
 
 func (e *Engine) justifyGroups(values Values) {
-	// commandGroups := make([]*group, 0)
-	// maxCellLength := 0
+	commandGroups := make([]*group, 0)
+	maxCellLength := 0
 
-	// for _, group := range e.groups {
-	// 	// Skip groups that are not to be justified
-	// 	if _, justify := values.Pad[group.tag]; !justify {
-	// 		if _, all := values.Pad["*"]; !all {
-	// 			continue
-	// 		}
-	// 	}
-	//
-	// 	// Skip groups that are aliased or have more than one column
-	// 	if group.aliased || len(group.columnsWidth) > 1 {
-	// 		continue
-	// 	}
-	//
-	// 	commandGroups = append(commandGroups, group)
-	//
-	// 	if group.longestValueLen > maxCellLength {
-	// 		maxCellLength = group.longestValueLen
-	// 	}
-	// }
-	//
-	// for _, group := range commandGroups {
-	// 	group.longestValueLen = maxCellLength
-	// }
+	for _, group := range e.groups {
+		// Skip groups that are not to be justified
+		justify := values.Pad[group.tag]
+		if !justify {
+			justify = values.Pad["*"]
+		}
+
+		if !justify {
+			continue
+		}
+
+		// Skip groups that are aliased or have more than one column
+		if group.aliased || len(group.columnsWidth) > 1 {
+			continue
+		}
+
+		// Else this group should be justified-padded globally.
+		commandGroups = append(commandGroups, group)
+
+		if group.longestValueLen > maxCellLength {
+			maxCellLength = group.longestValueLen
+		}
+	}
+
+	for _, group := range commandGroups {
+		group.columnsWidth[0] = maxCellLength
+		group.longestValueLen = maxCellLength
+	}
 }
 
 func (e *Engine) adjustCycleKeys(row, column int) (int, int) {

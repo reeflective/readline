@@ -42,6 +42,7 @@ type group struct {
 	termWidth int
 }
 
+// Returns a function to run on each completio group tag.
 func (e *Engine) generateGroup(comps Values) func(tag string, values RawValues) {
 	return func(tag string, values RawValues) {
 		// Separate the completions that have a description and
@@ -201,8 +202,17 @@ func (g *group) initOptions(eng *Engine, comps *Values, tag string, vals RawValu
 
 // initCompletionsGrid arranges completions when there are no aliases.
 func (g *group) initCompletionsGrid(comps RawValues) {
+	if len(comps) == 0 {
+		return
+	}
+
 	pairLength := g.longestValueDescribed(comps)
+
 	maxColumns := g.termWidth / pairLength
+	if g.list || maxColumns < 0 {
+		maxColumns = 1
+	}
+
 	rowCount := int(math.Ceil(float64(len(comps)) / (float64(maxColumns))))
 
 	g.rows = createGrid(comps, rowCount, maxColumns)
@@ -264,6 +274,8 @@ func (g *group) initCompletionAliased(domains []Candidate) {
 
 		rows = append(rows, row)
 	}
+
+	// g.calculateMaxColumnWidths(grid, numColumns)
 
 	g.rows = rows
 	g.columnsWidth = g.columnsWidth[:maxColumns]
@@ -546,6 +558,12 @@ func (g *group) setMaximumSizes(col int) int {
 }
 
 func (g *group) calculateMaxColumnWidths(grid [][]Candidate, numColumns int) {
+	for _, row := range grid {
+		if len(row) > numColumns {
+			numColumns = len(row)
+		}
+	}
+
 	maxColumnWidths := make([]int, numColumns)
 	maxDescWidths := make([]int, numColumns)
 
@@ -568,23 +586,27 @@ func (g *group) calculateMaxColumnWidths(grid [][]Candidate, numColumns int) {
 }
 
 func (g *group) longestValueDescribed(vals []Candidate) int {
-	maxPairLength := 0
+	var longestDesc, longestVal int
 
 	descSeparatorLen := 1 + len(g.listSeparator) + 1
 
+	// Get the length of the longest value
+	// and the length of the longest description.
 	for _, val := range vals {
-		pairLength := val.displayLen
-
-		if val.descLen > 0 {
-			pairLength += val.descLen + descSeparatorLen
+		if val.displayLen > longestVal {
+			longestVal = val.displayLen
 		}
 
-		if pairLength > maxPairLength {
-			maxPairLength = pairLength
+		if val.descLen > longestDesc {
+			longestDesc = val.descLen
 		}
 	}
 
-	return maxPairLength
+	if longestDesc > 0 {
+		longestDesc += descSeparatorLen
+	}
+
+	return longestVal + longestDesc
 }
 
 func (g *group) listSep() string {
@@ -610,6 +632,10 @@ func completionsAreAliases(values []Candidate) bool {
 }
 
 func createGrid(values []Candidate, rowCount, maxColumns int) [][]Candidate {
+	if rowCount < 0 {
+		rowCount = 0
+	}
+
 	grid := make([][]Candidate, rowCount)
 
 	for i := 0; i < rowCount; i++ {
