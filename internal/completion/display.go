@@ -122,7 +122,6 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 		userStyle := color.UnquoteRC(e.config.GetString("completion-selection-style"))
 		selectionHighlightStyle := color.Fmt(color.Bg+"255") + userStyle
 		candidate = selectionHighlightStyle + candidate
-		// candidate, _ = selectionHighlightStyle + g.trimDisplay(color.Strip(val.Display))
 		if grp.aliased {
 			candidate += color.Reset
 		}
@@ -135,7 +134,7 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 			}
 		}
 
-		candidate = reset + candidate
+		candidate = reset + candidate + color.Reset
 	}
 
 	return candidate + padded

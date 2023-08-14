@@ -147,6 +147,9 @@ func (g *group) initCompletionsGrid(comps RawValues) {
 	}
 
 	pairLength := g.longestValueDescribed(comps)
+	if pairLength > g.termWidth {
+		pairLength = g.termWidth
+	}
 
 	maxColumns := g.termWidth / pairLength
 	if g.list || maxColumns < 0 {
