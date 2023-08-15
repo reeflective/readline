@@ -358,7 +358,7 @@ func (g *group) trimDisplay(comp Candidate, pad, col int) (candidate, padded str
 
 	// Get the allowed length for this column.
 	// The display can never be longer than terminal width.
-	maxDisplayWidth := g.columnsWidth[col]
+	maxDisplayWidth := g.columnsWidth[col] + 1
 
 	if maxDisplayWidth > g.termWidth {
 		maxDisplayWidth = g.termWidth
@@ -402,16 +402,19 @@ func (g *group) trimDesc(val Candidate, pad int) (desc, padded string) {
 
 func (g *group) getPad(value Candidate, columnIndex int, desc bool) int {
 	columns := g.columnsWidth
-	var valLen = value.displayLen
+	var valLen = value.displayLen - 1
 
 	if desc {
 		columns = g.descriptionsWidth
 		valLen = value.descLen
 	}
 
+	// Ensure we never longer or even fully equal
+	// to the terminal size: we are not really sure
+	// of where offsets might be set in the code...
 	column := columns[columnIndex]
-	if column > g.termWidth {
-		column = g.termWidth
+	if column > g.termWidth-1 {
+		column = g.termWidth - 1
 	}
 
 	padding := column - valLen
