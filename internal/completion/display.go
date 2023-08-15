@@ -74,11 +74,11 @@ func (e *Engine) renderCompletions(grp *group) string {
 
 			// Apply all highlightings to the displayed value:
 			// selection, prefixes, styles and other things,
-			padding := grp.columnsWidth[columnIndex] - value.displayLen
+			padding := grp.getPad(value, columnIndex, false)
 			isSelected := rowIndex == grp.posY && columnIndex == grp.posX && grp.isCurrent
 			display := e.highlightDisplay(grp, value, padding, columnIndex, isSelected)
 
-			builder.WriteString(display + " ")
+			builder.WriteString(display)
 
 			// Add description if no aliases, or if done with them.
 			onLast := columnIndex == len(grp.columnsWidth)-1
@@ -87,9 +87,9 @@ func (e *Engine) renderCompletions(grp *group) string {
 			}
 
 			if !grp.aliased || onLast {
-				grp.maxDescWidth = grp.setMaximumSizes(columnIndex)
+				grp.maxDescAllowed = grp.setMaximumSizes(columnIndex)
 
-				descPad := grp.descriptionsWidth[columnIndex] - value.descLen
+				descPad := grp.getPad(value, columnIndex, true)
 				desc := e.highlightDesc(grp, value, descPad, rowIndex, columnIndex, isSelected)
 				builder.WriteString(desc)
 			}

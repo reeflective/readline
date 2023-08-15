@@ -266,14 +266,14 @@ func (e *Engine) justifyGroups(values Values) {
 		// Else this group should be justified-padded globally.
 		commandGroups = append(commandGroups, group)
 
-		if group.longestValueLen > maxCellLength {
-			maxCellLength = group.longestValueLen
+		if group.longestValue > maxCellLength {
+			maxCellLength = group.longestValue
 		}
 	}
 
 	for _, group := range commandGroups {
 		group.columnsWidth[0] = maxCellLength
-		group.longestValueLen = maxCellLength
+		group.longestValue = maxCellLength
 	}
 }
 

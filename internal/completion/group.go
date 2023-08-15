@@ -17,41 +17,36 @@ type group struct {
 	tag               string        // Printed on top of the group's completions
 	rows              [][]Candidate // Values are grouped by aliases/rows, with computed paddings.
 	noSpace           SuffixMatcher // Suffixes to remove if a space or non-nil character is entered after the completion.
-	descriptions      []string
-	columnsWidth      []int  // Computed width for each column of completions, when aliases
-	descriptionsWidth []int  // Computed width for each column of completions, when aliases
-	listSeparator     string // This is used to separate completion candidates from their descriptions.
-	list              bool   // Force completions to be listed instead of grided
-	noSort            bool   // Don't sort completions
-	aliased           bool   // Are their aliased completions
-	preserveEscapes   bool   // Preserve escape sequences in the completion inserted values.
-	isCurrent         bool   // Currently cycling through this group, for highlighting choice
-	maxDescWidth      int
-	maxCellLength     int
-
-	longestValueLen int // Used when display is map/list, for determining message width
-	longestDescLen  int // Used to know how much descriptions can use when there are aliases.
+	columnsWidth      []int         // Computed width for each column of completions, when aliases
+	descriptionsWidth []int         // Computed width for each column of completions, when aliases
+	listSeparator     string        // This is used to separate completion candidates from their descriptions.
+	list              bool          // Force completions to be listed instead of grided
+	noSort            bool          // Don't sort completions
+	aliased           bool          // Are their aliased completions
+	preserveEscapes   bool          // Preserve escape sequences in the completion inserted values.
+	isCurrent         bool          // Currently cycling through this group, for highlighting choice
+	longestValue      int           // Used when display is map/list, for determining message width
+	longestDesc       int           // Used to know how much descriptions can use when there are aliases.
+	maxDescAllowed    int           // Maximum ALLOWED description width.
+	termWidth         int           // Term size queried at beginning of computes by the engine.
 
 	// Selectors (position/bounds) management
 	posX int
 	posY int
 	maxX int
 	maxY int
-
-	// Constants passed by the engine.
-	termWidth int
 }
 
 // newCompletionGroup initializes a group of completions to be displayed in the same area/header.
 func (e *Engine) newCompletionGroup(comps Values, tag string, vals RawValues, descriptions []string) {
 	grp := &group{
-		tag:            tag,
-		noSpace:        comps.NoSpace,
-		posX:           -1,
-		posY:           -1,
-		columnsWidth:   []int{0},
-		termWidth:      term.GetWidth(),
-		longestDescLen: longest(descriptions, true),
+		tag:          tag,
+		noSpace:      comps.NoSpace,
+		posX:         -1,
+		posY:         -1,
+		columnsWidth: []int{0},
+		termWidth:    term.GetWidth(),
+		longestDesc:  longest(descriptions, true),
 	}
 
 	// Initialize all options for the group.
@@ -142,10 +137,6 @@ func (g *group) initCompletionsGrid(comps RawValues) {
 
 	g.rows = createGrid(comps, rowCount, maxColumns)
 	g.calculateMaxColumnWidths(g.rows)
-
-	for _, val := range comps {
-		g.descriptions = append(g.descriptions, val.Description)
-	}
 }
 
 // initCompletionsGrid arranges completions when some of them share the same description.
@@ -228,7 +219,6 @@ func (g *group) wrapExcessAliases(grid [][]Candidate, descriptions []string) {
 	}
 
 	g.rows = rows
-	g.descriptions = descs
 	g.columnsWidth = g.columnsWidth[:maxColumns]
 }
 
@@ -244,12 +234,12 @@ func (g *group) prepareValues(vals RawValues) RawValues {
 		value.displayLen = len(color.Strip(value.Display))
 		value.descLen = len(color.Strip(value.Description))
 
-		if value.displayLen > g.longestValueLen {
-			g.longestValueLen = value.displayLen
+		if value.displayLen > g.longestValue {
+			g.longestValue = value.displayLen
 		}
 
-		if value.descLen > g.longestDescLen {
-			g.longestDescLen = value.descLen
+		if value.descLen > g.longestDesc {
+			g.longestDesc = value.descLen
 		}
 
 		vals[pos] = value
@@ -272,39 +262,70 @@ func (g *group) setMaximumSizes(col int) int {
 	return maxDescLen
 }
 
+// calculateMaxColumnWidths is in charge of optimizing the sizes of rows/columns.
 func (g *group) calculateMaxColumnWidths(grid [][]Candidate) {
 	var numColumns int
 
+	// Get the row with the greatest number of columns.
 	for _, row := range grid {
 		if len(row) > numColumns {
 			numColumns = len(row)
 		}
 	}
 
-	maxColumnWidths := make([]int, numColumns)
-	maxDescWidths := make([]int, numColumns)
+	// First, all columns are as wide as the longest of their elements,
+	// regardless of if this longest element is longer than terminal
+	values := make([]int, numColumns)
+	descriptions := make([]int, numColumns)
 
 	for _, row := range grid {
 		for columnIndex, value := range row {
-			if value.displayLen+1 > maxColumnWidths[columnIndex] {
-				maxColumnWidths[columnIndex] = value.displayLen + 1
+			if value.displayLen+1 > values[columnIndex] {
+				values[columnIndex] = value.displayLen + 1
 			}
 
-			if value.descLen > maxDescWidths[columnIndex] {
-				maxDescWidths[columnIndex] = value.descLen + 1
+			if value.descLen+1 > descriptions[columnIndex] {
+				descriptions[columnIndex] = value.descLen + 1
 			}
 		}
 	}
 
+	// If we have only one row, it means that the number of columns
+	// multiplied by the size on the longest one will fit into the
+	// terminal, so we can just
+	if len(grid) == 1 && len(grid[0]) <= numColumns && sum(descriptions) == 0 {
+		for i := range values {
+			values[i] = g.longestValue
+		}
+	}
+
+	// Last time adjustment: try to reallocate any space modulo to each column.
+	shouldPad := len(grid) > 1 && numColumns > 1 && sum(descriptions) == 0
+	intraColumnSpace := (numColumns * 2)
+	totalSpaceUsed := sum(values) + sum(descriptions) + intraColumnSpace
+	freeSpace := g.termWidth - totalSpaceUsed
+
+	if shouldPad && !g.aliased && freeSpace >= numColumns {
+		each := freeSpace / numColumns
+
+		for i := range values {
+			values[i] += each
+		}
+	}
+
+	// The group is mostly ready to print and select its values for completion.
 	g.maxY = len(g.rows)
-	g.maxX = len(maxColumnWidths)
-	g.columnsWidth = maxColumnWidths
-	g.descriptionsWidth = maxDescWidths
+	g.maxX = len(values)
+	g.columnsWidth = values
+	g.descriptionsWidth = descriptions
 }
 
 func (g *group) longestValueDescribed(vals []Candidate) int {
 	var longestDesc, longestVal int
 
+	// Equivalent to `<completion> -- <Description>`,
+	// asuuming no trailing spaces in the completion
+	// nor leading spaces in the description.
 	descSeparatorLen := 1 + len(g.listSeparator) + 1
 
 	// Get the length of the longest value
@@ -329,21 +350,25 @@ func (g *group) longestValueDescribed(vals []Candidate) int {
 
 func (g *group) trimDisplay(comp Candidate, pad, col int) (candidate, padded string) {
 	val := comp.Display
+
+	// No display value means padding.
 	if val == "" {
 		return "", padSpace(pad)
 	}
 
+	// Get the allowed length for this column.
+	// The display can never be longer than terminal width.
 	maxDisplayWidth := g.columnsWidth[col]
 
 	if maxDisplayWidth > g.termWidth {
 		maxDisplayWidth = g.termWidth
 	}
 
-	if len(val) > g.columnsWidth[col] {
-		val = val[:maxDisplayWidth-3] + "..."
+	if comp.displayLen > maxDisplayWidth {
+		val = val[:maxDisplayWidth-3] + "..." // 3 dots = -3
 		val = g.listSep() + sanitizer.Replace(val)
 
-		return val, ""
+		return val, " "
 	}
 
 	return val, padSpace(pad)
@@ -355,24 +380,47 @@ func (g *group) trimDesc(val Candidate, pad int) (desc, padded string) {
 		return desc, padSpace(pad)
 	}
 
-	if pad > g.maxDescWidth {
-		pad = g.maxDescWidth - val.descLen
+	if pad > g.maxDescAllowed {
+		pad = g.maxDescAllowed - val.descLen
 	}
 
-	if len(desc) > g.maxDescWidth && g.maxDescWidth > 0 {
-		desc = desc[:g.maxDescWidth-3] + "..."
+	if val.descLen > g.maxDescAllowed && g.maxDescAllowed > 0 {
+		desc = desc[:g.maxDescAllowed-3] + "..."
 		desc = g.listSep() + sanitizer.Replace(desc)
 
 		return desc, ""
 	}
 
-	if len(desc)+pad > g.maxDescWidth {
-		pad = g.maxDescWidth - len(desc)
+	if val.descLen+pad > g.maxDescAllowed {
+		pad = g.maxDescAllowed - val.descLen
 	}
 
 	desc = g.listSep() + sanitizer.Replace(desc)
 
 	return desc, padSpace(pad)
+}
+
+func (g *group) getPad(value Candidate, columnIndex int, desc bool) int {
+	columns := g.columnsWidth
+	var valLen = value.displayLen
+
+	if desc {
+		columns = g.descriptionsWidth
+		valLen = value.descLen
+	}
+
+	column := columns[columnIndex]
+	if column > g.termWidth {
+		column = g.termWidth
+	}
+
+	padding := column - valLen
+
+	if padding < 0 {
+		return 0
+	}
+
+	return padding
 }
 
 func (g *group) listSep() string {
