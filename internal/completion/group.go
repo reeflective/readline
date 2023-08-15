@@ -364,10 +364,11 @@ func (g *group) trimDisplay(comp Candidate, pad, col int) (candidate, padded str
 		maxDisplayWidth = g.termWidth
 	}
 
+	val = sanitizer.Replace(val)
+
 	if comp.displayLen > maxDisplayWidth {
-		val = color.Trim(val, maxDisplayWidth-4)
+		val = color.Trim(val, maxDisplayWidth-trailingValueLen)
 		val += "..." // 3 dots + 1 safety space = -3
-		val = sanitizer.Replace(val)
 
 		return val, " "
 	}
@@ -389,22 +390,21 @@ func (g *group) trimDesc(val Candidate, pad int) (desc, padded string) {
 		pad = g.maxDescAllowed - val.descLen
 	}
 
+	desc = sanitizer.Replace(desc)
+
 	// Trim the description accounting for escapes.
 	if val.descLen > g.maxDescAllowed && g.maxDescAllowed > 0 {
-		desc = color.Trim(desc, g.maxDescAllowed-3)
+		desc = color.Trim(desc, g.maxDescAllowed-trailingDescLen)
 		desc += "..." // 3 dots =  -3
-		desc = g.listSep() + sanitizer.Replace(desc)
 
-		return desc, ""
+		return g.listSep() + desc, ""
 	}
 
 	if val.descLen+pad > g.maxDescAllowed {
 		pad = g.maxDescAllowed - val.descLen
 	}
 
-	desc = g.listSep() + sanitizer.Replace(desc)
-
-	return desc, padSpace(pad)
+	return g.listSep() + desc, padSpace(pad)
 }
 
 func (g *group) getPad(value Candidate, columnIndex int, desc bool) int {

@@ -9,6 +9,11 @@ import (
 	"github.com/reeflective/readline/internal/term"
 )
 
+const (
+	trailingDescLen  = 3
+	trailingValueLen = 4
+)
+
 var sanitizer = strings.NewReplacer(
 	"\n", ``,
 	"\r", ``,
