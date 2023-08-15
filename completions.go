@@ -446,5 +446,8 @@ func (c *Completions) convert() completion.Values {
 	comps.Pad = c.pad
 	comps.Escapes = c.escapes
 
+	comps.PREFIX = c.PREFIX
+	comps.SUFFIX = c.SUFFIX
+
 	return comps
 }

@@ -64,23 +64,30 @@ func (c RawValues) EachTag(tagF func(tag string, values RawValues)) {
 
 // FilterPrefix filters values with given prefix.
 // If matchCase is false, the filtering is made case-insensitive.
+// This function ensures that all spaces are correctly.
 func (c RawValues) FilterPrefix(prefix string, matchCase bool) RawValues {
+	if prefix == "" {
+		return c
+	}
+
 	filtered := make(RawValues, 0)
 
 	if !matchCase {
 		prefix = strings.ToLower(prefix)
 	}
 
-	for _, r := range c {
-		val := r.Value
+	for _, raw := range c {
+		val := raw.Value
+
 		if !matchCase {
 			val = strings.ToLower(val)
 		}
 
 		if strings.HasPrefix(val, prefix) {
-			filtered = append(filtered, r)
+			filtered = append(filtered, raw)
 		}
 	}
+
 	return filtered
 }
 

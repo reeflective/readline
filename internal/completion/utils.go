@@ -19,6 +19,7 @@ var sanitizer = strings.NewReplacer(
 // and prefix/suffix strings, but does not attempt any candidate
 // insertion/abortion on the line.
 func (e *Engine) prepare(completions Values) {
+	e.prefix = ""
 	e.groups = make([]*group, 0)
 
 	e.setPrefix(completions)
@@ -68,6 +69,9 @@ func (e *Engine) setPrefix(completions Values) {
 			cpos++
 		}
 
+		// You might wonder why we trim spaces here:
+		// in practice we don't really ever want to
+		// consider "how many spaces are somewhere".
 		e.prefix = strings.TrimSpace(string((*e.line)[bpos:cpos]))
 
 	default:
