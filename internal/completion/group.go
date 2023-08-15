@@ -64,7 +64,7 @@ func (e *Engine) newCompletionGroup(comps Values, tag string, vals RawValues, de
 
 	// Initial processing of our assigned values:
 	// Compute color/no-color sizes, some max/min, etc.
-	grp.prepareValues(e, vals)
+	grp.prepareValues(vals)
 
 	// Generate the full grid of completions.
 	// Special processing is needed when some values
@@ -234,7 +234,7 @@ func (g *group) wrapExcessAliases(grid [][]Candidate, descriptions []string) {
 
 // prepareValues ensures all of them have a display, and starts
 // gathering information on longest/shortest values, etc.
-func (g *group) prepareValues(eng *Engine, vals RawValues) RawValues {
+func (g *group) prepareValues(vals RawValues) RawValues {
 	for pos, value := range vals {
 		if value.Display == "" {
 			value.Display = value.Value
@@ -323,7 +323,8 @@ func (g *group) longestValueDescribed(vals []Candidate) int {
 		longestDesc += descSeparatorLen
 	}
 
-	return longestVal + longestDesc
+	// Always add one: there is at least one space between each column.
+	return longestVal + longestDesc + 1
 }
 
 func (g *group) trimDisplay(comp Candidate, pad, col int) (candidate, padded string) {
@@ -411,7 +412,7 @@ func (g *group) updateIsearch(eng *Engine) {
 
 	// Initial processing of our assigned values:
 	// Compute color/no-color sizes, some max/min, etc.
-	suggs = g.prepareValues(eng, suggs)
+	suggs = g.prepareValues(suggs)
 
 	// Generate the full grid of completions.
 	// Special processing is needed when some values
