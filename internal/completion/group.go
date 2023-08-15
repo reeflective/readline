@@ -365,8 +365,9 @@ func (g *group) trimDisplay(comp Candidate, pad, col int) (candidate, padded str
 	}
 
 	if comp.displayLen > maxDisplayWidth {
-		val = val[:maxDisplayWidth-3] + "..." // 3 dots = -3
-		val = g.listSep() + sanitizer.Replace(val)
+		val = color.Trim(val, maxDisplayWidth-4)
+		val += "..." // 3 dots + 1 safety space = -3
+		val = sanitizer.Replace(val)
 
 		return val, " "
 	}
@@ -380,12 +381,18 @@ func (g *group) trimDesc(val Candidate, pad int) (desc, padded string) {
 		return desc, padSpace(pad)
 	}
 
+	// We don't compare against the terminal width:
+	// the correct padding should have been computed
+	// based on the space taken by all candidates
+	// described by our current string.
 	if pad > g.maxDescAllowed {
 		pad = g.maxDescAllowed - val.descLen
 	}
 
+	// Trim the description accounting for escapes.
 	if val.descLen > g.maxDescAllowed && g.maxDescAllowed > 0 {
-		desc = desc[:g.maxDescAllowed-3] + "..."
+		desc = color.Trim(desc, g.maxDescAllowed-3)
+		desc += "..." // 3 dots =  -3
 		desc = g.listSep() + sanitizer.Replace(desc)
 
 		return desc, ""
