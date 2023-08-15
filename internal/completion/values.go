@@ -91,10 +91,10 @@ func (c RawValues) FilterPrefix(prefix string, matchCase bool) RawValues {
 	return filtered
 }
 
-func (x RawValues) Len() int { return len(x) }
+func (c RawValues) Len() int { return len(c) }
 
-func (x RawValues) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+func (c RawValues) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
 
-func (x RawValues) Less(i, j int) bool {
-	return strings.ToLower(x[i].Value) < strings.ToLower(x[j].Display)
+func (c RawValues) Less(i, j int) bool {
+	return strings.ToLower(c[i].Value) < strings.ToLower(c[j].Value)
 }
