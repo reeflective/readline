@@ -195,24 +195,13 @@ func (g *group) wrapExcessAliases(grid [][]Candidate, descriptions []string) {
 	}
 
 	var rows [][]Candidate
-	var descs []string
 
 	for rowIndex := range grid {
 		row := grid[rowIndex]
-		split := false
 
 		for len(row) > maxColumns {
 			rows = append(rows, row[:maxColumns])
 			row = row[maxColumns:]
-
-			descs = append(descs, "|_")
-			split = true
-		}
-
-		if split {
-			descs = append(descs, "|"+descriptions[rowIndex])
-		} else {
-			descs = append(descs, descriptions[rowIndex])
 		}
 
 		rows = append(rows, row)
