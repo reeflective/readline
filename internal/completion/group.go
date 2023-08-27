@@ -327,7 +327,16 @@ func (g *group) longestValueDescribed(vals []Candidate) int {
 
 		if val.descLen > longestDesc {
 			longestDesc = val.descLen
+
 		}
+
+		if val.descLen > longestDesc {
+			longestDesc = val.descLen
+		}
+	}
+
+	if longestDesc > 0 {
+		longestDesc += descSeparatorLen
 	}
 
 	if longestDesc > 0 {
