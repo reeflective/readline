@@ -46,7 +46,7 @@ type Sources struct {
 // NewSources is a required constructor for the history sources manager type.
 func NewSources(line *core.Line, cur *core.Cursor, hint *ui.Hint, opts *inputrc.Config) *Sources {
 	sources := &Sources{
-		// History sourcces
+		// History sources
 		list: make(map[string]Source),
 		// Line history
 		lines: make(map[string]map[int]*lineHistory),
@@ -361,12 +361,14 @@ func (h *Sources) LineAccepted() (bool, string, error) {
 
 	line := string(h.acceptLine)
 
-	// Remove all comments before returning the line to the caller.
-	comment := strings.Trim(h.config.GetString("comment-begin"), "\"")
-	commentPattern := fmt.Sprintf(`(^|\s)%s.*`, comment)
+	// Remove all comments before returning the line to the caller
+	if h.config.GetBool("trim-comments") {
+		comment := strings.Trim(h.config.GetString("comment-begin"), "\"")
+		commentPattern := fmt.Sprintf(`(^|\s)%s.*`, comment)
 
-	if commentsMatch, err := regexp.Compile(commentPattern); err == nil {
-		line = commentsMatch.ReplaceAllString(line, "")
+		if commentsMatch, err := regexp.Compile(commentPattern); err == nil {
+			line = commentsMatch.ReplaceAllString(line, "")
+		}
 	}
 
 	// Revert all state changes to all lines.
