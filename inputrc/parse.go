@@ -17,25 +17,23 @@ import (
 
 // Parser is a inputrc parser.
 type Parser struct {
-	haltOnErr          bool
-	strict             bool
-	trimmedBufComments bool
-	name               string
-	app                string
-	term               string
-	mode               string
-	keymap             string
-	line               int
-	conds              []bool
-	errs               []error
+	haltOnErr bool
+	strict    bool
+	name      string
+	app       string
+	term      string
+	mode      string
+	keymap    string
+	line      int
+	conds     []bool
+	errs      []error
 }
 
 // New creates a new inputrc parser.
 func New(opts ...Option) *Parser {
 	// build parser state
 	p := &Parser{
-		line:               1,
-		trimmedBufComments: true,
+		line: 1,
 	}
 	for _, o := range opts {
 		o(p)
@@ -366,13 +364,6 @@ func WithTerm(term string) Option {
 func WithMode(mode string) Option {
 	return func(p *Parser) {
 		p.mode = mode
-	}
-}
-
-// WithTrimmedBufComments is a parser option to set trimmed buffer comments.
-func WithTrimmedBufComments(trimmedBufComments bool) Option {
-	return func(p *Parser) {
-		p.trimmedBufComments = trimmedBufComments
 	}
 }
 
