@@ -9,17 +9,14 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"testing"
 	"unicode"
-
-	"github.com/google/go-cmp/cmp"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 const delimiter = "####----####\n"
 
-func TestConfig(t *testing.T) {
+func TestConfig(_ *testing.T) {
 	var _ Handler = NewDefaultConfig()
 }
 
@@ -82,14 +79,14 @@ func TestEncontrolDecontrol(t *testing.T) {
 		{'M', '\r'},
 	}
 
-	for i, test := range tests {
-		c := Encontrol(test.d)
-		if exp := test.e; c != exp {
-			t.Errorf("test %d expected %c==%c", i, exp, c)
+	for idx, test := range tests {
+		ctrl := Encontrol(test.d)
+		if exp := test.e; ctrl != exp {
+			t.Errorf("test %d expected %c==%c", idx, exp, ctrl)
 		}
-		c = Decontrol(test.e)
-		if exp := unicode.ToUpper(test.d); c != exp {
-			t.Errorf("test %d expected %c==%c", i, exp, c)
+		ctrl = Decontrol(test.e)
+		if exp := unicode.ToUpper(test.d); ctrl != exp {
+			t.Errorf("test %d expected %c==%c", idx, exp, ctrl)
 		}
 	}
 }
@@ -142,38 +139,39 @@ func TestDecodeKey(t *testing.T) {
 		{"Meta-tab", "\x1b\t"},
 		{"Control-Meta-v", string(Encontrol(Enmeta('v')))},
 	}
-	for i, test := range tests {
+	for idx, test := range tests {
 		r := []rune(test.s)
-		v, _, err := decodeKey(r, 0, len(r))
+		val, _, err := decodeKey(r, 0, len(r))
 		if err != nil {
 			t.Fatalf("expected no error, got: %v", err)
 		}
 		// FIXME: need more tests and stuff, and this skip here is just to
 		// quiet errors
-		if i == 3 || i == 4 {
+		if idx == 3 || idx == 4 {
 			continue
 		}
-		if s, exp := string(v), test.exp; s != exp {
-			t.Errorf("test %d expected %q==%q", i, exp, s)
+		if s, exp := val, test.exp; s != exp {
+			t.Errorf("test %d expected %q==%q", idx, exp, s)
 		}
 	}
 }
 
 func newConfig() (*Config, map[string][]string) {
 	cfg := NewDefaultConfig(WithConfigReadFileFunc(readTestdata))
-	m := make(map[string][]string)
+	keys := make(map[string][]string)
 	cfg.Funcs["$custom"] = func(k, v string) error {
-		m[k] = append(m[k], v)
+		keys[k] = append(keys[k], v)
 		return nil
 	}
 	cfg.Funcs[""] = func(k, v string) error {
-		m[k] = append(m[k], v)
+		keys[k] = append(keys[k], v)
 		return nil
 	}
-	return cfg, m
+	return cfg, keys
 }
 
 func readTest(t *testing.T, name string) [][]byte {
+	t.Helper()
 	buf, err := testdata.ReadFile(name)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -182,32 +180,34 @@ func readTest(t *testing.T, name string) [][]byte {
 }
 
 func check(t *testing.T, exp []byte, cfg *Config, m map[string][]string, err error) {
+	t.Helper()
 	res := buildResult(t, exp, cfg, m, err)
-	if diff := cmp.Diff(string(exp), string(res)); diff != "" {
-		t.Errorf("result does not equal expected:\n%s", diff)
+	if !bytes.Equal(exp, res) {
+		t.Errorf("result does not equal expected:\n%s\ngot:\n%s", string(res), string(res))
 	}
 }
 
 func buildOpts(t *testing.T, buf []byte) []Option {
+	t.Helper()
 	lines := bytes.Split(bytes.TrimSpace(buf), []byte{'\n'})
 	var opts []Option
 	for i := 0; i < len(lines); i++ {
 		line := bytes.TrimSpace(lines[i])
-		j := bytes.Index(line, []byte{':'})
-		if j == -1 {
+		pos := bytes.Index(line, []byte{':'})
+		if pos == -1 {
 			t.Fatalf("invalid line %d: %q", i+1, string(line))
 		}
-		switch k := string(bytes.TrimSpace(line[:j])); k {
+		switch k := string(bytes.TrimSpace(line[:pos])); k {
 		case "haltOnErr":
-			opts = append(opts, WithHaltOnErr(parseBool(t, line[j+1:])))
+			opts = append(opts, WithHaltOnErr(parseBool(t, line[pos+1:])))
 		case "strict":
-			opts = append(opts, WithStrict(parseBool(t, line[j+1:])))
+			opts = append(opts, WithStrict(parseBool(t, line[pos+1:])))
 		case "app":
-			opts = append(opts, WithApp(string(bytes.TrimSpace(line[j+1:]))))
+			opts = append(opts, WithApp(string(bytes.TrimSpace(line[pos+1:]))))
 		case "term":
-			opts = append(opts, WithTerm(string(bytes.TrimSpace(line[j+1:]))))
+			opts = append(opts, WithTerm(string(bytes.TrimSpace(line[pos+1:]))))
 		case "mode":
-			opts = append(opts, WithMode(string(bytes.TrimSpace(line[j+1:]))))
+			opts = append(opts, WithMode(string(bytes.TrimSpace(line[pos+1:]))))
 		default:
 			t.Fatalf("unknown param %q", k)
 		}
@@ -216,19 +216,20 @@ func buildOpts(t *testing.T, buf []byte) []Option {
 }
 
 func buildResult(t *testing.T, exp []byte, cfg *Config, custom map[string][]string, err error) []byte {
+	t.Helper()
 	m := errRE.FindSubmatch(exp)
 	switch {
 	case err != nil && m == nil:
 		t.Fatalf("expected no error, got: %v", err)
 	case err != nil:
-		s := string(m[1])
-		re, reErr := regexp.Compile(s)
+		sub := string(m[1])
+		re, reErr := regexp.Compile(sub)
 		if reErr != nil {
-			t.Fatalf("could not compile regexp %q: %v", s, reErr)
+			t.Fatalf("could not compile regexp %q: %v", sub, reErr)
 			return nil
 		}
 		if !re.MatchString(err.Error()) {
-			t.Errorf("expected error %q, got: %v", s, err)
+			t.Errorf("expected error %q, got: %v", sub, err)
 		}
 		t.Logf("matched error %q", err)
 		return exp
@@ -236,34 +237,37 @@ func buildResult(t *testing.T, exp []byte, cfg *Config, custom map[string][]stri
 	buf := new(bytes.Buffer)
 	// add vars
 	dv := DefaultVars()
-	vv := make(map[string]interface{})
+	vars := make(map[string]interface{})
 	for k, v := range cfg.Vars {
 		if dv[k] != v {
-			vv[k] = v
+			vars[k] = v
 		}
 	}
-	if len(vv) != 0 {
+	if len(vars) != 0 {
 		fmt.Fprintln(buf, "vars:")
-		keys := maps.Keys(vv)
-		slices.Sort(keys)
+		var keys []string
+		for key := range vars {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
 		for _, k := range keys {
-			fmt.Fprintf(buf, "  %s: %v\n", k, vv[k])
+			fmt.Fprintf(buf, "  %s: %v\n", k, vars[k])
 		}
 	}
 	// add binds
-	db := DefaultBinds()
-	vb := make(map[string]map[string]string)
+	defaults := DefaultBinds()
+	parsed := make(map[string]map[string]string)
 	for k := range cfg.Binds {
-		vb[k] = make(map[string]string)
+		parsed[k] = make(map[string]string)
 	}
 	count := 0
 	for k, m := range cfg.Binds {
 		for j, v := range m {
-			if db[k][j] != v {
+			if defaults[k][j] != v {
 				if v.Macro {
-					vb[k][j] = `"` + EscapeMacro(v.Action) + `"`
+					parsed[k][j] = `"` + EscapeMacro(v.Action) + `"`
 				} else {
-					vb[k][j] = Escape(v.Action)
+					parsed[k][j] = Escape(v.Action)
 				}
 				count++
 			}
@@ -271,22 +275,31 @@ func buildResult(t *testing.T, exp []byte, cfg *Config, custom map[string][]stri
 	}
 	if count != 0 {
 		fmt.Fprintln(buf, "binds:")
-		keymaps := maps.Keys(vb)
-		slices.Sort(keymaps)
+		var keymaps []string
+		for key := range parsed {
+			keymaps = append(keymaps, key)
+		}
+		sort.Strings(keymaps)
 		for _, k := range keymaps {
-			if len(vb[k]) != 0 {
+			if len(parsed[k]) != 0 {
 				fmt.Fprintf(buf, "  %s:\n", k)
-				binds := maps.Keys(vb[k])
-				slices.Sort(binds)
+				var binds []string
+				for key := range parsed[k] {
+					binds = append(binds, key)
+				}
+				sort.Strings(binds)
 				for _, j := range binds {
-					fmt.Fprintf(buf, "    %s: %s\n", Escape(j), vb[k][j])
+					fmt.Fprintf(buf, "    %s: %s\n", Escape(j), parsed[k][j])
 				}
 			}
 		}
 	}
 	if len(custom) != 0 {
-		types := maps.Keys(custom)
-		slices.Sort(types)
+		var types []string
+		for key := range custom {
+			types = append(types, key)
+		}
+		sort.Strings(types)
 		for _, typ := range types {
 			if len(custom[typ]) != 0 {
 				fmt.Fprintf(buf, "%s:\n", typ)
@@ -303,13 +316,14 @@ func buildResult(t *testing.T, exp []byte, cfg *Config, custom map[string][]stri
 var errRE = regexp.MustCompile(`(?im)^\s*error:\s+(.*)$`)
 
 func parseBool(t *testing.T, buf []byte) bool {
-	switch s := string(bytes.TrimSpace(buf)); s {
+	t.Helper()
+	switch val := string(bytes.TrimSpace(buf)); val {
 	case "true":
 		return true
 	case "false":
 		return false
 	default:
-		t.Fatalf("unknown bool value %q", s)
+		t.Fatalf("unknown bool value %q", val)
 	}
 	return false
 }
