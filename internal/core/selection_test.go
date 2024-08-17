@@ -1209,7 +1209,7 @@ func TestSelection_SelectKeyword(t *testing.T) {
 			wantMatch: true,
 		},
 		{
-			name:      "Multiple subgroups cyle, forward",
+			name:      "Multiple subgroups cycle, forward",
 			fields:    fieldsWith(urlLine, &urlCur),
 			args:      args{cpos: 32, bpos: 0, epos: 0, next: true, cycles: 2},
 			wantKbpos: 19,
@@ -1217,7 +1217,7 @@ func TestSelection_SelectKeyword(t *testing.T) {
 			wantMatch: true,
 		},
 		{
-			name:      "Multiple subgroups cyle, reverse",
+			name:      "Multiple subgroups cycle, reverse",
 			fields:    fieldsWith(urlLine, &urlCur),
 			args:      args{cpos: 32, bpos: 0, epos: 0, next: false, cycles: 2},
 			wantKbpos: 39,
