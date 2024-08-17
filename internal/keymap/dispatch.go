@@ -68,7 +68,7 @@ func MatchMain(eng *Engine) (bind inputrc.Bind, command func(), prefix bool) {
 	}
 
 	// In the main menu, all keys that have been tested against
-	// the binds will be dropped after command execution (wether
+	// the binds will be dropped after command execution (whether
 	// or not there's actually a command to execute).
 	if prefix {
 		core.MatchedPrefix(eng.keys, read...)

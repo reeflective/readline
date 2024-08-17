@@ -497,7 +497,7 @@ func (l *Line) Tokenize(cpos int) ([]string, int, int) {
 		}
 	}
 
-	// ... so we ajust here for this case.
+	// ... so we adjust here for this case.
 	if cpos == len(line) {
 		index = len(split) - 1
 		pos = len(split[index])
@@ -554,7 +554,7 @@ func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
 		}
 	}
 
-	// ... so we ajust here for this case.
+	// ... so we adjust here for this case.
 	if cpos == len(line) {
 		index = len(split) - 1
 		pos = len(split[index])
@@ -692,7 +692,7 @@ func (l *Line) checkRange(bpos, epos int) (int, int, bool) {
 		return -1, -1, false
 	}
 
-	// Check positions out of bounnd
+	// Check positions out of bound
 	if epos > l.Len() {
 		epos = l.Len()
 	}
