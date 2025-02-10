@@ -129,7 +129,7 @@ next:
 		return 0, err
 	}
 
-	// Keep resize events for the display engine to use.
+	// First deal with terminal focus events, which reset some stuff
 	if ir.EventType == EVENT_FOCUS {
 		ker := (*_FOCUS_EVENT_RECORD)(unsafe.Pointer(&ir.Event[0]))
 
@@ -143,6 +143,7 @@ next:
 		}
 	}
 
+	// Keep resize events for the display engine to use.
 	if ir.EventType == EVENT_WINDOW_BUFFER_SIZE {
 		return r.write(buf, WINDOWS_RESIZE)
 	}

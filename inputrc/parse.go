@@ -531,6 +531,7 @@ func grab(r []rune, i, end int) rune {
 func decodeKey(seq []rune, pos, end int) (string, int, error) {
 	// seek end of sequence
 	start := pos
+
 	for c := grab(seq, pos+1, end); pos < end && c != ':' && c != '#' && !unicode.IsSpace(c) && !unicode.IsControl(c); pos++ {
 		c = grab(seq, pos+1, end)
 	}
