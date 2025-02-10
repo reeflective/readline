@@ -554,12 +554,12 @@ func (h *Sources) Name() string {
 
 func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex bool) (line string, pos int, found bool) {
 	if len(h.list) == 0 {
-		return
+		return line, pos, found
 	}
 
 	history := h.Current()
 	if history == nil {
-		return
+		return line, pos, found
 	}
 
 	// Set up iteration clauses
@@ -587,7 +587,7 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 
 		histline, err := history.GetLine(histPos)
 		if err != nil {
-			return
+			return line, pos, found
 		}
 
 		cline := string(*match)

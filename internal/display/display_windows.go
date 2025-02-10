@@ -25,7 +25,7 @@ func WatchResize(eng *Engine) chan<- bool {
 				// Weird behavior on Windows: when there is no autosuggested line,
 				// the cursor moves at the end of the completions area, if non-empty.
 				// We must manually go back to the input cursor position first.
-				// LAST UPDATE: 17/11/24: On Windows 10 terminal, this seems to have
+				// LAST UPDATE: 02/08/25: On Windows 10 terminal, this seems to have
 				// disappeared.
 				line, _ := eng.completer.Line()
 				if eng.completer.IsInserting() {
