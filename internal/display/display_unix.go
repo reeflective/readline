@@ -20,6 +20,7 @@ func WatchResize(eng *Engine) chan<- bool {
 		for {
 			select {
 			case <-resizeChannel:
+				eng.completer.GenerateCached()
 				eng.Refresh()
 			case <-done:
 				return
