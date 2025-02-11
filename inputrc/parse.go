@@ -73,7 +73,7 @@ func (p *Parser) Parse(stream io.Reader, handler Handler) error {
 			continue
 		default:
 			fmt.Println(" Non-suppressed line")
-			fmt.Println(line)
+			fmt.Println(string(line))
 			fmt.Print(pos)
 			fmt.Print(line[pos])
 		}
