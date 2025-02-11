@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 	"unicode"
 )
@@ -187,14 +188,19 @@ func readTest(t *testing.T, name string) [][]byte {
 	}
 
 	var lines [][]byte
-
-	for _, line := range bytes.Split(buf, []byte(delimiter)) {
-		line = []byte(bytes.TrimLeft(line, "\n"))
-		lines = append(lines, line)
+	for _, line := range strings.Split(string(buf), delimiter) {
+		lines = append(lines, []byte(line))
 	}
 
-	// return bytes.Split(buf, []byte(delimiter))
+	// var lines [][]byte
+
+	// for _, line := range bytes.Split(buf, []byte(delimiter)) {
+	// 	line = []byte(bytes.TrimLeft(line, "\n"))
+	// 	lines = append(lines, line)
+	// }
+
 	return lines
+	// return strings.Split(buf, []byte(delimiter))
 }
 
 func check(t *testing.T, exp []byte, cfg *Config, m map[string][]string, err error) {
