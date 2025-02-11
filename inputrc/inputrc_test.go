@@ -203,6 +203,12 @@ func check(t *testing.T, exp []byte, cfg *Config, m map[string][]string, err err
 func buildOpts(t *testing.T, buf []byte) []Option {
 	t.Helper()
 
+	t.Logf("\n")
+	t.Logf("\n")
+	t.Logf("%s\n", string(buf))
+	t.Logf("\n")
+	t.Logf("\n")
+
 	lines := bytes.Split(bytes.TrimSpace(buf), []byte{'\n'})
 	var opts []Option
 
