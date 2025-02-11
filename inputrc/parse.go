@@ -71,12 +71,6 @@ func (p *Parser) Parse(stream io.Reader, handler Handler) error {
 		switch line[pos] {
 		case 0, '\r', '\n', '#':
 			continue
-		default:
-			// fmt.Println(" Non-suppressed line")
-			// fmt.Println(string(line))
-			// fmt.Print(pos)
-			// fmt.Print(line[pos])
-			// fmt.Println()
 		}
 
 		// next

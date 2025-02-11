@@ -188,6 +188,11 @@ func readTest(t *testing.T, name string) [][]byte {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
+	for _, line := range bytes.Split(buf, []byte(delimiter)) {
+		fmt.Println("Section -------")
+		fmt.Println(string(line))
+	}
+
 	return bytes.Split(buf, []byte(delimiter))
 }
 
@@ -214,6 +219,11 @@ func buildOpts(t *testing.T, buf []byte) []Option {
 
 	for i := 0; i < len(lines); i++ {
 		line := bytes.TrimSpace(lines[i])
+		// If the line is empty, keep going
+		if len(line) == 0 {
+			continue
+		}
+
 		pos := bytes.Index(line, []byte{':'})
 
 		if pos == -1 {
