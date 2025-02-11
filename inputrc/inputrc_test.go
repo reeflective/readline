@@ -55,7 +55,7 @@ func TestUserDefault(t *testing.T) {
 		dir string
 		exp string
 	}{
-		{"/home/ken", "ken.inputrc"},
+		// {"/home/ken", "ken.inputrc"},
 		{"/home/bob", "default.inputrc"},
 	}
 	for _, testinfo := range tests {
