@@ -32,7 +32,6 @@ type Keys struct {
 	reading   bool        // Currently reading keys out of the main loop.
 	keysOnce  chan []byte // Passing keys from the main routine.
 	cursor    chan []byte // Cursor coordinates has been read on stdin.
-	resize    chan bool   // Resize events on Windows are sent on stdin.
 
 	cfg   *inputrc.Config // Configuration file used for meta key settings
 	mutex sync.RWMutex    // Concurrency safety
