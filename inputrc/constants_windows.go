@@ -3,4 +3,4 @@
 
 package inputrc
 
-const delimiter = "####----####\n"
+const delimiter = "####----####"

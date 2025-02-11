@@ -186,7 +186,15 @@ func readTest(t *testing.T, name string) [][]byte {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	return bytes.Split(buf, []byte(delimiter))
+	var lines [][]byte
+
+	for _, line := range bytes.Split(buf, []byte(delimiter)) {
+		line = []byte(bytes.TrimLeft(line, "\n"))
+		lines = append(lines, line)
+	}
+
+	// return bytes.Split(buf, []byte(delimiter))
+	return lines
 }
 
 func check(t *testing.T, exp []byte, cfg *Config, m map[string][]string, err error) {
