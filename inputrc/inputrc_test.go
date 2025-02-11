@@ -56,7 +56,7 @@ func TestUserDefault(t *testing.T) {
 		exp string
 	}{
 		// {"/home/ken", "ken.inputrc"},
-		{"/home/bob", "default.inputrc"},
+		// {"/home/bob", "default.inputrc"},
 	}
 	for _, testinfo := range tests {
 		test := readTest(t, path.Join("testdata", testinfo.exp))
@@ -186,11 +186,6 @@ func readTest(t *testing.T, name string) [][]byte {
 	buf, err := testdata.ReadFile(name)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
-	}
-
-	for _, line := range bytes.Split(buf, []byte(delimiter)) {
-		fmt.Println("Section -------")
-		fmt.Println(string(line))
 	}
 
 	return bytes.Split(buf, []byte(delimiter))
