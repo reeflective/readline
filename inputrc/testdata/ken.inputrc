@@ -1,7 +1,7 @@
-app: usql
 term: xterm-256
-mode: vi
+app: usql
 ####----####
+
 set editing-mode vi
 
 $if Usql 
