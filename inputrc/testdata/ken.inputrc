@@ -1,6 +1,7 @@
 app: usql
 term: xterm-256
 mode: vi
+
 ####----####
 set editing-mode vi
 
@@ -23,6 +24,7 @@ $if mode=vi
   "n": forward-char   
   
 $endif
+
 ####----####
 vars:
   bell-style: visible
