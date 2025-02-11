@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strings"
 	"testing"
 	"unicode"
 )
@@ -54,8 +53,8 @@ func TestUserDefault(t *testing.T) {
 		dir string
 		exp string
 	}{
-		// {"/home/ken", "ken.inputrc"},
-		// {"/home/bob", "default.inputrc"},
+		{"/home/ken", "ken.inputrc"},
+		{"/home/bob", "default.inputrc"},
 	}
 	for _, testinfo := range tests {
 		test := readTest(t, path.Join("testdata", testinfo.exp))
@@ -187,20 +186,7 @@ func readTest(t *testing.T, name string) [][]byte {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	var lines [][]byte
-	for _, line := range strings.Split(string(buf), delimiter) {
-		lines = append(lines, []byte(line))
-	}
-
-	// var lines [][]byte
-
-	// for _, line := range bytes.Split(buf, []byte(delimiter)) {
-	// 	line = []byte(bytes.TrimLeft(line, "\n"))
-	// 	lines = append(lines, line)
-	// }
-
-	return lines
-	// return strings.Split(buf, []byte(delimiter))
+	return bytes.Split(buf, []byte(delimiter))
 }
 
 func check(t *testing.T, exp []byte, cfg *Config, m map[string][]string, err error) {
