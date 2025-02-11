@@ -14,7 +14,7 @@ import (
 	"unicode"
 )
 
-const delimiter = "####----####\r"
+const delimiter = "####----####\r\n"
 
 func TestConfig(_ *testing.T) {
 	var _ Handler = NewDefaultConfig()
