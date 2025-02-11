@@ -1,6 +1,5 @@
 term: rxvt
 app: bash
-####----####
 # /etc/inputrc - global inputrc for libreadline
 # See readline(3readline) and `info rluserman' for more information.
 
