@@ -1,7 +1,6 @@
 app: usql
 term: xterm-256
 mode: vi
-
 ####----####
 set editing-mode vi
 
