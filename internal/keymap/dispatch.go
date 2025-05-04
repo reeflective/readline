@@ -96,7 +96,35 @@ func MatchMain(eng *Engine) (bind inputrc.Bind, command func(), prefix bool) {
 	return bind, command, prefix
 }
 
+func (m *Engine) makeMatch(active, prefixed inputrc.Bind) (prefix bool) {
+	m.active = active
+	m.prefixed = prefixed
+	return m.prefixed.Action != ""
+}
+
 func (m *Engine) dispatchKeys(binds map[string]inputrc.Bind) (bind inputrc.Bind, prefix bool, read, matched []byte) {
+	// Support for Unicode: if the character is multi-byte (UTF-8), consume all its bytes
+	// and treat it as a single self-insert action. Note that we just peek the characters
+	// here, so if it's actually not a UTF-8 character, we just keep going and re-peek later.
+	char, empty := core.PeekChar(m.keys)
+	if empty {
+		return m.active, prefix, read, matched
+	}
+
+	if len(char) > 1 {
+		read = append(read, char...)
+		match := inputrc.Bind{
+			Action: "self-insert",
+			Macro:  false,
+		}
+
+		matched = append(matched, char...)
+		prefix = m.makeMatch(match, inputrc.Bind{})
+		core.PopChar(m.keys)
+
+		return m.active, prefix, read, matched
+	}
+
 	for {
 		// Read a single byte from the input buffer.
 		// This mimics the way Bash reads input when the inputrc option `byte-oriented` is set.
@@ -114,9 +142,7 @@ func (m *Engine) dispatchKeys(binds map[string]inputrc.Bind) (bind inputrc.Bind,
 		// If the current keys have no matches but the previous
 		// matching process found a prefix, use it with the keys.
 		if match.Action == "" && len(prefixed) == 0 {
-			prefix = false
-			m.active = m.prefixed
-			m.prefixed = inputrc.Bind{}
+			prefix = m.makeMatch(m.prefixed, inputrc.Bind{})
 
 			// FIX related to Github issue #73, where someone
 			// complains not being able to input Unicode characters
@@ -148,9 +174,7 @@ func (m *Engine) dispatchKeys(binds map[string]inputrc.Bind) (bind inputrc.Bind,
 		}
 
 		// Or an exact match, so drop any prefixed one.
-		prefix = false
-		m.active = match
-		m.prefixed = inputrc.Bind{}
+		prefix = m.makeMatch(match, inputrc.Bind{})
 
 		break
 	}
