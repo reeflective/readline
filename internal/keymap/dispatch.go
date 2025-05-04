@@ -96,12 +96,6 @@ func MatchMain(eng *Engine) (bind inputrc.Bind, command func(), prefix bool) {
 	return bind, command, prefix
 }
 
-func (m *Engine) makeMatch(active, prefixed inputrc.Bind) (prefix bool) {
-	m.active = active
-	m.prefixed = prefixed
-	return m.prefixed.Action != ""
-}
-
 func (m *Engine) dispatchKeys(binds map[string]inputrc.Bind) (bind inputrc.Bind, prefix bool, read, matched []byte) {
 	// Support for Unicode: if the character is multi-byte (UTF-8), consume all its bytes
 	// and treat it as a single self-insert action. Note that we just peek the characters
@@ -268,6 +262,13 @@ func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bo
 	}
 
 	return bind, cmd, pref
+}
+
+// makeMatch populates currently used binds.
+func (m *Engine) makeMatch(active, prefixed inputrc.Bind) (prefix bool) {
+	m.active = active
+	m.prefixed = prefixed
+	return m.prefixed.Action != ""
 }
 
 func (m *Engine) isEscapeKey() bool {
