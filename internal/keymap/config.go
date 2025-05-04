@@ -145,7 +145,7 @@ func printBindsReadable(commands []string, all map[string][]string) {
 		case len(commandBinds) > 5:
 			var firstBinds []string
 
-			for i := 0; i < 5; i++ {
+			for i := range 5 {
 				firstBinds = append(firstBinds, "\""+commandBinds[i]+"\"")
 			}
 

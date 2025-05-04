@@ -205,7 +205,7 @@ func (p *Prompt) MultilineColumnPrint() {
 	switch {
 	case numbered:
 		column := ""
-		for pos := 0; pos < p.line.Lines(); pos++ {
+		for pos := range p.line.Lines() {
 			column += fmt.Sprintf("\n\x1b[1;30m%d\x1b[0m", pos+2)
 		}
 
@@ -213,7 +213,7 @@ func (p *Prompt) MultilineColumnPrint() {
 
 	case len(custom) > 0:
 		column := ""
-		for pos := 0; pos < p.line.Lines(); pos++ {
+		for range p.line.Lines() {
 			column += fmt.Sprintf("\n%s\x1b[0m", custom)
 		}
 
@@ -221,7 +221,7 @@ func (p *Prompt) MultilineColumnPrint() {
 
 	case defaultCol:
 		column := ""
-		for pos := 0; pos < p.line.Lines(); pos++ {
+		for range p.line.Lines() {
 			column += "\n" + multilineColumnDefault
 		}
 
