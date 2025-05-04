@@ -119,5 +119,5 @@ func (m *Engine) restrictCommands(mode Mode, commands []string) map[string]input
 }
 
 func isValidCommand(widget string, commands []string) bool {
-    return slices.Contains(commands, widget)
+	return slices.Contains(commands, widget)
 }
