@@ -109,8 +109,6 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 	}
 
 	style := color.Fmt(val.Style)
-	// fmt.Println()
-	// fmt.Println(style + "Word" + color.Reset)
 	candidate, padded := grp.trimDisplay(val, pad, col)
 
 	if e.IsearchRegex != nil && e.isearchBuf.Len() > 0 && !selected {
