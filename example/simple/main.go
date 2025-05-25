@@ -4,12 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/reeflective/readline"
 )
 
 func main() {
 	shell := readline.NewShell()
+	shell.SetStdin(os.Stdin)
+	shell.SetStdout(os.Stdout)
+	shell.SetStderr(os.Stderr)
 	shell.Prompt.Primary(func() string {
 		return "example > "
 	})

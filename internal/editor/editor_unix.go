@@ -5,7 +5,6 @@ package editor
 import (
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 )
 
@@ -34,9 +33,9 @@ func (reg *Buffers) EditBuffer(buf []rune, filename, filetype string, emacs bool
 
 	cmd := exec.Command(editor, args...)
 
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdin = Stdin
+	cmd.Stdout = Stdout
+	cmd.Stderr = Stderr
 
 	if err = cmd.Start(); err != nil {
 		return buf, fmt.Errorf("%w: %s", ErrStart, err.Error())

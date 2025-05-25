@@ -2,6 +2,7 @@ package readline
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/completion"
@@ -24,6 +25,11 @@ import (
 // Please refer to the README and documentation for more details about the shell
 // and its components, and how to use them.
 type Shell struct {
+	// IO streams
+	stdin  *os.File
+	stdout *os.File
+	stderr *os.File
+
 	// Core editor
 	line       *core.Line       // The input line buffer and its management methods.
 	cursor     *core.Cursor     // The cursor and its methods.
@@ -70,6 +76,11 @@ type Shell struct {
 func NewShell(opts ...inputrc.Option) *Shell {
 	shell := new(Shell)
 
+	// IO streams
+	shell.stdin = os.Stdin
+	shell.stdout = os.Stdout
+	shell.stderr = os.Stderr
+
 	// Core editor
 	keys := new(core.Keys)
 	line := new(core.Line)
@@ -114,6 +125,27 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	shell.Display = display
 
 	return shell
+}
+
+// SetStdin sets custom stdin.
+func (rl *Shell) SetStdin(stdin *os.File) {
+	core.Stdin = stdin
+	editor.Stdin = stdin
+	rl.stdin = stdin
+}
+
+// SetStdout sets custom stdout.
+func (rl *Shell) SetStdout(stdout *os.File) {
+	term.StdoutTerm = stdout
+	editor.Stdout = stdout
+	rl.stdout = stdout
+}
+
+// SetStderr sets custom stderr.
+func (rl *Shell) SetStderr(stderr *os.File) {
+	core.Stderr = stderr
+	editor.Stderr = stderr
+	rl.stderr = stderr
 }
 
 // Line is the shell input line buffer.

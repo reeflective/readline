@@ -49,7 +49,7 @@ var ErrInterrupt = errors.New(os.Interrupt.String())
 // and it is up to the caller to decide what to do with the line result.
 // When the error is not nil, the returned line is not written to history.
 func (rl *Shell) Readline() (string, error) {
-	descriptor := int(os.Stdin.Fd())
+	descriptor := int(rl.stdin.Fd())
 
 	state, err := term.MakeRaw(descriptor)
 	if err != nil {

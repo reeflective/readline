@@ -2,6 +2,8 @@ package editor
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,6 +21,15 @@ var (
 	numRegisters   = 10
 	alphaRegisters = 52
 )
+
+// Stdin is used by the editor to read the buffer from the file.
+var Stdin io.ReadCloser = os.Stdin
+
+// Stdout is used by the editor to write the buffer to the file.
+var Stdout io.WriteCloser = os.Stdout
+
+// Stderr is used by the editor to write error messages.
+var Stderr io.WriteCloser = os.Stderr
 
 // Buffers is a list of registers in which to put yanked/cut contents.
 // These buffers technically are Vim registers with full functionality.

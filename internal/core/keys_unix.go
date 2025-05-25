@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 )
 
@@ -14,7 +13,7 @@ import (
 // It is safe to call this function even if the shell is reading input.
 func (k *Keys) GetCursorPos() (x, y int) {
 	disable := func() (int, int) {
-		os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
+		Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
 		return -1, -1
 	}
 
@@ -36,7 +35,7 @@ func (k *Keys) GetCursorPos() (x, y int) {
 		default:
 			buf := make([]byte, keyScanBufSize)
 
-			read, err := os.Stdin.Read(buf)
+			read, err := Stdin.Read(buf)
 			if err != nil {
 				return disable()
 			}
@@ -84,7 +83,7 @@ func (k *Keys) GetCursorPos() (x, y int) {
 }
 
 func (k *Keys) readInputFiltered() (keys []byte, err error) {
-	// Start reading from os.Stdin in the background.
+	// Start reading from Stdin in the background.
 	// We will either read keys from user, or an EOF
 	// send by ourselves, because we pause reading.
 	buf := make([]byte, keyScanBufSize)

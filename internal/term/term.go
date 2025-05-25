@@ -5,20 +5,9 @@ import (
 	"os"
 )
 
-// Those variables are very important to realine low-level code: all virtual terminal
-// escape sequences should always be sent and read through the raw terminal file, even
-// if people start using io.MultiWriters and os.Pipes involving basic IO.
-var (
-	stdoutTerm *os.File
-	stdinTerm  *os.File
-	stderrTerm *os.File
-)
-
-func init() {
-	stdoutTerm = os.Stdout
-	stdoutTerm = os.Stderr
-	stderrTerm = os.Stdin
-}
+// StdoutTerm is the terminal file descriptor for stdout,
+// it can be overwritten to use other file descriptors or custom io.Writers.
+var StdoutTerm *os.File = os.Stdout
 
 // fallback terminal width when we can't get it through query.
 var defaultTermWidth = 80
@@ -26,7 +15,7 @@ var defaultTermWidth = 80
 // GetWidth returns the width of Stdout or 80 if the width cannot be established.
 func GetWidth() (termWidth int) {
 	var err error
-	fd := int(stdoutTerm.Fd())
+	fd := int(StdoutTerm.Fd())
 	termWidth, _, err = GetSize(fd)
 
 	if err != nil || termWidth == 0 {
@@ -39,7 +28,7 @@ func GetWidth() (termWidth int) {
 // GetLength returns the length of the terminal
 // (Y length), or 80 if it cannot be established.
 func GetLength() int {
-	termFd := int(stdoutTerm.Fd())
+	termFd := int(StdoutTerm.Fd())
 
 	_, length, err := GetSize(termFd)
 	if err != nil || length == 0 {

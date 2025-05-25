@@ -21,6 +21,9 @@ const (
 // custom io.Readers, such as the one used on Windows.
 var Stdin io.ReadCloser = os.Stdin
 
+// Stderr is used by the Keys struct to write error messages.
+var Stderr *os.File = os.Stderr
+
 var rxRcvCursorPos = regexp.MustCompile(`\x1b\[([0-9]+);([0-9]+)R`)
 
 // Keys is used to read, manage and use keys input by the shell user.
@@ -65,7 +68,7 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 	}()
 
 	for {
-		// Start reading from os.Stdin in the background.
+		// Start reading from Stdin in the background.
 		// We will either read keyBuf from user, or an EOF
 		// send by ourselves, because we pause reading.
 		keyBuf, err := keys.readInputFiltered()

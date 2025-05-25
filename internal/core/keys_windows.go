@@ -66,7 +66,7 @@ func GetTerminalResize(keys *Keys) <-chan bool {
 // readInputFiltered on Windows needs to check for terminal resize events.
 func (k *Keys) readInputFiltered() (keys []byte, err error) {
 	for {
-		// Start reading from os.Stdin in the background.
+		// Start reading from Stdin in the background.
 		// We will either read keys from user, or an EOF
 		// send by ourselves, because we pause reading.
 		buf := make([]byte, keyScanBufSize)
