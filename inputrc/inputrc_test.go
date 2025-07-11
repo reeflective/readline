@@ -186,6 +186,9 @@ func readTest(t *testing.T, name string) [][]byte {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
+	// Correct for Windows line endings, as test files are embedded.
+	buf = bytes.ReplaceAll(buf, []byte("\r\n"), []byte("\n"))
+
 	return bytes.Split(buf, []byte(delimiter))
 }
 
@@ -390,6 +393,9 @@ func readTestdata(name string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Correct for Windows line endings, as test files are embedded.
+	buf = bytes.ReplaceAll(buf, []byte("\r\n"), []byte("\n"))
 
 	v := bytes.Split(buf, []byte(delimiter))
 	if len(v) != 3 {
