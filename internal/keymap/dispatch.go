@@ -268,6 +268,7 @@ func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bo
 func (m *Engine) makeMatch(active, prefixed inputrc.Bind) (prefix bool) {
 	m.active = active
 	m.prefixed = prefixed
+
 	return m.prefixed.Action != ""
 }
 

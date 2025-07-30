@@ -507,11 +507,11 @@ func findStringEnd(seq []rune, pos, end int) (int, bool) {
 	quote := seq[pos]
 
 	for pos++; pos < end; pos++ {
-		switch char = seq[pos]; {
-		case char == '\\':
+		switch char = seq[pos]; char {
+		case '\\':
 			pos++
 			continue
-		case char == quote:
+		case quote:
 			return pos + 1, true
 		}
 	}

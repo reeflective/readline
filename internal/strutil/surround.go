@@ -164,7 +164,7 @@ func GetQuotedWordStart(line []rune) (unclosed bool, pos int) {
 			pos = dpos
 		}
 
-		return
+		return unclosed, pos
 	}
 
 	if single {

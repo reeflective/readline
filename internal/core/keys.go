@@ -7,9 +7,10 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/rivo/uniseg"
+
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/strutil"
-	"github.com/rivo/uniseg"
 )
 
 const (

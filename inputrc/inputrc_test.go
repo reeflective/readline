@@ -207,7 +207,7 @@ func buildOpts(t *testing.T, buf []byte) []Option {
 	lines := bytes.Split(bytes.TrimSpace(buf), []byte{'\n'})
 	var opts []Option
 
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		line := bytes.TrimSpace(lines[i])
 		// If the line is empty, keep going
 		if len(line) == 0 {

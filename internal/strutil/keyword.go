@@ -112,7 +112,7 @@ func switchHexa(word string, inc int) (done bool, switched string, bpos, epos in
 	match := hexadecimal.FindString(word)
 
 	if match == "" {
-		return
+		return done, switched, bpos, epos
 	}
 
 	done = true
@@ -131,7 +131,7 @@ func switchHexa(word string, inc int) (done bool, switched string, bpos, epos in
 	num, err := strconv.ParseInt(hexVal, 16, 64)
 	if err != nil {
 		done = false
-		return
+		return done, switched, bpos, epos
 	}
 
 	max64Bit := big.NewInt(maxInt)
@@ -185,7 +185,7 @@ func switchBinary(word string, inc int) (done bool, switched string, bpos, epos 
 	match := binary.FindString(word)
 
 	if match == "" {
-		return
+		return done, switched, bpos, epos
 	}
 
 	done = true
@@ -200,7 +200,7 @@ func switchBinary(word string, inc int) (done bool, switched string, bpos, epos 
 	num, err := strconv.ParseInt(binVal, 2, 64)
 	if err != nil {
 		done = false
-		return
+		return done, switched, bpos, epos
 	}
 
 	max64Bit := big.NewInt(maxInt)
@@ -305,7 +305,7 @@ func switchBoolean(word string, _ bool, _ int) (done bool, switched string, bpos
 
 	switched, done = booleans[strings.ToLower(word)]
 	if !done {
-		return
+		return done, switched, bpos, epos
 	}
 
 	done = true
@@ -348,7 +348,7 @@ func switchOperator(word string, _ bool, _ int) (done bool, switched string, bpo
 
 	switched, done = operators[strings.ToLower(word)]
 	if !done {
-		return
+		return done, switched, bpos, epos
 	}
 
 	done = true
