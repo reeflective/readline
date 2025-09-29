@@ -1075,6 +1075,13 @@ func TestCoordinatesLine(t *testing.T) {
 		wantY int
 	}{
 		{
+			name:  "Empty line buffer",
+			l:     new(Line),
+			args:  args{indent: indent},
+			wantY: 0,
+			wantX: indent,
+		},
+		{
 			name:  "Single line buffer",
 			l:     &line,
 			args:  args{indent: indent},
