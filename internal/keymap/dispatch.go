@@ -181,7 +181,7 @@ func (m *Engine) matchBind(keys []byte, binds map[string]inputrc.Bind) (inputrc.
 	var prefixed []inputrc.Bind
 
 	// Make a sorted list with all keys in the binds map.
-	var sequences []string
+	sequences := make([]string, 0, len(binds))
 	for sequence := range binds {
 		sequences = append(sequences, sequence)
 	}
