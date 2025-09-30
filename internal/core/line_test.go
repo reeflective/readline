@@ -1044,6 +1044,7 @@ func TestDisplayLine(t *testing.T) {
 	indent := 10
 	line := Line("basic -f \"commands.go,line.go\" -cp=/usr --option [value1 value2]")
 	multiline := Line("basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -v { expression here } -a [value1 value2]")
+	longMultiline := Line("longer than 80 characters, which is the term width reported when running go test \nanother line ending on newline \n")
 
 	type args struct {
 		indent int
@@ -1073,6 +1074,15 @@ func TestDisplayLine(t *testing.T) {
 			want: "basic -f \"commands.go " + color.BgDefault + term.ClearLineAfter + "\r\n" +
 				"\x1b[10C" + term.ClearLineBefore + "another testing\" --alternate \"another" + color.BgDefault + term.ClearLineAfter + "\r\n" +
 				"\x1b[10C" + term.ClearLineBefore + "quote\" -v { expression here } -a [value1 value2]" + color.BgDefault,
+		},
+		{
+			name: "Long multiline buffer",
+			l:    &longMultiline,
+			args: args{indent: indent},
+			want: "longer than 80 characters, which is the term width reported when running go test " + color.BgDefault + "\r\n" +
+				"\x1b[10C" + term.ClearLineBefore + "another line ending on newline " + color.BgDefault + term.ClearLineAfter + "\r\n" +
+				"\x1b[10C" + term.ClearLineBefore + color.BgDefault + term.ClearLineAfter + "\r\n" +
+				"\x1b[10C" + term.ClearLineBefore + color.BgDefault,
 		},
 	}
 

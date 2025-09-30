@@ -278,33 +278,38 @@ func (l *Line) SurroundQuotes(single bool, pos int) (bpos, epos int) {
 // Params:
 // @indent -    Used to align all lines (except the first) together on a single column.
 func DisplayLine(l *Line, indent int) {
-	lines := strings.Split(string(*l), "\n")
+	var builtLine strings.Builder
+	var lineLen int
 
-	if strings.HasSuffix(string(*l), "\n") {
-		lines = append(lines, "")
-	}
-
-	for num, line := range lines {
-		// Don't let any visual selection go further than length.
-		line += color.BgDefault
-
-		// Clear everything before each line, except the first.
-		if num > 0 {
-			term.MoveCursorForwards(indent)
-			line = term.ClearLineBefore + line
-		}
-
-		// Clear everything after each line, except the last.
-		if num < len(lines)-1 {
-			if len(line)+indent < term.GetWidth() {
-				line += term.ClearLineAfter
+	for _, r := range *l {
+		if r == '\n' {
+			builtLine.WriteString(color.BgDefault)
+			if lineLen < term.GetWidth() {
+				builtLine.WriteString(term.ClearLineAfter)
 			}
+			builtLine.WriteString(term.NewlineReturn)
+			builtLine.WriteString(fmt.Sprintf("\x1b[%dC", indent)) // Equivalent of term.MoveCursorForwards
+			builtLine.WriteString(term.ClearLineBefore)
 
-			line += term.NewlineReturn
+			lineLen = 0
+		} else {
+			builtLine.WriteRune(r)
+			lineLen++
 		}
 
-		fmt.Print(line)
 	}
+
+	if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
+		builtLine.WriteString(color.BgDefault)
+		builtLine.WriteString(term.ClearLineAfter)
+		builtLine.WriteString(term.NewlineReturn)
+		builtLine.WriteString(fmt.Sprintf("\x1b[%dC", indent)) // Equivalent of term.MoveCursorForwards
+		builtLine.WriteString(term.ClearLineBefore)
+	}
+
+	builtLine.WriteString(color.BgDefault)
+
+	fmt.Print(builtLine.String())
 }
 
 // CoordinatesLine returns the number of real terminal lines on which the input line spans, considering
