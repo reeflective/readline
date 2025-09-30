@@ -3,6 +3,7 @@ package readline
 import (
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -12,6 +13,7 @@ import (
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
@@ -448,8 +450,27 @@ func (rl *Shell) selfInsert() {
 }
 
 func (rl *Shell) bracketedPasteBegin() {
-	// keys, _ := rl.Keys.PeekAllBytes()
-	// fmt.Println(string(keys))
+	// Length of bracketed paste escape code; this is the minimum length
+	// we will see here.
+	sequence := make([]byte, 0, 6)
+
+	for {
+		key, empty := core.PopKey(rl.Keys)
+		if empty {
+			core.WaitAvailableKeys(rl.Keys, rl.Config)
+			continue
+		}
+
+		sequence = append(sequence, key)
+
+		if len(sequence) >= 6 && slices.Equal(sequence[len(sequence)-6:], []byte{'\x1b', '[', '2', '0', '1', '~'}) {
+			break
+		}
+	}
+
+	if len(sequence) > 6 {
+		rl.cursor.InsertAt([]rune(string(sequence[:len(sequence)-6]))...)
+	}
 }
 
 // Drag the character before point forward over the character
