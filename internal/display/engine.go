@@ -300,16 +300,23 @@ func (e *Engine) displayHelpers() {
 	// Recompute completions and hints if autocompletion is on.
 	e.completer.Autocomplete()
 
+	prevHintRows := e.hintRows
+	prevCompRows := e.compRows
+
 	// Display hint and completions.
 	ui.DisplayHint(e.hint)
 	e.hintRows = ui.CoordinatesHint(e.hint)
 	completion.Display(e.completer, e.AvailableHelperLines())
 	e.compRows = completion.Coordinates(e.completer)
 
+	if e.hintRows+e.compRows < prevHintRows+prevCompRows {
+		fmt.Print(term.ClearScreenBelow)
+	}
+
 	// Go back to the first line below the input line.
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorUp(e.compRows)
-	term.MoveCursorUp(ui.CoordinatesHint(e.hint))
+	term.MoveCursorUp(e.hintRows)
 }
 
 // AvailableHelperLines returns the number of lines available below the hint section.
