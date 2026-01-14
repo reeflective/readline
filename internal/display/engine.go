@@ -99,6 +99,7 @@ func (e *Engine) Refresh() {
 	} else {
 		e.lineEndToCursorPos()
 	}
+
 	fmt.Print(term.ShowCursor)
 }
 
@@ -317,6 +318,7 @@ func (e *Engine) displayHelpers() bool {
 
 	// Display hint and completions.
 	ui.DisplayHint(e.hint)
+
 	e.hintRows = ui.CoordinatesHint(e.hint)
 	if compMatches > 0 && !compSkip {
 		completion.Display(e.completer, e.AvailableHelperLines())
