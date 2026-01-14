@@ -9,7 +9,7 @@ func ConvertMeta(keys []rune) string {
 		return string(keys)
 	}
 
-	converted := make([]rune, 0)
+	converted := make([]rune, 0, len(keys))
 
 	for i := range keys {
 		char := keys[i]

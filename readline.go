@@ -57,6 +57,11 @@ func (rl *Shell) Readline() (string, error) {
 	}
 	defer term.Restore(descriptor, state)
 
+	if rl.Config.GetBool("enable-bracketed-paste") {
+		fmt.Print("\x1b[?2004h")
+		defer fmt.Print("\x1b[?2004l")
+	}
+
 	// Prompts and cursor styles
 	rl.Display.PrintPrimaryPrompt()
 	defer rl.Display.RefreshTransient()
