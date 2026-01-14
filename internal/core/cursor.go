@@ -247,7 +247,7 @@ func (c *Cursor) LineMove(lines int) {
 	}
 
 	if lines < 0 {
-		for range lines {
+		for i := 0; i < -lines; i++ {
 			c.moveLineUp()
 			c.CheckCommand()
 		}

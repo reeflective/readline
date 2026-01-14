@@ -24,52 +24,64 @@ func (e *Engine) Refresh() {
 	}
 	// 2. Primary Prompt
 	e.prompt.LastPrint()
-		// Compute Coordinates: StartPos, LineHeight, CursorPos (row/col).
-		e.computeCoordinates(true)
-	
-		// Determine the width of the multiline indicator.
-		// We need to ensure that the indentation of the input line is at least
-		// as wide as the indicator, otherwise the indicator will overwrite the text
-		// on subsequent lines.
-		var indicatorWidth int
+	// Compute Coordinates: StartPos, LineHeight, CursorPos (row/col).
+	e.computeCoordinates(true)
+
+	// Determine the width of the multiline indicator.
+	// We need to ensure that the indentation of the input line is at least
+	// as wide as the indicator, otherwise the indicator will overwrite the text
+	// on subsequent lines.
+	var indicatorWidth int
+	if e.opts.GetBool("multiline-column-numbered") {
+		indicatorWidth = len(strconv.Itoa(1)) + 1
+	} else {
+		indicatorWidth = 2
+	}
+
+	// Adjust indentation if the primary prompt is empty,
+	// because we will print a column indicator on the first line.
+	if e.prompt.LastUsed() == 0 && e.line.Lines() > 0 {
+		var indicator string
 		if e.opts.GetBool("multiline-column-numbered") {
-			indicatorWidth = len(strconv.Itoa(1)) + 1
+			indicator = fmt.Sprintf("\x1b[1;30m%d\x1b[0m ", 1)
 		} else {
-			indicatorWidth = 2
+			indicator = "\x1b[1;30m\U00002502 \x1b[0m"
 		}
-	
-		// Adjust indentation if the primary prompt is empty,
-		// because we will print a column indicator on the first line.
-		if e.prompt.LastUsed() == 0 && e.line.Lines() > 0 {
-			var indicator string
-			if e.opts.GetBool("multiline-column-numbered") {
-				indicator = fmt.Sprintf("\x1b[1;30m%d\x1b[0m ", 1)
-			} else {
-				indicator = "\x1b[1;30m\U00002502 \x1b[0m"
-			}
-			e.startCols += indicatorWidth
-			// Print the indicator on the first line.
-			fmt.Print(indicator)
-		} else if e.line.Lines() > 0 && e.startCols < indicatorWidth {
-			// If the prompt is shorter than the indicator, pad with spaces
-			// to ensure the input text starts aligned with subsequent lines
-			// and isn't overwritten by the indicator.
-			padding := indicatorWidth - e.startCols
-			fmt.Print(fmt.Sprintf("%*s", padding, ""))
-			e.startCols = indicatorWidth
-		}
-	
-		// Recompute coordinates with the new indentation/cursor position.
-		if e.line.Lines() > 0 {
-			e.cursorCol, e.cursorRow = core.CoordinatesCursor(e.cursor, e.startCols)
-			e.lineCol, e.lineRows = core.CoordinatesLine(e.line, e.startCols)
-		}
-	
-		// 3. Input Area Rendering
-	
+
+		e.startCols += indicatorWidth
+		// Print the indicator on the first line.
+		fmt.Print(indicator)
+	} else if e.line.Lines() > 0 && e.startCols < indicatorWidth {
+		// If the prompt is shorter than the indicator, pad with spaces
+		// to ensure the input text starts aligned with subsequent lines
+		// and isn't overwritten by the indicator.
+		padding := indicatorWidth - e.startCols
+		fmt.Print(fmt.Sprintf("%*s", padding, ""))
+
+		e.startCols = indicatorWidth
+	}
+
+	// Recompute coordinates with the new indentation/cursor position.
+	if e.line.Lines() > 0 {
+		e.cursorCol, e.cursorRow = core.CoordinatesCursor(e.cursor, e.startCols)
+		e.lineCol, e.lineRows = core.CoordinatesLine(e.line, e.startCols)
+	}
+
+	// 3. Input Area Rendering
+
 	e.renderInputArea()
 	// 4. Helpers Rendering
+
 	// 5. Final Cursor Positioning
+	// The cursor is currently at the end of the input line (lineRows, lineCol).
+	// We need to move it to the actual cursor position (cursorRow, cursorCol).
+	if e.lineRows > e.cursorRow {
+		term.MoveCursorUp(e.lineRows - e.cursorRow)
+	}
+
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorForwards(e.cursorCol)
+
 	fmt.Print(term.ShowCursor)
 }
 
