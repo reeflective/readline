@@ -66,43 +66,6 @@ func Init(e *Engine, highlighter func([]rune) string) {
 	e.highlighter = highlighter
 }
 
-// refreshOld recomputes and redisplays the entire readline interface, except
-// the first lines of the primary prompt when the latter is a multiline one.
-func (e *Engine) refreshOld() {
-	fmt.Print(term.HideCursor)
-
-	// Go back to the first column, and if the primary prompt
-	// was not printed yet, back up to the line's beginning row.
-	term.MoveCursorBackwards(term.GetWidth())
-
-	if !e.primaryPrinted {
-		term.MoveCursorUp(e.cursorRow)
-	}
-
-	// Print either all or the last line of the prompt.
-	e.prompt.LastPrint()
-
-	// Get all positions required for the redisplay to come:
-	// prompt end (thus indentation), cursor positions, etc.
-	e.computeCoordinates(true)
-
-	// Print the line, and any of the secondary and right prompts.
-	e.displayLine()
-	e.displayMultilinePrompts()
-
-	// Display hints and completions, go back
-	// to the start of the line, then to cursor.
-	helpersMoved := e.displayHelpers()
-	if helpersMoved {
-		e.cursorHintToLineStart()
-		e.lineStartToCursorPos()
-	} else {
-		e.lineEndToCursorPos()
-	}
-
-	fmt.Print(term.ShowCursor)
-}
-
 // PrintPrimaryPrompt redraws the primary prompt.
 // There are relatively few cases where you want to use this.
 // It is currently only used when using clear-screen commands.
@@ -273,71 +236,6 @@ func (e *Engine) displayLine() {
 		fmt.Print(term.NewlineReturn)
 		fmt.Print(term.ClearLineAfter)
 	}
-}
-
-func (e *Engine) displayMultilinePrompts() {
-	// If we have more than one line, write the columns.
-	if e.line.Lines() > 1 {
-		term.MoveCursorUp(e.lineRows)
-		term.MoveCursorBackwards(term.GetWidth())
-		e.prompt.MultilineColumnPrint()
-	}
-
-	// Then if we have a line at all, rewrite the last column
-	// character with any secondary prompt available.
-	if e.line.Lines() > 0 {
-		term.MoveCursorBackwards(term.GetWidth())
-		e.prompt.SecondaryPrint()
-		term.MoveCursorBackwards(term.GetWidth())
-		term.MoveCursorForwards(e.lineCol)
-	}
-
-	// Then prompt the right-sided prompt if possible.
-	e.prompt.RightPrint(e.lineCol, true)
-}
-
-// displayHelpers renders the hint and completion sections.
-// It assumes that the cursor is on the last line of input,
-// and goes back to this same line after displaying this.
-func (e *Engine) displayHelpers() bool {
-	// Recompute completions and hints if autocompletion is on.
-	e.completer.Autocomplete()
-
-	hintRows := ui.CoordinatesHint(e.hint)
-	compMatches := e.completer.Matches()
-	compSkip := e.completer.DisplaySkipped()
-
-	if e.hintRows == 0 && e.compRows == 0 && hintRows == 0 && (compMatches == 0 || compSkip) {
-		return false
-	}
-
-	fmt.Print(term.NewlineReturn)
-
-	prevHintRows := e.hintRows
-	prevCompRows := e.compRows
-
-	// Display hint and completions.
-	ui.DisplayHint(e.hint)
-
-	e.hintRows = ui.CoordinatesHint(e.hint)
-	if compMatches > 0 && !compSkip {
-		completion.Display(e.completer, e.AvailableHelperLines())
-		e.compRows = completion.Coordinates(e.completer)
-	} else {
-		e.completer.ResetUsedRows()
-		e.compRows = 0
-	}
-
-	if e.hintRows+e.compRows < prevHintRows+prevCompRows {
-		fmt.Print(term.ClearScreenBelow)
-	}
-
-	// Go back to the first line below the input line.
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorUp(e.compRows)
-	term.MoveCursorUp(e.hintRows)
-
-	return true
 }
 
 // lineEndToCursorPos moves the cursor from the end of the input line
