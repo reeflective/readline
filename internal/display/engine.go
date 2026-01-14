@@ -66,9 +66,9 @@ func Init(e *Engine, highlighter func([]rune) string) {
 	e.highlighter = highlighter
 }
 
-// Refresh recomputes and redisplays the entire readline interface, except
+// refreshOld recomputes and redisplays the entire readline interface, except
 // the first lines of the primary prompt when the latter is a multiline one.
-func (e *Engine) Refresh() {
+func (e *Engine) refreshOld() {
 	fmt.Print(term.HideCursor)
 
 	// Go back to the first column, and if the primary prompt
