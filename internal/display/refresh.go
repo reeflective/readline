@@ -29,39 +29,9 @@ func (e *Engine) Refresh() {
 	// Compute Coordinates: StartPos, LineHeight, CursorPos (row/col).
 	e.computeCoordinates(true)
 
-	// Determine the width of the multiline indicator.
-	// We need to ensure that the indentation of the input line is at least
-	// as wide as the indicator, otherwise the indicator will overwrite the text
-	// on subsequent lines.
-	var indicatorWidth int
-	if e.opts.GetBool("multiline-column-numbered") {
-		indicatorWidth = len(strconv.Itoa(1)) + 1
-	} else {
-		indicatorWidth = 2
-	}
-
-	// Adjust indentation if the primary prompt is empty,
-	// because we will print a column indicator on the first line.
-	if e.prompt.LastUsed() == 0 && e.line.Lines() > 0 {
-		var indicator string
-		if e.opts.GetBool("multiline-column-numbered") {
-			indicator = fmt.Sprintf(color.FgBlackBright+"%d"+color.Reset+" ", 1)
-		} else {
-			indicator = ui.DefaultMultilineColumn
-		}
-
-		e.startCols += indicatorWidth
-		// Print the indicator on the first line.
-		fmt.Print(indicator)
-	} else if e.line.Lines() > 0 && e.startCols < indicatorWidth {
-		// If the prompt is shorter than the indicator, pad with spaces
-		// to ensure the input text starts aligned with subsequent lines
-		// and isn't overwritten by the indicator.
-		padding := indicatorWidth - e.startCols
-		fmt.Print(fmt.Sprintf("%*s", padding, ""))
-
-		e.startCols = indicatorWidth
-	}
+	// Ensure that the indicator is printed if the prompt is empty,
+	// and that we have enough space to print the line.
+	e.ensureIndicatorSpace()
 
 	// Recompute coordinates with the new indentation/cursor position.
 	if e.line.Lines() > 0 {
@@ -72,36 +42,7 @@ func (e *Engine) Refresh() {
 	// Ensure that we have enough space to print the line.
 	// We probe the terminal to verify that we are not at the bottom of the screen.
 	// If we are, we scroll the screen to make space for the line.
-	if e.lineRows > 1 {
-		// 1. Probe the terminal height.
-		// We move the cursor down to the last line of the input line,
-		// and check if the cursor is at the expected position.
-		term.MoveCursorDown(e.lineRows - 1)
-		_, actualRow := e.keys.GetCursorPos()
-		term.MoveCursorUp(e.lineRows - 1)
-
-		// 2. Calculate the overshoot.
-		expectedRow := e.startRows + e.lineRows - 1
-		overshoot := expectedRow - actualRow
-
-		// 3. Scroll the screen if needed.
-		if overshoot > 0 {
-			// Move to the bottom of the terminal.
-			term.MoveCursorDown(actualRow - e.startRows)
-
-			// Scroll the screen by printing newlines.
-			for i := 0; i < overshoot; i++ {
-				fmt.Print("\n")
-			}
-
-			// Update the start row to reflect the scrolling.
-			e.startRows -= overshoot
-
-			// Move the cursor back up to the new start position.
-			term.MoveCursorUp(e.lineRows - 1)
-			term.MoveCursorForwards(e.startCols)
-		}
-	}
+	e.ensureInputSpace()
 
 	// 3. Input Area Rendering
 	e.renderInputArea()
@@ -195,6 +136,77 @@ func (e *Engine) renderRightPrompt() {
 	// Restore cursor to the end of the input line.
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorForwards(e.lineCol)
+}
+
+func (e *Engine) ensureIndicatorSpace() {
+	// Determine the width of the multiline indicator.
+	// We need to ensure that the indentation of the input line is at least
+	// as wide as the indicator, otherwise the indicator will overwrite the text
+	// on subsequent lines.
+	var indicatorWidth int
+	if e.opts.GetBool("multiline-column-numbered") {
+		indicatorWidth = len(strconv.Itoa(1)) + 1
+	} else {
+		indicatorWidth = 2
+	}
+
+	// Adjust indentation if the primary prompt is empty,
+	// because we will print a column indicator on the first line.
+	if e.prompt.LastUsed() == 0 && e.line.Lines() > 0 {
+		var indicator string
+		if e.opts.GetBool("multiline-column-numbered") {
+			indicator = fmt.Sprintf(color.FgBlackBright+"%d"+color.Reset+" ", 1)
+		} else {
+			indicator = ui.DefaultMultilineColumn
+		}
+
+		e.startCols += indicatorWidth
+		// Print the indicator on the first line.
+		fmt.Print(indicator)
+	} else if e.line.Lines() > 0 && e.startCols < indicatorWidth {
+		// If the prompt is shorter than the indicator, pad with spaces
+		// to ensure the input text starts aligned with subsequent lines
+		// and isn't overwritten by the indicator.
+		padding := indicatorWidth - e.startCols
+		fmt.Print(fmt.Sprintf("%*s", padding, ""))
+
+		e.startCols = indicatorWidth
+	}
+}
+
+func (e *Engine) ensureInputSpace() {
+	if e.lineRows <= 1 {
+		return
+	}
+
+	// 1. Probe the terminal height.
+	// We move the cursor down to the last line of the input line,
+	// and check if the cursor is at the expected position.
+	term.MoveCursorDown(e.lineRows - 1)
+	_, actualRow := e.keys.GetCursorPos()
+	term.MoveCursorUp(e.lineRows - 1)
+
+	// 2. Calculate the overshoot.
+	expectedRow := e.startRows + e.lineRows - 1
+	overshoot := expectedRow - actualRow
+
+	// 3. Scroll the screen if needed.
+	if overshoot > 0 {
+		// Move to the bottom of the terminal.
+		term.MoveCursorDown(actualRow - e.startRows)
+
+		// Scroll the screen by printing newlines.
+		for range overshoot {
+			fmt.Print("\n")
+		}
+
+		// Update the start row to reflect the scrolling.
+		e.startRows -= overshoot
+
+		// Move the cursor back up to the new start position.
+		term.MoveCursorUp(e.lineRows - 1)
+		term.MoveCursorForwards(e.startCols)
+	}
 }
 
 func (e *Engine) displayLineRefactored() {
