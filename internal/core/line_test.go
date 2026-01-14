@@ -1,9 +1,13 @@
 package core
 
 import (
+	"bytes"
+	"io"
+	"os"
 	"reflect"
 	"testing"
 
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/term"
 )
 
@@ -1037,6 +1041,11 @@ func TestLine_TokenizeBlock(t *testing.T) {
 }
 
 func TestDisplayLine(t *testing.T) {
+	indent := 10
+	line := Line("basic -f \"commands.go,line.go\" -cp=/usr --option [value1 value2]")
+	multiline := Line("basic -f \"commands.go \nanother testing\" --alternate \"another\nquote\" -v { expression here } -a [value1 value2]")
+	longMultiline := Line("longer than 80 characters, which is the term width reported when running go test \nanother line ending on newline \n")
+
 	type args struct {
 		indent int
 	}
@@ -1044,15 +1053,67 @@ func TestDisplayLine(t *testing.T) {
 		name string
 		l    *Line
 		args args
+		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Empty line buffer",
+			l:    new(Line),
+			args: args{indent: indent},
+			want: color.BgDefault,
+		},
+		{
+			name: "Single line buffer",
+			l:    &line,
+			args: args{indent: indent},
+			want: string(line) + color.BgDefault,
+		},
+		{
+			name: "Multiline buffer",
+			l:    &multiline,
+			args: args{indent: indent},
+			want: "basic -f \"commands.go " + color.BgDefault + term.ClearLineAfter + "\r\n" +
+				"\x1b[10C" + term.ClearLineBefore + "another testing\" --alternate \"another" + color.BgDefault + term.ClearLineAfter + "\r\n" +
+				"\x1b[10C" + term.ClearLineBefore + "quote\" -v { expression here } -a [value1 value2]" + color.BgDefault,
+		},
+		{
+			name: "Long multiline buffer",
+			l:    &longMultiline,
+			args: args{indent: indent},
+			want: "longer than 80 characters, which is the term width reported when running go test " + color.BgDefault + "\r\n" +
+				"\x1b[10C" + term.ClearLineBefore + "another line ending on newline " + color.BgDefault + term.ClearLineAfter + "\r\n" +
+				"\x1b[10C" + term.ClearLineBefore + color.BgDefault + term.ClearLineAfter + "\r\n" +
+				"\x1b[10C" + term.ClearLineBefore + color.BgDefault,
+		},
 	}
 
+	savedStdout := os.Stdout
+
 	for _, tt := range tests {
+		r, w, err := os.Pipe()
+		if err != nil {
+			os.Stdout = savedStdout
+			t.Fatalf("pipe: %s", err)
+		}
+
+		os.Stdout = w
+
 		t.Run(tt.name, func(t *testing.T) {
 			DisplayLine(tt.l, tt.args.indent)
 		})
+
+		w.Close()
+
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+
+		if buf.String() != tt.want {
+			t.Errorf("DisplayLine: got\n%q\nwant\n%q", buf.String(), tt.want)
+		}
+
+		r.Close()
 	}
+
+	os.Stdout = savedStdout
 }
 
 func TestCoordinatesLine(t *testing.T) {
@@ -1074,6 +1135,13 @@ func TestCoordinatesLine(t *testing.T) {
 		wantX int
 		wantY int
 	}{
+		{
+			name:  "Empty line buffer",
+			l:     new(Line),
+			args:  args{indent: indent},
+			wantY: 0,
+			wantX: indent,
+		},
 		{
 			name:  "Single line buffer",
 			l:     &line,
