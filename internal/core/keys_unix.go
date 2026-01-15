@@ -8,11 +8,17 @@ import (
 	"io"
 	"os"
 	"strconv"
+
+	"github.com/reeflective/readline/internal/term"
 )
 
 // GetCursorPos returns the current cursor position in the terminal.
 // It is safe to call this function even if the shell is reading input.
 func (k *Keys) GetCursorPos() (x, y int) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return -1, -1
+	}
+
 	disable := func() (int, int) {
 		os.Stderr.WriteString("\r\ngetCursorPos() not supported by terminal emulator, disabling....\r\n")
 		return -1, -1
