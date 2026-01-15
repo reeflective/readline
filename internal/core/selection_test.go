@@ -1259,7 +1259,7 @@ func TestSelection_SelectKeyword(t *testing.T) {
 			var gotKbpos, gotKepos int
 			var gotMatch bool
 
-			for i := 0; i < test.args.cycles; i++ {
+			for range test.args.cycles {
 				gotKbpos, gotKepos, gotMatch = sel.SelectKeyword(test.args.bpos, test.args.epos, test.args.next)
 			}
 

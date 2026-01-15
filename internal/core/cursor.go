@@ -247,12 +247,12 @@ func (c *Cursor) LineMove(lines int) {
 	}
 
 	if lines < 0 {
-		for i := 0; i < -1*lines; i++ {
+		for i := 0; i < -lines; i++ {
 			c.moveLineUp()
 			c.CheckCommand()
 		}
 	} else {
-		for i := 0; i < lines; i++ {
+		for range lines {
 			c.moveLineDown()
 			c.CheckCommand()
 		}
@@ -287,7 +287,7 @@ func (c *Cursor) AtBeginningOfLine() bool {
 
 	newlines := c.line.newlines()
 
-	for line := 0; line < len(newlines); line++ {
+	for line := range newlines {
 		epos := newlines[line][0]
 		if epos == c.pos-1 {
 			return true
@@ -306,7 +306,7 @@ func (c *Cursor) AtEndOfLine() bool {
 
 	newlines := c.line.newlines()
 
-	for line := 0; line < len(newlines); line++ {
+	for line := range newlines {
 		epos := newlines[line][0]
 		if epos == c.pos+1 {
 			return true
@@ -394,7 +394,7 @@ func (c *Cursor) moveLineDown() {
 
 	newlines := c.line.newlines()
 
-	for line := 0; line < len(newlines); line++ {
+	for line := range newlines {
 		end := newlines[line][0]
 		if line < c.LinePos() {
 			begin = end

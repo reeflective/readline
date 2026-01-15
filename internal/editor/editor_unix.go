@@ -27,7 +27,7 @@ func (reg *Buffers) EditBuffer(buf []rune, filename, filetype string, emacs bool
 
 	args := []string{}
 	if filetype != "" {
-		args = append(args, fmt.Sprintf("-c 'set filetype=%s", filetype))
+		args = append(args, "-c 'set filetype="+filetype)
 	}
 
 	args = append(args, name)

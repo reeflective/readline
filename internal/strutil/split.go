@@ -49,8 +49,9 @@ func Split(input string) (words []string, err error) {
 			next := input[l:]
 			if len(next) == 0 {
 				err = errUnterminatedEscape
-				return
+				return words, err
 			}
+
 			c2, l2 := utf8.DecodeRuneInString(next)
 			if c2 == '\n' {
 				input = next[l2:]
@@ -59,13 +60,16 @@ func Split(input string) (words []string, err error) {
 		}
 
 		var word string
+
 		word, input, err = splitWord(input, &buf)
 		if err != nil {
-			return
+			return words, err
 		}
+
 		words = append(words, word)
 	}
-	return
+
+	return words, err
 }
 
 func splitWord(input string, buf *bytes.Buffer) (word string, remainder string, err error) {
@@ -114,6 +118,7 @@ escape:
 		}
 		input = input[l:]
 	}
+
 	goto raw
 
 single:
@@ -133,11 +138,12 @@ double:
 		for len(cur) > 0 {
 			c, l := utf8.DecodeRuneInString(cur)
 			cur = cur[l:]
-			if c == doubleChar {
+			switch c {
+			case doubleChar:
 				buf.WriteString(input[0 : len(input)-len(cur)-l])
 				input = cur
 				goto raw
-			} else if c == escapeChar {
+			case escapeChar:
 				// bash only supports certain escapes in double-quoted strings
 				c2, l2 := utf8.DecodeRuneInString(cur)
 				cur = cur[l2:]

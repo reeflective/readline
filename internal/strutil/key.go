@@ -11,7 +11,7 @@ func ConvertMeta(keys []rune) string {
 
 	converted := make([]rune, 0, len(keys))
 
-	for i := 0; i < len(keys); i++ {
+	for i := range keys {
 		char := keys[i]
 
 		if !inputrc.IsMeta(char) {

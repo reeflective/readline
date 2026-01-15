@@ -22,13 +22,17 @@ func (e *Engine) highlightLine(line []rune, selection core.Selection) string {
 	var highlighted string
 
 	// And apply highlighting before each rune.
+	var highlightedSb25 strings.Builder
+
 	for i, r := range line {
 		if highlight, found := colors[i]; found {
-			highlighted += string(highlight)
+			highlightedSb25.WriteString(string(highlight))
 		}
 
-		highlighted += string(r)
+		highlightedSb25.WriteRune(r)
 	}
+
+	highlighted += highlightedSb25.String()
 
 	// Finally, highlight comments using a regex.
 	comment := strings.Trim(e.opts.GetString("comment-begin"), "\"")
