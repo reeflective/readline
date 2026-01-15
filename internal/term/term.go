@@ -53,3 +53,13 @@ func printf(format string, a ...interface{}) {
 	s := fmt.Sprintf(format, a...)
 	fmt.Print(s)
 }
+
+// EnableBracketedPaste enables bracketed paste mode.
+func EnableBracketedPaste() {
+	fmt.Print(BracketedPasteStart)
+}
+
+// DisableBracketedPaste disables bracketed paste mode.
+func DisableBracketedPaste() {
+	fmt.Print(BracketedPasteEnd)
+}

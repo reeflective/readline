@@ -16,6 +16,9 @@ const (
 	RestoreCursorPos = "\x1b8"
 	HideCursor       = "\x1b[?25l"
 	ShowCursor       = "\x1b[?25h"
+
+	BracketedPasteStart = "\x1b[?2004h"
+	BracketedPasteEnd   = "\x1b[?2004l"
 )
 
 // Some core keys needed by some stuff.

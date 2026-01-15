@@ -61,8 +61,8 @@ func (rl *Shell) Readline() (string, error) {
 	}
 
 	if term.IsTerminal(descriptor) && rl.Config.GetBool("enable-bracketed-paste") {
-		fmt.Print("\x1b[?2004h")
-		defer fmt.Print("\x1b[?2004l")
+		term.EnableBracketedPaste()
+		defer term.DisableBracketedPaste()
 	}
 
 	// Prompts and cursor styles
