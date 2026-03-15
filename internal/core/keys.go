@@ -264,17 +264,38 @@ func (k *Keys) ReadKey() (key rune, isAbort bool) {
 		k.mutex.RUnlock()
 	}()
 
-	switch {
-	case len(k.macroKeys) > 0:
-		key = k.macroKeys[0]
-		k.macroKeys = k.macroKeys[1:]
+	for {
+		switch {
+		case len(k.macroKeys) > 0:
+			key = k.macroKeys[0]
+			k.macroKeys = k.macroKeys[1:]
+		case k.waiting:
+			buf := <-k.keysOnce
+			if len(buf) == 0 {
+				if k.eof {
+					return 0, true
+				}
+				continue
+			}
+			key = []rune(string(buf))[0]
+		default:
+			buf, err := k.readInputFiltered()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					k.eof = true
+				}
+				return 0, true
+			}
+			if len(buf) == 0 {
+				if k.eof {
+					return 0, true
+				}
+				continue
+			}
+			key = []rune(string(buf))[0]
+		}
 
-	case k.waiting:
-		buf := <-k.keysOnce
-		key = []rune(string(buf))[0]
-	default:
-		buf, _ := k.readInputFiltered()
-		key = []rune(string(buf))[0]
+		break
 	}
 
 	// Always mark those keys as matched, so that
