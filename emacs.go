@@ -458,6 +458,9 @@ func (rl *Shell) bracketedPasteBegin() {
 		key, empty := core.PopKey(rl.Keys)
 		if empty {
 			core.WaitAvailableKeys(rl.Keys, rl.Config)
+			if rl.Keys.IsEOF() || rl.Keys.ReadError() != nil {
+				return
+			}
 			continue
 		}
 

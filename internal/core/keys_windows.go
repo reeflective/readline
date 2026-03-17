@@ -4,8 +4,6 @@
 package core
 
 import (
-	"errors"
-	"io"
 	"unsafe"
 
 	"github.com/reeflective/readline/inputrc"
@@ -72,7 +70,7 @@ func (k *Keys) readInputFiltered() (keys []byte, err error) {
 		buf := make([]byte, keyScanBufSize)
 
 		read, err := Stdin.Read(buf)
-		if err != nil && errors.Is(err, io.EOF) {
+		if err != nil {
 			return keys, err
 		}
 

@@ -36,9 +36,10 @@ type Keys struct {
 	cursor    chan []byte // Cursor coordinates has been read on stdin.
 	resize    chan bool   // Resize events on Windows are sent on stdin. USED IN WINDOWS
 
-	eof   bool            // EOF has been reached.
-	cfg   *inputrc.Config // Configuration file used for meta key settings
-	mutex sync.RWMutex    // Concurrency safety
+	eof     bool            // EOF has been reached.
+	readErr error           // Non-EOF input failure, e.g. revoked tty.
+	cfg     *inputrc.Config // Configuration file used for meta key settings
+	mutex   sync.RWMutex    // Concurrency safety
 }
 
 // WaitAvailableKeys waits until an input key is either read from standard input,
@@ -71,8 +72,14 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 		// We will either read keyBuf from user, or an EOF
 		// send by ourselves, because we pause reading.
 		keyBuf, err := keys.readInputFiltered()
-		if err != nil && errors.Is(err, io.EOF) {
-			keys.eof = true
+		if err != nil {
+			keys.mutex.Lock()
+			if errors.Is(err, io.EOF) {
+				keys.eof = true
+			} else if keys.readErr == nil {
+				keys.readErr = err
+			}
+			keys.mutex.Unlock()
 			return
 		}
 
@@ -107,6 +114,14 @@ func (k *Keys) IsEOF() bool {
 	defer k.mutex.RUnlock()
 
 	return k.eof
+}
+
+// ReadError returns the first non-EOF input error observed while reading keys.
+func (k *Keys) ReadError() error {
+	k.mutex.RLock()
+	defer k.mutex.RUnlock()
+
+	return k.readErr
 }
 
 // PeekKey returns the first key in the stack, without removing it.

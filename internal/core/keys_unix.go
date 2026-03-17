@@ -3,9 +3,7 @@
 package core
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 
@@ -96,7 +94,7 @@ func (k *Keys) readInputFiltered() (keys []byte, err error) {
 	buf := make([]byte, keyScanBufSize)
 
 	read, err := Stdin.Read(buf)
-	if err != nil && errors.Is(err, io.EOF) {
+	if err != nil {
 		return
 	}
 

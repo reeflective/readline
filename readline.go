@@ -96,6 +96,10 @@ func (rl *Shell) Readline() (string, error) {
 		// the macro engine has fed some keys in bulk when running one.
 		core.WaitAvailableKeys(rl.Keys, rl.Config)
 
+		if err := rl.Keys.ReadError(); err != nil {
+			return "", err
+		}
+
 		// If the input is closed, we must return the line
 		// and the error so that the caller can handle it.
 		if rl.Keys.IsEOF() {
