@@ -46,6 +46,11 @@ type Hint struct {
 	// input line and cursor. It is re-evaluated on every refresh by the display
 	// engine through UpdateProvided.
 	provider func(line []rune, cursor int) []rune
+
+	// refresh, when set, wakes the render loop after an async lane change (e.g.
+	// SetTransient from another goroutine). Wired by the shell to the input wake
+	// primitive; integrators do not call it directly.
+	refresh func()
 }
 
 // Set sets the hint message to the given text.
@@ -125,25 +130,43 @@ func (h *Hint) UpdateProvided(line []rune, cursor int) {
 }
 
 // SetTransient sets the transient (async status) hint lane. It is safe to call
-// from any goroutine. The message persists until ClearTransient is called or it
-// is replaced; crucially it is NOT cleared by the completion or incremental
-// search engines. It renders above the completion lane and below the provider
-// lane.
+// from any goroutine, and wakes an idle render loop so the message appears
+// immediately. The message persists until ClearTransient is called or it is
+// replaced; crucially it is NOT cleared by the completion or incremental search
+// engines. It renders above the completion lane and below the provider lane.
 func (h *Hint) SetTransient(hint string) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	h.transient = []rune(hint)
+	refresh := h.refresh
+	h.mu.Unlock()
+
+	if refresh != nil {
+		refresh()
+	}
 }
 
-// ClearTransient drops the transient (async status) hint lane.
-// It is safe to call from any goroutine.
+// ClearTransient drops the transient (async status) hint lane. It is safe to
+// call from any goroutine, and wakes an idle render loop so the change is shown.
 func (h *Hint) ClearTransient() {
+	h.mu.Lock()
+	h.cleanup = h.cleanup || len(h.transient) > 0
+	h.transient = make([]rune, 0)
+	refresh := h.refresh
+	h.mu.Unlock()
+
+	if refresh != nil {
+		refresh()
+	}
+}
+
+// SetRefreshFunc registers a callback used to wake the render loop when an
+// async hint lane changes (e.g. SetTransient from another goroutine). The shell
+// wires this to the input wake primitive; integrators do not call it directly.
+func (h *Hint) SetRefreshFunc(refresh func()) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	h.cleanup = h.cleanup || len(h.transient) > 0
-	h.transient = make([]rune, 0)
+	h.refresh = refresh
 }
 
 // Text returns the current hint text.

@@ -24,6 +24,10 @@ var Stdin io.ReadCloser = os.Stdin
 
 var rxRcvCursorPos = regexp.MustCompile(`\x1b\[([0-9]+);([0-9]+)R`)
 
+// errInputWake is returned by the input read when it was interrupted by an
+// async refresh request (RequestRefresh) rather than by actual key input.
+var errInputWake = errors.New("readline: input wake")
+
 // Keys is used to read, manage and use keys input by the shell user.
 type Keys struct {
 	buf       []byte      // Keys read and waiting to be used.
@@ -35,6 +39,11 @@ type Keys struct {
 	keysOnce  chan []byte // Passing keys from the main routine.
 	cursor    chan []byte // Cursor coordinates has been read on stdin.
 	resize    chan bool   // Resize events on Windows are sent on stdin. USED IN WINDOWS
+
+	wakeMu    sync.Mutex // Guards the wake fields against RequestRefresh (other goroutine).
+	wakeR     int        // Read end of the async-refresh wake pipe.
+	wakeW     int        // Write end of the async-refresh wake pipe.
+	wakeReady bool       // Whether the wake pipe is initialized and usable.
 
 	eof   bool            // EOF has been reached.
 	cfg   *inputrc.Config // Configuration file used for meta key settings
@@ -71,8 +80,14 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 		// We will either read keyBuf from user, or an EOF
 		// send by ourselves, because we pause reading.
 		keyBuf, err := keys.readInputFiltered()
-		if err != nil && errors.Is(err, io.EOF) {
-			keys.eof = true
+		if err != nil {
+			// EOF: input stream closed. Wake: an async refresh was
+			// requested (RequestRefresh) — return with no keys so the
+			// main loop repaints the (possibly updated) UI and waits again.
+			if errors.Is(err, io.EOF) {
+				keys.eof = true
+			}
+
 			return
 		}
 
@@ -99,6 +114,16 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 
 		return
 	}
+}
+
+// Empty reports whether there are no keys available to dispatch: neither
+// buffered input keys nor macro-fed keys. The main loop uses this to detect a
+// bare async-refresh wake (which returns from WaitAvailableKeys with no keys).
+func (k *Keys) Empty() bool {
+	k.mutex.RLock()
+	defer k.mutex.RUnlock()
+
+	return len(k.buf) == 0 && len(k.macroKeys) == 0
 }
 
 // IsEOF returns true if the input stream has reached the end.
@@ -273,7 +298,22 @@ func (k *Keys) ReadKey() (key rune, isAbort bool) {
 		buf := <-k.keysOnce
 		key = []rune(string(buf))[0]
 	default:
-		buf, _ := k.readInputFiltered()
+		// Read until we get an actual key: ignore async-refresh wakes
+		// (errInputWake) and empty reads, which carry no key to return.
+		var buf []byte
+		for len(buf) == 0 {
+			b, err := k.readInputFiltered()
+			if err != nil && !errors.Is(err, errInputWake) {
+				break
+			}
+
+			buf = b
+		}
+
+		if len(buf) == 0 {
+			return rune(0), true
+		}
+
 		key = []rune(string(buf))[0]
 	}
 

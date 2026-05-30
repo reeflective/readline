@@ -43,6 +43,7 @@ const (
 	noProbeEnvVar      = "READLINE_PTY_NOPROBE"
 	hintProviderEnvVar = "READLINE_PTY_HINTPROVIDER"
 	transientEnvVar    = "READLINE_PTY_TRANSIENT"
+	asyncMSEnvVar      = "READLINE_PTY_ASYNC_MS"
 )
 
 // TestMain lets this test binary double as the process-under-test: when the
@@ -89,6 +90,15 @@ func runPTYChild() {
 	// it renders and survives completion/isearch activity.
 	if msg := os.Getenv(transientEnvVar); msg != "" {
 		rl.Hint.SetTransient(msg)
+	}
+
+	// Push a transient hint from another goroutine AFTER the read loop has
+	// started and is idle, to exercise the async-refresh wake (no keystroke).
+	if ms, err := strconv.Atoi(os.Getenv(asyncMSEnvVar)); err == nil && ms > 0 {
+		go func() {
+			time.Sleep(time.Duration(ms) * time.Millisecond)
+			rl.Hint.SetTransient("ASYNCPING")
+		}()
 	}
 
 	prompt := os.Getenv(promptEnvVar)
@@ -141,6 +151,9 @@ type consoleConfig struct {
 	// transient, if non-empty, seeds a transient (async status) hint in the
 	// child before the read loop starts.
 	transient string
+	// asyncMS, if > 0, makes the child push a transient hint ("ASYNCPING")
+	// from another goroutine after that many milliseconds, once idle.
+	asyncMS int
 	// probeReply, if non-nil, computes the DSR reply for an "ESC[6n" query,
 	// letting tests simulate a terminal that reports a wrong cursor position.
 	probeReply func(vt10x.Cursor) string
@@ -176,6 +189,10 @@ func startConsole(t *testing.T, cfg consoleConfig) *console {
 
 	if cfg.transient != "" {
 		cmd.Env = append(cmd.Env, transientEnvVar+"="+cfg.transient)
+	}
+
+	if cfg.asyncMS > 0 {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%d", asyncMSEnvVar, cfg.asyncMS))
 	}
 
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: uint16(cfg.rows), Cols: uint16(cfg.cols)})

@@ -76,6 +76,12 @@ func (rl *Shell) Readline() (string, error) {
 	resize := display.WatchResize(rl.Display)
 	defer close(resize)
 
+	// Async UI refresh: let background goroutines wake an idle loop (e.g. to
+	// show a transient hint pushed from another goroutine) via the input wake
+	// primitive. Torn down when the call returns.
+	rl.Keys.InitWake()
+	defer rl.Keys.CloseWake()
+
 	for {
 		// Whether or not the command is resolved, let the macro
 		// engine record the keys if currently recording a macro.
@@ -100,6 +106,12 @@ func (rl *Shell) Readline() (string, error) {
 		// and the error so that the caller can handle it.
 		if rl.Keys.IsEOF() {
 			return "", io.EOF
+		}
+
+		// A bare async-refresh wake leaves no keys to dispatch: loop back to
+		// repaint the (possibly updated) UI and wait for input again.
+		if rl.Keys.Empty() {
+			continue
 		}
 
 		// 1 - Local keymap (Completion/Isearch/Vim operator pending).

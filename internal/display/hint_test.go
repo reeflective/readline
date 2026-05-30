@@ -100,3 +100,46 @@ func TestTransientSurvivesIsearchAndRendersAbove(t *testing.T) {
 			transient, isearch, screen)
 	}
 }
+
+// TestAsyncTransientWhileIdle proves the async-refresh wake: a transient hint
+// pushed from another goroutine while the shell is idle (blocked waiting for
+// input) must appear WITHOUT any keystroke being sent.
+func TestAsyncTransientWhileIdle(t *testing.T) {
+	c := startConsole(t, consoleConfig{
+		prompt:  "PROMPT> ",
+		cols:    80,
+		rows:    24,
+		asyncMS: 200,
+	})
+	c.waitForScreen("PROMPT>", 3*time.Second)
+
+	// Deliberately send NO input: the only thing that can make this appear is
+	// the wake repainting the idle loop.
+	c.waitForScreen("ASYNCPING", 3*time.Second)
+}
+
+// TestAsyncRefreshKeepsLayout guards against the async repaint corrupting the
+// render bookkeeping ("prints a mess / jumps around"): after an idle async
+// repaint, the prompt must still render exactly once and accept aligned input.
+func TestAsyncRefreshKeepsLayout(t *testing.T) {
+	c := startConsole(t, consoleConfig{
+		prompt:  "PROMPT> ",
+		cols:    80,
+		rows:    24,
+		asyncMS: 200,
+	})
+	c.waitForScreen("ASYNCPING", 3*time.Second)
+
+	// Now type after the async repaint and confirm the line is intact.
+	c.send("abc")
+	screen := c.waitForScreen("PROMPT> abc", 3*time.Second)
+
+	if got := countLine(screen, "PROMPT>"); got != 1 {
+		t.Fatalf("prompt should render exactly once after async repaint, got %d:\n%s", got, screen)
+	}
+
+	first := strings.TrimRight(strings.SplitN(screen, "\n", 2)[0], " ")
+	if first != "PROMPT> abc" {
+		t.Fatalf("input misaligned after async repaint:\n  got:  %q\n  want: %q", first, "PROMPT> abc")
+	}
+}

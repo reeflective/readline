@@ -97,6 +97,17 @@ func (k *Keys) readInputFiltered() (keys []byte, err error) {
 	}
 }
 
+// InitWake is a no-op on Windows: the async-refresh wake (poll-based on Unix)
+// is not yet supported here, so async UI updates appear at the next keystroke.
+func (k *Keys) InitWake() {}
+
+// CloseWake is a no-op on Windows.
+func (k *Keys) CloseWake() {}
+
+// RequestRefresh is a no-op on Windows (async wake unsupported); async UI
+// updates appear at the next keystroke.
+func (k *Keys) RequestRefresh() {}
+
 // rawReader translates Windows input to ANSI sequences,
 // to provide the same behavior as Unix terminals.
 type rawReader struct {

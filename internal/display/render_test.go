@@ -142,6 +142,13 @@ func TestCursorProbeEnabledByDefault(t *testing.T) {
 	c := newConsole(t, "PROMPT> ", 80, 24)
 	c.waitForScreen("PROMPT>", 3*time.Second)
 
+	// The prompt string is printed before the first probe, so poll for the
+	// query rather than checking immediately after the prompt appears.
+	deadline := time.Now().Add(3 * time.Second)
+	for c.probeQueries() == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+
 	if c.probeQueries() == 0 {
 		t.Fatal("expected at least one ESC[6n cursor-position query with probing enabled")
 	}
