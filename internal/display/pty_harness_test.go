@@ -37,10 +37,12 @@ import (
 )
 
 const (
-	childEnvVar   = "READLINE_PTY_CHILD"
-	promptEnvVar  = "READLINE_PTY_PROMPT"
-	prefillEnvVar = "READLINE_PTY_PREFILL"
-	noProbeEnvVar = "READLINE_PTY_NOPROBE"
+	childEnvVar        = "READLINE_PTY_CHILD"
+	promptEnvVar       = "READLINE_PTY_PROMPT"
+	prefillEnvVar      = "READLINE_PTY_PREFILL"
+	noProbeEnvVar      = "READLINE_PTY_NOPROBE"
+	hintProviderEnvVar = "READLINE_PTY_HINTPROVIDER"
+	transientEnvVar    = "READLINE_PTY_TRANSIENT"
 )
 
 // TestMain lets this test binary double as the process-under-test: when the
@@ -69,6 +71,24 @@ func runPTYChild() {
 
 	if os.Getenv(noProbeEnvVar) == "1" {
 		rl.Config.Set("cursor-position-probe", false)
+	}
+
+	// Register a passive hint provider that echoes the current line, so tests
+	// can observe the provided lane tracking input.
+	if os.Getenv(hintProviderEnvVar) == "1" {
+		rl.Hint.SetProvider(func(line []rune, _ int) []rune {
+			if len(line) == 0 {
+				return nil
+			}
+
+			return []rune("HINT:" + string(line))
+		})
+	}
+
+	// Seed a transient (async status) hint before reading, so tests can assert
+	// it renders and survives completion/isearch activity.
+	if msg := os.Getenv(transientEnvVar); msg != "" {
+		rl.Hint.SetTransient(msg)
 	}
 
 	prompt := os.Getenv(promptEnvVar)
@@ -115,6 +135,12 @@ type consoleConfig struct {
 	prefill int
 	// noProbe disables the shell's cursor-position probing in the child.
 	noProbe bool
+	// hintProvider registers a passive hint provider in the child that echoes
+	// the current line as "HINT:<line>".
+	hintProvider bool
+	// transient, if non-empty, seeds a transient (async status) hint in the
+	// child before the read loop starts.
+	transient string
 	// probeReply, if non-nil, computes the DSR reply for an "ESC[6n" query,
 	// letting tests simulate a terminal that reports a wrong cursor position.
 	probeReply func(vt10x.Cursor) string
@@ -142,6 +168,14 @@ func startConsole(t *testing.T, cfg consoleConfig) *console {
 
 	if cfg.noProbe {
 		cmd.Env = append(cmd.Env, noProbeEnvVar+"=1")
+	}
+
+	if cfg.hintProvider {
+		cmd.Env = append(cmd.Env, hintProviderEnvVar+"=1")
+	}
+
+	if cfg.transient != "" {
+		cmd.Env = append(cmd.Env, transientEnvVar+"="+cfg.transient)
 	}
 
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: uint16(cfg.rows), Cols: uint16(cfg.cols)})

@@ -175,6 +175,10 @@ func (e *Engine) computeCoordinates(suggested bool) {
 		e.suggested = e.histories.Suggest(e.line)
 	}
 
+	// Recompute the passive provider hint from the current line, so it tracks
+	// the input as it changes. Runs every refresh, on the main loop goroutine.
+	e.hint.UpdateProvided([]rune(*e.line), e.cursor.Pos())
+
 	// Get the position of the line's beginning by querying the terminal for the
 	// cursor position. Some environments (PTY test harnesses, minimal emulators,
 	// constrained CI) don't reliably answer the "ESC[6n" query, so consumers can
