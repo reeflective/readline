@@ -107,6 +107,36 @@ func TestRenderMultilinePromptAtBottom(t *testing.T) {
 	}
 }
 
+// TestRenderMultilinePromptWrapAtBottom guards the harder compound case: a
+// multi-line prompt at the bottom of the window whose input also wraps onto
+// extra rows. The prompt's upper lines (printed once, not otherwise refreshed)
+// must survive the scrolling instead of being lost.
+func TestRenderMultilinePromptWrapAtBottom(t *testing.T) {
+	const rows = 10
+
+	c := startConsole(t, consoleConfig{
+		prompt:  "TOP\nP> ",
+		cols:    20,
+		rows:    rows,
+		prefill: rows - 1,
+	})
+
+	c.waitForScreen("P>", 3*time.Second)
+
+	// Type enough to wrap the input onto a second/third visual row.
+	c.send(strings.Repeat("y", 50))
+	screen := c.waitUntil(func(s string) bool {
+		return strings.Count(s, "y") >= 50
+	}, 3*time.Second)
+
+	for _, line := range []string{"TOP", "P> "} {
+		if !strings.Contains(screen, line) {
+			t.Fatalf("prompt line %q was lost when a multi-line prompt wrapped at the bottom:\n%s",
+				line, screen)
+		}
+	}
+}
+
 // TestRenderMisreportedCursor exercises a known robustness gap (kept gated so it
 // does not fail CI): when the terminal reports a wrong cursor position for an
 // "ESC[6n" query — slow / racing / quirky terminals — the row/column

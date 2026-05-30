@@ -128,6 +128,32 @@ func (p *Prompt) PrimaryUsed() int {
 	return p.primaryRows
 }
 
+// UpperPrint reprints every line of the primary prompt except the last one.
+// It is used to keep a multi-line prompt's upper lines correct after the view
+// has scrolled (e.g. when the prompt is rendered at the bottom of the window),
+// since those lines are not otherwise repainted on a refresh.
+//
+// The cursor must be positioned at the first prompt row, column 0. On return
+// the cursor is at column 0 of the last prompt line's row (the upper lines each
+// end with a newline).
+func (p *Prompt) UpperPrint() {
+	if p.primaryF == nil || p.primaryRows == 0 {
+		return
+	}
+
+	upper, _ := p.formatPrimaryLines(p.primaryF())
+	if upper == "" {
+		return
+	}
+
+	// Clear each upper line as we reprint it, so a shorter prompt evaluation
+	// does not leave stale characters behind.
+	lines := strings.Split(strings.TrimSuffix(upper, "\n"), "\n")
+	for _, line := range lines {
+		fmt.Print(line + term.ClearLineAfter + term.NewlineReturn)
+	}
+}
+
 // LastPrint prints the last line of the primary prompt, if the latter
 // spans on several lines. If not, this function will actually print
 // the entire primary prompt, and PrimaryPrint() will not print anything.

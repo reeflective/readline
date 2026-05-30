@@ -44,6 +44,11 @@ func (e *Engine) Refresh() {
 	// If we are, we scroll the screen to make space for the line.
 	e.ensureInputSpace()
 
+	// Keep a multi-line prompt's upper lines correct now that the start row is
+	// settled: they are printed only once and not otherwise refreshed, so a
+	// scroll (typically at the bottom of the window) would leave them stale.
+	e.repaintPromptUpperLines()
+
 	// 3. Input Area Rendering
 	e.renderInputArea()
 
@@ -69,6 +74,27 @@ func (e *Engine) Refresh() {
 	term.MoveCursorForwards(e.cursorCol)
 
 	fmt.Print(term.ShowCursor)
+}
+
+// repaintPromptUpperLines reprints the upper lines of a multi-line prompt at
+// the (now settled) start row. Those lines are printed only once initially and
+// are not otherwise refreshed, so when the view scrolls -- typically when the
+// prompt sits at the bottom of the window -- they would be left stale or
+// overwritten (issue #98 / reeflective/console#78). The cursor is at the
+// input-line start on entry and is restored there on return.
+func (e *Engine) repaintPromptUpperLines() {
+	rows := e.prompt.PrimaryUsed()
+	if rows == 0 {
+		return
+	}
+
+	// Go to the first prompt row at column 0, repaint the upper lines (each
+	// ends in a newline, leaving us at column 0 of the last prompt-line row),
+	// then restore the cursor to the input-line start.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorUp(rows)
+	e.prompt.UpperPrint()
+	term.MoveCursorForwards(e.startCols)
 }
 
 func (e *Engine) renderInputArea() {
