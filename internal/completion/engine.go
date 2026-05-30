@@ -2,6 +2,7 @@ package completion
 
 import (
 	"regexp"
+	"sync/atomic"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
@@ -37,6 +38,7 @@ type Engine struct {
 	auto        bool          // Is the engine autocompleting ?
 	autoForce   bool          // Special autocompletion mode (isearch-style)
 	skipDisplay bool          // Don't display completions if there are some.
+	regenReq    int32         // Atomic: an async regeneration of the menu was requested.
 
 	// Incremental search
 	IsearchRegex       *regexp.Regexp // Holds the current search regex match
@@ -110,6 +112,30 @@ func (e *Engine) GenerateWith(completer Completer) {
 // different completion grid, for example if it's called on terminal resize.
 func (e *Engine) GenerateCached() {
 	e.GenerateWith(e.cached)
+}
+
+// RequestRegen marks that the active completion menu should be regenerated from
+// the cached completer on the next refresh. It is safe to call from any
+// goroutine; the regeneration itself runs on the main loop (see ApplyRegen),
+// preserving the single-writer rendering invariant.
+func (e *Engine) RequestRegen() {
+	atomic.StoreInt32(&e.regenReq, 1)
+}
+
+// ApplyRegen regenerates the menu from the cached completer if a regeneration
+// was requested (RequestRegen) and a menu is currently active. It runs on the
+// main loop before a refresh. The selection is reset, as the grid is rebuilt
+// from scratch (same as on a terminal resize).
+func (e *Engine) ApplyRegen() {
+	if atomic.SwapInt32(&e.regenReq, 0) == 0 {
+		return
+	}
+
+	if !e.IsActive() {
+		return
+	}
+
+	e.GenerateCached()
 }
 
 // SkipDisplay avoids printing completions below the

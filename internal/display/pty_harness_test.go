@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -44,6 +45,7 @@ const (
 	hintProviderEnvVar = "READLINE_PTY_HINTPROVIDER"
 	transientEnvVar    = "READLINE_PTY_TRANSIENT"
 	asyncMSEnvVar      = "READLINE_PTY_ASYNC_MS"
+	asyncCompEnvVar    = "READLINE_PTY_ASYNCCOMP"
 )
 
 // TestMain lets this test binary double as the process-under-test: when the
@@ -92,9 +94,31 @@ func runPTYChild() {
 		rl.Hint.SetTransient(msg)
 	}
 
-	// Push a transient hint from another goroutine AFTER the read loop has
-	// started and is idle, to exercise the async-refresh wake (no keystroke).
-	if ms, err := strconv.Atoi(os.Getenv(asyncMSEnvVar)); err == nil && ms > 0 {
+	// Async completion: a completer whose result set grows when a background
+	// goroutine flips a flag and calls RefreshCompletions (no keystroke). Used
+	// to exercise in-place menu regeneration (#99).
+	if os.Getenv(asyncCompEnvVar) == "1" {
+		var extra int32
+
+		rl.Completer = func(_ []rune, _ int) readline.Completions {
+			values := []string{"alpha", "bravo"}
+			if atomic.LoadInt32(&extra) == 1 {
+				values = append(values, "charlie")
+			}
+
+			return readline.CompleteValues(values...)
+		}
+
+		if ms, err := strconv.Atoi(os.Getenv(asyncMSEnvVar)); err == nil && ms > 0 {
+			go func() {
+				time.Sleep(time.Duration(ms) * time.Millisecond)
+				atomic.StoreInt32(&extra, 1)
+				rl.RefreshCompletions()
+			}()
+		}
+	} else if ms, err := strconv.Atoi(os.Getenv(asyncMSEnvVar)); err == nil && ms > 0 {
+		// Push a transient hint from another goroutine AFTER the read loop has
+		// started and is idle, to exercise the async-refresh wake (no keystroke).
 		go func() {
 			time.Sleep(time.Duration(ms) * time.Millisecond)
 			rl.Hint.SetTransient("ASYNCPING")
@@ -152,8 +176,13 @@ type consoleConfig struct {
 	// child before the read loop starts.
 	transient string
 	// asyncMS, if > 0, makes the child push a transient hint ("ASYNCPING")
-	// from another goroutine after that many milliseconds, once idle.
+	// from another goroutine after that many milliseconds, once idle. With
+	// asyncComp set, it instead grows the completer and calls
+	// RefreshCompletions after that delay.
 	asyncMS int
+	// asyncComp installs a completer whose results grow ("charlie" is added)
+	// when the async goroutine fires RefreshCompletions.
+	asyncComp bool
 	// probeReply, if non-nil, computes the DSR reply for an "ESC[6n" query,
 	// letting tests simulate a terminal that reports a wrong cursor position.
 	probeReply func(vt10x.Cursor) string
@@ -193,6 +222,10 @@ func startConsole(t *testing.T, cfg consoleConfig) *console {
 
 	if cfg.asyncMS > 0 {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%d", asyncMSEnvVar, cfg.asyncMS))
+	}
+
+	if cfg.asyncComp {
+		cmd.Env = append(cmd.Env, asyncCompEnvVar+"=1")
 	}
 
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: uint16(cfg.rows), Cols: uint16(cfg.cols)})

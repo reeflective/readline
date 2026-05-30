@@ -190,6 +190,20 @@ func (rl *Shell) menuIncrementalSearch() {
 	rl.completer.IsearchStart("completions", false, false)
 }
 
+// RefreshCompletions regenerates the currently active completion menu from the
+// cached completer and repaints, so completions produced asynchronously (for
+// instance by a background producer that updates a cache the completer reads)
+// can be shown in place without the user pressing a key.
+//
+// It is safe to call from any goroutine. If no completion menu is active it is
+// a clean no-op. The regeneration runs on the Readline goroutine (rendering
+// stays single-writer); the current selection is reset, since the menu is
+// rebuilt from scratch (as on a terminal resize).
+func (rl *Shell) RefreshCompletions() {
+	rl.completer.RequestRegen()
+	rl.Keys.RequestRefresh()
+}
+
 //
 // Utilities --------------------------------------------------------------------------
 //

@@ -93,6 +93,11 @@ func (rl *Shell) Readline() (string, error) {
 		// been consumed but did not match any command.
 		core.FlushUsed(rl.Keys)
 
+		// Apply any async-requested completion regeneration (RefreshCompletions)
+		// here on the main loop, before refreshing, so an active menu rebuilds
+		// in place while rendering stays single-writer.
+		rl.completer.ApplyRegen()
+
 		// Since we always update helpers after being asked to read
 		// for user input again, we do it before actually reading it.
 		rl.Display.Refresh()
