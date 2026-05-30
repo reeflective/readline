@@ -40,6 +40,7 @@ const (
 	childEnvVar   = "READLINE_PTY_CHILD"
 	promptEnvVar  = "READLINE_PTY_PROMPT"
 	prefillEnvVar = "READLINE_PTY_PREFILL"
+	noProbeEnvVar = "READLINE_PTY_NOPROBE"
 )
 
 // TestMain lets this test binary double as the process-under-test: when the
@@ -66,6 +67,10 @@ func runPTYChild() {
 
 	rl := readline.NewShell()
 
+	if os.Getenv(noProbeEnvVar) == "1" {
+		rl.Config.Set("cursor-position-probe", false)
+	}
+
 	prompt := os.Getenv(promptEnvVar)
 	if prompt == "" {
 		prompt = "> "
@@ -91,8 +96,9 @@ type console struct {
 	ptmx *os.File
 	term vt10x.Terminal
 
-	mu   sync.Mutex // guards term (writer + reads) and serialises DSR replies
-	done chan struct{}
+	mu         sync.Mutex // guards term (writer + reads), probeCount and DSR replies
+	done       chan struct{}
+	probeCount int // number of "ESC[6n" cursor-position queries observed
 
 	// probeReply, if non-nil, computes the DSR reply bytes for an "ESC[6n"
 	// cursor-position query, letting tests simulate a misbehaving terminal.
@@ -107,6 +113,8 @@ type consoleConfig struct {
 	// prefill is the number of blank lines printed before the prompt, used to
 	// push the prompt down the window (e.g. to the bottom row).
 	prefill int
+	// noProbe disables the shell's cursor-position probing in the child.
+	noProbe bool
 	// probeReply, if non-nil, computes the DSR reply for an "ESC[6n" query,
 	// letting tests simulate a terminal that reports a wrong cursor position.
 	probeReply func(vt10x.Cursor) string
@@ -131,6 +139,10 @@ func startConsole(t *testing.T, cfg consoleConfig) *console {
 		"INPUTRC=/dev/null", // don't pick up a developer's ~/.inputrc
 		"TERM=xterm-256color",
 	)
+
+	if cfg.noProbe {
+		cmd.Env = append(cmd.Env, noProbeEnvVar+"=1")
+	}
 
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: uint16(cfg.rows), Cols: uint16(cfg.cols)})
 	if err != nil {
@@ -175,6 +187,10 @@ func (c *console) readLoop() {
 			// which holds in practice because the shell emits prompt+query in
 			// one write. A buffering scanner can be added if that changes.
 			if bytes.Contains(chunk, []byte("\x1b[6n")) {
+				c.mu.Lock()
+				c.probeCount++
+				c.mu.Unlock()
+
 				c.replyCursorPos()
 			}
 		}
@@ -210,6 +226,15 @@ func (c *console) send(s string) {
 	if _, err := c.ptmx.WriteString(s); err != nil {
 		c.t.Fatalf("send %q: %v", s, err)
 	}
+}
+
+// probeQueries returns how many "ESC[6n" cursor-position queries the child has
+// sent so far.
+func (c *console) probeQueries() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.probeCount
 }
 
 // screen returns the current rendered contents of the virtual terminal.

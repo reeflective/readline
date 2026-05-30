@@ -3,7 +3,6 @@
 package display_test
 
 import (
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -137,33 +136,51 @@ func TestRenderMultilinePromptWrapAtBottom(t *testing.T) {
 	}
 }
 
-// TestRenderMisreportedCursor exercises a known robustness gap (kept gated so it
-// does not fail CI): when the terminal reports a wrong cursor position for an
-// "ESC[6n" query — slow / racing / quirky terminals — the row/column
-// bookkeeping is corrupted and the prompt is redrawn on every row. Here we
-// simulate a terminal that always reports column 1, type a wrapping line and
-// edit it.
-//
-// Run with READLINE_RUN_KNOWN_GAPS=1. Remove the skip once the cursor probe can
-// be disabled or startCols is sanity-checked.
-func TestRenderMisreportedCursor(t *testing.T) {
-	if os.Getenv("READLINE_RUN_KNOWN_GAPS") == "" {
-		t.Skip("known gap (currently red): run with READLINE_RUN_KNOWN_GAPS=1; " +
-			"unskip when the cursor probe can be disabled / startCols is sanity-checked.")
+// TestCursorProbeEnabledByDefault confirms probing is on by default: a normal
+// render issues at least one "ESC[6n" cursor-position query.
+func TestCursorProbeEnabledByDefault(t *testing.T) {
+	c := newConsole(t, "PROMPT> ", 80, 24)
+	c.waitForScreen("PROMPT>", 3*time.Second)
+
+	if c.probeQueries() == 0 {
+		t.Fatal("expected at least one ESC[6n cursor-position query with probing enabled")
 	}
+}
 
-	lying := func(vt10x.Cursor) string { return "\x1b[1;1R" } // always column 1
+// TestRenderWithCursorProbeDisabled verifies the cursor-position-probe option:
+// when turned off, the shell sends no "ESC[6n" query and renders correctly from
+// the printed prompt width alone — even against a terminal that would have lied
+// about the cursor position. This is the supported fallback for PTY harnesses
+// and constrained terminals (#101).
+func TestRenderWithCursorProbeDisabled(t *testing.T) {
+	// This responder would report a bogus column; with probing disabled it must
+	// never be consulted.
+	lying := func(vt10x.Cursor) string { return "\x1b[1;1R" }
 
-	c := startConsole(t, consoleConfig{prompt: "PROMPT> ", cols: 40, rows: 24, probeReply: lying})
+	c := startConsole(t, consoleConfig{
+		prompt:     "PROMPT> ",
+		cols:       40,
+		rows:       24,
+		noProbe:    true,
+		probeReply: lying,
+	})
 	c.waitForScreen("PROMPT>", 3*time.Second)
 
 	c.send(strings.Repeat("x", 40)) // wrap to a second row
-	time.Sleep(200 * time.Millisecond)
-	c.send("\x7f\x7f\x7f\x7f\x7fYYYYY") // edit -> several redraws
-	time.Sleep(200 * time.Millisecond)
+	screen := c.waitUntil(func(s string) bool {
+		return strings.Count(s, "x") >= 40
+	}, 3*time.Second)
 
-	screen := c.screen()
+	if got := c.probeQueries(); got != 0 {
+		t.Fatalf("expected no ESC[6n queries when probing is disabled, got %d", got)
+	}
+
 	if got := countLine(screen, "PROMPT>"); got != 1 {
-		t.Fatalf("prompt rendered %d times (want 1) under a wrong cursor probe:\n%s", got, screen)
+		t.Fatalf("prompt should render exactly once with probing disabled, got %d:\n%s", got, screen)
+	}
+
+	row0 := strings.TrimRight(strings.SplitN(screen, "\n", 2)[0], " ")
+	if want := "PROMPT> " + strings.Repeat("x", 32); row0 != want {
+		t.Fatalf("row 0 misaligned with probing disabled:\n  got:  %q\n  want: %q", row0, want)
 	}
 }

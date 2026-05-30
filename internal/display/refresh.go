@@ -213,6 +213,15 @@ func (e *Engine) ensureInputSpace() {
 	// it whether the area plus its trailing row runs past the bottom, and scroll
 	// the screen up by exactly the missing rows (adjusting startRows to match)
 	// without issuing another cursor-position query.
+	// Reserving space requires the cursor's absolute row, which only the
+	// cursor-position probe provides. When probing is disabled or unavailable
+	// (startRows < 1), we cannot detect the bottom of the window, so we skip
+	// this step -- the documented degraded behavior is that a prompt at the very
+	// bottom may overlap (see disable-cursor-position-probe).
+	if e.startRows < 1 {
+		return
+	}
+
 	reserve := e.lineRows + 1
 
 	deficit := (e.startRows + reserve) - term.GetLength()

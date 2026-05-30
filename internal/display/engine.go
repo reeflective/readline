@@ -175,15 +175,24 @@ func (e *Engine) computeCoordinates(suggested bool) {
 		e.suggested = e.histories.Suggest(e.line)
 	}
 
-	// Get the position of the line's beginning by querying
-	// the terminal for the cursor position.
-	e.startCols, e.startRows = e.keys.GetCursorPos()
+	// Get the position of the line's beginning by querying the terminal for the
+	// cursor position. Some environments (PTY test harnesses, minimal emulators,
+	// constrained CI) don't reliably answer the "ESC[6n" query, so consumers can
+	// turn the cursor-position-probe option off; we then fall back to a position
+	// derived from the printed prompt width.
+	if e.opts.GetBool("cursor-position-probe") {
+		e.startCols, e.startRows = e.keys.GetCursorPos()
+	} else {
+		e.startCols, e.startRows = -1, -1
+	}
 
 	if e.startCols > 0 {
 		e.startCols--
 	}
 
-	// Cursor position might be misleading if invalid (negative).
+	// Cursor column might be misleading if invalid (negative), or unavailable
+	// because probing is disabled: fall back to the printed prompt width. This
+	// is exact whenever the input line starts at column 0 (the common case).
 	if e.startCols == -1 {
 		e.startCols = e.prompt.LastUsed()
 	}

@@ -26,6 +26,13 @@ var readlineOptions = map[string]interface{}{
 	"history-autosuggest":       false,
 	"multiline-column":          true,
 	"multiline-column-numbered": false,
+
+	// Terminal
+	// cursor-position-probe controls whether the display engine queries the
+	// terminal for the cursor position ("ESC[6n"). Disable it in environments
+	// that don't reliably answer (PTY test harnesses, minimal emulators,
+	// constrained CI); the engine then falls back to the printed prompt width.
+	"cursor-position-probe": true,
 }
 
 // ReloadConfig parses all valid .inputrc configurations and immediately
