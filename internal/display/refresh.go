@@ -175,38 +175,38 @@ func (e *Engine) ensureIndicatorSpace() {
 }
 
 func (e *Engine) ensureInputSpace() {
-	if e.lineRows <= 1 {
+	// The input area occupies lineRows+1 visual rows starting at startRows, and
+	// the redraw/helper machinery always steps one further row below it (e.g. the
+	// "move down 1, clear below, move up 1" sequences). When the prompt is
+	// rendered at the bottom of the window that trailing row does not exist: the
+	// terminal clamps our downward moves while the paired upward moves still
+	// travel, so the row bookkeeping drifts and the prompt's lines get
+	// overwritten/overlapped (issue #98, reeflective/console#78).
+	//
+	// startRows was just probed in computeCoordinates, so we can tell purely from
+	// it whether the area plus its trailing row runs past the bottom, and scroll
+	// the screen up by exactly the missing rows (adjusting startRows to match)
+	// without issuing another cursor-position query.
+	reserve := e.lineRows + 1
+
+	deficit := (e.startRows + reserve) - term.GetLength()
+	if deficit <= 0 {
 		return
 	}
 
-	// 1. Probe the terminal height.
-	// We move the cursor down to the last line of the input line,
-	// and check if the cursor is at the expected position.
-	term.MoveCursorDown(e.lineRows - 1)
-	_, actualRow := e.keys.GetCursorPos()
-	term.MoveCursorUp(e.lineRows - 1)
+	// We are at the input-line start. Drop to the bottom of the input area
+	// (clamped at the last row), emit newlines to scroll the screen up by the
+	// deficit, then climb back to the new input-line start.
+	term.MoveCursorDown(e.lineRows)
 
-	// 2. Calculate the overshoot.
-	expectedRow := e.startRows + e.lineRows - 1
-	overshoot := expectedRow - actualRow
-
-	// 3. Scroll the screen if needed.
-	if overshoot > 0 {
-		// Move to the bottom of the terminal.
-		term.MoveCursorDown(actualRow - e.startRows)
-
-		// Scroll the screen by printing newlines.
-		for range overshoot {
-			fmt.Print("\n")
-		}
-
-		// Update the start row to reflect the scrolling.
-		e.startRows -= overshoot
-
-		// Move the cursor back up to the new start position.
-		term.MoveCursorUp(e.lineRows - 1)
-		term.MoveCursorForwards(e.startCols)
+	for range deficit {
+		fmt.Print(term.NewlineReturn)
 	}
+
+	e.startRows -= deficit
+
+	term.MoveCursorUp(reserve)
+	term.MoveCursorForwards(e.startCols)
 }
 
 func (e *Engine) displayLineRefactored() {

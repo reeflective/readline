@@ -1,6 +1,6 @@
 //go:build unix
 
-package readline
+package display_test
 
 // This file provides a PTY-backed, virtual-terminal test harness for the shell.
 //
@@ -15,6 +15,9 @@ package readline
 // can assert on the *rendered* screen, and it auto-responds to cursor-position
 // (DSR "ESC[6n") queries so that GetCursorPos() does not block forever
 // consuming our keystrokes (see internal/core/keys_unix.go).
+//
+// It lives as an external test package (display_test) so it can drive the full
+// shell via the root readline package without an import cycle.
 
 import (
 	"bytes"
@@ -29,6 +32,8 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/hinshun/vt10x"
+
+	"github.com/reeflective/readline"
 )
 
 const (
@@ -59,7 +64,7 @@ func runPTYChild() {
 		fmt.Fprint(os.Stdout, strings.Repeat("\r\n", n))
 	}
 
-	rl := NewShell()
+	rl := readline.NewShell()
 
 	prompt := os.Getenv(promptEnvVar)
 	if prompt == "" {
