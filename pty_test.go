@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -31,8 +32,9 @@ import (
 )
 
 const (
-	childEnvVar  = "READLINE_PTY_CHILD"
-	promptEnvVar = "READLINE_PTY_PROMPT"
+	childEnvVar   = "READLINE_PTY_CHILD"
+	promptEnvVar  = "READLINE_PTY_PROMPT"
+	prefillEnvVar = "READLINE_PTY_PREFILL"
 )
 
 // TestMain lets this test binary double as the process-under-test: when the
@@ -50,6 +52,13 @@ func TestMain(m *testing.M) {
 // runPTYChild runs one Readline() round with a deterministic prompt, then
 // prints the accepted line (or error) wrapped in markers the harness matches on.
 func runPTYChild() {
+	// Optionally push the prompt down the screen first, so tests can place it
+	// at (or near) the bottom of the terminal window. The value is the number
+	// of blank lines to print before starting the shell.
+	if n, err := strconv.Atoi(os.Getenv(prefillEnvVar)); err == nil && n > 0 {
+		fmt.Fprint(os.Stdout, strings.Repeat("\r\n", n))
+	}
+
 	rl := NewShell()
 
 	prompt := os.Getenv(promptEnvVar)
@@ -79,32 +88,57 @@ type console struct {
 
 	mu   sync.Mutex // guards term (writer + reads) and serialises DSR replies
 	done chan struct{}
+
+	// probeReply, if non-nil, computes the DSR reply bytes for an "ESC[6n"
+	// cursor-position query, letting tests simulate a misbehaving terminal.
+	// If nil, the emulator's true cursor position is reported (1-based).
+	probeReply func(cur vt10x.Cursor) string
+}
+
+// consoleConfig configures a PTY-backed test console.
+type consoleConfig struct {
+	prompt     string
+	cols, rows int
+	// prefill is the number of blank lines printed before the prompt, used to
+	// push the prompt down the window (e.g. to the bottom row).
+	prefill int
+	// probeReply, if non-nil, computes the DSR reply for an "ESC[6n" query,
+	// letting tests simulate a terminal that reports a wrong cursor position.
+	probeReply func(vt10x.Cursor) string
 }
 
 // newConsole spawns the child shell under a PTY of the given size, with the
 // given primary prompt, and starts mirroring its output into the emulator.
 func newConsole(t *testing.T, prompt string, cols, rows int) *console {
+	return startConsole(t, consoleConfig{prompt: prompt, cols: cols, rows: rows})
+}
+
+// startConsole spawns the child shell under a PTY using the full config and
+// starts mirroring its output into the emulator.
+func startConsole(t *testing.T, cfg consoleConfig) *console {
 	t.Helper()
 
 	cmd := exec.Command(os.Args[0])
 	cmd.Env = append(os.Environ(),
 		childEnvVar+"=1",
-		promptEnvVar+"="+prompt,
+		promptEnvVar+"="+cfg.prompt,
+		fmt.Sprintf("%s=%d", prefillEnvVar, cfg.prefill),
 		"INPUTRC=/dev/null", // don't pick up a developer's ~/.inputrc
 		"TERM=xterm-256color",
 	)
 
-	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: uint16(rows), Cols: uint16(cols)})
+	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: uint16(cfg.rows), Cols: uint16(cfg.cols)})
 	if err != nil {
 		t.Fatalf("start child under pty: %v", err)
 	}
 
 	c := &console{
-		t:    t,
-		cmd:  cmd,
-		ptmx: ptmx,
-		term: vt10x.New(vt10x.WithSize(cols, rows)),
-		done: make(chan struct{}),
+		t:          t,
+		cmd:        cmd,
+		ptmx:       ptmx,
+		term:       vt10x.New(vt10x.WithSize(cfg.cols, cfg.rows)),
+		done:       make(chan struct{}),
+		probeReply: cfg.probeReply,
 	}
 
 	go c.readLoop()
@@ -146,13 +180,22 @@ func (c *console) readLoop() {
 	}
 }
 
-// replyCursorPos writes a DSR cursor-position report (1-based row;col).
+// replyCursorPos writes a DSR cursor-position report (1-based row;col), or the
+// custom reply from probeReply when a test wants to simulate a bad terminal.
 func (c *console) replyCursorPos() {
 	c.mu.Lock()
 	cur := c.term.Cursor()
+	fn := c.probeReply
 	c.mu.Unlock()
 
-	fmt.Fprintf(c.ptmx, "\x1b[%d;%dR", cur.Y+1, cur.X+1)
+	reply := fmt.Sprintf("\x1b[%d;%dR", cur.Y+1, cur.X+1)
+	if fn != nil {
+		reply = fn(cur)
+	}
+
+	if reply != "" {
+		_, _ = c.ptmx.WriteString(reply)
+	}
 }
 
 // send writes raw bytes to the child as if typed by the user.
@@ -193,9 +236,37 @@ func (c *console) waitForScreen(substr string, timeout time.Duration) string {
 	}
 }
 
-// close tears the child and PTY down. Registered via t.Cleanup.
+// waitUntil polls the rendered screen until cond returns true, or fails the
+// test on timeout. Returns the last screen contents.
+func (c *console) waitUntil(cond func(screen string) bool, timeout time.Duration) string {
+	c.t.Helper()
+
+	deadline := time.Now().Add(timeout)
+	for {
+		s := c.screen()
+		if cond(s) {
+			return s
+		}
+
+		if time.Now().After(deadline) {
+			c.t.Fatalf("timed out waiting for screen condition; got:\n%s", s)
+			return s
+		}
+
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// close tears the child and PTY down. Registered via t.Cleanup, so it must
+// never hang even when a test fails mid-flight: we close the PTY (which EOFs
+// the child's reads), then force-kill as a backstop before reaping.
 func (c *console) close() {
 	_ = c.ptmx.Close()
-	_, _ = c.cmd.Process.Wait()
+
+	if c.cmd.Process != nil {
+		_ = c.cmd.Process.Kill()
+	}
+
+	_ = c.cmd.Wait()
 	<-c.done
 }
