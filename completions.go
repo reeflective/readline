@@ -108,7 +108,7 @@ func CompleteStyledValuesDescribed(values ...string) Completions {
 	return Completions{values: vals}
 }
 
-// CompleteMessage ads a help message to display along with
+// CompleteMessage adds a help message to display along with
 // or in places where no completions can be generated.
 func CompleteMessage(msg string, args ...any) Completions {
 	comps := Completions{}
@@ -125,19 +125,6 @@ func CompleteMessage(msg string, args ...any) Completions {
 // CompleteRaw directly accepts a list of prepared Completion values.
 func CompleteRaw(values []Completion) Completions {
 	return Completions{values: completion.RawValues(values)}
-}
-
-// Message displays a help messages in places where no completions can be generated.
-func Message(msg string, args ...any) Completions {
-	comps := Completions{}
-
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
-
-	comps.messages.Add(msg)
-
-	return comps
 }
 
 // Suppress suppresses specific error messages using regular expressions.
