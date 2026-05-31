@@ -201,5 +201,13 @@ var re = regexp.MustCompile(ansi)
 
 // Strip removes all ANSI escaped color sequences in a string.
 func Strip(str string) string {
+	// Fast path: every match in the ansi pattern must begin with an ESC (0x1B)
+	// or CSI (0x9B) introducer, so a string containing neither has nothing to
+	// strip. This avoids a regex pass and an allocation for the common case of
+	// plain (uncolored) completion values, measured on every candidate.
+	if strings.IndexByte(str, 0x1B) == -1 && strings.IndexByte(str, 0x9B) == -1 {
+		return str
+	}
+
 	return re.ReplaceAllString(str, "")
 }
