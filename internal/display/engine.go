@@ -2,6 +2,7 @@ package display
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
@@ -32,6 +33,11 @@ type Engine struct {
 	hintRows       int
 	compRows       int
 	primaryPrinted bool
+
+	// commentRegex is the compiled comment-highlight pattern. It is rebuilt
+	// only when the comment-begin option changes, not on every refresh.
+	commentToken string
+	commentRegex *regexp.Regexp
 
 	// UI components
 	keys      *core.Keys
