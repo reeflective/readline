@@ -4,8 +4,6 @@
 package core
 
 import (
-	"errors"
-	"io"
 	"unsafe"
 
 	"github.com/reeflective/readline/inputrc"
@@ -72,7 +70,11 @@ func (k *Keys) readInputFiltered() (keys []byte, err error) {
 		buf := make([]byte, keyScanBufSize)
 
 		read, err := Stdin.Read(buf)
-		if err != nil && errors.Is(err, io.EOF) {
+		if err != nil {
+			// EOF (stream closed) or any other read failure (e.g. a revoked
+			// console handle): propagate it so WaitAvailableKeys records EOF or
+			// surfaces the error, instead of swallowing it and spinning on a
+			// dead stdin. Mirrors the Unix reader's behaviour.
 			return keys, err
 		}
 
