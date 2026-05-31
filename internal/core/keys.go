@@ -45,9 +45,10 @@ type Keys struct {
 	wakeW     int        // Write end of the async-refresh wake pipe.
 	wakeReady bool       // Whether the wake pipe is initialized and usable.
 
-	eof   bool            // EOF has been reached.
-	cfg   *inputrc.Config // Configuration file used for meta key settings
-	mutex sync.RWMutex    // Concurrency safety
+	eof     bool            // EOF has been reached.
+	readErr error           // First non-EOF, non-wake input failure (e.g. a revoked tty).
+	cfg     *inputrc.Config // Configuration file used for meta key settings
+	mutex   sync.RWMutex    // Concurrency safety
 }
 
 // WaitAvailableKeys waits until an input key is either read from standard input,
@@ -81,11 +82,23 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 		// send by ourselves, because we pause reading.
 		keyBuf, err := keys.readInputFiltered()
 		if err != nil {
-			// EOF: input stream closed. Wake: an async refresh was
-			// requested (RequestRefresh) — return with no keys so the
-			// main loop repaints the (possibly updated) UI and waits again.
-			if errors.Is(err, io.EOF) {
+			// Wake: an async refresh was requested (RequestRefresh) — return
+			// with no keys so the main loop repaints the (possibly updated) UI
+			// and waits again. EOF: input stream closed. Any other error (e.g.
+			// a revoked tty) is a real read failure: record it so the main loop
+			// can surface it and exit, instead of spinning on it forever.
+			switch {
+			case errors.Is(err, errInputWake):
+			case errors.Is(err, io.EOF):
+				keys.mutex.Lock()
 				keys.eof = true
+				keys.mutex.Unlock()
+			default:
+				keys.mutex.Lock()
+				if keys.readErr == nil {
+					keys.readErr = err
+				}
+				keys.mutex.Unlock()
 			}
 
 			return
@@ -132,6 +145,17 @@ func (k *Keys) IsEOF() bool {
 	defer k.mutex.RUnlock()
 
 	return k.eof
+}
+
+// ReadError returns the first non-EOF input failure observed while reading keys
+// (for instance a revoked tty), or nil. Async-refresh wakes are not errors and
+// are never reported here. The main loop uses this to exit cleanly instead of
+// spinning on an unrecoverable input stream.
+func (k *Keys) ReadError() error {
+	k.mutex.RLock()
+	defer k.mutex.RUnlock()
+
+	return k.readErr
 }
 
 // PeekKey returns the first key in the stack, without removing it.
@@ -296,6 +320,10 @@ func (k *Keys) ReadKey() (key rune, isAbort bool) {
 
 	case k.waiting:
 		buf := <-k.keysOnce
+		if len(buf) == 0 {
+			return rune(0), true
+		}
+
 		key = []rune(string(buf))[0]
 	default:
 		// Read until we get an actual key: ignore async-refresh wakes

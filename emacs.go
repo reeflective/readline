@@ -458,6 +458,12 @@ func (rl *Shell) bracketedPasteBegin() {
 		key, empty := core.PopKey(rl.Keys)
 		if empty {
 			core.WaitAvailableKeys(rl.Keys, rl.Config)
+			// Stop consuming the paste if the input stream died or errored,
+			// otherwise this loop spins forever on a dead tty.
+			if rl.Keys.IsEOF() || rl.Keys.ReadError() != nil {
+				return
+			}
+
 			continue
 		}
 
