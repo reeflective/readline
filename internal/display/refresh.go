@@ -55,11 +55,21 @@ func (e *Engine) Refresh() {
 	// 4. Helpers Rendering
 	// We clear everything below the input area to ensure that no artifacts
 	// from previous renders (like longer lines or helpers) remain visible.
-	term.MoveCursorDown(1)
-	term.MoveCursorBackwards(term.GetWidth())
-	fmt.Print(term.ClearScreenBelow)
-	term.MoveCursorUp(1)
-	term.MoveCursorForwards(e.lineCol)
+	//
+	// We need to move one row below the input, clear everything there, and
+	// come back. However, CUD (\x1b[1B) is a no-op on the last terminal
+	// row, so we check whether we're already at the bottom. If we are,
+	// there's nothing below to clear and we can skip. If we're not, we use
+	// CUD + clear + CUU to clean up artifacts from previous renders.
+	termHeight := term.GetLength()
+	atBottom := (e.startRows + e.lineRows) >= termHeight
+	if !atBottom {
+		term.MoveCursorDown(1)
+		term.MoveCursorBackwards(term.GetWidth())
+		fmt.Print(term.ClearScreenBelow)
+		term.MoveCursorUp(1)
+		term.MoveCursorForwards(e.lineCol)
+	}
 
 	e.renderHelpers()
 
@@ -111,16 +121,8 @@ func (e *Engine) renderHelpers() {
 	compMatches := e.completer.Matches()
 	compSkip := e.completer.DisplaySkipped()
 
-	// 2. Clear below the input line to remove artifacts,
-	// unless we are at the bottom of the screen.
-	termHeight := term.GetLength()
-	if (e.startRows + e.lineRows) < termHeight {
-		term.MoveCursorDown(1)
-		term.MoveCursorBackwards(term.GetWidth())
-		fmt.Print(term.ClearScreenBelow)
-		term.MoveCursorUp(1)
-		term.MoveCursorForwards(e.lineCol)
-	}
+	// Refresh() already cleared below the input line before calling us,
+	// so no additional clear is needed here.
 
 	if hintRows == 0 && (compMatches == 0 || compSkip) {
 		e.hintRows = 0
