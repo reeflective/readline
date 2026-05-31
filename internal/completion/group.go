@@ -3,7 +3,6 @@ package completion
 import (
 	"math"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -54,7 +53,7 @@ func (e *Engine) newCompletionGroup(comps Values, tag string, vals RawValues, de
 
 	// Global actions to take on all values.
 	if !grp.noSort {
-		sort.Stable(vals)
+		vals.sortStable()
 	}
 
 	// Initial processing of our assigned values:
