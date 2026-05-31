@@ -596,6 +596,13 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 		histPos = history.Len() - h.hpos
 	}
 
+	// The string to match against is invariant across the whole scan, so
+	// compute it once here instead of rebuilding it for every history entry.
+	cline := string(*match)
+	if cur != nil && cur.Pos() < match.Len() {
+		cline = cline[:cur.Pos()]
+	}
+
 	for done(histPos) {
 		// Fetch the next/prev line and adapt its length.
 		histPos = move(histPos)
@@ -605,21 +612,12 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 			return line, pos, found
 		}
 
-		cline := string(*match)
-		if cur != nil && cur.Pos() < match.Len() {
-			cline = cline[:cur.Pos()]
-		}
-
 		// Matching: either as substring (regex) or since beginning.
 		switch {
 		case regex:
-			regexLine, err := regexp.Compile(regexp.QuoteMeta(cline))
-			if err != nil {
-				continue
-			}
-
-			// Go to next line if not matching as a substring.
-			if !regexLine.MatchString(histline) {
+			// regexp.QuoteMeta + MatchString is exactly a literal substring
+			// test, so match directly instead of compiling a regex per entry.
+			if !strings.Contains(histline, cline) {
 				continue
 			}
 
