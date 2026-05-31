@@ -44,6 +44,11 @@ func (e *Engine) Refresh() {
 	// If we are, we scroll the screen to make space for the line.
 	e.ensureInputSpace()
 
+	// Keep a multi-line prompt's upper lines correct now that the start row is
+	// settled: they are printed only once and not otherwise refreshed, so a
+	// scroll (typically at the bottom of the window) would leave them stale.
+	e.repaintPromptUpperLines()
+
 	// 3. Input Area Rendering
 	e.renderInputArea()
 
@@ -79,6 +84,27 @@ func (e *Engine) Refresh() {
 	term.MoveCursorForwards(e.cursorCol)
 
 	fmt.Print(term.ShowCursor)
+}
+
+// repaintPromptUpperLines reprints the upper lines of a multi-line prompt at
+// the (now settled) start row. Those lines are printed only once initially and
+// are not otherwise refreshed, so when the view scrolls -- typically when the
+// prompt sits at the bottom of the window -- they would be left stale or
+// overwritten (issue #98 / reeflective/console#78). The cursor is at the
+// input-line start on entry and is restored there on return.
+func (e *Engine) repaintPromptUpperLines() {
+	rows := e.prompt.PrimaryUsed()
+	if rows == 0 {
+		return
+	}
+
+	// Go to the first prompt row at column 0, repaint the upper lines (each
+	// ends in a newline, leaving us at column 0 of the last prompt-line row),
+	// then restore the cursor to the input-line start.
+	term.MoveCursorBackwards(term.GetWidth())
+	term.MoveCursorUp(rows)
+	e.prompt.UpperPrint()
+	term.MoveCursorForwards(e.startCols)
 }
 
 func (e *Engine) renderInputArea() {
@@ -170,45 +196,54 @@ func (e *Engine) ensureIndicatorSpace() {
 		// to ensure the input text starts aligned with subsequent lines
 		// and isn't overwritten by the indicator.
 		padding := indicatorWidth - e.startCols
-		fmt.Print(fmt.Sprintf("%*s", padding, ""))
+		fmt.Printf("%*s", padding, "")
 
 		e.startCols = indicatorWidth
 	}
 }
 
 func (e *Engine) ensureInputSpace() {
-	if e.lineRows <= 1 {
+	// The input area occupies lineRows+1 visual rows starting at startRows, and
+	// the redraw/helper machinery always steps one further row below it (e.g. the
+	// "move down 1, clear below, move up 1" sequences). When the prompt is
+	// rendered at the bottom of the window that trailing row does not exist: the
+	// terminal clamps our downward moves while the paired upward moves still
+	// travel, so the row bookkeeping drifts and the prompt's lines get
+	// overwritten/overlapped (issue #98, reeflective/console#78).
+	//
+	// startRows was just probed in computeCoordinates, so we can tell purely from
+	// it whether the area plus its trailing row runs past the bottom, and scroll
+	// the screen up by exactly the missing rows (adjusting startRows to match)
+	// without issuing another cursor-position query.
+	// Reserving space requires the cursor's absolute row, which only the
+	// cursor-position probe provides. When probing is disabled or unavailable
+	// (startRows < 1), we cannot detect the bottom of the window, so we skip
+	// this step -- the documented degraded behavior is that a prompt at the very
+	// bottom may overlap (see disable-cursor-position-probe).
+	if e.startRows < 1 {
 		return
 	}
 
-	// 1. Probe the terminal height.
-	// We move the cursor down to the last line of the input line,
-	// and check if the cursor is at the expected position.
-	term.MoveCursorDown(e.lineRows - 1)
-	_, actualRow := e.keys.GetCursorPos()
-	term.MoveCursorUp(e.lineRows - 1)
+	reserve := e.lineRows + 1
 
-	// 2. Calculate the overshoot.
-	expectedRow := e.startRows + e.lineRows - 1
-	overshoot := expectedRow - actualRow
-
-	// 3. Scroll the screen if needed.
-	if overshoot > 0 {
-		// Move to the bottom of the terminal.
-		term.MoveCursorDown(actualRow - e.startRows)
-
-		// Scroll the screen by printing newlines.
-		for range overshoot {
-			fmt.Print("\n")
-		}
-
-		// Update the start row to reflect the scrolling.
-		e.startRows -= overshoot
-
-		// Move the cursor back up to the new start position.
-		term.MoveCursorUp(e.lineRows - 1)
-		term.MoveCursorForwards(e.startCols)
+	deficit := (e.startRows + reserve) - term.GetLength()
+	if deficit <= 0 {
+		return
 	}
+
+	// We are at the input-line start. Drop to the bottom of the input area
+	// (clamped at the last row), emit newlines to scroll the screen up by the
+	// deficit, then climb back to the new input-line start.
+	term.MoveCursorDown(e.lineRows)
+
+	for range deficit {
+		fmt.Print(term.NewlineReturn)
+	}
+
+	e.startRows -= deficit
+
+	term.MoveCursorUp(reserve)
+	term.MoveCursorForwards(e.startCols)
 }
 
 func (e *Engine) displayLineRefactored() {
@@ -268,11 +303,12 @@ func (e *Engine) renderMultilineIndicators() {
 	for i := 1; i <= e.line.Lines(); i++ {
 		fmt.Print("\n")
 
-		if numbered {
-			fmt.Print(fmt.Sprintf(color.FgBlackBright+"%d"+color.Reset+" ", i+1))
-		} else if i == e.line.Lines() {
+		switch {
+		case numbered:
+			fmt.Printf(color.FgBlackBright+"%d"+color.Reset+" ", i+1)
+		case i == e.line.Lines():
 			e.prompt.SecondaryPrint()
-		} else {
+		default:
 			fmt.Print(pipe)
 		}
 

@@ -2,8 +2,10 @@ package completion
 
 import (
 	"regexp"
+	"sync/atomic"
 
 	"github.com/reeflective/readline/inputrc"
+	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/keymap"
 	"github.com/reeflective/readline/internal/ui"
@@ -37,6 +39,7 @@ type Engine struct {
 	auto        bool          // Is the engine autocompleting ?
 	autoForce   bool          // Special autocompletion mode (isearch-style)
 	skipDisplay bool          // Don't display completions if there are some.
+	regenReq    int32         // Atomic: an async regeneration of the menu was requested.
 
 	// Incremental search
 	IsearchRegex       *regexp.Regexp // Holds the current search regex match
@@ -110,6 +113,121 @@ func (e *Engine) GenerateWith(completer Completer) {
 // different completion grid, for example if it's called on terminal resize.
 func (e *Engine) GenerateCached() {
 	e.GenerateWith(e.cached)
+}
+
+// RequestRegen marks that the active completion menu should be regenerated from
+// the cached completer on the next refresh. It is safe to call from any
+// goroutine; the regeneration itself runs on the main loop (see ApplyRegen),
+// preserving the single-writer rendering invariant.
+func (e *Engine) RequestRegen() {
+	atomic.StoreInt32(&e.regenReq, 1)
+}
+
+// ApplyRegen regenerates the menu from the cached completer if a regeneration
+// was requested (RequestRegen) and a menu is currently active. It runs on the
+// main loop before a refresh. If a candidate was selected, the same candidate
+// is re-selected in the rebuilt menu when it still exists (see
+// regenPreservingSelection); otherwise the menu is left with no selection.
+func (e *Engine) ApplyRegen() {
+	if atomic.SwapInt32(&e.regenReq, 0) == 0 {
+		return
+	}
+
+	if !e.IsActive() {
+		return
+	}
+
+	e.regenPreservingSelection()
+}
+
+// regenPreservingSelection rebuilds the completion menu from the cached
+// completer in response to an asynchronous refresh, keeping the user's current
+// selection if the same candidate is still present in the new results.
+//
+// Selection is restored by CONTENT (tag+value), not position: prepare() rebuilds
+// and re-sorts the groups, so cell coordinates and group pointers do not survive
+// an async update — only the candidate's identity does.
+func (e *Engine) regenPreservingSelection() {
+	// Use the cached completer (explicit menu) or, failing that, the autocomplete
+	// completer (as-you-type menus, which never set e.cached). Without this
+	// fallback an autocomplete-driven menu — the common case in richer frontends —
+	// could not be refreshed while a candidate is selected.
+	completer := e.cached
+	if completer == nil {
+		completer = e.autoCompleter
+	}
+
+	if completer == nil {
+		return
+	}
+
+	// Incremental search maintains its own match/selection lifecycle; don't
+	// interfere with it, just recompute as before.
+	if e.keymap.Local() == keymap.Isearch {
+		e.GenerateCached()
+		return
+	}
+
+	// Remember the selected candidate's identity, then drop the virtual
+	// insertion so the completer regenerates against the REAL line. Otherwise
+	// the inserted candidate skews the completion context and the menu cannot
+	// update (it would appear frozen for as long as a candidate is selected).
+	selTag, selValue := e.selected.Tag, e.selected.Value
+	hadSelection := selValue != ""
+
+	if hadSelection {
+		e.cancelCompletedLine()
+	}
+
+	// Rebuild the candidate pool. Unlike Generate(), this deliberately does NOT
+	// auto-accept a transient unique candidate: during async streaming a
+	// momentary single result must not commit the line and close the menu.
+	e.prepare(completer())
+
+	if e.noCompletions() {
+		e.ClearMenu(true)
+		return
+	}
+
+	// Restore the selection by re-selecting the same candidate, if it survived.
+	// If it is gone, the menu is left active with no virtual selection.
+	if hadSelection && e.selectCandidate(selTag, selValue) {
+		e.insertCandidate()
+	}
+}
+
+// selectCandidate positions the menu selector on the (first) candidate matching
+// the given tag and value, making its group the current one. Values are matched
+// with escape sequences stripped, since the stored selection is stripped too.
+// It returns false if no such candidate exists in the current groups.
+func (e *Engine) selectCandidate(tag, value string) bool {
+	want := color.Strip(value)
+
+	for _, grp := range e.groups {
+		if tag != "" && grp.tag != tag {
+			continue
+		}
+
+		for y, row := range grp.rows {
+			for x, cand := range row {
+				if color.Strip(cand.Value) != want {
+					continue
+				}
+
+				for _, g := range e.groups {
+					g.isCurrent = false
+				}
+
+				grp.isCurrent = true
+				grp.posX = x
+				grp.posY = y
+
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // SkipDisplay avoids printing completions below the

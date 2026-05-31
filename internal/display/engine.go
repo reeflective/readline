@@ -2,6 +2,7 @@ package display
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
@@ -32,6 +33,11 @@ type Engine struct {
 	hintRows       int
 	compRows       int
 	primaryPrinted bool
+
+	// commentRegex is the compiled comment-highlight pattern. It is rebuilt
+	// only when the comment-begin option changes, not on every refresh.
+	commentToken string
+	commentRegex *regexp.Regexp
 
 	// UI components
 	keys      *core.Keys
@@ -150,22 +156,6 @@ func (e *Engine) CursorBelowLine() {
 	fmt.Print(term.NewlineReturn)
 }
 
-// lineStartToCursorPos can be used if the cursor is currently
-// at the very start of the input line, that is just after the
-// last character of the prompt.
-func (e *Engine) lineStartToCursorPos() {
-	term.MoveCursorDown(e.cursorRow)
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.cursorCol)
-}
-
-// cursor is on the line below the last line of input.
-func (e *Engine) cursorHintToLineStart() {
-	term.MoveCursorUp(1)
-	term.MoveCursorUp(e.lineRows - e.cursorRow)
-	e.CursorToLineStart()
-}
-
 func (e *Engine) computeCoordinates(suggested bool) {
 	// Get the new input line and auto-suggested one.
 	e.line, e.cursor = e.completer.Line()
@@ -175,15 +165,28 @@ func (e *Engine) computeCoordinates(suggested bool) {
 		e.suggested = e.histories.Suggest(e.line)
 	}
 
-	// Get the position of the line's beginning by querying
-	// the terminal for the cursor position.
-	e.startCols, e.startRows = e.keys.GetCursorPos()
+	// Recompute the passive provider hint from the current line, so it tracks
+	// the input as it changes. Runs every refresh, on the main loop goroutine.
+	e.hint.UpdateProvided([]rune(*e.line), e.cursor.Pos())
+
+	// Get the position of the line's beginning by querying the terminal for the
+	// cursor position. Some environments (PTY test harnesses, minimal emulators,
+	// constrained CI) don't reliably answer the "ESC[6n" query, so consumers can
+	// turn the cursor-position-probe option off; we then fall back to a position
+	// derived from the printed prompt width.
+	if e.opts.GetBool("cursor-position-probe") {
+		e.startCols, e.startRows = e.keys.GetCursorPos()
+	} else {
+		e.startCols, e.startRows = -1, -1
+	}
 
 	if e.startCols > 0 {
 		e.startCols--
 	}
 
-	// Cursor position might be misleading if invalid (negative).
+	// Cursor column might be misleading if invalid (negative), or unavailable
+	// because probing is disabled: fall back to the printed prompt width. This
+	// is exact whenever the input line starts at column 0 (the common case).
 	if e.startCols == -1 {
 		e.startCols = e.prompt.LastUsed()
 	}
@@ -236,17 +239,6 @@ func (e *Engine) displayLine() {
 		fmt.Print(term.NewlineReturn)
 		fmt.Print(term.ClearLineAfter)
 	}
-}
-
-// lineEndToCursorPos moves the cursor from the end of the input line
-// to the current cursor position.
-func (e *Engine) lineEndToCursorPos() {
-	if e.lineRows > e.cursorRow {
-		term.MoveCursorUp(e.lineRows - e.cursorRow)
-	}
-
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.cursorCol)
 }
 
 // AvailableHelperLines returns the number of lines available below the hint section.

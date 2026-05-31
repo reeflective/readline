@@ -304,9 +304,10 @@ func (s *Selection) Surround(bchar, echar rune) {
 
 	defer s.Reset()
 
-	var buf []rune
+	text := []rune(s.Text())
+	buf := make([]rune, 0, 1+len(text)+1)
 	buf = append(buf, bchar)
-	buf = append(buf, []rune(s.Text())...)
+	buf = append(buf, text...)
 	buf = append(buf, echar)
 
 	// The begin and end positions of the selection
@@ -340,7 +341,7 @@ func (s *Selection) SelectAWord() (bpos, epos int) {
 
 	// And only select spaces after it if the word selected is not preceded
 	// by spaces as well, or if we started the selection within this word.
-	bpos, _ = s.adjustWordSelection(spaceBefore, spaceUnder, spaceAfter, bpos)
+	bpos = s.adjustWordSelection(spaceBefore, spaceUnder, spaceAfter, bpos)
 
 	if !s.Active() || bpos < cpos {
 		s.Mark(bpos)
@@ -375,7 +376,7 @@ func (s *Selection) SelectABlankWord() (bpos, epos int) {
 
 	// And only select spaces after it if the word selected is not preceded
 	// by spaces as well, or if we started the selection within this word.
-	bpos, _ = s.adjustWordSelection(spaceBefore, spaceUnder, spaceAfter, bpos)
+	bpos = s.adjustWordSelection(spaceBefore, spaceUnder, spaceAfter, bpos)
 
 	if !s.Active() || bpos < s.cursor.Pos() {
 		s.Mark(bpos)
@@ -722,15 +723,13 @@ func isSpace(char rune) bool {
 
 // adjustWordSelection adjust the beginning and end of a word (blank or not) selection, depending
 // on whether it's surrounded by spaces, and if selection started from a whitespace or within word.
-func (s *Selection) adjustWordSelection(_, under, after bool, bpos int) (int, int) {
-	var epos int
-
+func (s *Selection) adjustWordSelection(_, under, after bool, bpos int) int {
 	if after && !under {
 		s.cursor.Inc()
 		s.cursor.ToFirstNonSpace(true)
 		s.cursor.Dec()
 	} else if !after {
-		epos = s.cursor.Pos()
+		epos := s.cursor.Pos()
 		s.cursor.Set(bpos - 1)
 		s.cursor.ToFirstNonSpace(false)
 		s.cursor.Inc()
@@ -738,9 +737,7 @@ func (s *Selection) adjustWordSelection(_, under, after bool, bpos int) (int, in
 		s.cursor.Set(epos)
 	}
 
-	epos = s.cursor.Pos()
-
-	return bpos, epos
+	return bpos
 }
 
 func (s *Selection) matchKeyword(buf []rune, bbpos int, next bool) (name string, found bool, bpos, epos int) {
@@ -797,10 +794,10 @@ func (s *Selection) matchKeyword(buf []rune, bbpos int, next bool) (name string,
 
 	if next {
 		done = func(i int) bool { return i <= len(matchersNames) }
-		move = func(inc int) int { return kpos + 1 }
+		move = func(_ int) int { return kpos + 1 }
 	} else {
 		done = func(i int) bool { return i > 0 }
-		move = func(inc int) int { return kpos - 1 }
+		move = func(_ int) int { return kpos - 1 }
 	}
 
 	// Try the different matchers until one succeeds, and select the first/last capturing group.

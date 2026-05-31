@@ -4,7 +4,7 @@
 package editor
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -44,7 +44,8 @@ func writeToFile(buf []byte, filename string) (string, error) {
 	if filename == "" {
 		fileID := strconv.Itoa(time.Now().Nanosecond()) + ":" + string(buf)
 
-		h := md5.New()
+		// Not security-sensitive: only used to derive a unique temp-file name.
+		h := sha256.New()
 
 		_, err := h.Write([]byte(fileID))
 		if err != nil {

@@ -280,6 +280,8 @@ func (h *Sources) OnLastSource() bool {
 }
 
 // Current returns the current/active history source.
+//
+//nolint:ireturn // Returns the Source interface by design: sources are stored as the interface.
 func (h *Sources) Current() Source {
 	if len(h.list) == 0 {
 		return nil
@@ -484,8 +486,13 @@ func Complete(h *Sources, forward, filter bool, maxLines int, regex *regexp.Rege
 
 	h.hint.Set(color.Bold + color.FgCyanBright + h.names[h.sourcePos] + color.Reset)
 
-	compLines := make([]completion.Candidate, 0)
-	printedLines := make([]string, 0)
+	capHint := history.Len()
+	if maxLines >= 0 && maxLines < capHint {
+		capHint = maxLines + 1
+	}
+
+	compLines := make([]completion.Candidate, 0, capHint)
+	seen := make(map[string]bool, capHint)
 
 	// Set up iteration clauses
 	var (
@@ -523,17 +530,14 @@ func Complete(h *Sources, forward, filter bool, maxLines int, regex *regexp.Rege
 			continue
 		}
 
-		// If this history line is a duplicate of an existing one,
-		// remove the existing one and keep this one as it's more recent.
-		if yes, pos := contains(printedLines, line); yes {
-			printedLines = append(printedLines[:pos], printedLines[pos+1:]...)
-			printedLines = append(printedLines, line)
-
+		// Skip lines already emitted. The first occurrence in scan order (the
+		// most recent line, for a reverse scan) is the one kept, matching the
+		// previous linear-dedup behavior but in O(1) instead of O(n) per line.
+		if seen[line] {
 			continue
 		}
 
-		// Add to the list of printed lines if we have a new one.
-		printedLines = append(printedLines, line)
+		seen[line] = true
 
 		display := strings.ReplaceAll(line, "\n", ` `)
 
@@ -594,6 +598,13 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 		histPos = history.Len() - h.hpos
 	}
 
+	// The string to match against is invariant across the whole scan, so
+	// compute it once here instead of rebuilding it for every history entry.
+	cline := string(*match)
+	if cur != nil && cur.Pos() < match.Len() {
+		cline = cline[:cur.Pos()]
+	}
+
 	for done(histPos) {
 		// Fetch the next/prev line and adapt its length.
 		histPos = move(histPos)
@@ -603,21 +614,12 @@ func (h *Sources) match(match *core.Line, cur *core.Cursor, usePos, fwd, regex b
 			return line, pos, found
 		}
 
-		cline := string(*match)
-		if cur != nil && cur.Pos() < match.Len() {
-			cline = cline[:cur.Pos()]
-		}
-
 		// Matching: either as substring (regex) or since beginning.
 		switch {
 		case regex:
-			regexLine, err := regexp.Compile(regexp.QuoteMeta(cline))
-			if err != nil {
-				continue
-			}
-
-			// Go to next line if not matching as a substring.
-			if !regexLine.MatchString(histline) {
+			// regexp.QuoteMeta + MatchString is exactly a literal substring
+			// test, so match directly instead of compiling a regex per entry.
+			if !strings.Contains(histline, cline) {
 				continue
 			}
 
@@ -687,26 +689,4 @@ func (h *Sources) setLineCursorMatch(next string) {
 	} else {
 		h.cursor.Set(h.line.Len())
 	}
-}
-
-func contains(s []string, e string) (bool, int) {
-	for i, a := range s {
-		if a == e {
-			return true, i
-		}
-	}
-
-	return false, 0
-}
-
-func removeDuplicates(source []string) []string {
-	list := []string{}
-
-	for _, item := range source {
-		if no, _ := contains(list, item); no {
-			list = append(list, item)
-		}
-	}
-
-	return list
 }

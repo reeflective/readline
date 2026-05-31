@@ -36,7 +36,7 @@ func NewEngine(keys *core.Keys, i *core.Iterations, opts ...inputrc.Option) (*En
 	}
 
 	// Load the inputrc configurations and set up related things.
-	modes.ReloadConfig(opts...)
+	_ = modes.ReloadConfig(opts...)
 
 	return modes, modes.config
 }
@@ -130,7 +130,7 @@ func (m *Engine) IsEmacs() bool {
 // to the screen. If inputrcFormat is true, it displays it formatted such that
 // the output can be reused in an .inputrc file.
 func (m *Engine) PrintBinds(keymap string, inputrcFormat bool) {
-	var commands []string
+	commands := make([]string, 0, len(m.commands))
 
 	for command := range m.commands {
 		commands = append(commands, command)
@@ -180,7 +180,7 @@ func (m *Engine) InputIsTerminator() bool {
 		binds[sequence] = inputrc.Bind{Action: "abort", Macro: false}
 	}
 
-	bind, _, _, _ := m.dispatchKeys(binds)
+	bind, _, _, _ := m.dispatchKeys(binds) //nolint:dogsled // Only the resolved bind is needed here.
 
 	return bind.Action == "abort"
 }

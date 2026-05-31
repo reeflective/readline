@@ -3,7 +3,6 @@ package completion
 import (
 	"math"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -54,7 +53,7 @@ func (e *Engine) newCompletionGroup(comps Values, tag string, vals RawValues, de
 
 	// Global actions to take on all values.
 	if !grp.noSort {
-		sort.Stable(vals)
+		vals.sortStable()
 	}
 
 	// Initial processing of our assigned values:
@@ -155,7 +154,6 @@ func (g *group) initCompletionAliased(domains []Candidate) {
 func (g *group) createDescribedRows(values []Candidate) ([][]Candidate, []string) {
 	descriptionMap := make(map[string][]Candidate)
 	uniqueDescriptions := make([]string, 0)
-	rows := make([][]Candidate, 0)
 
 	// Separate duplicates and store them.
 	for i, description := range values {
@@ -168,6 +166,8 @@ func (g *group) createDescribedRows(values []Candidate) ([][]Candidate, []string
 	}
 
 	// Sorting helps with easier grids.
+	rows := make([][]Candidate, 0, len(uniqueDescriptions))
+
 	for _, description := range uniqueDescriptions {
 		row := descriptionMap[description]
 		rows = append(rows, row)

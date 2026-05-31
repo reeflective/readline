@@ -30,6 +30,8 @@ type Item struct {
 }
 
 // NewSourceFromFile returns a new history source writing to and reading from a file.
+//
+//nolint:ireturn // Returns the Source interface by design: the concrete type is unexported.
 func NewSourceFromFile(file string) (Source, error) {
 	var err error
 

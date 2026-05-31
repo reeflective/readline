@@ -7,10 +7,10 @@ var defaultSourceName = "default history"
 // logs the history to memory ([]string to be precise).
 type Source interface {
 	// Append takes the line and returns an updated number of lines or an error
-	Write(string) (int, error)
+	Write(line string) (int, error)
 
 	// GetLine takes the historic line number and returns the line or an error
-	GetLine(int) (string, error)
+	GetLine(pos int) (string, error)
 
 	// Len returns the number of history lines
 	Len() int
@@ -31,6 +31,8 @@ type memory struct {
 }
 
 // NewInMemoryHistory creates a new in-memory command history source.
+//
+//nolint:ireturn // Returns the Source interface by design: the concrete type is unexported.
 func NewInMemoryHistory() Source {
 	return new(memory)
 }

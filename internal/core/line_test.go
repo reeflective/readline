@@ -61,7 +61,7 @@ func TestLine_Insert(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(_ *testing.T) {
 			test.l.Insert(test.args.pos, test.args.r...)
 		})
 
@@ -119,7 +119,7 @@ func TestLine_InsertBetween(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(_ *testing.T) {
 			test.l.InsertBetween(test.args.bpos, test.args.epos, test.args.r...)
 		})
 
@@ -169,7 +169,7 @@ func TestLine_Cut(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(_ *testing.T) {
 			test.l.Cut(test.args.bpos, test.args.epos)
 		})
 
@@ -218,7 +218,7 @@ func TestLine_CutRune(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(_ *testing.T) {
 			test.l.CutRune(test.args.pos)
 		})
 
@@ -1092,12 +1092,13 @@ func TestDisplayLine(t *testing.T) {
 		r, w, err := os.Pipe()
 		if err != nil {
 			os.Stdout = savedStdout
+
 			t.Fatalf("pipe: %s", err)
 		}
 
 		os.Stdout = w
 
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			DisplayLine(tt.l, tt.args.indent)
 		})
 
@@ -1125,8 +1126,7 @@ func TestCoordinatesLine(t *testing.T) {
 	getTermWidth = func() int { return 80 }
 
 	type args struct {
-		indent    int
-		suggested string
+		indent int
 	}
 	tests := []struct {
 		name  string

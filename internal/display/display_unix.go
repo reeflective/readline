@@ -20,8 +20,12 @@ func WatchResize(eng *Engine) chan<- bool {
 		for {
 			select {
 			case <-resizeChannel:
-				eng.completer.GenerateCached()
-				eng.Refresh()
+				// Route the regeneration + repaint through the input wake so
+				// they run on the Readline goroutine, instead of mutating the
+				// completion/display state and writing to stdout from here
+				// (which races with the main loop).
+				eng.completer.RequestRegen()
+				eng.keys.RequestRefresh()
 			case <-done:
 				return
 			}

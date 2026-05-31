@@ -4,8 +4,6 @@
 package core
 
 import (
-	"errors"
-	"io"
 	"unsafe"
 
 	"github.com/reeflective/readline/inputrc"
@@ -72,7 +70,11 @@ func (k *Keys) readInputFiltered() (keys []byte, err error) {
 		buf := make([]byte, keyScanBufSize)
 
 		read, err := Stdin.Read(buf)
-		if err != nil && errors.Is(err, io.EOF) {
+		if err != nil {
+			// EOF (stream closed) or any other read failure (e.g. a revoked
+			// console handle): propagate it so WaitAvailableKeys records EOF or
+			// surfaces the error, instead of swallowing it and spinning on a
+			// dead stdin. Mirrors the Unix reader's behaviour.
 			return keys, err
 		}
 
@@ -96,6 +98,17 @@ func (k *Keys) readInputFiltered() (keys []byte, err error) {
 		return keys, nil
 	}
 }
+
+// InitWake is a no-op on Windows: the async-refresh wake (poll-based on Unix)
+// is not yet supported here, so async UI updates appear at the next keystroke.
+func (k *Keys) InitWake() {}
+
+// CloseWake is a no-op on Windows.
+func (k *Keys) CloseWake() {}
+
+// RequestRefresh is a no-op on Windows (async wake unsupported); async UI
+// updates appear at the next keystroke.
+func (k *Keys) RequestRefresh() {}
 
 // rawReader translates Windows input to ANSI sequences,
 // to provide the same behavior as Unix terminals.

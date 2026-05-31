@@ -1,6 +1,7 @@
 package completion
 
 import (
+	"sort"
 	"strings"
 )
 
@@ -97,4 +98,28 @@ func (c RawValues) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
 
 func (c RawValues) Less(i, j int) bool {
 	return strings.ToLower(c[i].Value) < strings.ToLower(c[j].Value)
+}
+
+// sortStable orders the values case-insensitively by Value, stably. It folds
+// each value to lower case exactly once (paired sort) rather than twice per
+// comparison as the Less method does, which matters on large candidate sets
+// sorted on every keystroke. The ordering is identical to sort.Stable(c).
+func (c RawValues) sortStable() {
+	type keyed struct {
+		key   string
+		value Candidate
+	}
+
+	pairs := make([]keyed, len(c))
+	for i, val := range c {
+		pairs[i] = keyed{key: strings.ToLower(val.Value), value: val}
+	}
+
+	sort.SliceStable(pairs, func(i, j int) bool {
+		return pairs[i].key < pairs[j].key
+	})
+
+	for i := range pairs {
+		c[i] = pairs[i].value
+	}
 }

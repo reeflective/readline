@@ -66,8 +66,10 @@ func (rl *Shell) insertCompletions() {
 	}
 
 	// Insert each match, cancel insertion with preserving
-	// the candidate just inserted in the line, for each.
-	for i := 0; i < rl.completer.Matches(); i++ {
+	// the candidate just inserted in the line, for each. The match count is
+	// invariant here: Select only moves the highlight and Cancel(false,false)
+	// only restores the line buffer, neither alters the candidate groups.
+	for range rl.completer.Matches() {
 		rl.completer.Select(1, 0)
 		rl.completer.Cancel(false, false)
 	}
@@ -188,6 +190,22 @@ func (rl *Shell) menuIncrementalSearch() {
 	// Always regenerate the list of completions.
 	rl.completer.GenerateWith(rl.commandCompletion)
 	rl.completer.IsearchStart("completions", false, false)
+}
+
+// RefreshCompletions regenerates the currently active completion menu from the
+// cached completer and repaints, so completions produced asynchronously (for
+// instance by a background producer that updates a cache the completer reads)
+// can be shown in place without the user pressing a key.
+//
+// It is safe to call from any goroutine. If no completion menu is active it is
+// a clean no-op. The regeneration runs on the Readline goroutine (rendering
+// stays single-writer). If the user has a candidate selected, that selection is
+// preserved across the refresh: the same candidate (matched by tag+value) is
+// re-selected in the rebuilt menu, or, if it no longer exists in the new
+// results, the menu is left active with no selection.
+func (rl *Shell) RefreshCompletions() {
+	rl.completer.RequestRegen()
+	rl.Keys.RequestRefresh()
 }
 
 //

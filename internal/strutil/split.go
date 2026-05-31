@@ -81,19 +81,20 @@ raw:
 		for len(cur) > 0 {
 			c, l := utf8.DecodeRuneInString(cur)
 			cur = cur[l:]
-			if c == singleChar {
+			switch {
+			case c == singleChar:
 				buf.WriteString(input[0 : len(input)-len(cur)-l])
 				input = cur
 				goto single
-			} else if c == doubleChar {
+			case c == doubleChar:
 				buf.WriteString(input[0 : len(input)-len(cur)-l])
 				input = cur
 				goto double
-			} else if c == escapeChar {
+			case c == escapeChar:
 				buf.WriteString(input[0 : len(input)-len(cur)-l])
 				input = cur
 				goto escape
-			} else if strings.ContainsRune(splitChars, c) {
+			case strings.ContainsRune(splitChars, c):
 				buf.WriteString(input[0 : len(input)-len(cur)-l])
 				return buf.String(), cur, nil
 			}
@@ -111,9 +112,8 @@ escape:
 			return "", "", errUnterminatedEscape
 		}
 		c, l := utf8.DecodeRuneInString(input)
-		if c == '\n' {
-			// a backslash-escaped newline is elided from the output entirely
-		} else {
+		// A backslash-escaped newline is elided from the output entirely.
+		if c != '\n' {
 			buf.WriteString(input[:l])
 		}
 		input = input[l:]
@@ -149,9 +149,8 @@ double:
 				cur = cur[l2:]
 				if strings.ContainsRune(doubleEscapeChars, c2) {
 					buf.WriteString(input[0 : len(input)-len(cur)-l-l2])
-					if c2 == '\n' {
-						// newline is special, skip the backslash entirely
-					} else {
+					// A newline is special: skip the backslash entirely (write nothing).
+					if c2 != '\n' {
 						buf.WriteRune(c2)
 					}
 					input = cur

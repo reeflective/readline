@@ -1,17 +1,5 @@
 package keymap
 
-import "github.com/reeflective/readline/inputrc"
-
-// action is represents the action of a widget, the number of times
-// this widget needs to be run, and an optional operator argument.
-// Most of the time we don't need this operator.
-//
-// Those actions are mostly used by widgets which make the shell enter
-// the Vim operator pending mode, and thus require another key to be read.
-type action struct {
-	command inputrc.Bind
-}
-
 // Pending registers a command as waiting for another command to run first,
 // such as yank/delete/change actions, which accept/require a movement command.
 func (m *Engine) Pending() {

@@ -458,6 +458,12 @@ func (rl *Shell) bracketedPasteBegin() {
 		key, empty := core.PopKey(rl.Keys)
 		if empty {
 			core.WaitAvailableKeys(rl.Keys, rl.Config)
+			// Stop consuming the paste if the input stream died or errored,
+			// otherwise this loop spins forever on a dead tty.
+			if rl.Keys.IsEOF() || rl.Keys.ReadError() != nil {
+				return
+			}
+
 			continue
 		}
 
@@ -1477,7 +1483,7 @@ func (rl *Shell) dumpVariables() {
 	}()
 
 	// Get all variables and their values, alphabetically sorted.
-	var variables []string
+	variables := make([]string, 0, len(rl.Config.Vars))
 
 	for variable := range rl.Config.Vars {
 		variables = append(variables, variable)

@@ -96,7 +96,7 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	shell.Opts = opts
 
 	// User interface
-	hint := new(ui.Hint)
+	hint := ui.NewHint(keys)
 	prompt := ui.NewPrompt(line, cursor, keymaps, config)
 	macros := macro.NewEngine(keys, hint)
 	history := history.NewSources(line, cursor, hint, config)

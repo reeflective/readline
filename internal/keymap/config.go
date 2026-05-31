@@ -26,6 +26,13 @@ var readlineOptions = map[string]interface{}{
 	"history-autosuggest":       false,
 	"multiline-column":          true,
 	"multiline-column-numbered": false,
+
+	// Terminal
+	// cursor-position-probe controls whether the display engine queries the
+	// terminal for the cursor position ("ESC[6n"). Disable it in environments
+	// that don't reliably answer (PTY test harnesses, minimal emulators,
+	// constrained CI); the engine then falls back to the printed prompt width.
+	"cursor-position-probe": true,
 }
 
 // ReloadConfig parses all valid .inputrc configurations and immediately
@@ -41,16 +48,17 @@ func (m *Engine) ReloadConfig(opts ...inputrc.Option) (err error) {
 	//
 	// This library implements various additional commands and keymaps.
 	// Parse the configuration with a specific App name, ignoring errors.
-	inputrc.UserDefault(user, m.config, inputrc.WithApp("go"))
+	_ = inputrc.UserDefault(user, m.config, inputrc.WithApp("go"))
 
 	// Parse user configurations.
 	//
 	// Those default settings are the base options often needed
 	// by /etc/inputrc on various Linux distros (for special keys).
-	defaults := []inputrc.Option{
+	defaults := make([]inputrc.Option, 0, 2+len(opts))
+	defaults = append(defaults,
 		inputrc.WithMode("emacs"),
 		inputrc.WithTerm(os.Getenv("TERM")),
-	}
+	)
 
 	opts = append(defaults, opts...)
 
@@ -83,7 +91,7 @@ func (m *Engine) ReloadConfig(opts ...inputrc.Option) (err error) {
 func (m *Engine) loadBuiltinOptions() {
 	for name, value := range readlineOptions {
 		if val := m.config.Get(name); val == nil {
-			m.config.Set(name, value)
+			_ = m.config.Set(name, value)
 		}
 	}
 }
@@ -143,7 +151,7 @@ func printBindsReadable(commands []string, all map[string][]string) {
 		switch {
 		case len(commandBinds) == 0:
 		case len(commandBinds) > 5:
-			var firstBinds []string
+			firstBinds := make([]string, 0, 5)
 
 			for i := range 5 {
 				firstBinds = append(firstBinds, "\""+commandBinds[i]+"\"")

@@ -322,7 +322,7 @@ func switchBoolean(word string, _ bool, _ int) (done bool, switched string, bpos
 	return done, switched, bpos, epos
 }
 
-func switchWeekday(word string, inc bool, _ int) (done bool, switched string, bpos, epos int) {
+func switchWeekday(_ string, _ bool, _ int) (done bool, switched string, bpos, epos int) {
 	return
 }
 

@@ -3,7 +3,6 @@ package completion
 import (
 	"bufio"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/reeflective/readline/internal/color"
@@ -28,9 +27,12 @@ func Display(eng *Engine, maxRows int) {
 	// The final completions string to print.
 	completions := term.ClearLineAfter
 
+	var completionsSb31 strings.Builder
 	for _, group := range eng.groups {
-		completions += eng.renderCompletions(group)
+		completionsSb31.WriteString(eng.renderCompletions(group))
 	}
+
+	completions += completionsSb31.String()
 
 	// Crop the completions so that it fits within our terminal
 	completions, eng.usedY = eng.cropCompletions(completions, maxRows)
@@ -125,12 +127,13 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 			candidate += color.Reset
 		}
 	} else {
-		// Highlight the prefix if any and configured for it.
-		if e.config.GetBool("colored-completion-prefix") && e.prefix != "" {
-			if prefixMatch, err := regexp.Compile("^" + e.prefix); err == nil {
-				prefixColored := color.Bold + color.FgBlue + e.prefix + color.BoldReset + color.FgDefault + style
-				candidate = prefixMatch.ReplaceAllString(candidate, prefixColored)
-			}
+		// Highlight the prefix if any and configured for it. The previous
+		// regexp ("^"+prefix) was compiled once per candidate per render and
+		// mismatched prefixes containing regex metacharacters; an anchored
+		// literal prefix is just a HasPrefix check plus a slice.
+		if e.config.GetBool("colored-completion-prefix") && e.prefix != "" && strings.HasPrefix(candidate, e.prefix) {
+			prefixColored := color.Bold + color.FgBlue + e.prefix + color.BoldReset + color.FgDefault + style
+			candidate = prefixColored + candidate[len(e.prefix):]
 		}
 
 		candidate = style + candidate + color.Reset
@@ -197,15 +200,20 @@ func (e *Engine) cutCompletionsBelow(scanner *bufio.Scanner, maxRows int) (strin
 	var count int
 	var cropped string
 
+	var croppedSb200 strings.Builder
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		if count < maxRows-1 {
-			cropped += line + term.NewlineReturn
+			croppedSb200.WriteString(line + term.NewlineReturn)
+
 			count++
 		} else {
 			break
 		}
 	}
+
+	cropped += croppedSb200.String()
 
 	cropped = strings.TrimSuffix(cropped, term.NewlineReturn)
 
@@ -228,6 +236,8 @@ func (e *Engine) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, absPo
 	var cropped string
 	var count int
 
+	var croppedSb231 strings.Builder
+
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -238,12 +248,15 @@ func (e *Engine) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, absPo
 		}
 
 		if count > cutAbove && count <= absPos {
-			cropped += line + term.NewlineReturn
+			croppedSb231.WriteString(line + term.NewlineReturn)
+
 			count++
 		} else {
 			break
 		}
 	}
+
+	cropped += croppedSb231.String()
 
 	cropped = strings.TrimSuffix(cropped, term.NewlineReturn)
 	count -= cutAbove + 1
