@@ -13,6 +13,8 @@ type Completion = completion.Candidate
 // including usage strings, messages, and suffix matchers for autoremoval.
 // Some of those additional settings will apply to all contained candidates,
 // except when these candidates have their own corresponding settings.
+//
+//nolint:recvcheck // Fluent builder: value-receiver setters; only EachValue/merge/convert use a pointer (intentional).
 type Completions struct {
 	values   completion.RawValues
 	messages completion.Messages
@@ -206,7 +208,7 @@ func (c Completions) UsageF(f func() string) Completions {
 //	CompleteValues("yes").Style("35")
 //	CompleteValues("no").Style("255")
 func (c Completions) Style(style string) Completions {
-	return c.StyleF(func(s string) string {
+	return c.StyleF(func(_ string) string {
 		return style
 	})
 }
@@ -239,7 +241,7 @@ func (c Completions) StyleF(f func(s string) string) Completions {
 //
 //	CompleteValues("192.168.1.1", "127.0.0.1").Tag("interfaces").
 func (c Completions) Tag(tag string) Completions {
-	return c.TagF(func(value string) string {
+	return c.TagF(func(_ string) string {
 		return tag
 	})
 }

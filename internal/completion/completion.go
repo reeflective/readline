@@ -13,11 +13,6 @@ type Candidate struct {
 	Style       string // An arbitrary string of color/text effects to use when displaying the completion.
 	Tag         string // All completions with the same tag are grouped together and displayed under the tag heading.
 
-	// A list of runes that are automatically trimmed when a space or a non-nil character is
-	// inserted immediately after the completion. This is used for slash-autoremoval in path
-	// completions, comma-separated completions, etc.
-	noSpace SuffixMatcher
-
 	displayLen int // Real length of the displayed candidate, that is not counting escaped sequences.
 	descLen    int
 }

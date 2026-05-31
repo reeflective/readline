@@ -1477,7 +1477,7 @@ func (rl *Shell) dumpVariables() {
 	}()
 
 	// Get all variables and their values, alphabetically sorted.
-	var variables []string
+	variables := make([]string, 0, len(rl.Config.Vars))
 
 	for variable := range rl.Config.Vars {
 		variables = append(variables, variable)

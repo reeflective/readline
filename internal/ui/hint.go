@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/reeflective/readline/internal/color"
+	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 )
@@ -51,6 +52,18 @@ type Hint struct {
 	// SetTransient from another goroutine). Wired by the shell to the input wake
 	// primitive; integrators do not call it directly.
 	refresh func()
+}
+
+// NewHint creates a hint area wired to wake the render loop on asynchronous lane
+// changes (such as SetTransient called from another goroutine), through the
+// keys' input wake primitive.
+func NewHint(keys *core.Keys) *Hint {
+	hint := &Hint{}
+	if keys != nil {
+		hint.refresh = keys.RequestRefresh
+	}
+
+	return hint
 }
 
 // Set sets the hint message to the given text.

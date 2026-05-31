@@ -1,0 +1,177 @@
+# Repo-local golangci-lint configuration for reeflective/readline.
+#
+# Derived from the shared reeflective config, with a few project-specific tunes:
+#   - varnamelen/goconst/mnd disabled: short names in short scopes are idiomatic
+#     here, and bulk literal/number extraction adds churn without value.
+#   - gocognit threshold raised to 30 to match cyclop/gocyclo; the few genuinely
+#     complex hot-path parsers/display functions are intentionally dense.
+#   - nestif relaxed slightly (5 -> 7); the flagged blocks are shallow.
+#   - funlen/gocognit excluded for tests (table-driven tests are naturally long).
+#   - godox disabled: TODO/FIXME markers are kept intentionally as tracking notes.
+version: "2"
+run:
+  modules-download-mode: readonly
+  tests: true
+  allow-parallel-runners: true
+linters:
+  enable:
+    - asasalint
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    - decorder
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - err113
+    - errchkjson
+    - errname
+    - errorlint
+    - exptostd
+    - fatcontext
+    - forcetypeassert
+    - funlen
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - gocognit
+    - gocritic
+    - gocyclo
+    - godot
+    - goheader
+    - gomoddirectives
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - grouper
+    - iface
+    - importas
+    - inamedparam
+    - interfacebloat
+    - intrange
+    - ireturn
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - protogetter
+    - reassign
+    - recvcheck
+    - revive
+    - sloglint
+    - spancheck
+    - tagalign
+    - tagliatelle
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - wsl
+    - zerologlint
+  disable:
+    - asciicheck
+    - depguard
+    - exhaustive
+    - exhaustruct
+    - forbidigo
+    - gochecknoglobals
+    - gochecknoinits
+    - goconst
+    - godox
+    - gomodguard
+    - lll
+    - mnd
+    - musttag
+    - nlreturn
+    - nonamedreturns
+    - promlinter
+    - rowserrcheck
+    - sqlclosecheck
+    - testpackage
+    - varnamelen
+    - whitespace
+    - wrapcheck
+  settings:
+    cyclop:
+      max-complexity: 30
+      package-average: 10
+    errcheck:
+      check-type-assertions: true
+    exhaustive:
+      check:
+        - switch
+        - map
+    funlen:
+      lines: 100
+      statements: 50
+    gocognit:
+      min-complexity: 30
+    nestif:
+      min-complexity: 7
+    paralleltest:
+      ignore-missing: true
+    wsl:
+      allow-separated-leading-comment: true
+      allow-cuddle-declarations: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+          - errcheck
+          - funlen
+          - gocognit
+          - gocyclo
+          - gosec
+        path: _test\.go
+      - linters:
+          - lll
+        source: '^//go:generate '
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/reeflective
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

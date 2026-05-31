@@ -666,7 +666,7 @@ func (rl *Shell) viChangeChar() {
 	switch {
 	case rl.selection.Active() && rl.selection.IsVisual():
 		// In visual mode, we replace all chars of the selection
-		rl.selection.ReplaceWith(func(r rune) rune {
+		rl.selection.ReplaceWith(func(_ rune) rune {
 			return key
 		})
 	default:

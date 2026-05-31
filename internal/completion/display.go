@@ -28,9 +28,12 @@ func Display(eng *Engine, maxRows int) {
 	// The final completions string to print.
 	completions := term.ClearLineAfter
 
+	var completionsSb31 strings.Builder
 	for _, group := range eng.groups {
-		completions += eng.renderCompletions(group)
+		completionsSb31.WriteString(eng.renderCompletions(group))
 	}
+
+	completions += completionsSb31.String()
 
 	// Crop the completions so that it fits within our terminal
 	completions, eng.usedY = eng.cropCompletions(completions, maxRows)
@@ -197,15 +200,20 @@ func (e *Engine) cutCompletionsBelow(scanner *bufio.Scanner, maxRows int) (strin
 	var count int
 	var cropped string
 
+	var croppedSb200 strings.Builder
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		if count < maxRows-1 {
-			cropped += line + term.NewlineReturn
+			croppedSb200.WriteString(line + term.NewlineReturn)
+
 			count++
 		} else {
 			break
 		}
 	}
+
+	cropped += croppedSb200.String()
 
 	cropped = strings.TrimSuffix(cropped, term.NewlineReturn)
 
@@ -228,6 +236,8 @@ func (e *Engine) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, absPo
 	var cropped string
 	var count int
 
+	var croppedSb231 strings.Builder
+
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -238,12 +248,15 @@ func (e *Engine) cutCompletionsAboveBelow(scanner *bufio.Scanner, maxRows, absPo
 		}
 
 		if count > cutAbove && count <= absPos {
-			cropped += line + term.NewlineReturn
+			croppedSb231.WriteString(line + term.NewlineReturn)
+
 			count++
 		} else {
 			break
 		}
 	}
+
+	cropped += croppedSb231.String()
 
 	cropped = strings.TrimSuffix(cropped, term.NewlineReturn)
 	count -= cutAbove + 1

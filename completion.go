@@ -66,8 +66,10 @@ func (rl *Shell) insertCompletions() {
 	}
 
 	// Insert each match, cancel insertion with preserving
-	// the candidate just inserted in the line, for each.
-	for i := 0; i < rl.completer.Matches(); i++ {
+	// the candidate just inserted in the line, for each. The match count is
+	// invariant here: Select only moves the highlight and Cancel(false,false)
+	// only restores the line buffer, neither alters the candidate groups.
+	for range rl.completer.Matches() {
 		rl.completer.Select(1, 0)
 		rl.completer.Cancel(false, false)
 	}

@@ -222,23 +222,26 @@ func (p *Prompt) MultilineColumnPrint() {
 
 	switch {
 	case numbered:
-		column := ""
+		var column strings.Builder
 		for pos := range p.line.Lines() {
-			column += fmt.Sprintf("\n"+color.FgBlackBright+"%d"+color.Reset+" ", pos+2)
+			fmt.Fprintf(&column, "\n"+color.FgBlackBright+"%d"+color.Reset+" ", pos+2)
 		}
-		fmt.Print(column)
+
+		fmt.Print(column.String())
 	case len(custom) > 0:
-		column := ""
+		var column strings.Builder
 		for range p.line.Lines() {
-			column += fmt.Sprintf("\n%s\x1b[0m", custom)
+			fmt.Fprintf(&column, "\n%s\x1b[0m", custom)
 		}
-		fmt.Print(column)
+
+		fmt.Print(column.String())
 	case defaultCol:
-		column := ""
+		var column strings.Builder
 		for range p.line.Lines() {
-			column += "\n" + DefaultMultilineColumn
+			column.WriteString("\n" + DefaultMultilineColumn)
 		}
-		fmt.Print(column)
+
+		fmt.Print(column.String())
 	}
 }
 

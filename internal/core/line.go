@@ -37,6 +37,7 @@ func (l *Line) Insert(pos int, chars ...rune) {
 	for end > 0 && chars[end-1] == 0 {
 		end--
 	}
+
 	chars = chars[:end]
 
 	// Invalid position cancels the insertion
@@ -96,7 +97,6 @@ func (l *Line) CutRune(pos int) {
 	default:
 		*l = slices.Delete([]rune(*l), pos, pos+1)
 	}
-
 }
 
 // Len returns the length of the line.
@@ -284,26 +284,28 @@ func DisplayLine(l *Line, indent int) {
 	for _, r := range *l {
 		if r == '\n' {
 			builtLine.WriteString(color.BgDefault)
+
 			if lineLen < term.GetWidth() {
 				builtLine.WriteString(term.ClearLineAfter)
 			}
+
 			builtLine.WriteString(term.NewlineReturn)
-			builtLine.WriteString(fmt.Sprintf("\x1b[%dC", indent)) // Equivalent of term.MoveCursorForwards
+			fmt.Fprintf(&builtLine, "\x1b[%dC", indent) // Equivalent of term.MoveCursorForwards
 			builtLine.WriteString(term.ClearLineBefore)
 
 			lineLen = 0
 		} else {
 			builtLine.WriteRune(r)
+
 			lineLen++
 		}
-
 	}
 
 	if l.Len() > 0 && (*l)[l.Len()-1] == '\n' {
 		builtLine.WriteString(color.BgDefault)
 		builtLine.WriteString(term.ClearLineAfter)
 		builtLine.WriteString(term.NewlineReturn)
-		builtLine.WriteString(fmt.Sprintf("\x1b[%dC", indent)) // Equivalent of term.MoveCursorForwards
+		fmt.Fprintf(&builtLine, "\x1b[%dC", indent) // Equivalent of term.MoveCursorForwards
 		builtLine.WriteString(term.ClearLineBefore)
 	}
 
@@ -346,6 +348,7 @@ func CoordinatesLine(l *Line, indent int) (int, int) {
 // the number of newlines - 1.
 func (l *Line) Lines() int {
 	var count int
+
 	for _, r := range *l {
 		if r == inputrc.Newline {
 			count++
@@ -428,7 +431,9 @@ func (l *Line) Tokenize(cpos int) ([]string, int, int) {
 	var index, pos int
 	var punc bool
 
-	split := make([]string, 1)
+	// Start with a single empty accumulator word; the loop appends to the
+	// last element via split[len(split)-1], so it must be non-empty.
+	split := []string{""}
 
 	for i, char := range line {
 		switch {
@@ -492,7 +497,9 @@ func (l *Line) TokenizeSpace(cpos int) ([]string, int, int) {
 	cpos = l.checkPosRange(cpos)
 
 	var index, pos int
-	split := make([]string, 1)
+	// Start with a single empty accumulator word; the loop appends to the
+	// last element via split[len(split)-1], so it must be non-empty.
+	split := []string{""}
 	var newline bool
 
 	for i, char := range line {

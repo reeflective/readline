@@ -150,22 +150,6 @@ func (e *Engine) CursorBelowLine() {
 	fmt.Print(term.NewlineReturn)
 }
 
-// lineStartToCursorPos can be used if the cursor is currently
-// at the very start of the input line, that is just after the
-// last character of the prompt.
-func (e *Engine) lineStartToCursorPos() {
-	term.MoveCursorDown(e.cursorRow)
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.cursorCol)
-}
-
-// cursor is on the line below the last line of input.
-func (e *Engine) cursorHintToLineStart() {
-	term.MoveCursorUp(1)
-	term.MoveCursorUp(e.lineRows - e.cursorRow)
-	e.CursorToLineStart()
-}
-
 func (e *Engine) computeCoordinates(suggested bool) {
 	// Get the new input line and auto-suggested one.
 	e.line, e.cursor = e.completer.Line()
@@ -249,17 +233,6 @@ func (e *Engine) displayLine() {
 		fmt.Print(term.NewlineReturn)
 		fmt.Print(term.ClearLineAfter)
 	}
-}
-
-// lineEndToCursorPos moves the cursor from the end of the input line
-// to the current cursor position.
-func (e *Engine) lineEndToCursorPos() {
-	if e.lineRows > e.cursorRow {
-		term.MoveCursorUp(e.lineRows - e.cursorRow)
-	}
-
-	term.MoveCursorBackwards(term.GetWidth())
-	term.MoveCursorForwards(e.cursorCol)
 }
 
 // AvailableHelperLines returns the number of lines available below the hint section.

@@ -48,11 +48,12 @@ func (i *Iterations) Get() int {
 	times, err := strconv.Atoi(i.times)
 
 	// Any invalid value is still one time.
-	if err != nil && strings.HasPrefix(i.times, "-") {
+	switch {
+	case err != nil && strings.HasPrefix(i.times, "-"):
 		times = -1
-	} else if err != nil && times == 0 {
+	case err != nil && times == 0:
 		times = 1
-	} else if times == 0 && strings.HasPrefix(i.times, "-") {
+	case times == 0 && strings.HasPrefix(i.times, "-"):
 		times = -1
 	}
 

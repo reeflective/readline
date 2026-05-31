@@ -21,6 +21,7 @@ package display_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -131,7 +132,7 @@ func runPTYChild() {
 		}
 
 		go func() {
-			for i := 0; i < repeat; i++ {
+			for i := range repeat {
 				time.Sleep(time.Duration(ms) * time.Millisecond)
 				rl.Hint.SetTransient(fmt.Sprintf("ASYNCPING-%d", i))
 			}
@@ -143,6 +144,7 @@ func runPTYChild() {
 	// hint) to reproduce the hint+menu redraw path.
 	if os.Getenv(autocompleteEnvVar) == "1" {
 		rl.Config.Set("autocomplete", true)
+
 		if rl.Completer == nil {
 			rl.Completer = func(_ []rune, _ int) readline.Completions {
 				return readline.CompleteValues("alpha", "alef", "alpine", "almond").Usage("pick a word")
@@ -231,6 +233,8 @@ type consoleConfig struct {
 // newConsole spawns the child shell under a PTY of the given size, with the
 // given primary prompt, and starts mirroring its output into the emulator.
 func newConsole(t *testing.T, prompt string, cols, rows int) *console {
+	t.Helper()
+
 	return startConsole(t, consoleConfig{prompt: prompt, cols: cols, rows: rows})
 }
 
@@ -239,7 +243,7 @@ func newConsole(t *testing.T, prompt string, cols, rows int) *console {
 func startConsole(t *testing.T, cfg consoleConfig) *console {
 	t.Helper()
 
-	cmd := exec.Command(os.Args[0])
+	cmd := exec.CommandContext(context.Background(), os.Args[0])
 	cmd.Env = append(os.Environ(),
 		childEnvVar+"=1",
 		promptEnvVar+"="+cfg.prompt,
@@ -306,6 +310,7 @@ func (c *console) readLoop() {
 	defer close(c.done)
 
 	buf := make([]byte, 4096)
+
 	for {
 		n, err := c.ptmx.Read(buf)
 		if n > 0 {
@@ -381,12 +386,17 @@ func (c *console) screen() string {
 	return c.term.String()
 }
 
+// screenWaitTimeout bounds how long the screen-polling helpers wait before
+// failing the test. Every call site used the same value, so it lives here.
+const screenWaitTimeout = 3 * time.Second
+
 // waitForScreen polls until the rendered screen contains substr, or fails the
 // test on timeout. It returns the (last) screen contents either way.
-func (c *console) waitForScreen(substr string, timeout time.Duration) string {
+func (c *console) waitForScreen(substr string) string {
 	c.t.Helper()
 
-	deadline := time.Now().Add(timeout)
+	deadline := time.Now().Add(screenWaitTimeout)
+
 	for {
 		s := c.screen()
 		if strings.Contains(s, substr) {
@@ -404,10 +414,11 @@ func (c *console) waitForScreen(substr string, timeout time.Duration) string {
 
 // waitUntil polls the rendered screen until cond returns true, or fails the
 // test on timeout. Returns the last screen contents.
-func (c *console) waitUntil(cond func(screen string) bool, timeout time.Duration) string {
+func (c *console) waitUntil(cond func(screen string) bool) string {
 	c.t.Helper()
 
-	deadline := time.Now().Add(timeout)
+	deadline := time.Now().Add(screenWaitTimeout)
+
 	for {
 		s := c.screen()
 		if cond(s) {

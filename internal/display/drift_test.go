@@ -20,13 +20,16 @@ func TestNoPromptDriftWithHint(t *testing.T) {
 		rows:      24,
 		transient: "STATUS-HINT",
 	})
-	c.waitForScreen("ANCHOR", 3*time.Second)
-	c.waitForScreen("STATUS-HINT", 3*time.Second)
+	c.waitForScreen("ANCHOR")
+	c.waitForScreen("STATUS-HINT")
 
-	var rows []int
-	for _, ch := range []string{"a", "b", "c", "d"} {
+	chars := []string{"a", "b", "c", "d"}
+	rows := make([]int, 0, len(chars))
+
+	for _, ch := range chars {
 		c.send(ch)
 		time.Sleep(150 * time.Millisecond)
+
 		screen := c.screen()
 		rows = append(rows, rowIndex(screen, "ANCHOR"))
 	}
@@ -49,12 +52,15 @@ func TestNoPromptDriftWithHintAndAutocomplete(t *testing.T) {
 		autocomplete: true,
 		hintProvider: true,
 	})
-	c.waitForScreen("ANCHOR", 3*time.Second)
+	c.waitForScreen("ANCHOR")
 
-	var rows []int
-	for _, ch := range strings.Split("alp", "") {
+	chars := strings.Split("alp", "")
+	rows := make([]int, 0, len(chars))
+
+	for _, ch := range chars {
 		c.send(ch)
 		time.Sleep(200 * time.Millisecond)
+
 		screen := c.screen()
 		rows = append(rows, rowIndex(screen, "ANCHOR"))
 	}
@@ -79,11 +85,12 @@ func TestNoPromptDriftAcrossAsyncWakes(t *testing.T) {
 		asyncMS:     150,
 		asyncRepeat: 5,
 	})
-	c.waitForScreen("ANCHOR", 3*time.Second)
+	c.waitForScreen("ANCHOR")
 
-	var rows []int
-	for i := 0; i < 5; i++ {
-		c.waitForScreen(fmt.Sprintf("ASYNCPING-%d", i), 3*time.Second)
+	rows := make([]int, 0, 5)
+
+	for i := range 5 {
+		c.waitForScreen(fmt.Sprintf("ASYNCPING-%d", i))
 		rows = append(rows, rowIndex(c.screen(), "ANCHOR"))
 	}
 
@@ -107,11 +114,12 @@ func TestNoPromptDriftAsyncWakesWithRightPrompt(t *testing.T) {
 		asyncMS:     150,
 		asyncRepeat: 5,
 	})
-	c.waitForScreen("ANCHOR", 3*time.Second)
+	c.waitForScreen("ANCHOR")
 
-	var rows []int
-	for i := 0; i < 5; i++ {
-		c.waitForScreen(fmt.Sprintf("ASYNCPING-%d", i), 3*time.Second)
+	rows := make([]int, 0, 5)
+
+	for i := range 5 {
+		c.waitForScreen(fmt.Sprintf("ASYNCPING-%d", i))
 		rows = append(rows, rowIndex(c.screen(), "ANCHOR"))
 	}
 
@@ -135,14 +143,15 @@ func TestNoPromptDriftTwoHintLanes(t *testing.T) {
 		asyncMS:      150,
 		asyncRepeat:  5, // transient hint = lane 2
 	})
-	c.waitForScreen("ANCHOR", 3*time.Second)
+	c.waitForScreen("ANCHOR")
 
 	c.send("x") // make the provider hint non-empty
-	c.waitForScreen("HINT:x", 3*time.Second)
+	c.waitForScreen("HINT:x")
 
-	var rows []int
-	for i := 0; i < 5; i++ {
-		c.waitForScreen(fmt.Sprintf("ASYNCPING-%d", i), 3*time.Second)
+	rows := make([]int, 0, 5)
+
+	for i := range 5 {
+		c.waitForScreen(fmt.Sprintf("ASYNCPING-%d", i))
 		rows = append(rows, rowIndex(c.screen(), "ANCHOR"))
 	}
 

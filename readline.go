@@ -57,7 +57,8 @@ func (rl *Shell) Readline() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer term.Restore(descriptor, state)
+
+		defer func() { _ = term.Restore(descriptor, state) }()
 	}
 
 	if term.IsTerminal(descriptor) && rl.Config.GetBool("enable-bracketed-paste") {

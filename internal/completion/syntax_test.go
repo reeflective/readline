@@ -21,17 +21,17 @@ func TestAutopairInsertOrJump(t *testing.T) {
 			line:       "",
 			cursor:     0,
 			key:        '"',
-			wantLine:   "\"",     // Function inserts closer
-			wantSkip:   false,    // selfInsert will insert opener
-			wantCursor: 0,        // Cursor stays same (caller handles insert)
+			wantLine:   "\"",  // Function inserts closer
+			wantSkip:   false, // selfInsert will insert opener
+			wantCursor: 0,     // Cursor stays same (caller handles insert)
 		},
 		{
 			name:       "Inside quote, type closing quote",
 			line:       "\"foo",
 			cursor:     4,
 			key:        '"',
-			wantLine:   "\"foo",  // Should NOT insert pair
-			wantSkip:   false,    // selfInsert will insert '"' -> "foo"
+			wantLine:   "\"foo", // Should NOT insert pair
+			wantSkip:   false,   // selfInsert will insert '"' -> "foo"
 			wantCursor: 4,
 		},
 		{
@@ -43,24 +43,24 @@ func TestAutopairInsertOrJump(t *testing.T) {
 			wantSkip:   false,
 			wantCursor: 5,
 		},
-        {
-            name:       "Escaped quote inside double, type quote",
-            line:       "\"foo \\\"",
-            cursor:     7,
-            key:        '"',
-            wantLine:   "\"foo \\\"", // Should detect unclosed and NOT insert pair
-            wantSkip:   false,
-            wantCursor: 7,
-        },
-        {
-            name:       "Jump over closing quote",
-            line:       "\"foo\"",
-            cursor:     4, // before last "
-            key:        '"',
-            wantLine:   "\"foo\"",
-            wantSkip:   true,
-            wantCursor: 5, // Inc
-        },
+		{
+			name:       "Escaped quote inside double, type quote",
+			line:       "\"foo \\\"",
+			cursor:     7,
+			key:        '"',
+			wantLine:   "\"foo \\\"", // Should detect unclosed and NOT insert pair
+			wantSkip:   false,
+			wantCursor: 7,
+		},
+		{
+			name:       "Jump over closing quote",
+			line:       "\"foo\"",
+			cursor:     4, // before last "
+			key:        '"',
+			wantLine:   "\"foo\"",
+			wantSkip:   true,
+			wantCursor: 5, // Inc
+		},
 	}
 
 	for _, tt := range tests {
@@ -78,10 +78,10 @@ func TestAutopairInsertOrJump(t *testing.T) {
 			if string(line) != tt.wantLine {
 				t.Errorf("AutopairInsertOrJump() line = %q, want %q", string(line), tt.wantLine)
 			}
-            
-            if cur.Pos() != tt.wantCursor {
-                t.Errorf("AutopairInsertOrJump() cursor = %v, want %v", cur.Pos(), tt.wantCursor)
-            }
+
+			if cur.Pos() != tt.wantCursor {
+				t.Errorf("AutopairInsertOrJump() cursor = %v, want %v", cur.Pos(), tt.wantCursor)
+			}
 		})
 	}
 }

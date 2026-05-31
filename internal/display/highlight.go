@@ -216,14 +216,6 @@ func (e *Engine) hlReset(regions []core.Selection, line []rune, pos int) ([]core
 			// foreground := e.opts.GetString("active-region-start-color")
 			line = append(line, []rune(color.ReverseReset)...)
 			line = append(line, []rune(color.BgDefault)...)
-			//	if background == "" && foreground == "" && !matcher {
-			//		line = append(line, []rune(color.ReverseReset)...)
-			//	} else {
-			//
-			//		line = append(line, []rune(color.BgDefault)...)
-			//	}
-			//
-			// line = append(line, []rune(color.ReverseReset)...)
 		}
 	}
 

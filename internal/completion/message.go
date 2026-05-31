@@ -8,6 +8,8 @@ import (
 // Messages is a list of messages to be displayed
 // below the input line, above completions. It is
 // used to show usage and/or error status hints.
+//
+//nolint:recvcheck // IsEmpty/Get read via value receiver; init/Add/Suppress/Merge mutate via pointer (intentional).
 type Messages struct {
 	messages map[string]bool
 }
@@ -32,7 +34,7 @@ func (m *Messages) Add(s string) {
 
 // Get returns the list of messages to display.
 func (m Messages) Get() []string {
-	messages := make([]string, 0)
+	messages := make([]string, 0, len(m.messages))
 	for message := range m.messages {
 		messages = append(messages, message)
 	}

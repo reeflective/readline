@@ -197,11 +197,13 @@ func (reg *Buffers) Reset() {
 
 // Complete returns the contents of all buffers as a structured list of completions.
 func (reg *Buffers) Complete() completion.Values {
-	vals := make([]completion.Candidate, 0)
-
 	// Alpha and numbered registers
-	vals = append(vals, reg.completeNumRegs()...)
-	vals = append(vals, reg.completeAlphaRegs()...)
+	numRegs := reg.completeNumRegs()
+	alphaRegs := reg.completeAlphaRegs()
+
+	vals := make([]completion.Candidate, 0, len(numRegs)+len(alphaRegs))
+	vals = append(vals, numRegs...)
+	vals = append(vals, alphaRegs...)
 
 	// Disable sorting, force list long and add hint.
 	comps := completion.AddRaw(vals)
@@ -279,15 +281,16 @@ func (reg *Buffers) writeAlpha(register rune, buf []rune) {
 }
 
 func (reg *Buffers) completeNumRegs() []completion.Candidate {
-	regs := make([]completion.Candidate, 0)
 	tag := color.Dim + "num ([0-9])" + color.Reset
 
-	var nums []int
+	nums := make([]int, 0, len(reg.num))
 	for reg := range reg.num {
 		nums = append(nums, reg)
 	}
 
 	sort.Ints(nums)
+
+	regs := make([]completion.Candidate, 0, len(nums))
 
 	for _, num := range nums {
 		buf := reg.num[num]
@@ -306,15 +309,16 @@ func (reg *Buffers) completeNumRegs() []completion.Candidate {
 }
 
 func (reg *Buffers) completeAlphaRegs() []completion.Candidate {
-	regs := make([]completion.Candidate, 0)
 	tag := color.Dim + "alpha ([a-z], [A-Z])" + color.Reset
 
-	var lett []rune
+	lett := make([]rune, 0, len(reg.alpha))
 	for slot := range reg.alpha {
 		lett = append(lett, slot)
 	}
 
 	sort.Slice(lett, func(i, j int) bool { return i < j })
+
+	regs := make([]completion.Candidate, 0, len(lett))
 
 	for _, letter := range lett {
 		buf := reg.alpha[letter]

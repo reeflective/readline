@@ -32,32 +32,32 @@ func AutopairInsertOrJump(key rune, line *core.Line, cur *core.Cursor) (skipInse
 	matcher, closer := strutil.SurroundType(key)
 
 	if !matcher {
-		return
+		return false
 	}
 
 	if closer && cur.Char() == key {
-		skipInsert = true
 		cur.Inc()
-		return
+
+		return true
 	}
 
 	// If we are currently inside a quoted string, we don't want to insert pairs.
 	// This also effectively allows closing the quote we are currently in.
 	if key == '"' || key == '\'' {
 		if unclosed, _ := strutil.GetQuotedWordStart((*line)[:cur.Pos()]); unclosed {
-			return
+			return false
 		}
 	}
 
 	switch {
 	case closer && key != '\'' && key != '"':
-		return
+		return false
 	default:
 		_, closeChar := strutil.MatchSurround(key)
 		line.Insert(cur.Pos(), closeChar)
 	}
 
-	return
+	return false
 }
 
 // AutopairDelete checks if the character under the cursor is an opening pair

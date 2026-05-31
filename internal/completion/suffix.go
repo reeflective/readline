@@ -6,6 +6,8 @@ import (
 )
 
 // SuffixMatcher is a type managing suffixes for a given list of completions.
+//
+//nolint:recvcheck // Matches reads via value receiver; Add/Merge mutate via pointer (intentional).
 type SuffixMatcher struct {
 	string
 	pos int // Used to know if the saved suffix matcher is deprecated

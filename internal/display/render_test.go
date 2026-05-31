@@ -13,6 +13,7 @@ import (
 // countLine reports how many of the screen's rows begin with prefix.
 func countLine(screen, prefix string) int {
 	var n int
+
 	for _, row := range strings.Split(screen, "\n") {
 		if strings.HasPrefix(row, prefix) {
 			n++
@@ -28,10 +29,10 @@ func countLine(screen, prefix string) int {
 func TestRenderPromptAndInput(t *testing.T) {
 	c := newConsole(t, "PROMPT> ", 80, 24)
 
-	c.waitForScreen("PROMPT>", 3*time.Second)
+	c.waitForScreen("PROMPT>")
 
 	c.send("hello world")
-	screen := c.waitForScreen("PROMPT> hello world", 3*time.Second)
+	screen := c.waitForScreen("PROMPT> hello world")
 
 	firstLine := strings.SplitN(screen, "\n", 2)[0]
 	if got, want := strings.TrimRight(firstLine, " "), "PROMPT> hello world"; got != want {
@@ -39,7 +40,7 @@ func TestRenderPromptAndInput(t *testing.T) {
 	}
 
 	c.send("\r")
-	c.waitForScreen("[LINE:hello world]", 3*time.Second)
+	c.waitForScreen("[LINE:hello world]")
 }
 
 // TestRenderWrappingAlignment guards multi-row layout: with a well-behaved
@@ -48,13 +49,13 @@ func TestRenderPromptAndInput(t *testing.T) {
 func TestRenderWrappingAlignment(t *testing.T) {
 	// 40-col terminal, 8-col prompt -> 32 text columns on the first row.
 	c := newConsole(t, "PROMPT> ", 40, 24)
-	c.waitForScreen("PROMPT>", 3*time.Second)
+	c.waitForScreen("PROMPT>")
 
 	// Type 40 'x': 32 land on row 0 (after the prompt), 8 wrap to row 1.
 	c.send(strings.Repeat("x", 40))
 	screen := c.waitUntil(func(s string) bool {
 		return strings.Count(s, "x") >= 40
-	}, 3*time.Second)
+	})
 
 	rows := strings.Split(screen, "\n")
 
@@ -92,7 +93,7 @@ func TestRenderMultilinePromptAtBottom(t *testing.T) {
 		prefill: rows - 1,
 	})
 
-	c.waitForScreen("L1", 3*time.Second)
+	c.waitForScreen("L1")
 	time.Sleep(250 * time.Millisecond) // let the render settle
 
 	screen := c.screen()
@@ -120,13 +121,13 @@ func TestRenderMultilinePromptWrapAtBottom(t *testing.T) {
 		prefill: rows - 1,
 	})
 
-	c.waitForScreen("P>", 3*time.Second)
+	c.waitForScreen("P>")
 
 	// Type enough to wrap the input onto a second/third visual row.
 	c.send(strings.Repeat("y", 50))
 	screen := c.waitUntil(func(s string) bool {
 		return strings.Count(s, "y") >= 50
-	}, 3*time.Second)
+	})
 
 	for _, line := range []string{"TOP", "P> "} {
 		if !strings.Contains(screen, line) {
@@ -140,7 +141,7 @@ func TestRenderMultilinePromptWrapAtBottom(t *testing.T) {
 // render issues at least one "ESC[6n" cursor-position query.
 func TestCursorProbeEnabledByDefault(t *testing.T) {
 	c := newConsole(t, "PROMPT> ", 80, 24)
-	c.waitForScreen("PROMPT>", 3*time.Second)
+	c.waitForScreen("PROMPT>")
 
 	// The prompt string is printed before the first probe, so poll for the
 	// query rather than checking immediately after the prompt appears.
@@ -171,12 +172,12 @@ func TestRenderWithCursorProbeDisabled(t *testing.T) {
 		noProbe:    true,
 		probeReply: lying,
 	})
-	c.waitForScreen("PROMPT>", 3*time.Second)
+	c.waitForScreen("PROMPT>")
 
 	c.send(strings.Repeat("x", 40)) // wrap to a second row
 	screen := c.waitUntil(func(s string) bool {
 		return strings.Count(s, "x") >= 40
-	}, 3*time.Second)
+	})
 
 	if got := c.probeQueries(); got != 0 {
 		t.Fatalf("expected no ESC[6n queries when probing is disabled, got %d", got)

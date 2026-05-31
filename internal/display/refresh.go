@@ -194,7 +194,7 @@ func (e *Engine) ensureIndicatorSpace() {
 		// to ensure the input text starts aligned with subsequent lines
 		// and isn't overwritten by the indicator.
 		padding := indicatorWidth - e.startCols
-		fmt.Print(fmt.Sprintf("%*s", padding, ""))
+		fmt.Printf("%*s", padding, "")
 
 		e.startCols = indicatorWidth
 	}
@@ -301,11 +301,12 @@ func (e *Engine) renderMultilineIndicators() {
 	for i := 1; i <= e.line.Lines(); i++ {
 		fmt.Print("\n")
 
-		if numbered {
-			fmt.Print(fmt.Sprintf(color.FgBlackBright+"%d"+color.Reset+" ", i+1))
-		} else if i == e.line.Lines() {
+		switch {
+		case numbered:
+			fmt.Printf(color.FgBlackBright+"%d"+color.Reset+" ", i+1)
+		case i == e.line.Lines():
 			e.prompt.SecondaryPrint()
-		} else {
+		default:
 			fmt.Print(pipe)
 		}
 

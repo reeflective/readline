@@ -38,7 +38,7 @@ type Keys struct {
 	reading   bool        // Currently reading keys out of the main loop.
 	keysOnce  chan []byte // Passing keys from the main routine.
 	cursor    chan []byte // Cursor coordinates has been read on stdin.
-	resize    chan bool   // Resize events on Windows are sent on stdin. USED IN WINDOWS
+	resize    chan bool   //nolint:unused // Resize events on Windows are sent on stdin; consumed only by the windows build.
 
 	wakeMu    sync.Mutex // Guards the wake fields against RequestRefresh (other goroutine).
 	wakeR     int        // Read end of the async-refresh wake pipe.
@@ -140,7 +140,7 @@ func PeekKey(keys *Keys) (key byte, empty bool) {
 	case len(keys.buf) > 0:
 		key = keys.buf[0]
 	case len(keys.macroKeys) > 0:
-		key = byte(keys.macroKeys[0])
+		key = byte(keys.macroKeys[0]) //nolint:gosec // G115: byte-keyed API; macro keys are control bytes, truncation is intentional.
 	default:
 		return byte(0), true
 	}
@@ -156,7 +156,7 @@ func PopKey(keys *Keys) (key byte, empty bool) {
 		key = keys.buf[0]
 		keys.buf = keys.buf[1:]
 	case len(keys.macroKeys) > 0:
-		key = byte(keys.macroKeys[0])
+		key = byte(keys.macroKeys[0]) //nolint:gosec // G115: byte-keyed API; macro keys are control bytes, truncation is intentional.
 		keys.macroKeys = keys.macroKeys[1:]
 	default:
 		return byte(0), true
@@ -244,7 +244,7 @@ func PopForce(keys *Keys) (key byte, empty bool) {
 		key = keys.buf[0]
 		keys.buf = keys.buf[1:]
 	case len(keys.macroKeys) > 0:
-		key = byte(keys.macroKeys[0])
+		key = byte(keys.macroKeys[0]) //nolint:gosec // G115: byte-keyed API; macro keys are control bytes, truncation is intentional.
 		keys.macroKeys = keys.macroKeys[1:]
 	default:
 		return byte(0), true
@@ -339,7 +339,7 @@ func (k *Keys) Pop() (key byte, empty bool) {
 		key = k.buf[0]
 		k.buf = k.buf[1:]
 	case len(k.macroKeys) > 0:
-		key = byte(k.macroKeys[0])
+		key = byte(k.macroKeys[0]) //nolint:gosec // G115: byte-keyed API; macro keys are control bytes, truncation is intentional.
 		k.macroKeys = k.macroKeys[1:]
 	default:
 		return byte(0), true

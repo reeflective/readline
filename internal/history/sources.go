@@ -280,6 +280,8 @@ func (h *Sources) OnLastSource() bool {
 }
 
 // Current returns the current/active history source.
+//
+//nolint:ireturn // Returns the Source interface by design: sources are stored as the interface.
 func (h *Sources) Current() Source {
 	if len(h.list) == 0 {
 		return nil
@@ -697,16 +699,4 @@ func contains(s []string, e string) (bool, int) {
 	}
 
 	return false, 0
-}
-
-func removeDuplicates(source []string) []string {
-	list := []string{}
-
-	for _, item := range source {
-		if no, _ := contains(list, item); no {
-			list = append(list, item)
-		}
-	}
-
-	return list
 }

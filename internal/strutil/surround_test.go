@@ -6,78 +6,78 @@ import (
 
 func TestGetQuotedWordStart(t *testing.T) {
 	tests := []struct {
-		name       string
-		line       string
+		name         string
+		line         string
 		wantUnclosed bool
-		wantPos    int
+		wantPos      int
 	}{
 		{
-			name:       "Empty",
-			line:       "",
+			name:         "Empty",
+			line:         "",
 			wantUnclosed: false,
-			wantPos:    -1,
+			wantPos:      -1,
 		},
 		{
-			name:       "Single word",
-			line:       "word",
+			name:         "Single word",
+			line:         "word",
 			wantUnclosed: false,
-			wantPos:    -1,
+			wantPos:      -1,
 		},
 		{
-			name:       "Unclosed double",
-			line:       "\"word",
+			name:         "Unclosed double",
+			line:         "\"word",
 			wantUnclosed: true,
-			wantPos:    0,
+			wantPos:      0,
 		},
 		{
-			name:       "Closed double",
-			line:       "\"word\"",
+			name:         "Closed double",
+			line:         "\"word\"",
 			wantUnclosed: false,
-			wantPos:    -1, // Or whatever dpos is left at? dpos tracks OPENING.
-                            // If closed, inDouble is false. Returns false, -1.
+			wantPos:      -1, // Or whatever dpos is left at? dpos tracks OPENING.
+			// If closed, inDouble is false. Returns false, -1.
 		},
 		{
-			name:       "Unclosed single",
-			line:       "'word",
+			name:         "Unclosed single",
+			line:         "'word",
 			wantUnclosed: true,
-			wantPos:    0,
+			wantPos:      0,
 		},
 		{
-			name:       "Escaped quote in double",
-			line:       "\"word \\\"",
+			name:         "Escaped quote in double",
+			line:         "\"word \\\"",
 			wantUnclosed: true,
-			wantPos:    0,
+			wantPos:      0,
 		},
 		{
-			name:       "Escaped quote in single (literal)",
-			line:       "'word \\'",
+			name:         "Escaped quote in single (literal)",
+			line:         "'word \\'",
 			wantUnclosed: false,
-			wantPos:    -1,
+			wantPos:      -1,
 		},
 		{
-			name:       "Nested quotes (single in double)",
-			line:       "\"'\"",
+			name:         "Nested quotes (single in double)",
+			line:         "\"'\"",
 			wantUnclosed: false,
-			wantPos:    -1,
+			wantPos:      -1,
 		},
 		{
-			name:       "Nested quotes (double in single)",
-			line:       "'\"'",
+			name:         "Nested quotes (double in single)",
+			line:         "'\"'",
 			wantUnclosed: false,
-			wantPos:    -1,
+			wantPos:      -1,
 		},
-        {
-            name:       "Balanced nested",
-            line:       "\"'hello'\"",
-            wantUnclosed: false,
-            wantPos:    -1,
-        },
-        {
-            name:       "Multiple words unclosed",
-            line:       "hello \"world",
-            wantUnclosed: true,
-            wantPos:    6,
-        },
+		{
+			name:         "Balanced nested",
+			line:         "\"'hello'\"",
+			wantUnclosed: false,
+			wantPos:      -1,
+		},
+		{
+			name:         "Multiple words unclosed",
+			line:         "hello \"world",
+			wantUnclosed: true,
+			wantPos:      6,
+		},
 	}
 
 	for _, tt := range tests {
@@ -86,6 +86,7 @@ func TestGetQuotedWordStart(t *testing.T) {
 			if unclosed != tt.wantUnclosed {
 				t.Errorf("GetQuotedWordStart() unclosed = %v, want %v", unclosed, tt.wantUnclosed)
 			}
+
 			if unclosed && pos != tt.wantPos {
 				t.Errorf("GetQuotedWordStart() pos = %v, want %v", pos, tt.wantPos)
 			}

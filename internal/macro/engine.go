@@ -158,7 +158,7 @@ func (e *Engine) PrintLastMacro() {
 // PrintAllMacros dumps all macros to the screen, which one line
 // per saved macro sequence, next to its corresponding key ID.
 func (e *Engine) PrintAllMacros() {
-	var macroIDs []rune
+	macroIDs := make([]rune, 0, len(e.macros))
 
 	for key := range e.macros {
 		macroIDs = append(macroIDs, key)

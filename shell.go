@@ -96,10 +96,7 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	shell.Opts = opts
 
 	// User interface
-	hint := new(ui.Hint)
-	// Async hint updates (e.g. SetTransient from another goroutine) wake the
-	// idle render loop through the input wake primitive.
-	hint.SetRefreshFunc(keys.RequestRefresh)
+	hint := ui.NewHint(keys)
 	prompt := ui.NewPrompt(line, cursor, keymaps, config)
 	macros := macro.NewEngine(keys, hint)
 	history := history.NewSources(line, cursor, hint, config)

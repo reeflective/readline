@@ -3,6 +3,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -128,12 +129,12 @@ func (k *Keys) readStdin(buf []byte) (int, error) {
 
 	for {
 		fds := []unix.PollFd{
-			{Fd: int32(fd), Events: unix.POLLIN},
-			{Fd: int32(wakeR), Events: unix.POLLIN},
+			{Fd: int32(fd), Events: unix.POLLIN},    //nolint:gosec // G115: OS file descriptors are small non-negative ints.
+			{Fd: int32(wakeR), Events: unix.POLLIN}, //nolint:gosec // G115: OS file descriptors are small non-negative ints.
 		}
 
 		if _, err := unix.Poll(fds, -1); err != nil {
-			if err == unix.EINTR {
+			if errors.Is(err, unix.EINTR) {
 				continue
 			}
 
@@ -209,6 +210,7 @@ func (k *Keys) RequestRefresh() {
 // drainWake empties the wake pipe so a single request does not re-trigger.
 func (k *Keys) drainWake() {
 	var scratch [16]byte
+
 	for {
 		n, err := unix.Read(k.wakeR, scratch[:])
 		if n <= 0 || err != nil {
