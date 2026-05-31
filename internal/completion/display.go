@@ -3,7 +3,6 @@ package completion
 import (
 	"bufio"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/reeflective/readline/internal/color"
@@ -128,12 +127,13 @@ func (e *Engine) highlightDisplay(grp *group, val Candidate, pad, col int, selec
 			candidate += color.Reset
 		}
 	} else {
-		// Highlight the prefix if any and configured for it.
-		if e.config.GetBool("colored-completion-prefix") && e.prefix != "" {
-			if prefixMatch, err := regexp.Compile("^" + e.prefix); err == nil {
-				prefixColored := color.Bold + color.FgBlue + e.prefix + color.BoldReset + color.FgDefault + style
-				candidate = prefixMatch.ReplaceAllString(candidate, prefixColored)
-			}
+		// Highlight the prefix if any and configured for it. The previous
+		// regexp ("^"+prefix) was compiled once per candidate per render and
+		// mismatched prefixes containing regex metacharacters; an anchored
+		// literal prefix is just a HasPrefix check plus a slice.
+		if e.config.GetBool("colored-completion-prefix") && e.prefix != "" && strings.HasPrefix(candidate, e.prefix) {
+			prefixColored := color.Bold + color.FgBlue + e.prefix + color.BoldReset + color.FgDefault + style
+			candidate = prefixColored + candidate[len(e.prefix):]
 		}
 
 		candidate = style + candidate + color.Reset
