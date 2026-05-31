@@ -20,7 +20,7 @@ func Display(eng *Engine, maxRows int) {
 	// little more time. The engine itself is responsible for
 	// deleting those lists when it deems them useless.
 	if eng.Matches() == 0 || eng.skipDisplay {
-		fmt.Print(term.ClearLineAfter)
+		term.WriteString(term.ClearLineAfter)
 		return
 	}
 
@@ -38,7 +38,7 @@ func Display(eng *Engine, maxRows int) {
 	completions, eng.usedY = eng.cropCompletions(completions, maxRows)
 
 	if completions != "" {
-		fmt.Print(completions)
+		term.WriteString(completions)
 	}
 }
 

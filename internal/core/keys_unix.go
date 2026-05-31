@@ -28,6 +28,11 @@ func (k *Keys) GetCursorPos() (x, y int) {
 	var cursor []byte
 	var match [][]string
 
+	// Flush any buffered frame output first: the cursor position we are about
+	// to query is only correct once the prompt printed so far is actually on
+	// screen, not still sitting in the output buffer.
+	term.FlushBuffer()
+
 	// Echo the query and wait for the main key
 	// reading routine to send us the response back.
 	fmt.Print("\x1b[6n")

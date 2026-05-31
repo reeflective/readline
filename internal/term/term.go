@@ -42,16 +42,15 @@ func GetLength() int {
 }
 
 func printf(format string, a ...interface{}) {
-	s := fmt.Sprintf(format, a...)
-	fmt.Print(s)
+	WriteString(fmt.Sprintf(format, a...))
 }
 
 // EnableBracketedPaste enables bracketed paste mode.
 func EnableBracketedPaste() {
-	fmt.Print(BracketedPasteStart)
+	WriteString(BracketedPasteStart)
 }
 
 // DisableBracketedPaste disables bracketed paste mode.
 func DisableBracketedPaste() {
-	fmt.Print(BracketedPasteEnd)
+	WriteString(BracketedPasteEnd)
 }

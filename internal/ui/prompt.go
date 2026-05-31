@@ -111,10 +111,10 @@ func (p *Prompt) PrimaryPrint() {
 
 	// Print the various lines.
 	if prompt != "" {
-		fmt.Print(prompt)
+		term.WriteString(prompt)
 	}
 
-	fmt.Print(lastPrompt)
+	term.WriteString(lastPrompt)
 
 	// And compute coordinates
 	p.primaryRows = strings.Count(prompt, "\n")
@@ -150,7 +150,7 @@ func (p *Prompt) UpperPrint() {
 	// does not leave stale characters behind.
 	lines := strings.Split(strings.TrimSuffix(upper, "\n"), "\n")
 	for _, line := range lines {
-		fmt.Print(line + term.ClearLineAfter + term.NewlineReturn)
+		term.WriteString(line + term.ClearLineAfter + term.NewlineReturn)
 	}
 }
 
@@ -174,7 +174,7 @@ func (p *Prompt) LastPrint() {
 
 	prompt := p.formatLastPrompt(lines[len(lines)-1])
 
-	fmt.Print(prompt)
+	term.WriteString(prompt)
 
 	p.primaryCols = strutil.RealLength(prompt)
 }
@@ -206,11 +206,11 @@ func (p *Prompt) LastUsed() int {
 // which is always activated when the current input line is a multiline one.
 func (p *Prompt) SecondaryPrint() {
 	if p.secondaryF != nil {
-		fmt.Print(p.secondaryF())
+		term.WriteString(p.secondaryF())
 		return
 	}
 
-	fmt.Print(DefaultSecondaryPrompt)
+	term.WriteString(DefaultSecondaryPrompt)
 }
 
 // MultilineColumnPrint prints the multiline editor column status indicator.
@@ -227,21 +227,21 @@ func (p *Prompt) MultilineColumnPrint() {
 			fmt.Fprintf(&column, "\n"+color.FgBlackBright+"%d"+color.Reset+" ", pos+2)
 		}
 
-		fmt.Print(column.String())
+		term.WriteString(column.String())
 	case len(custom) > 0:
 		var column strings.Builder
 		for range p.line.Lines() {
 			fmt.Fprintf(&column, "\n%s\x1b[0m", custom)
 		}
 
-		fmt.Print(column.String())
+		term.WriteString(column.String())
 	case defaultCol:
 		var column strings.Builder
 		for range p.line.Lines() {
 			column.WriteString("\n" + DefaultMultilineColumn)
 		}
 
-		fmt.Print(column.String())
+		term.WriteString(column.String())
 	}
 }
 
@@ -265,9 +265,9 @@ func (p *Prompt) RightPrint(startColumn int, force bool) {
 	}
 
 	if prompt, canPrint := p.formatRightPrompt(rprompt, startColumn); canPrint {
-		fmt.Print(prompt)
+		term.WriteString(prompt)
 	} else {
-		fmt.Print(term.ClearLineAfter)
+		term.WriteString(term.ClearLineAfter)
 	}
 }
 
@@ -280,10 +280,10 @@ func (p *Prompt) TransientPrint() {
 	// Clean everything below where the prompt will be printed.
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorUp(p.primaryRows)
-	fmt.Print(term.ClearScreenBelow)
+	term.WriteString(term.ClearScreenBelow)
 
 	// And print the prompt
-	fmt.Print(p.transientF())
+	term.WriteString(p.transientF())
 }
 
 // Refreshing returns true if the prompt is currently redisplaying
