@@ -46,6 +46,7 @@ const (
 	transientEnvVar    = "READLINE_PTY_TRANSIENT"
 	asyncMSEnvVar      = "READLINE_PTY_ASYNC_MS"
 	asyncCompEnvVar    = "READLINE_PTY_ASYNCCOMP"
+	autocompleteEnvVar = "READLINE_PTY_AUTOCOMPLETE"
 )
 
 // TestMain lets this test binary double as the process-under-test: when the
@@ -117,12 +118,29 @@ func runPTYChild() {
 			}()
 		}
 	} else if ms, err := strconv.Atoi(os.Getenv(asyncMSEnvVar)); err == nil && ms > 0 {
-		// Push a transient hint from another goroutine AFTER the read loop has
+		// Push transient hint(s) from another goroutine AFTER the read loop has
 		// started and is idle, to exercise the async-refresh wake (no keystroke).
+		// READLINE_PTY_ASYNC_REPEAT controls how many updates are pushed.
+		repeat := 1
+		if n, err := strconv.Atoi(os.Getenv("READLINE_PTY_ASYNC_REPEAT")); err == nil && n > 0 {
+			repeat = n
+		}
+
 		go func() {
-			time.Sleep(time.Duration(ms) * time.Millisecond)
-			rl.Hint.SetTransient("ASYNCPING")
+			for i := 0; i < repeat; i++ {
+				time.Sleep(time.Duration(ms) * time.Millisecond)
+				rl.Hint.SetTransient(fmt.Sprintf("ASYNCPING-%d", i))
+			}
 		}()
+	}
+
+	// As-you-type autocomplete with a static completer (several values + a
+	// usage hint), to reproduce the hint+menu redraw path.
+	if os.Getenv(autocompleteEnvVar) == "1" {
+		rl.Config.Set("autocomplete", true)
+		rl.Completer = func(_ []rune, _ int) readline.Completions {
+			return readline.CompleteValues("alpha", "alef", "alpine", "almond").Usage("pick a word")
+		}
 	}
 
 	prompt := os.Getenv(promptEnvVar)
@@ -131,6 +149,12 @@ func runPTYChild() {
 	}
 
 	rl.Prompt.Primary(func() string { return prompt })
+
+	// Optional right-side prompt (like the example's clock): it is re-rendered
+	// every refresh and reaches the far-right column.
+	if rp := os.Getenv("READLINE_PTY_RIGHTPROMPT"); rp != "" {
+		rl.Prompt.Right(func() string { return rp })
+	}
 
 	line, err := rl.Readline()
 	if err != nil {
@@ -183,6 +207,15 @@ type consoleConfig struct {
 	// asyncComp installs a completer whose results grow ("charlie" is added)
 	// when the async goroutine fires RefreshCompletions.
 	asyncComp bool
+	// asyncRepeat, with asyncMS > 0, pushes that many transient hint updates
+	// (each one an async-refresh wake), to detect drift across wake refreshes.
+	asyncRepeat int
+	// rightPrompt, if set, installs a right-side prompt reaching the far-right
+	// column (like the example console's clock).
+	rightPrompt string
+	// autocomplete turns on as-you-type autocompletion with a static completer
+	// (several values + a usage hint), to exercise the hint+menu redraw path.
+	autocomplete bool
 	// probeReply, if non-nil, computes the DSR reply for an "ESC[6n" query,
 	// letting tests simulate a terminal that reports a wrong cursor position.
 	probeReply func(vt10x.Cursor) string
@@ -226,6 +259,14 @@ func startConsole(t *testing.T, cfg consoleConfig) *console {
 
 	if cfg.asyncComp {
 		cmd.Env = append(cmd.Env, asyncCompEnvVar+"=1")
+	}
+
+	if cfg.asyncRepeat > 0 {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("READLINE_PTY_ASYNC_REPEAT=%d", cfg.asyncRepeat))
+	}
+
+	if cfg.rightPrompt != "" {
+		cmd.Env = append(cmd.Env, "READLINE_PTY_RIGHTPROMPT="+cfg.rightPrompt)
 	}
 
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: uint16(cfg.rows), Cols: uint16(cfg.cols)})

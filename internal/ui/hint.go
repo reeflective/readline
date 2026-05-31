@@ -278,30 +278,39 @@ func (h *Hint) renderLocked() (text string) {
 }
 
 // CoordinatesHint returns the number of terminal rows used by the hint.
+//
+// Each non-empty lane occupies its own row (wrapping when wider than the
+// terminal), matching exactly what DisplayHint prints (one NewlineReturn per
+// lane). It is counted from the lanes directly rather than from the rendered
+// string, so the inter-lane separators do not get miscounted as extra rows.
 func CoordinatesHint(hint *Hint) int {
 	hint.mu.RLock()
 	defer hint.mu.RUnlock()
 
-	text := hint.renderLocked()
-
-	// Nothing to do if no real text
-	text = strings.TrimSuffix(text, term.ClearLineAfter+term.NewlineReturn)
-
-	if strutil.RealLength(text) == 0 {
-		return 0
+	width := term.GetWidth()
+	if width <= 0 {
+		width = 80
 	}
 
-	// Otherwise compute the real length/span.
 	usedY := 0
-	lines := strings.Split(text, term.ClearLineAfter)
 
-	for i, line := range lines {
-		x, y := strutil.LineSpan([]rune(line), i, 0)
-		if x != 0 {
-			y++
+	for _, lane := range [][]rune{hint.persistent, hint.provided, hint.transient, hint.text} {
+		if len(lane) == 0 {
+			continue
 		}
 
-		usedY += y
+		// A lane may itself contain embedded newlines; count each sub-line,
+		// wrapping when it is wider than the terminal.
+		for _, sub := range strings.Split(string(lane), "\n") {
+			length := strutil.RealLength(sub)
+
+			rows := length / width
+			if length%width != 0 || rows == 0 {
+				rows++
+			}
+
+			usedY += rows
+		}
 	}
 
 	return usedY
