@@ -486,8 +486,13 @@ func Complete(h *Sources, forward, filter bool, maxLines int, regex *regexp.Rege
 
 	h.hint.Set(color.Bold + color.FgCyanBright + h.names[h.sourcePos] + color.Reset)
 
-	compLines := make([]completion.Candidate, 0)
-	printedLines := make([]string, 0)
+	capHint := history.Len()
+	if maxLines >= 0 && maxLines < capHint {
+		capHint = maxLines + 1
+	}
+
+	compLines := make([]completion.Candidate, 0, capHint)
+	seen := make(map[string]bool, capHint)
 
 	// Set up iteration clauses
 	var (
@@ -525,17 +530,14 @@ func Complete(h *Sources, forward, filter bool, maxLines int, regex *regexp.Rege
 			continue
 		}
 
-		// If this history line is a duplicate of an existing one,
-		// remove the existing one and keep this one as it's more recent.
-		if yes, pos := contains(printedLines, line); yes {
-			printedLines = append(printedLines[:pos], printedLines[pos+1:]...)
-			printedLines = append(printedLines, line)
-
+		// Skip lines already emitted. The first occurrence in scan order (the
+		// most recent line, for a reverse scan) is the one kept, matching the
+		// previous linear-dedup behavior but in O(1) instead of O(n) per line.
+		if seen[line] {
 			continue
 		}
 
-		// Add to the list of printed lines if we have a new one.
-		printedLines = append(printedLines, line)
+		seen[line] = true
 
 		display := strings.ReplaceAll(line, "\n", ` `)
 
@@ -687,14 +689,4 @@ func (h *Sources) setLineCursorMatch(next string) {
 	} else {
 		h.cursor.Set(h.line.Len())
 	}
-}
-
-func contains(s []string, e string) (bool, int) {
-	for i, a := range s {
-		if a == e {
-			return true, i
-		}
-	}
-
-	return false, 0
 }
