@@ -23,18 +23,18 @@ func TestAsyncRefreshCompletions(t *testing.T) {
 	c.waitForScreen("P>", 3*time.Second)
 
 	// Open the completion menu (possible-completions): it displays the initial
-	// candidates, and "charlie" is not among them yet.
+	// candidates, and "alpaca" is not among them yet.
 	c.send("\x1b?")
 	screen := c.waitForScreen("alpha", 3*time.Second)
 
-	if strings.Contains(screen, "charlie") {
-		t.Fatalf("charlie should not be present before the async refresh:\n%s", screen)
+	if strings.Contains(screen, "alpaca") {
+		t.Fatalf("alpaca should not be present before the async refresh:\n%s", screen)
 	}
 
 	// Send NO further input: the async producer grows the result set and calls
 	// RefreshCompletions, which must regenerate the open menu in place so the
 	// new candidate appears on its own.
-	c.waitForScreen("charlie", 3*time.Second)
+	c.waitForScreen("alpaca", 3*time.Second)
 }
 
 // TestAsyncRefreshCompletionsNoMenuIsNoop verifies RefreshCompletions is a clean
@@ -54,7 +54,50 @@ func TestAsyncRefreshCompletionsNoMenuIsNoop(t *testing.T) {
 	time.Sleep(900 * time.Millisecond)
 
 	screen := c.screen()
-	if strings.Contains(screen, "alpha") || strings.Contains(screen, "charlie") {
+	if strings.Contains(screen, "alpha") || strings.Contains(screen, "alpaca") {
 		t.Fatalf("RefreshCompletions must no-op when no menu is active, but a menu appeared:\n%s", screen)
+	}
+}
+
+// TestAsyncRefreshKeepsSelection verifies #99 option B for an explicit menu:
+// when a candidate is selected, an async RefreshCompletions both (a) updates the
+// menu in place with newly produced candidates and (b) keeps the selection on
+// the same candidate (matched by content), rather than freezing the menu or
+// dropping the selection. The new candidate sorts first, so the grid re-sorts —
+// proving the restore is content-based, not positional.
+func TestAsyncRefreshKeepsSelection(t *testing.T) {
+	c := startConsole(t, consoleConfig{
+		prompt:    "P> ",
+		cols:      80,
+		rows:      24,
+		asyncComp: true,
+		asyncMS:   1500, // fire after we have selected a candidate
+	})
+	c.waitForScreen("P>", 3*time.Second)
+
+	// Show the menu (no selection yet) and wait for the initial candidates.
+	c.send("\x1b?")
+	c.waitForScreen("alpha", 3*time.Second)
+
+	// Select a candidate by navigating down to "alpine" (virtual insertion shows
+	// it in the input line).
+	c.send("\x1b[B") // select alpha
+	c.send("\x1b[B") // select alpine
+	screen := c.waitForScreen("P> alpine", 3*time.Second)
+
+	if strings.Contains(screen, "alpaca") {
+		t.Fatalf("alpaca should not be present before the async refresh:\n%s", screen)
+	}
+
+	// The async producer adds "alpaca" (which sorts first) and calls
+	// RefreshCompletions while "alpine" is selected: the menu must update AND
+	// the selection must persist.
+	c.waitForScreen("alpaca", 3*time.Second)
+
+	final := c.screen()
+	first := strings.TrimRight(strings.SplitN(final, "\n", 2)[0], " ")
+	if first != "P> alpine" {
+		t.Fatalf("selection not preserved across async refresh: first line = %q want %q\n%s",
+			first, "P> alpine", final)
 	}
 }

@@ -101,10 +101,14 @@ func runPTYChild() {
 	if os.Getenv(asyncCompEnvVar) == "1" {
 		var extra int32
 
+		// Prefix-sharing values so the same completer works for both explicit
+		// menus (empty prefix) and as-you-type autocomplete (typing "alp"). The
+		// added value sorts FIRST, so the grid re-sorts on growth — exercising
+		// content-based (not positional) selection restore.
 		rl.Completer = func(_ []rune, _ int) readline.Completions {
-			values := []string{"alpha", "bravo"}
+			values := []string{"alpha", "alpine"}
 			if atomic.LoadInt32(&extra) == 1 {
-				values = append(values, "charlie")
+				values = append(values, "alpaca")
 			}
 
 			return readline.CompleteValues(values...)
@@ -134,12 +138,15 @@ func runPTYChild() {
 		}()
 	}
 
-	// As-you-type autocomplete with a static completer (several values + a
-	// usage hint), to reproduce the hint+menu redraw path.
+	// As-you-type autocomplete. Composes with asyncComp (which sets a growing
+	// completer); otherwise installs a static completer (several values + a usage
+	// hint) to reproduce the hint+menu redraw path.
 	if os.Getenv(autocompleteEnvVar) == "1" {
 		rl.Config.Set("autocomplete", true)
-		rl.Completer = func(_ []rune, _ int) readline.Completions {
-			return readline.CompleteValues("alpha", "alef", "alpine", "almond").Usage("pick a word")
+		if rl.Completer == nil {
+			rl.Completer = func(_ []rune, _ int) readline.Completions {
+				return readline.CompleteValues("alpha", "alef", "alpine", "almond").Usage("pick a word")
+			}
 		}
 	}
 
@@ -259,6 +266,10 @@ func startConsole(t *testing.T, cfg consoleConfig) *console {
 
 	if cfg.asyncComp {
 		cmd.Env = append(cmd.Env, asyncCompEnvVar+"=1")
+	}
+
+	if cfg.autocomplete {
+		cmd.Env = append(cmd.Env, autocompleteEnvVar+"=1")
 	}
 
 	if cfg.asyncRepeat > 0 {

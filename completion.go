@@ -197,8 +197,10 @@ func (rl *Shell) menuIncrementalSearch() {
 //
 // It is safe to call from any goroutine. If no completion menu is active it is
 // a clean no-op. The regeneration runs on the Readline goroutine (rendering
-// stays single-writer); the current selection is reset, since the menu is
-// rebuilt from scratch (as on a terminal resize).
+// stays single-writer). If the user has a candidate selected, that selection is
+// preserved across the refresh: the same candidate (matched by tag+value) is
+// re-selected in the rebuilt menu, or, if it no longer exists in the new
+// results, the menu is left active with no selection.
 func (rl *Shell) RefreshCompletions() {
 	rl.completer.RequestRegen()
 	rl.Keys.RequestRefresh()
