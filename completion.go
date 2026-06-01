@@ -41,6 +41,9 @@ func (rl *Shell) completeWord() {
 		rl.startMenuComplete(rl.commandCompletion)
 
 		if rl.Config.GetBool("menu-complete-display-prefix") {
+			// Insert the prefix shared by all candidates, then display the
+			// menu without selecting one (GNU menu-complete-display-prefix).
+			rl.completer.InsertCommonPrefix()
 			return
 		}
 	}
@@ -90,6 +93,8 @@ func (rl *Shell) menuComplete() {
 
 		// Immediately select only if not asked to display first.
 		if rl.Config.GetBool("menu-complete-display-prefix") {
+			// Insert the prefix shared by all candidates before displaying.
+			rl.completer.InsertCommonPrefix()
 			return
 		}
 	}
