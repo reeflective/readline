@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/reeflective/readline/internal/core"
+	"github.com/reeflective/readline/internal/history"
 )
 
 // feedPaste builds a minimal shell, feeds a bracketed-paste payload terminated
@@ -46,6 +47,54 @@ func TestBracketedPasteNormalizesCarriageReturns(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			if got := feedPaste(t, c.payload); got != c.want {
 				t.Fatalf("paste %q => %q, want %q", c.payload, got, c.want)
+			}
+		})
+	}
+}
+
+// drainKeys pops everything remaining in the key buffer and returns it.
+func drainKeys(rl *Shell) string {
+	var b []byte
+
+	for {
+		key, empty := core.PopKey(rl.Keys)
+		if empty {
+			return string(b)
+		}
+
+		b = append(b, key)
+	}
+}
+
+// TestSkipCsiSequence drives skip-csi-sequence over the bytes that remain after
+// the dispatcher has matched the leading "\e[": it must swallow the parameter
+// bytes and the single final byte, while leaving any following keystrokes
+// untouched.
+func TestSkipCsiSequence(t *testing.T) {
+	cases := []struct {
+		name     string
+		feed     string // bytes left in the buffer after "\e[" was matched
+		wantLeft string // what must remain unconsumed afterwards
+	}{
+		{"function key params and final", "15~", ""},
+		{"single final byte", "Z", ""},
+		{"modified arrow with params", "1;5D", ""},
+		{"stops at final, keeps following keys", "15~abc", "abc"},
+		{"empty buffer is a no-op", "", ""},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rl := &Shell{Keys: new(core.Keys), History: &history.Sources{}}
+
+			if c.feed != "" {
+				rl.Keys.Feed(false, []rune(c.feed)...)
+			}
+
+			rl.skipCsiSequence()
+
+			if got := drainKeys(rl); got != c.wantLeft {
+				t.Fatalf("skip of %q left %q, want %q", c.feed, got, c.wantLeft)
 			}
 		})
 	}

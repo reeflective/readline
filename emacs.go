@@ -60,6 +60,7 @@ func (rl *Shell) standardCommands() commands {
 		"tab-insert":                   rl.tabInsert,
 		"self-insert":                  rl.selfInsert,
 		"bracketed-paste-begin":        rl.bracketedPasteBegin,
+		"skip-csi-sequence":            rl.skipCsiSequence,
 		"transpose-chars":              rl.transposeChars,
 		"transpose-words":              rl.transposeWords,
 		"shell-transpose-words":        rl.shellTransposeWords,
@@ -482,6 +483,37 @@ func (rl *Shell) bracketedPasteBegin() {
 		pasted = strings.ReplaceAll(pasted, "\r\n", "\n")
 		pasted = strings.ReplaceAll(pasted, "\r", "\n")
 		rl.cursor.InsertAt([]rune(pasted)...)
+	}
+}
+
+// skipCsiSequence consumes the remainder of a CSI escape sequence (the GNU
+// readline skip-csi-sequence command). Terminals encode many special keys as
+// "ESC [" followed by parameter/intermediate bytes (0x20-0x3F) and a single
+// final byte (0x40-0x7E) -- e.g. F5 is "\e[15~", Shift-Tab is "\e[Z". When such
+// a key has no binding, its trailing bytes would otherwise be self-inserted as
+// stray characters. Bound to "\e[", this command catches any CSI sequence that
+// no longer/exact binding claimed and swallows the rest of it, so unrecognised
+// keys do nothing.
+//
+// It is intentionally left unbound by default (as in GNU readline); enable it
+// from inputrc by binding the sequence "\e[" to the skip-csi-sequence command.
+func (rl *Shell) skipCsiSequence() {
+	rl.History.SkipSave()
+
+	// Whatever the dispatcher already consumed of the sequence, drain the rest:
+	// keep popping parameter/intermediate bytes, and stop once we consume the
+	// terminating byte (the final byte, or any non-CSI byte). The keys of a CSI
+	// sequence arrive in a single terminal read, so they are already buffered;
+	// if the buffer empties we simply stop rather than block on a partial one.
+	for {
+		key, empty := core.PopKey(rl.Keys)
+		if empty {
+			return
+		}
+
+		if key < 0x20 || key >= 0x40 {
+			return
+		}
 	}
 }
 
