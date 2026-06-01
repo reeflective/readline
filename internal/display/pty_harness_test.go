@@ -388,7 +388,14 @@ func (c *console) screen() string {
 
 // screenWaitTimeout bounds how long the screen-polling helpers wait before
 // failing the test. Every call site used the same value, so it lives here.
-const screenWaitTimeout = 3 * time.Second
+//
+// The pollers return the instant the awaited content appears, so this ceiling
+// never slows a passing test -- it only caps how long we wait before declaring
+// failure. It is deliberately generous: under `go test -race` on a loaded CI
+// runner the whole PTY/render pipeline is starved (race instrumentation adds
+// several-fold overhead), and a tight bound turns that into spurious timeouts
+// for the async-refresh tests (locally they settle in well under 2s).
+const screenWaitTimeout = 15 * time.Second
 
 // waitForScreen polls until the rendered screen contains substr, or fails the
 // test on timeout. It returns the (last) screen contents either way.
