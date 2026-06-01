@@ -762,6 +762,85 @@ func TestCursor_LineMove(t *testing.T) {
 	}
 }
 
+// TestCursor_LineMove_LandsAtLineEnd is the regression guard for the multiline
+// off-by-one: moving onto a shorter (non-empty) line must leave the cursor at
+// that line's end (its trailing newline = the append position), not one column
+// short of it. LineMove used to apply CheckCommand on every step, which clamped
+// the cursor off the newline even for emacs/vi-insert, where end-of-line is a
+// valid position.
+func TestCursor_LineMove_LandsAtLineEnd(t *testing.T) {
+	// indices: a0 b1 c2 d3 e4 f5 \n6 x7 \n8 g9 h10 i11 j12 k13 l14
+	line := Line("abcdef\nx\nghijkl")
+
+	// On line 0, column 5 ('f'); move down onto the 1-char line "x".
+	c := &Cursor{line: &line, pos: 5, mark: -1}
+	c.LineMove(1)
+
+	// End of "x" is the trailing newline at index 8 (append position).
+	if c.Pos() != 8 {
+		t.Fatalf("down onto short line: pos %d, want 8 (end of line, not one short)", c.Pos())
+	}
+
+	if c.LinePos() != 1 {
+		t.Fatalf("down onto short line: line %d, want 1", c.LinePos())
+	}
+}
+
+// TestCursor_LineMove_ModeClampContract documents the division of labour:
+// LineMove leaves the cursor at the end-of-line position, and the caller's
+// post-step check decides whether that is allowed. Shell.execute applies
+// CheckAppend in emacs/vi-insert (end-of-line kept) and CheckCommand in
+// vi-command (clamped onto the last char).
+func TestCursor_LineMove_ModeClampContract(t *testing.T) {
+	line := Line("abcdef\nx\nghijkl")
+
+	// emacs / vi-insert: CheckAppend keeps the end-of-line position.
+	emacs := &Cursor{line: &line, pos: 5, mark: -1}
+	emacs.LineMove(1)
+	emacs.CheckAppend()
+
+	if emacs.Pos() != 8 {
+		t.Fatalf("emacs post-move: pos %d, want 8 (end of line kept)", emacs.Pos())
+	}
+
+	// vi-command: CheckCommand clamps off the newline onto 'x'.
+	vicmd := &Cursor{line: &line, pos: 5, mark: -1}
+	vicmd.LineMove(1)
+	vicmd.CheckCommand()
+
+	if vicmd.Pos() != 7 {
+		t.Fatalf("vi-command post-move: pos %d, want 7 (clamped onto last char)", vicmd.Pos())
+	}
+}
+
+// TestCursor_LineMove_StickyColumn checks that vertical motion across lines that
+// are all long enough preserves the column, and a down-then-up round trip
+// returns to the starting position.
+func TestCursor_LineMove_StickyColumn(t *testing.T) {
+	// Three equal-length lines: a0..f5 \n6 g7..l12 \n13 m14..r19
+	line := Line("abcdef\nghijkl\nmnopqr")
+
+	c := &Cursor{line: &line, pos: 3, mark: -1} // line 0, column 3 ('d')
+
+	c.LineMove(1)
+
+	if c.Pos() != 10 { // line 1, column 3 ('j')
+		t.Fatalf("down one: pos %d, want 10", c.Pos())
+	}
+
+	c.LineMove(1)
+
+	if c.Pos() != 17 { // line 2, column 3 ('p')
+		t.Fatalf("down two: pos %d, want 17", c.Pos())
+	}
+
+	c.LineMove(-2)
+
+	if c.Pos() != 3 { // back to start
+		t.Fatalf("round trip up: pos %d, want 3", c.Pos())
+	}
+}
+
 func TestCursor_OnEmptyLine(t *testing.T) {
 	type fields struct {
 		pos  int
