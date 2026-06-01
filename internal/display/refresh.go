@@ -15,8 +15,13 @@ import (
 // Refresh recomputes and redisplays the entire readline interface, except
 // the first lines of the primary prompt when the latter is a multiline one.
 func (e *Engine) Refresh() {
+	// Buffer the whole frame and flush once, so the terminal never shows a
+	// partial repaint and we issue a single write instead of dozens.
+	term.BeginBuffer()
+	defer term.EndBuffer()
+
 	// 1. Preparation & Coordinates
-	fmt.Print(term.HideCursor)
+	term.WriteString(term.HideCursor)
 	// Go back to the first column, and if the primary prompt
 	// was not printed yet, back up to the line's beginning row.
 	term.MoveCursorBackwards(term.GetWidth())
@@ -63,10 +68,11 @@ func (e *Engine) Refresh() {
 	// CUD + clear + CUU to clean up artifacts from previous renders.
 	termHeight := term.GetLength()
 	atBottom := (e.startRows + e.lineRows) >= termHeight
+
 	if !atBottom {
 		term.MoveCursorDown(1)
 		term.MoveCursorBackwards(term.GetWidth())
-		fmt.Print(term.ClearScreenBelow)
+		term.WriteString(term.ClearScreenBelow)
 		term.MoveCursorUp(1)
 		term.MoveCursorForwards(e.lineCol)
 	}
@@ -83,7 +89,7 @@ func (e *Engine) Refresh() {
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorForwards(e.cursorCol)
 
-	fmt.Print(term.ShowCursor)
+	term.WriteString(term.ShowCursor)
 }
 
 // repaintPromptUpperLines reprints the upper lines of a multi-line prompt at
@@ -131,7 +137,7 @@ func (e *Engine) renderHelpers() {
 		return
 	}
 
-	fmt.Print(term.NewlineReturn)
+	term.WriteString(term.NewlineReturn)
 
 	// 3. Display Hints
 	ui.DisplayHint(e.hint)
@@ -190,13 +196,13 @@ func (e *Engine) ensureIndicatorSpace() {
 
 		e.startCols += indicatorWidth
 		// Print the indicator on the first line.
-		fmt.Print(indicator)
+		term.WriteString(indicator)
 	} else if e.line.Lines() > 0 && e.startCols < indicatorWidth {
 		// If the prompt is shorter than the indicator, pad with spaces
 		// to ensure the input text starts aligned with subsequent lines
 		// and isn't overwritten by the indicator.
 		padding := indicatorWidth - e.startCols
-		fmt.Printf("%*s", padding, "")
+		term.Printf("%*s", padding, "")
 
 		e.startCols = indicatorWidth
 	}
@@ -237,7 +243,7 @@ func (e *Engine) ensureInputSpace() {
 	term.MoveCursorDown(e.lineRows)
 
 	for range deficit {
-		fmt.Print(term.NewlineReturn)
+		term.WriteString(term.NewlineReturn)
 	}
 
 	e.startRows -= deficit
@@ -301,15 +307,15 @@ func (e *Engine) renderMultilineIndicators() {
 	pipe := ui.DefaultMultilineColumn
 
 	for i := 1; i <= e.line.Lines(); i++ {
-		fmt.Print("\n")
+		term.WriteString("\n")
 
 		switch {
 		case numbered:
-			fmt.Printf(color.FgBlackBright+"%d"+color.Reset+" ", i+1)
+			term.Printf(color.FgBlackBright+"%d"+color.Reset+" ", i+1)
 		case i == e.line.Lines():
 			e.prompt.SecondaryPrint()
 		default:
-			fmt.Print(pipe)
+			term.WriteString(pipe)
 		}
 
 		printedLines++

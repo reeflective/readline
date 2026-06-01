@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"syscall"
 	"unsafe"
+
+	"github.com/reeflective/readline/internal/term"
 )
 
 var (
@@ -167,6 +169,10 @@ func setConsoleCursorPosition(c *_COORD) error {
 
 // GetCursorPos returns the current cursor position on Windows.
 func (k *Keys) GetCursorPos() (x, y int) {
+	// Flush any buffered frame output so the console cursor reflects everything
+	// printed so far before we read its position.
+	term.FlushBuffer()
+
 	t := new(_CONSOLE_SCREEN_BUFFER_INFO)
 	kernel.GetConsoleScreenBufferInfo(
 		stdout,

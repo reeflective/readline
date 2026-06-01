@@ -6,8 +6,12 @@ var unescape = inputrc.Unescape
 
 // emacsKeys are the default keymaps in Emacs mode.
 var emacsKeys = map[string]inputrc.Bind{
-	unescape(`\C-D`):     {Action: "end-of-file"},
-	unescape(`\C-h`):     {Action: "backward-kill-word"},
+	unescape(`\C-D`): {Action: "end-of-file"},
+	// NOTE: \C-h is deliberately NOT overridden here. Many terminals send ^H
+	// for Backspace, and the GNU default (inputrc DefaultBinds) binds \C-h to
+	// backward-delete-char. Binding it to backward-kill-word made Backspace
+	// delete a whole word on those terminals; leaving it unset restores the
+	// standard char-delete behaviour.
 	unescape(`\C-N`):     {Action: "down-line-or-history"},
 	unescape(`\C-P`):     {Action: "up-line-or-history"},
 	unescape(`\C-x\C-b`): {Action: "vi-match"},

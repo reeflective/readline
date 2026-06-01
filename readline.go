@@ -69,7 +69,7 @@ func (rl *Shell) Readline() (string, error) {
 	// Prompts and cursor styles
 	rl.Display.PrintPrimaryPrompt()
 	defer rl.Display.RefreshTransient()
-	defer fmt.Print(keymap.CursorStyle("default"))
+	defer term.WriteString(keymap.CursorStyle("default").String())
 
 	rl.init()
 

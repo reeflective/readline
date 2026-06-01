@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 
@@ -240,7 +239,7 @@ func DisplayHint(hint *Hint) {
 
 	if hint.empty() {
 		if hint.cleanup {
-			fmt.Print(term.ClearLineAfter)
+			term.WriteString(term.ClearLineAfter)
 		}
 
 		hint.cleanup = false
@@ -257,7 +256,7 @@ func DisplayHint(hint *Hint) {
 	text += term.ClearLineAfter + color.Reset
 
 	if len(text) > 0 {
-		fmt.Print(text)
+		term.WriteString(text)
 	}
 }
 

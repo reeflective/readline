@@ -1,7 +1,6 @@
 package display
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/reeflective/readline/inputrc"
@@ -82,8 +81,11 @@ func (e *Engine) PrintPrimaryPrompt() {
 
 // ClearHelpers clears the hint and completion sections below the line.
 func (e *Engine) ClearHelpers() {
+	term.BeginBuffer()
+	defer term.EndBuffer()
+
 	e.CursorBelowLine()
-	fmt.Print(term.ClearScreenBelow)
+	term.WriteString(term.ClearScreenBelow)
 
 	term.MoveCursorUp(1)
 	term.MoveCursorUp(e.lineRows)
@@ -102,6 +104,9 @@ func (e *Engine) ResetHelpers() {
 // hints, completions and some right prompts, the shell will put the
 // display at the start of the line immediately following the line.
 func (e *Engine) AcceptLine() {
+	term.BeginBuffer()
+	defer term.EndBuffer()
+
 	e.CursorToLineStart()
 
 	e.computeCoordinates(false)
@@ -110,14 +115,14 @@ func (e *Engine) AcceptLine() {
 	term.MoveCursorBackwards(term.GetWidth())
 	term.MoveCursorDown(e.lineRows)
 	term.MoveCursorForwards(e.lineCol)
-	fmt.Print(term.ClearScreenBelow)
+	term.WriteString(term.ClearScreenBelow)
 
 	// Reprint the right-side prompt if it's not a tooltip one.
 	e.prompt.RightPrint(e.lineCol, false)
 
 	// Go below this non-suggested line and clear everything.
 	term.MoveCursorBackwards(term.GetWidth())
-	fmt.Print(term.NewlineReturn)
+	term.WriteString(term.NewlineReturn)
 }
 
 // RefreshTransient goes back to the first line of the input buffer
@@ -127,6 +132,9 @@ func (e *Engine) RefreshTransient() {
 		return
 	}
 
+	term.BeginBuffer()
+	defer term.EndBuffer()
+
 	// Go to the beginning of the primary prompt.
 	e.CursorToLineStart()
 	term.MoveCursorUp(e.prompt.PrimaryUsed())
@@ -134,7 +142,7 @@ func (e *Engine) RefreshTransient() {
 	// And redisplay the transient/primary/line.
 	e.prompt.TransientPrint()
 	e.displayLine()
-	fmt.Print(term.NewlineReturn)
+	term.WriteString(term.NewlineReturn)
 }
 
 // CursorToLineStart moves the cursor just after the primary prompt.
@@ -153,7 +161,7 @@ func (e *Engine) CursorToLineStart() {
 func (e *Engine) CursorBelowLine() {
 	term.MoveCursorUp(e.cursorRow)
 	term.MoveCursorDown(e.lineRows)
-	fmt.Print(term.NewlineReturn)
+	term.WriteString(term.NewlineReturn)
 }
 
 func (e *Engine) computeCoordinates(suggested bool) {
@@ -236,8 +244,8 @@ func (e *Engine) displayLine() {
 
 	// Adjust the cursor if the line fits exactly in the terminal width.
 	if e.lineCol == 0 {
-		fmt.Print(term.NewlineReturn)
-		fmt.Print(term.ClearLineAfter)
+		term.WriteString(term.NewlineReturn)
+		term.WriteString(term.ClearLineAfter)
 	}
 }
 

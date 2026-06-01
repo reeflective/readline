@@ -311,7 +311,7 @@ func DisplayLine(l *Line, indent int) {
 
 	builtLine.WriteString(color.BgDefault)
 
-	fmt.Print(builtLine.String())
+	term.WriteString(builtLine.String())
 }
 
 // CoordinatesLine returns the number of real terminal lines on which the input line spans, considering
