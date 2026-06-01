@@ -475,7 +475,13 @@ func (rl *Shell) bracketedPasteBegin() {
 	}
 
 	if len(sequence) > 6 {
-		rl.cursor.InsertAt([]rune(string(sequence[:len(sequence)-6]))...)
+		pasted := string(sequence[:len(sequence)-6])
+		// Terminals send \r (or \r\n) for line breaks inside a bracketed paste.
+		// Normalise them to \n, otherwise the stray carriage returns corrupt the
+		// line buffer and break multiline display and evaluation.
+		pasted = strings.ReplaceAll(pasted, "\r\n", "\n")
+		pasted = strings.ReplaceAll(pasted, "\r", "\n")
+		rl.cursor.InsertAt([]rune(pasted)...)
 	}
 }
 

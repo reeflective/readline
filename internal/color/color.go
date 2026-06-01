@@ -89,6 +89,14 @@ func Fmt(color string) string {
 // string, including all escape codes found between and immediately around
 // those characters (including surrounding 1st and 80th ones).
 func Trim(input string, maxPrintableLength int) string {
+	// A non-positive budget cannot be honoured by the slicing below (it would
+	// panic on input[:negative]); callers reach this on very narrow terminals
+	// where the available column width is smaller than the trailing padding.
+	// Treat it as "nothing fits" and return empty rather than crashing.
+	if maxPrintableLength <= 0 {
+		return ""
+	}
+
 	if len(input) < maxPrintableLength {
 		return input
 	}

@@ -310,9 +310,14 @@ func (h *Sources) Write(infer bool) {
 			continue
 		}
 
-		// Don't write it if the history source has reached
-		// the maximum number of lines allowed (inputrc)
-		if h.maxEntries == 0 || h.maxEntries >= history.Len() {
+		// Don't write it if the history source has reached the maximum
+		// number of lines allowed (inputrc history-size). maxEntries <= 0
+		// means unlimited (the in-memory default is -1); a positive cap
+		// stops appending once the source is full. The previous condition
+		// was inverted -- it skipped every write while the source was still
+		// under the cap, so any configured history-size disabled writing
+		// entirely.
+		if h.maxEntries > 0 && history.Len() >= h.maxEntries {
 			continue
 		}
 

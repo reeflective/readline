@@ -246,15 +246,20 @@ func (c *Cursor) LineMove(lines int) {
 		return
 	}
 
+	// Each step lands the cursor at the target column, or at the end of a
+	// shorter line (on its trailing newline). We deliberately do NOT clamp off
+	// that newline here: LineMove is keymap-agnostic, and the per-command
+	// post-step in Shell.execute already applies CheckCommand in vi-command
+	// mode and CheckAppend otherwise. Clamping here as well double-applied the
+	// command-mode rule, leaving the cursor one column short of the line end in
+	// emacs and vi-insert modes.
 	if lines < 0 {
 		for range -lines {
 			c.moveLineUp()
-			c.CheckCommand()
 		}
 	} else {
 		for range lines {
 			c.moveLineDown()
-			c.CheckCommand()
 		}
 	}
 }

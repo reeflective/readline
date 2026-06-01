@@ -101,6 +101,77 @@ func (e *Engine) refreshLine() {
 	}
 }
 
+// InsertCommonPrefix extends the input line with the longest prefix shared by
+// every current completion candidate, beyond what the user has already typed.
+// It implements the insertion half of the GNU readline menu-complete-display-prefix
+// option ("display the common prefix of the list of possible completions before
+// cycling"); the caller invokes it only when that option is set. When the
+// candidates share nothing past the typed prefix it is a no-op, and the menu is
+// simply displayed as before.
+func (e *Engine) InsertCommonPrefix() {
+	common := e.commonPrefix()
+
+	// Only extend the typed word; never shorten or re-case it.
+	if len([]rune(common)) <= len([]rune(e.prefix)) {
+		return
+	}
+
+	// Replace the typed prefix with the longer shared one, mirroring how
+	// acceptCandidate swaps the prefix for a full candidate value.
+	e.cursor.Move(-1 * len(e.prefix))
+	e.line.Cut(e.cursor.Pos(), e.cursor.Pos()+len(e.prefix))
+	e.cursor.InsertAt([]rune(common)...)
+
+	// Keep the engine prefix in sync so the menu highlighting and any
+	// subsequent candidate insertion stay consistent with the new word.
+	e.prefix = common
+}
+
+// commonPrefix returns the longest string that prefixes every current candidate's
+// inserted value, or "" when they share nothing (or there are no candidates).
+// The comparison is case-sensitive: candidates differing only in case stop the
+// prefix early, a conservative choice that never inserts characters not shared
+// verbatim by all candidates.
+func (e *Engine) commonPrefix() string {
+	var (
+		common string
+		seen   bool
+	)
+
+	for _, grp := range e.groups {
+		for _, row := range grp.rows {
+			for _, cand := range row {
+				if !seen {
+					common = cand.Value
+					seen = true
+
+					continue
+				}
+
+				common = commonStringPrefix(common, cand.Value)
+				if common == "" {
+					return ""
+				}
+			}
+		}
+	}
+
+	return common
+}
+
+// commonStringPrefix returns the longest rune-aligned common prefix of a and b.
+func commonStringPrefix(a, b string) string {
+	ra, rb := []rune(a), []rune(b)
+	bound := min(len(ra), len(rb))
+
+	i := 0
+	for i < bound && ra[i] == rb[i] {
+		i++
+	}
+
+	return string(ra[:i])
+}
+
 // acceptCandidate inserts the currently selected candidate into the real input line.
 func (e *Engine) acceptCandidate() {
 	cur := e.currentGroup()
