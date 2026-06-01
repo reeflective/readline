@@ -60,6 +60,7 @@ func (rl *Shell) historyCommands() commands {
 		"vi-down-line-or-history":            rl.viDownLineOrHistory,
 		"up-line-or-history":                 rl.upLineOrHistory,
 		"up-line-or-search":                  rl.upLineOrSearch,
+		"down-line-or-search":                rl.downLineOrSearch,
 		"down-line-or-select":                rl.downLineOrSelect,
 		"infer-next-history":                 rl.inferNextHistory,
 		"beginning-of-buffer-or-history":     rl.beginningOfBufferOrHistory,
@@ -436,6 +437,22 @@ func (rl *Shell) upLineOrSearch() {
 		rl.cursor.LineMove(-1)
 	default:
 		rl.historySearchBackward()
+	}
+}
+
+// If the cursor is not on the last line of the buffer, move down a line.
+// Otherwise, search forward in the history for a line matching the buffer.
+// This is the symmetric counterpart of up-line-or-search; without it the
+// default vi-insert down-arrow binding resolved to an unregistered command
+// and did nothing.
+func (rl *Shell) downLineOrSearch() {
+	rl.History.SkipSave()
+
+	switch {
+	case rl.cursor.LinePos() < rl.line.Lines():
+		rl.cursor.LineMove(1)
+	default:
+		rl.historySearchForward()
 	}
 }
 
