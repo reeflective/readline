@@ -83,3 +83,20 @@ func TestWriteZeroMaxIsUnlimited(t *testing.T) {
 		t.Fatalf("maxEntries==0 wrote %d lines, want 2 (should be unlimited)", mem.Len())
 	}
 }
+
+// TestMemoryGetLineOutOfRange guards memory.GetLine against an index past the
+// end of the buffer: it must return an error like the file source does, not
+// panic with "index out of range". History navigation (e.g. down-arrow at the
+// newest entry) can ask for position Len().
+func TestMemoryGetLineOutOfRange(t *testing.T) {
+	mem := new(memory)
+	mem.Write("test")
+
+	if _, err := mem.GetLine(mem.Len()); err == nil {
+		t.Fatalf("GetLine(%d) on a %d-line history returned nil error, want out-of-range error", mem.Len(), mem.Len())
+	}
+
+	if _, err := mem.GetLine(-1); err == nil {
+		t.Fatalf("GetLine(-1) returned nil error, want negative-index error")
+	}
+}
