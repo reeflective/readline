@@ -45,8 +45,12 @@ func (h *memory) Write(s string) (int, error) {
 
 // GetLine returns a line from history.
 func (h *memory) GetLine(i int) (string, error) {
-	if len(h.items) == 0 {
-		return "", nil
+	if i < 0 {
+		return "", errNegativeIndex
+	}
+
+	if i >= len(h.items) {
+		return "", errOutOfRangeIndex
 	}
 
 	return h.items[i], nil
