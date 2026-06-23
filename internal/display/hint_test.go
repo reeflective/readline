@@ -18,6 +18,10 @@ func rowIndex(screen, substr string) int {
 	return -1
 }
 
+func compactScreen(screen string) string {
+	return strings.Join(strings.Fields(screen), "")
+}
+
 // TestHintProviderTracksLine checks that a registered passive hint provider is
 // re-evaluated as the input changes: the provided lane echoes the current line.
 func TestHintProviderTracksLine(t *testing.T) {

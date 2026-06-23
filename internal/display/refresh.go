@@ -271,11 +271,24 @@ func (e *Engine) displayLineRefactored() {
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
 		line += color.Dim + color.Fmt(color.Fg+"242") + string(e.suggested[e.line.Len():]) + color.Reset
 	}
-	// Format tabs as spaces, for consistent display
-	line = strutil.FormatTabs(line) + term.ClearLineAfter
+	// Format tabs as spaces, for consistent display. When the rendered input
+	// lands exactly on the terminal edge, there is no current-row tail to clear;
+	// writing EL in the terminal's pending-wrap state can erase the edge glyph.
+	wrappedAtRightEdge := e.lineCol == 0 && len(line) > 0
+	line = strutil.FormatTabs(line)
+	if !wrappedAtRightEdge {
+		line += term.ClearLineAfter
+	}
 	// And display the line.
 	e.suggested.Set([]rune(line)...)
 	core.DisplayLine(&e.suggested, e.startCols)
+
+	// If the rendered input lands exactly on the terminal edge, terminals keep
+	// the cursor in a pending-wrap state. Force the wrap before later clear and
+	// cursor movement sequences so redraws do not overwrite or scroll input.
+	if wrappedAtRightEdge {
+		term.WriteString(term.NewlineReturn)
+	}
 }
 
 func (e *Engine) renderMultilineIndicators() {

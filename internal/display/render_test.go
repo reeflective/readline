@@ -73,6 +73,54 @@ func TestRenderWrappingAlignment(t *testing.T) {
 	}
 }
 
+// TestRenderRightEdgeWrapAtBottomKeepsInputVisiblePerKey guards the common
+// shell position: the prompt is already at the bottom of the terminal, and the
+// typed input soft-wraps at the right edge. Each keypress should keep the
+// current input visible instead of erasing the edge character or scrolling one
+// row per refresh.
+func TestRenderRightEdgeWrapAtBottomKeepsInputVisiblePerKey(t *testing.T) {
+	const (
+		cols = 20
+		rows = 8
+	)
+	const prompt = "P> "
+
+	c := startConsole(t, consoleConfig{
+		prompt:  prompt,
+		cols:    cols,
+		rows:    rows,
+		prefill: rows - 1,
+	})
+
+	typed := "abcdefghijklmnopqrstu"
+	firstWrappedInputLen := cols - len(prompt) + 1
+	stableTopRow := -1
+
+	c.waitForScreen(prompt)
+	for idx, ch := range typed {
+		c.send(string(ch))
+		want := typed[:idx+1]
+
+		screen := c.waitUntil(func(screen string) bool {
+			return strings.Contains(compactScreen(screen), "P>"+want)
+		})
+
+		if idx+1 == firstWrappedInputLen {
+			stableTopRow = rowIndex(screen, prompt)
+		}
+		if idx+1 > firstWrappedInputLen {
+			if got := rowIndex(screen, prompt); got != stableTopRow {
+				t.Fatalf("prompt scrolled while typing within the same wrapped row after key %d (%q): prompt row %d, want %d\n%s", idx+1, ch, got, stableTopRow, screen)
+			}
+		}
+	}
+
+	c.send("\r")
+	c.waitUntil(func(screen string) bool {
+		return strings.Contains(compactScreen(screen), "[LINE:"+typed+"]")
+	})
+}
+
 // TestRenderMultilinePromptAtBottom guards the bottom-of-window case: a
 // multi-line primary prompt rendered on the last row of the terminal must keep
 // all of its lines (including the input line) instead of overlapping them.
