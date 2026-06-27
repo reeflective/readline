@@ -2,6 +2,7 @@ package display
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/color"
@@ -43,6 +44,7 @@ type Engine struct {
 	line      *core.Line
 	suggested core.Line
 	cursor    *core.Cursor
+	inline    string
 	selection *core.Selection
 	histories *history.Sources
 	prompt    *ui.Prompt
@@ -69,6 +71,46 @@ func NewEngine(k *core.Keys, s *core.Selection, h *history.Sources, p *ui.Prompt
 // have bound it after instantiating a new shell instance.
 func Init(e *Engine, highlighter func([]rune) string) {
 	e.highlighter = highlighter
+}
+
+// SetInlineSuggestion sets a suggestion to display after the cursor.
+func (e *Engine) SetInlineSuggestion(suggestion string) {
+	e.inline = suggestion
+}
+
+// ClearInlineSuggestion clears the current inline suggestion.
+func (e *Engine) ClearInlineSuggestion() {
+	e.inline = ""
+}
+
+// GetInlineSuggestion returns the current inline suggestion.
+func (e *Engine) GetInlineSuggestion() string {
+	return e.inline
+}
+
+func (e *Engine) inlineSuggestionApplies(currentLine string) bool {
+	if e.inline == "" {
+		return false
+	}
+	if e.cursor.Pos() != e.line.Len() {
+		return false
+	}
+
+	return strings.HasPrefix(e.inline, currentLine) && len(e.inline) > len(currentLine)
+}
+
+func (e *Engine) coordinatesLine(suggested bool) *core.Line {
+	currentLine := string(*e.line)
+	if e.opts.GetBool("history-autosuggest") && suggested && e.suggested.Len() > e.line.Len() {
+		return &e.suggested
+	}
+	if e.inlineSuggestionApplies(currentLine) {
+		inline := core.Line{}
+		inline.Set([]rune(e.inline)...)
+		return &inline
+	}
+
+	return e.line
 }
 
 // PrintPrimaryPrompt redraws the primary prompt.
@@ -202,11 +244,7 @@ func (e *Engine) computeCoordinates(suggested bool) {
 	e.cursorCol, e.cursorRow = core.CoordinatesCursor(e.cursor, e.startCols)
 
 	// Get the number of rows used by the line, and the end line X pos.
-	if e.opts.GetBool("history-autosuggest") && suggested {
-		e.lineCol, e.lineRows = core.CoordinatesLine(&e.suggested, e.startCols)
-	} else {
-		e.lineCol, e.lineRows = core.CoordinatesLine(e.line, e.startCols)
-	}
+	e.lineCol, e.lineRows = core.CoordinatesLine(e.coordinatesLine(suggested), e.startCols)
 
 	e.primaryPrinted = false
 }
@@ -231,8 +269,15 @@ func (e *Engine) displayLine() {
 	line = e.highlightLine([]rune(line), *e.selection)
 
 	// Get the subset of the suggested line to print.
+	suggestionAdded := false
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
 		line += color.Dim + color.Fmt(color.Fg+"242") + string(e.suggested[e.line.Len():]) + color.Reset
+		suggestionAdded = true
+	}
+
+	currentLine := string(*e.line)
+	if !suggestionAdded && e.inlineSuggestionApplies(currentLine) {
+		line += color.Dim + color.Fmt(color.Fg+"242") + e.inline[len(currentLine):] + color.Reset
 	}
 
 	// Format tabs as spaces, for consistent display

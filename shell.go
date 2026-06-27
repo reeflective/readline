@@ -176,3 +176,30 @@ func (rl *Shell) PrintTransientf(msg string, args ...any) (n int, err error) {
 
 	return
 }
+
+// SetInlineSuggestion sets a suggestion to display after the cursor.
+func (rl *Shell) SetInlineSuggestion(suggestion string) {
+	if rl == nil || rl.Display == nil {
+		return
+	}
+
+	rl.Display.SetInlineSuggestion(suggestion)
+}
+
+// ClearInlineSuggestion clears the current inline suggestion.
+func (rl *Shell) ClearInlineSuggestion() {
+	if rl == nil || rl.Display == nil {
+		return
+	}
+
+	rl.Display.ClearInlineSuggestion()
+}
+
+// GetInlineSuggestion returns the current inline suggestion.
+func (rl *Shell) GetInlineSuggestion() string {
+	if rl == nil || rl.Display == nil {
+		return ""
+	}
+
+	return rl.Display.GetInlineSuggestion()
+}

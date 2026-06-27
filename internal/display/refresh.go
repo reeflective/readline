@@ -41,7 +41,7 @@ func (e *Engine) Refresh() {
 	// Recompute coordinates with the new indentation/cursor position.
 	if e.line.Lines() > 0 {
 		e.cursorCol, e.cursorRow = core.CoordinatesCursor(e.cursor, e.startCols)
-		e.lineCol, e.lineRows = core.CoordinatesLine(e.line, e.startCols)
+		e.lineCol, e.lineRows = core.CoordinatesLine(e.coordinatesLine(true), e.startCols)
 	}
 
 	// Ensure that we have enough space to print the line.
@@ -268,8 +268,15 @@ func (e *Engine) displayLineRefactored() {
 	// Apply visual selections highlighting if any
 	line = e.highlightLine([]rune(line), *e.selection)
 	// Get the subset of the suggested line to print.
+	suggestionAdded := false
 	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
 		line += color.Dim + color.Fmt(color.Fg+"242") + string(e.suggested[e.line.Len():]) + color.Reset
+		suggestionAdded = true
+	}
+
+	currentLine := string(*e.line)
+	if !suggestionAdded && e.inlineSuggestionApplies(currentLine) {
+		line += color.Dim + color.Fmt(color.Fg+"242") + e.inline[len(currentLine):] + color.Reset
 	}
 	// Format tabs as spaces, for consistent display
 	line = strutil.FormatTabs(line) + term.ClearLineAfter
