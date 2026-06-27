@@ -57,6 +57,10 @@ type Shell struct {
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func(line []rune) string
 
+	// PasteTransformer, when set, rewrites bracketed paste payloads before
+	// they are inserted into the input buffer.
+	PasteTransformer func(text string) string
+
 	// Completer is a function that produces completions.
 	// It takes the readline line ([]rune) and cursor pos as parameters,
 	// and returns completions with their associated metadata/settings.
