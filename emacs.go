@@ -476,14 +476,25 @@ func (rl *Shell) bracketedPasteBegin() {
 	}
 
 	if len(sequence) > 6 {
-		pasted := string(sequence[:len(sequence)-6])
-		// Terminals send \r (or \r\n) for line breaks inside a bracketed paste.
-		// Normalise them to \n, otherwise the stray carriage returns corrupt the
-		// line buffer and break multiline display and evaluation.
-		pasted = strings.ReplaceAll(pasted, "\r\n", "\n")
-		pasted = strings.ReplaceAll(pasted, "\r", "\n")
-		rl.cursor.InsertAt([]rune(pasted)...)
+		rl.insertPastedText(string(sequence[:len(sequence)-6]))
 	}
+}
+
+func (rl *Shell) insertPastedText(text string) {
+	// Terminals send \r (or \r\n) for line breaks inside a bracketed paste.
+	// Normalise them to \n, otherwise the stray carriage returns corrupt the
+	// line buffer and break multiline display and evaluation.
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+
+	if rl.PasteTransformer != nil {
+		text = rl.PasteTransformer(text)
+	}
+	if text == "" {
+		return
+	}
+
+	rl.cursor.InsertAt([]rune(text)...)
 }
 
 // skipCsiSequence consumes the remainder of a CSI escape sequence (the GNU

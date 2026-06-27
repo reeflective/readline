@@ -12,12 +12,19 @@ import (
 func feedPaste(t *testing.T, payload string) string {
 	t.Helper()
 
+	return feedPasteWithTransformer(t, payload, nil)
+}
+
+func feedPasteWithTransformer(t *testing.T, payload string, transformer func(string) string) string {
+	t.Helper()
+
 	line := new(core.Line)
 	rl := &Shell{
 		Keys:   new(core.Keys),
 		line:   line,
 		cursor: core.NewCursor(line),
 	}
+	rl.SetPasteTransformer(transformer)
 
 	// The handler consumes keys until it sees the paste-end sequence, so the
 	// terminator must be fed too — otherwise it would block waiting for input.
@@ -49,6 +56,30 @@ func TestBracketedPasteNormalizesCarriageReturns(t *testing.T) {
 				t.Fatalf("paste %q => %q, want %q", c.payload, got, c.want)
 			}
 		})
+	}
+}
+
+func TestBracketedPasteTransformer(t *testing.T) {
+	got := feedPasteWithTransformer(t, "a\r\nb", func(text string) string {
+		if text != "a\nb" {
+			t.Fatalf("transformer saw %q, want normalized text", text)
+		}
+
+		return "rewritten"
+	})
+
+	if got != "rewritten" {
+		t.Fatalf("transformed paste = %q, want rewritten", got)
+	}
+}
+
+func TestBracketedPasteTransformerCanDropText(t *testing.T) {
+	got := feedPasteWithTransformer(t, "secret", func(string) string {
+		return ""
+	})
+
+	if got != "" {
+		t.Fatalf("dropped paste = %q, want empty line", got)
 	}
 }
 

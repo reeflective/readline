@@ -57,6 +57,10 @@ type Shell struct {
 	// Once enabled, set to nil to disable again.
 	SyntaxHighlighter func(line []rune) string
 
+	// PasteTransformer, when set, rewrites bracketed paste payloads before
+	// they are inserted into the input buffer.
+	PasteTransformer func(text string) string
+
 	// Completer is a function that produces completions.
 	// It takes the readline line ([]rune) and cursor pos as parameters,
 	// and returns completions with their associated metadata/settings.
@@ -114,6 +118,16 @@ func NewShell(opts ...inputrc.Option) *Shell {
 	shell.Display = display
 
 	return shell
+}
+
+// SetPasteTransformer sets a function used to rewrite bracketed paste payloads
+// before they are inserted into the input buffer. Passing nil disables it.
+func (rl *Shell) SetPasteTransformer(fn func(text string) string) {
+	if rl == nil {
+		return
+	}
+
+	rl.PasteTransformer = fn
 }
 
 // Line is the shell input line buffer.
