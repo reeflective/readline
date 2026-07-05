@@ -77,6 +77,12 @@ func (rl *Shell) historyCommands() commands {
 		"autosuggest-enable":                 rl.autosuggestEnable,
 		"autosuggest-disable":                rl.autosuggestDisable,
 		"autosuggest-toggle":                 rl.autosuggestToggle,
+
+		// Application-provided inline suggestions (see Shell.SetInlineSuggestion).
+		// These are not tied to history, but are grouped here as they are the
+		// sibling ghost-text acceptance commands.
+		"inline-suggest-accept":      rl.inlineSuggestAccept,
+		"inline-suggest-accept-word": rl.inlineSuggestAcceptWord,
 	}
 
 	return widgets
