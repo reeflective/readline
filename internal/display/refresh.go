@@ -114,7 +114,7 @@ func (e *Engine) repaintPromptUpperLines() {
 }
 
 func (e *Engine) renderInputArea() {
-	e.displayLineRefactored()
+	e.displayLine()
 	e.renderMultilineIndicators()
 	e.renderRightPrompt()
 }
@@ -252,7 +252,11 @@ func (e *Engine) ensureInputSpace() {
 	term.MoveCursorForwards(e.startCols)
 }
 
-func (e *Engine) displayLineRefactored() {
+// displayLine renders the input line — highlighting, history-autosuggest and
+// inline-suggestion suffixes, and tab expansion — at the current cursor row. It
+// is the single line renderer shared by the main refresh path (renderInputArea)
+// and the transient-prompt redraw (RefreshTransient).
+func (e *Engine) displayLine() {
 	var line string
 	// Apply user-defined highlighter to the input line.
 	if e.highlighter != nil {
@@ -278,11 +282,26 @@ func (e *Engine) displayLineRefactored() {
 	if !suggestionAdded && e.inlineSuggestionApplies(currentLine) {
 		line += color.Dim + color.Fmt(color.Fg+"242") + e.inline[len(currentLine):] + color.Reset
 	}
-	// Format tabs as spaces, for consistent display
-	line = strutil.FormatTabs(line) + term.ClearLineAfter
+
+	// Format tabs as spaces, for consistent display. When the rendered input
+	// lands exactly on the terminal's right edge (lineCol == 0), the cursor is
+	// left in the terminal's pending-wrap state; emitting clear-to-end-of-line
+	// there can erase the edge glyph, so skip it in that case.
+	wrappedAtRightEdge := e.lineCol == 0 && len(line) > 0
+	line = strutil.FormatTabs(line)
+	if !wrappedAtRightEdge {
+		line += term.ClearLineAfter
+	}
+
 	// And display the line.
 	e.suggested.Set([]rune(line)...)
 	core.DisplayLine(&e.suggested, e.startCols)
+
+	// Force the pending wrap before any later clear/cursor-movement sequences,
+	// so redraws do not overwrite the edge character or scroll one row per key.
+	if wrappedAtRightEdge {
+		term.WriteString(term.NewlineReturn)
+	}
 }
 
 func (e *Engine) renderMultilineIndicators() {

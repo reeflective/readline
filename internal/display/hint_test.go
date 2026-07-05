@@ -7,6 +7,12 @@ import (
 	"testing"
 )
 
+// compactScreen collapses all runs of whitespace so screen contents can be
+// matched irrespective of terminal padding or soft-wrap column boundaries.
+func compactScreen(screen string) string {
+	return strings.Join(strings.Fields(screen), "")
+}
+
 // rowIndex returns the index of the first screen row containing substr, or -1.
 func rowIndex(screen, substr string) int {
 	for i, row := range strings.Split(screen, "\n") {
