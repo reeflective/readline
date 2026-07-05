@@ -227,10 +227,23 @@ func (rl *Shell) startMenuComplete(completer completion.Completer) {
 }
 
 // commandCompletion generates the completions for commands/args/flags.
-func (rl *Shell) commandCompletion() completion.Values {
+//
+// The application-provided completer is user code that readline calls on nearly
+// every keystroke (menu completion and as-you-type autocomplete both funnel
+// through here). A panic in it — a bad completer or transient command-tree
+// state — is recovered and surfaced as a completion message, so a single faulty
+// completion degrades into a visible error instead of crashing the shell.
+func (rl *Shell) commandCompletion() (values completion.Values) {
 	if rl.Completer == nil {
 		return completion.Values{}
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			msg := CompleteMessage("completion error: %v", r)
+			values = msg.convert()
+		}
+	}()
 
 	line, cursor := rl.completer.Line()
 	comps := rl.Completer(*line, cursor.Pos())
