@@ -170,6 +170,12 @@ func (rl *Shell) forwardChar() {
 		rl.autosuggestAccept()
 	}
 
+	// Fall back to an application-provided inline suggestion when history
+	// autosuggest accepted nothing and the cursor is at the end of the line.
+	if rl.cursor.Pos() == startPos {
+		rl.acceptInlineSuggestion()
+	}
+
 	if rl.cursor.Pos() > startPos {
 		return
 	}

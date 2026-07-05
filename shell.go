@@ -207,3 +207,30 @@ func (rl *Shell) GetInlineSuggestion() string {
 
 	return rl.Display.GetInlineSuggestion()
 }
+
+// inlineSuggestAccept (inline-suggest-accept) accepts the entire
+// application-provided inline suggestion into the line buffer.
+func (rl *Shell) inlineSuggestAccept() {
+	rl.acceptInlineSuggestion()
+}
+
+// inlineSuggestAcceptWord (inline-suggest-accept-word) accepts the next word of
+// the inline suggestion, leaving the rest as a suggestion.
+func (rl *Shell) inlineSuggestAcceptWord() {
+	if rl == nil || rl.Display == nil {
+		return
+	}
+
+	rl.Display.AcceptInlineWord(rl.line, rl.cursor)
+}
+
+// acceptInlineSuggestion accepts the inline suggestion if one applies at the
+// cursor, returning whether it did. Movement commands use it to fall back to an
+// application-provided suggestion once history autosuggest has been considered.
+func (rl *Shell) acceptInlineSuggestion() bool {
+	if rl == nil || rl.Display == nil {
+		return false
+	}
+
+	return rl.Display.AcceptInline(rl.line, rl.cursor)
+}
