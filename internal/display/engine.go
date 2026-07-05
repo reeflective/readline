@@ -5,11 +5,9 @@ import (
 	"strings"
 
 	"github.com/reeflective/readline/inputrc"
-	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
-	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/reeflective/readline/internal/ui"
 )
@@ -247,51 +245,6 @@ func (e *Engine) computeCoordinates(suggested bool) {
 	e.lineCol, e.lineRows = core.CoordinatesLine(e.coordinatesLine(suggested), e.startCols)
 
 	e.primaryPrinted = false
-}
-
-func (e *Engine) displayLine() {
-	var line string
-
-	// Apply user-defined highlighter to the input line.
-	if e.highlighter != nil {
-		line = e.highlighter(*e.line)
-	} else {
-		line = string(*e.line)
-	}
-
-	// Highlight matching parenthesis
-	if e.opts.GetBool("blink-matching-paren") {
-		core.HighlightMatchers(e.selection)
-		defer core.ResetMatchers(e.selection)
-	}
-
-	// Apply visual selections highlighting if any
-	line = e.highlightLine([]rune(line), *e.selection)
-
-	// Get the subset of the suggested line to print.
-	suggestionAdded := false
-	if len(e.suggested) > e.line.Len() && e.opts.GetBool("history-autosuggest") {
-		line += color.Dim + color.Fmt(color.Fg+"242") + string(e.suggested[e.line.Len():]) + color.Reset
-		suggestionAdded = true
-	}
-
-	currentLine := string(*e.line)
-	if !suggestionAdded && e.inlineSuggestionApplies(currentLine) {
-		line += color.Dim + color.Fmt(color.Fg+"242") + e.inline[len(currentLine):] + color.Reset
-	}
-
-	// Format tabs as spaces, for consistent display
-	line = strutil.FormatTabs(line) + term.ClearLineAfter
-
-	// And display the line.
-	e.suggested.Set([]rune(line)...)
-	core.DisplayLine(&e.suggested, e.startCols)
-
-	// Adjust the cursor if the line fits exactly in the terminal width.
-	if e.lineCol == 0 {
-		term.WriteString(term.NewlineReturn)
-		term.WriteString(term.ClearLineAfter)
-	}
 }
 
 // AvailableHelperLines returns the number of lines available below the hint section.
