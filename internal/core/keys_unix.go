@@ -61,22 +61,24 @@ func (k *Keys) GetCursorPos() (x, y int) {
 			return disable()
 		}
 
-		// Attempt to locate cursor response in it.
-		match = rxRcvCursorPos.FindAllStringSubmatch(string(cursor), 1)
+		// Split the chunk: the cursor answer out, everything else kept as
+		// user input. A single read can contain both — a line typed while
+		// the query was in flight coalesces with the response in the tty
+		// buffer — so the remainder must be preserved, not dropped.
+		cursorSeq, remain := k.extractCursorPos(cursor)
 
-		// If there is something but not cursor answer, its user input.
-		if len(match) == 0 && len(cursor) > 0 {
+		if len(remain) > 0 {
 			k.mutex.RLock()
-			k.buf = append(k.buf, cursor...)
+			k.buf = append(k.buf, remain...)
 			k.mutex.RUnlock()
+		}
 
+		// No cursor answer yet: keep reading.
+		if len(cursorSeq) == 0 {
 			continue
 		}
 
-		// And if empty, then we should abort.
-		if len(match) == 0 {
-			return disable()
-		}
+		match = rxRcvCursorPos.FindAllStringSubmatch(string(cursorSeq), 1)
 
 		break
 	}
