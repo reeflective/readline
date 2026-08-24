@@ -336,6 +336,7 @@ func (e *Engine) Cancel(inserted, cached bool) {
 	} else {
 		e.line.Set(*e.compLine...)
 		e.cursor.Set(e.compCursor.Pos())
+		e.notifyAccepted()
 	}
 }
 

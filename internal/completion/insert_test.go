@@ -139,3 +139,34 @@ func TestAcceptCandidateCallsOnAcceptAfterInsertion(t *testing.T) {
 		t.Fatalf("cursor = %d, want %d", got, len([]rune("readline")))
 	}
 }
+
+func TestCancelCallsOnAcceptWhenVirtualCandidateBecomesReal(t *testing.T) {
+	line := core.Line([]rune("rea"))
+	cursor := core.NewCursor(&line)
+	cursor.Set(line.Len())
+	completed := core.Line([]rune("readline"))
+	completedCursor := core.NewCursor(&completed)
+	completedCursor.Set(completed.Len())
+	accepted := false
+	engine := &Engine{
+		line:       &line,
+		cursor:     cursor,
+		compLine:   &completed,
+		compCursor: completedCursor,
+		selected: Candidate{Value: "readline", OnAccept: func() {
+			if got := string(line); got != "readline" {
+				t.Fatalf("line during OnAccept = %q, want %q", got, "readline")
+			}
+			accepted = true
+		}},
+	}
+
+	engine.Cancel(false, false)
+
+	if !accepted {
+		t.Fatal("OnAccept was not called")
+	}
+	if got := cursor.Pos(); got != len([]rune("readline")) {
+		t.Fatalf("cursor = %d, want %d", got, len([]rune("readline")))
+	}
+}

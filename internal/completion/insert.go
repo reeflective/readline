@@ -196,6 +196,10 @@ func (e *Engine) acceptCandidate() {
 	e.prefix = ""
 	e.suffix = ""
 
+	e.notifyAccepted()
+}
+
+func (e *Engine) notifyAccepted() {
 	if e.selected.OnAccept != nil {
 		e.selected.OnAccept()
 	}
