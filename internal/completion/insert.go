@@ -195,6 +195,10 @@ func (e *Engine) acceptCandidate() {
 	e.inserted = make([]rune, 0)
 	e.prefix = ""
 	e.suffix = ""
+
+	if e.selected.OnAccept != nil {
+		e.selected.OnAccept()
+	}
 }
 
 // insertCandidate inserts a completion candidate into the virtual (completed) line.

@@ -106,3 +106,36 @@ func TestInsertCommonPrefix(t *testing.T) {
 		}
 	})
 }
+
+func TestAcceptCandidateCallsOnAcceptAfterInsertion(t *testing.T) {
+	line := core.Line([]rune("rea"))
+	cursor := core.NewCursor(&line)
+	cursor.Set(line.Len())
+	accepted := false
+	grp := &group{
+		rows: [][]Candidate{{{
+			Value: "readline",
+			OnAccept: func() {
+				if got := string(line); got != "readline" {
+					t.Fatalf("line during OnAccept = %q, want %q", got, "readline")
+				}
+				accepted = true
+			},
+		}}},
+	}
+	engine := &Engine{
+		line:   &line,
+		cursor: cursor,
+		prefix: "rea",
+		groups: []*group{grp},
+	}
+
+	engine.acceptCandidate()
+
+	if !accepted {
+		t.Fatal("OnAccept was not called")
+	}
+	if got := cursor.Pos(); got != len([]rune("readline")) {
+		t.Fatalf("cursor = %d, want %d", got, len([]rune("readline")))
+	}
+}
