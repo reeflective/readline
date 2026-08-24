@@ -360,7 +360,7 @@ func (e *Engine) ResetForce() {
 // If the completion engine was not active to begin with, nothing will happen.
 func (e *Engine) Reset() {
 	e.autoForce = false
-	if !e.IsActive() {
+	if !e.IsActive() && !e.IsInserting() {
 		e.ClearMenu(true)
 		return
 	}

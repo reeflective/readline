@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/reeflective/readline/internal/core"
+	"github.com/reeflective/readline/internal/keymap"
+	"github.com/reeflective/readline/internal/ui"
 )
 
 // newPrefixEngine builds a minimal engine whose menu already holds the given
@@ -168,5 +170,34 @@ func TestCancelCallsOnAcceptWhenVirtualCandidateBecomesReal(t *testing.T) {
 	}
 	if got := cursor.Pos(); got != len([]rune("readline")) {
 		t.Fatalf("cursor = %d, want %d", got, len([]rune("readline")))
+	}
+}
+
+func TestResetAcceptsSelectedCandidateAfterMenuKeymapEnds(t *testing.T) {
+	keys := new(core.Keys)
+	iterations := new(core.Iterations)
+	keymaps, config := keymap.NewEngine(keys, iterations)
+	hint := ui.NewHint(keys)
+	line := core.Line([]rune("rea"))
+	cursor := core.NewCursor(&line)
+	cursor.Set(line.Len())
+	selection := core.NewSelection(&line, cursor)
+	engine := NewEngine(hint, keymaps, config)
+	Init(engine, keys, &line, cursor, selection, nil)
+	completed := core.Line([]rune("readline"))
+	completedCursor := core.NewCursor(&completed)
+	completedCursor.Set(completed.Len())
+	accepted := false
+	engine.compLine = &completed
+	engine.compCursor = completedCursor
+	engine.selected = Candidate{Value: "readline", OnAccept: func() { accepted = true }}
+
+	engine.Reset()
+
+	if !accepted {
+		t.Fatal("OnAccept was not called")
+	}
+	if got := string(line); got != "readline" {
+		t.Fatalf("line = %q, want %q", got, "readline")
 	}
 }
