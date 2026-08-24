@@ -117,11 +117,12 @@ func TestAcceptCandidateCallsOnAcceptAfterInsertion(t *testing.T) {
 	grp := &group{
 		rows: [][]Candidate{{{
 			Value: "readline",
-			OnAccept: func() {
+			OnAccept: func(line []rune, cursor int) ([]rune, int) {
 				if got := string(line); got != "readline" {
 					t.Fatalf("line during OnAccept = %q, want %q", got, "readline")
 				}
 				accepted = true
+				return line, cursor
 			},
 		}}},
 	}
@@ -155,11 +156,12 @@ func TestCancelCallsOnAcceptWhenVirtualCandidateBecomesReal(t *testing.T) {
 		cursor:     cursor,
 		compLine:   &completed,
 		compCursor: completedCursor,
-		selected: Candidate{Value: "readline", OnAccept: func() {
+		selected: Candidate{Value: "readline", OnAccept: func(line []rune, cursor int) ([]rune, int) {
 			if got := string(line); got != "readline" {
 				t.Fatalf("line during OnAccept = %q, want %q", got, "readline")
 			}
 			accepted = true
+			return line, cursor
 		}},
 	}
 
@@ -190,14 +192,17 @@ func TestResetAcceptsSelectedCandidateAfterMenuKeymapEnds(t *testing.T) {
 	accepted := false
 	engine.compLine = &completed
 	engine.compCursor = completedCursor
-	engine.selected = Candidate{Value: "readline", OnAccept: func() { accepted = true }}
+	engine.selected = Candidate{Value: "readline", OnAccept: func(line []rune, cursor int) ([]rune, int) {
+		accepted = true
+		return []rune("accepted"), len([]rune("accepted"))
+	}}
 
 	engine.Reset()
 
 	if !accepted {
 		t.Fatal("OnAccept was not called")
 	}
-	if got := string(line); got != "readline" {
-		t.Fatalf("line = %q, want %q", got, "readline")
+	if got := string(line); got != "accepted" {
+		t.Fatalf("line = %q, want %q", got, "accepted")
 	}
 }

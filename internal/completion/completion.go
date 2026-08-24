@@ -12,7 +12,10 @@ type Candidate struct {
 	Description string // A description to display next to the completion candidate.
 	Style       string // An arbitrary string of color/text effects to use when displaying the completion.
 	Tag         string // All completions with the same tag are grouped together and displayed under the tag heading.
-	OnAccept    func() // OnAccept is called after the candidate is inserted into the real input line.
+	// OnAccept may transform the real input line after this candidate is
+	// accepted. The returned cursor is a rune offset into the returned line.
+	// Returning an invalid cursor leaves the accepted candidate unchanged.
+	OnAccept func(line []rune, cursor int) (accepted []rune, acceptedCursor int)
 
 	displayLen int // Real length of the displayed candidate, that is not counting escaped sequences.
 	descLen    int

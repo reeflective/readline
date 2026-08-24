@@ -200,9 +200,15 @@ func (e *Engine) acceptCandidate() {
 }
 
 func (e *Engine) notifyAccepted() {
-	if e.selected.OnAccept != nil {
-		e.selected.OnAccept()
+	if e.selected.OnAccept == nil {
+		return
 	}
+	line, cursor := e.selected.OnAccept(append([]rune(nil), (*e.line)...), e.cursor.Pos())
+	if cursor < 0 || cursor > len(line) {
+		return
+	}
+	e.line.Set(line...)
+	e.cursor.Set(cursor)
 }
 
 // insertCandidate inserts a completion candidate into the virtual (completed) line.
