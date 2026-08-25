@@ -652,6 +652,12 @@ func (rl *Shell) autosuggestDisable() {
 //
 
 func (rl *Shell) acceptLineWith(infer, hold bool) {
+	// Confirmation-required completions use the first Enter to commit the
+	// selected candidate to the editable input. A later Enter submits it.
+	if rl.completer.ConfirmSelection() {
+		return
+	}
+
 	// If we are currently using the incremental-search buffer,
 	// we should cancel this mode so as to run the rest of this
 	// function on (with) the input line itself, not the minibuffer.

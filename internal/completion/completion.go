@@ -12,6 +12,10 @@ type Candidate struct {
 	Description string // A description to display next to the completion candidate.
 	Style       string // An arbitrary string of color/text effects to use when displaying the completion.
 	Tag         string // All completions with the same tag are grouped together and displayed under the tag heading.
+	// RequireConfirmation keeps this candidate virtual even when it is the only
+	// match. The first accept-line commits it to the editable input without
+	// submitting the line; a later accept-line submits the committed input.
+	RequireConfirmation bool
 	// OnAccept may transform the real input line after this candidate is
 	// accepted. The returned cursor is a rune offset into the returned line.
 	// Returning an invalid cursor leaves the accepted candidate unchanged.
