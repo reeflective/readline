@@ -1,6 +1,7 @@
 package completion
 
 import (
+	"strings"
 	"unicode"
 
 	"github.com/reeflective/readline/inputrc"
@@ -31,6 +32,14 @@ func UpdateInserted(eng *Engine) {
 	// to quit incremental search but keeping any selected comp.
 	inserted := eng.mustRemoveInserted()
 	cached := eng.keymap.Local() != keymap.Isearch && !eng.autoForce
+	if eng.commitSelectedCharacter(cached) {
+		return
+	}
+	if eng.IsInserting() && eng.selected.RequireConfirmation && eng.keymap.Local() == keymap.MenuSelect {
+		// Ordinary editing cancels a confirmation-required selection before
+		// the main keymap applies the key to the original input.
+		inserted = true
+	}
 
 	eng.Cancel(inserted, cached)
 
@@ -204,6 +213,39 @@ func (e *Engine) notifyAccepted() {
 		return
 	}
 	line, cursor := e.selected.OnAccept(append([]rune(nil), (*e.line)...), e.cursor.Pos())
+	if cursor < 0 || cursor > len(line) {
+		return
+	}
+	e.line.Set(line...)
+	e.cursor.Set(cursor)
+}
+
+func (e *Engine) commitSelectedCharacter(cached bool) bool {
+	if !e.IsInserting() || !e.selected.RequireConfirmation || e.keymap.Local() != keymap.MenuSelect {
+		return false
+	}
+	key, empty := core.PeekKey(e.keys)
+	if empty || !strings.ContainsRune(e.selected.CommitCharacters, rune(key)) {
+		return false
+	}
+	if cached {
+		e.cached = nil
+		e.hint.Reset()
+	}
+
+	defer e.cancelCompletedLine()
+	e.line.Set(*e.compLine...)
+	e.cursor.Set(e.compCursor.Pos())
+	e.notifyCommitted(rune(key))
+	return true
+}
+
+func (e *Engine) notifyCommitted(character rune) {
+	if e.selected.OnCommit == nil {
+		e.notifyAccepted()
+		return
+	}
+	line, cursor := e.selected.OnCommit(append([]rune(nil), (*e.line)...), e.cursor.Pos(), character)
 	if cursor < 0 || cursor > len(line) {
 		return
 	}

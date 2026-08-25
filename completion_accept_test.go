@@ -171,6 +171,65 @@ func TestConfirmationRequiredCompletionBackspaceCancelsSelection(t *testing.T) {
 	}
 }
 
+func TestConfirmationRequiredCompletionCommitCharacterKeepsExpression(t *testing.T) {
+	shell := confirmationTestShell(t)
+	shell.Completer = func(_ []rune, _ int) Completions {
+		result := CompleteRaw([]Completion{{
+			Value: "math", Display: "math", Description: "trb/std/math", Tag: "module",
+			RequireConfirmation: true,
+			CommitCharacters:    ".",
+			OnAccept: func(_ []rune, _ int) ([]rune, int) {
+				t.Fatal("commit character used the Enter acceptance path")
+				return nil, 0
+			},
+			OnCommit: func(_ []rune, _ int, character rune) ([]rune, int) {
+				if character != '.' {
+					t.Fatalf("commit character = %q, want '.'", character)
+				}
+				line := []rune("import trb/std/math\nmath")
+				return line, len(line)
+			},
+		}})
+		result.PREFIX = "mat"
+		return result
+	}
+
+	shell.Keys.Feed(false, []rune("mat\t.sqrt(9)\r")...)
+	line, err := shell.Readline()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if line != "import trb/std/math\nmath.sqrt(9)" {
+		t.Fatalf("committed line = %q, want imported expression", line)
+	}
+}
+
+func TestConfirmationRequiredCompletionOrdinaryInputCancelsSelection(t *testing.T) {
+	shell := confirmationTestShell(t)
+	shell.Completer = func(_ []rune, _ int) Completions {
+		result := CompleteRaw([]Completion{{
+			Value: "math", Display: "math", Description: "trb/std/math", Tag: "module",
+			RequireConfirmation: true,
+			CommitCharacters:    ".",
+			OnAccept: func(_ []rune, _ int) ([]rune, int) {
+				t.Fatal("ordinary input accepted the candidate")
+				return nil, 0
+			},
+		}})
+		result.PREFIX = "mat"
+		return result
+	}
+
+	shell.Keys.Feed(false, []rune("mat\tx\r")...)
+	line, err := shell.Readline()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if line != "matx" {
+		t.Fatalf("line after ordinary input = %q, want original input plus character", line)
+	}
+}
+
 func confirmationTestShell(t *testing.T) *Shell {
 	t.Helper()
 	shell := NewShell()
