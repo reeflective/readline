@@ -1,6 +1,9 @@
 package readline
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestResetNotifiesSelectedPublicCompletion(t *testing.T) {
 	shell := NewShell()
@@ -94,4 +97,91 @@ func TestConfirmationRequiredCompletionCanBeCancelledOrCommittedWithoutSubmit(t 
 	if !lineAccepted || line != "import trb/std/math" {
 		t.Fatalf("second accept = (%v, %q), want submitted import", lineAccepted, line)
 	}
+}
+
+func TestConfirmationRequiredCompletionConsumesFirstEnter(t *testing.T) {
+	shell := confirmationTestShell(t)
+	accepted := make(chan struct{}, 1)
+	shell.Completer = func(_ []rune, _ int) Completions {
+		result := CompleteRaw([]Completion{{
+			Value: "math", Display: "math", Description: "trb/std/math", Tag: "module",
+			RequireConfirmation: true,
+			OnAccept: func(_ []rune, _ int) ([]rune, int) {
+				accepted <- struct{}{}
+				line := []rune("import trb/std/math")
+				return line, len(line)
+			},
+		}})
+		result.PREFIX = "mat"
+		return result
+	}
+
+	shell.Keys.Feed(false, []rune("mat\t\r")...)
+	result := make(chan string, 1)
+	go func() {
+		line, _ := shell.Readline()
+		result <- line
+	}()
+
+	select {
+	case <-accepted:
+	case <-time.After(time.Second):
+		t.Fatal("first Enter did not confirm the completion")
+	}
+	select {
+	case line := <-result:
+		t.Fatalf("first Enter submitted %q instead of keeping it editable", line)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	shell.Keys.Feed(false, '\r')
+	shell.Keys.RequestRefresh()
+	select {
+	case line := <-result:
+		if line != "import trb/std/math" {
+			t.Fatalf("second Enter submitted %q, want import", line)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("second Enter did not submit the confirmed import")
+	}
+}
+
+func TestConfirmationRequiredCompletionBackspaceCancelsSelection(t *testing.T) {
+	shell := confirmationTestShell(t)
+	shell.Completer = func(_ []rune, _ int) Completions {
+		result := CompleteRaw([]Completion{{
+			Value: "math", Display: "math", Description: "trb/std/math", Tag: "module",
+			RequireConfirmation: true,
+			OnAccept: func(_ []rune, _ int) ([]rune, int) {
+				t.Fatal("cancelled completion called OnAccept")
+				return nil, 0
+			},
+		}})
+		result.PREFIX = "mat"
+		return result
+	}
+
+	shell.Keys.Feed(false, []rune("mat\t\x7f\r")...)
+	line, err := shell.Readline()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if line != "mat" {
+		t.Fatalf("line after Backspace cancellation = %q, want original input", line)
+	}
+}
+
+func confirmationTestShell(t *testing.T) *Shell {
+	t.Helper()
+	shell := NewShell()
+	for name, value := range map[string]bool{
+		"cursor-position-probe":        false,
+		"enable-bracketed-paste":       false,
+		"menu-complete-display-prefix": true,
+	} {
+		if err := shell.Config.Set(name, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return shell
 }

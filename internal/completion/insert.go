@@ -256,7 +256,7 @@ func (e *Engine) prepareSuffix() (comp string) {
 	// When the completion has a size of 1, don't remove anything:
 	// stacked flags, for example, will never be inserted otherwise.
 	if len(comp) > 0 && len(comp[prefix:]) <= 1 {
-		return
+		return comp
 	}
 
 	// If we are to even consider removing a suffix, we keep the suffix

@@ -8,6 +8,12 @@ import (
 
 // menuselectKeys are the default keymaps in menuselect mode.
 var menuselectKeys = map[string]inputrc.Bind{
+	unescape(`\C-j`):    {Action: "accept-line"},
+	unescape(`\C-m`):    {Action: "accept-line"},
+	unescape(`\C-h`):    {Action: "abort"},
+	unescape(`\C-?`):    {Action: "abort"},
+	unescape(`\C-d`):    {Action: "abort"},
+	unescape(`\e[3~`):   {Action: "abort"},
 	unescape(`\C-i`):    {Action: "menu-complete"},
 	unescape(`\C-N`):    {Action: "menu-complete"},
 	unescape(`\C-P`):    {Action: "menu-complete-backward"},
