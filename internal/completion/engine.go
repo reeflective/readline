@@ -89,7 +89,7 @@ func (e *Engine) Generate(completions Values) {
 	// Incremental search is a special case, because the user may
 	// want to keep searching for another match, so we don't drop
 	// the completion list and exit the incremental search mode.
-	if e.hasUniqueCandidate() && e.keymap.Local() != keymap.Isearch {
+	if e.hasUniqueCandidate() && e.keymap.Local() != keymap.Isearch && !e.requiresConfirmation() {
 		e.acceptCandidate()
 		e.ClearMenu(true)
 	}
@@ -336,6 +336,7 @@ func (e *Engine) Cancel(inserted, cached bool) {
 	} else {
 		e.line.Set(*e.compLine...)
 		e.cursor.Set(e.compCursor.Pos())
+		e.notifyAccepted()
 	}
 }
 
@@ -359,7 +360,7 @@ func (e *Engine) ResetForce() {
 // If the completion engine was not active to begin with, nothing will happen.
 func (e *Engine) Reset() {
 	e.autoForce = false
-	if !e.IsActive() {
+	if !e.IsActive() && !e.IsInserting() {
 		e.ClearMenu(true)
 		return
 	}
@@ -397,6 +398,31 @@ func (e *Engine) IsActive() bool {
 // IsInserting returns true if a candidate is currently virtually inserted.
 func (e *Engine) IsInserting() bool {
 	return e.selected.Value != ""
+}
+
+// ConfirmSelection commits a selected confirmation-required candidate while
+// leaving the input open for further editing. It reports whether it consumed
+// the caller's accept-line action.
+func (e *Engine) ConfirmSelection() bool {
+	if !e.IsInserting() || !e.selected.RequireConfirmation {
+		return false
+	}
+	e.Reset()
+	return true
+}
+
+// RequiresConfirmation reports whether the candidate that would be selected
+// next must be explicitly confirmed.
+func (e *Engine) RequiresConfirmation() bool {
+	return e.requiresConfirmation()
+}
+
+func (e *Engine) requiresConfirmation() bool {
+	if e.IsInserting() {
+		return e.selected.RequireConfirmation
+	}
+	group := e.currentGroup()
+	return group != nil && group.selected().RequireConfirmation
 }
 
 // Matches returns the number of completion candidates

@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/reeflective/readline/internal/core"
+	"github.com/reeflective/readline/internal/keymap"
+	"github.com/reeflective/readline/internal/ui"
 )
 
 // newPrefixEngine builds a minimal engine whose menu already holds the given
@@ -105,4 +107,102 @@ func TestInsertCommonPrefix(t *testing.T) {
 			t.Fatalf("line = %q, want unchanged %q", got, "foo")
 		}
 	})
+}
+
+func TestAcceptCandidateCallsOnAcceptAfterInsertion(t *testing.T) {
+	line := core.Line([]rune("rea"))
+	cursor := core.NewCursor(&line)
+	cursor.Set(line.Len())
+	accepted := false
+	grp := &group{
+		rows: [][]Candidate{{{
+			Value: "readline",
+			OnAccept: func(line []rune, cursor int) ([]rune, int) {
+				if got := string(line); got != "readline" {
+					t.Fatalf("line during OnAccept = %q, want %q", got, "readline")
+				}
+				accepted = true
+				return line, cursor
+			},
+		}}},
+	}
+	engine := &Engine{
+		line:   &line,
+		cursor: cursor,
+		prefix: "rea",
+		groups: []*group{grp},
+	}
+
+	engine.acceptCandidate()
+
+	if !accepted {
+		t.Fatal("OnAccept was not called")
+	}
+	if got := cursor.Pos(); got != len([]rune("readline")) {
+		t.Fatalf("cursor = %d, want %d", got, len([]rune("readline")))
+	}
+}
+
+func TestCancelCallsOnAcceptWhenVirtualCandidateBecomesReal(t *testing.T) {
+	line := core.Line([]rune("rea"))
+	cursor := core.NewCursor(&line)
+	cursor.Set(line.Len())
+	completed := core.Line([]rune("readline"))
+	completedCursor := core.NewCursor(&completed)
+	completedCursor.Set(completed.Len())
+	accepted := false
+	engine := &Engine{
+		line:       &line,
+		cursor:     cursor,
+		compLine:   &completed,
+		compCursor: completedCursor,
+		selected: Candidate{Value: "readline", OnAccept: func(line []rune, cursor int) ([]rune, int) {
+			if got := string(line); got != "readline" {
+				t.Fatalf("line during OnAccept = %q, want %q", got, "readline")
+			}
+			accepted = true
+			return line, cursor
+		}},
+	}
+
+	engine.Cancel(false, false)
+
+	if !accepted {
+		t.Fatal("OnAccept was not called")
+	}
+	if got := cursor.Pos(); got != len([]rune("readline")) {
+		t.Fatalf("cursor = %d, want %d", got, len([]rune("readline")))
+	}
+}
+
+func TestResetAcceptsSelectedCandidateAfterMenuKeymapEnds(t *testing.T) {
+	keys := new(core.Keys)
+	iterations := new(core.Iterations)
+	keymaps, config := keymap.NewEngine(keys, iterations)
+	hint := ui.NewHint(keys)
+	line := core.Line([]rune("rea"))
+	cursor := core.NewCursor(&line)
+	cursor.Set(line.Len())
+	selection := core.NewSelection(&line, cursor)
+	engine := NewEngine(hint, keymaps, config)
+	Init(engine, keys, &line, cursor, selection, nil)
+	completed := core.Line([]rune("readline"))
+	completedCursor := core.NewCursor(&completed)
+	completedCursor.Set(completed.Len())
+	accepted := false
+	engine.compLine = &completed
+	engine.compCursor = completedCursor
+	engine.selected = Candidate{Value: "readline", OnAccept: func(line []rune, cursor int) ([]rune, int) {
+		accepted = true
+		return []rune("accepted"), len([]rune("accepted"))
+	}}
+
+	engine.Reset()
+
+	if !accepted {
+		t.Fatal("OnAccept was not called")
+	}
+	if got := string(line); got != "accepted" {
+		t.Fatalf("line = %q, want %q", got, "accepted")
+	}
 }

@@ -12,6 +12,21 @@ type Candidate struct {
 	Description string // A description to display next to the completion candidate.
 	Style       string // An arbitrary string of color/text effects to use when displaying the completion.
 	Tag         string // All completions with the same tag are grouped together and displayed under the tag heading.
+	// RequireConfirmation keeps this candidate virtual even when it is the only
+	// match. The first accept-line commits it to the editable input without
+	// submitting the line; a later accept-line submits the committed input.
+	RequireConfirmation bool
+	// CommitCharacters accepts this candidate before the matching character is
+	// inserted by the editor. This is useful for continuations such as '.' or
+	// '(' that should keep the line open.
+	CommitCharacters string
+	// OnAccept may transform the real input line after this candidate is
+	// accepted. The returned cursor is a rune offset into the returned line.
+	// Returning an invalid cursor leaves the accepted candidate unchanged.
+	OnAccept func(line []rune, cursor int) (accepted []rune, acceptedCursor int)
+	// OnCommit may apply a different transformation when a CommitCharacter
+	// accepts the candidate. When nil, OnAccept is used instead.
+	OnCommit func(line []rune, cursor int, character rune) (accepted []rune, acceptedCursor int)
 
 	displayLen int // Real length of the displayed candidate, that is not counting escaped sequences.
 	descLen    int
