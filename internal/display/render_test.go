@@ -193,6 +193,58 @@ func TestRenderWithCursorProbeDisabled(t *testing.T) {
 	}
 }
 
+// TestRenderPromptAtBottomWithCursorProbeDisabled guards the probe-off fallback
+// at the bottom of the window (issue #119): when previous output has already
+// reached the last row, the prompt printed there must stay visible, and a row
+// must remain below the input area.
+//
+// With probing disabled the start row is unknown, so ensureInputSpace used to
+// bail out entirely and leave the input area on the last row. The end-of-frame
+// "move down 1, clear below, move up 1" sequence then erased the prompt it had
+// just drawn: CUD is clamped on the last row, so the ESC[0J ran from column 0
+// of the input line itself, while the unclamped CUU left the cursor one row
+// above the real input line for the next frame.
+func TestRenderPromptAtBottomWithCursorProbeDisabled(t *testing.T) {
+	const rows = 10
+
+	c := startConsole(t, consoleConfig{
+		prompt:  "PROMPT> ",
+		cols:    80,
+		rows:    rows,
+		prefill: rows - 1, // the prompt is printed on the very last row
+		noProbe: true,
+	})
+
+	c.waitForScreen("PROMPT>")
+
+	c.send("hello")
+	screen := c.waitForScreen("PROMPT> hello")
+
+	if got := c.probeQueries(); got != 0 {
+		t.Fatalf("expected no ESC[6n queries when probing is disabled, got %d", got)
+	}
+
+	if got := countLine(screen, "PROMPT>"); got != 1 {
+		t.Fatalf("prompt should render exactly once, got %d:\n%s", got, screen)
+	}
+
+	promptRow := -1
+
+	for i, line := range strings.Split(screen, "\n") {
+		if strings.HasPrefix(line, "PROMPT>") {
+			promptRow = i
+
+			break
+		}
+	}
+
+	// The reservation must have scrolled the input area off the last row, so
+	// that the clear-below at the end of the frame has somewhere to go.
+	if promptRow == rows-1 {
+		t.Fatalf("input line left on the last row, with no spare row below it:\n%s", screen)
+	}
+}
+
 // TestRenderRightEdgeWrapAtBottomKeepsInputVisiblePerKey guards the common
 // shell position: the prompt is already at the bottom of the terminal, and the
 // typed input soft-wraps at the right edge. Each keypress should keep the

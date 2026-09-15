@@ -66,8 +66,13 @@ func (e *Engine) Refresh() {
 	// row, so we check whether we're already at the bottom. If we are,
 	// there's nothing below to clear and we can skip. If we're not, we use
 	// CUD + clear + CUU to clean up artifacts from previous renders.
+	// ensureInputSpace has just guaranteed a row below the input area, so this
+	// only ever triggers when the start row is known and the window shrank
+	// underneath us. When the start row is unknown the arithmetic would be
+	// meaningless, and the unconditional reservation is what keeps us off the
+	// last row instead.
 	termHeight := term.GetLength()
-	atBottom := (e.startRows + e.lineRows) >= termHeight
+	atBottom := e.startRowKnown() && (e.startRows+e.lineRows) >= termHeight
 
 	if !atBottom {
 		term.MoveCursorDown(1)
@@ -221,18 +226,23 @@ func (e *Engine) ensureInputSpace() {
 	// it whether the area plus its trailing row runs past the bottom, and scroll
 	// the screen up by exactly the missing rows (adjusting startRows to match)
 	// without issuing another cursor-position query.
-	// Reserving space requires the cursor's absolute row, which only the
-	// cursor-position probe provides. When probing is disabled or unavailable
-	// (startRows < 1), we cannot detect the bottom of the window, so we skip
-	// this step -- the documented degraded behavior is that a prompt at the very
-	// bottom may overlap (see disable-cursor-position-probe).
-	if e.startRows < 1 {
-		return
-	}
-
+	//
+	// When the start row is unknown -- the cursor-position probe is disabled, or
+	// the terminal did not answer it -- we cannot measure the distance to the
+	// bottom, so we assume the worst case (the input area ends on the last row)
+	// and reserve a single trailing row unconditionally. One row is the largest
+	// reservation that is safe without knowing the start row: the sequence below
+	// lands back on the input-line start whether or not the newline scrolled, so
+	// the reservation is a no-op anywhere but the bottom of the window (a newline
+	// above the last row moves the cursor instead of scrolling) and is idempotent
+	// once the spare row exists.
 	reserve := e.lineRows + 1
 
-	deficit := (e.startRows + reserve) - term.GetLength()
+	deficit := 1
+	if e.startRowKnown() {
+		deficit = (e.startRows + reserve) - term.GetLength()
+	}
+
 	if deficit <= 0 {
 		return
 	}
@@ -246,7 +256,9 @@ func (e *Engine) ensureInputSpace() {
 		term.WriteString(term.NewlineReturn)
 	}
 
-	e.startRows -= deficit
+	if e.startRowKnown() {
+		e.startRows -= deficit
+	}
 
 	term.MoveCursorUp(reserve)
 	term.MoveCursorForwards(e.startCols)

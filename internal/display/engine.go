@@ -247,6 +247,15 @@ func (e *Engine) computeCoordinates(suggested bool) {
 	e.primaryPrinted = false
 }
 
+// startRowKnown reports whether the absolute terminal row of the input line's
+// first row is known. Only the cursor-position probe can provide it: the host
+// application prints arbitrary output before Readline is called, so the library
+// never sees where the prompt landed. computeCoordinates leaves startRows at -1
+// when the probe is disabled or when the terminal did not answer it.
+func (e *Engine) startRowKnown() bool {
+	return e.startRows > 0
+}
+
 // AvailableHelperLines returns the number of lines available below the hint section.
 // It returns half the terminal space if we currently have less than 1/3rd of it below.
 func (e *Engine) AvailableHelperLines() int {
