@@ -299,7 +299,7 @@ func (e *Engine) displayLine() {
 	// lands exactly on the terminal's right edge (lineCol == 0), the cursor is
 	// left in the terminal's pending-wrap state; emitting clear-to-end-of-line
 	// there can erase the edge glyph, so skip it in that case.
-	wrappedAtRightEdge := e.lineCol == 0 && len(line) > 0
+	wrappedAtRightEdge := e.lineCol == 0 && e.line.Len() > 0
 	line = strutil.FormatTabs(line)
 	if !wrappedAtRightEdge {
 		line += term.ClearLineAfter
