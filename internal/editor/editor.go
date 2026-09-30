@@ -111,17 +111,15 @@ func readTempFile(name string) ([]byte, error) {
 func getSystemEditor(emacsDefault bool) (editor string) {
 	editor = os.Getenv("VISUAL")
 	if editor == "" {
-		return
+		editor = os.Getenv("EDITOR")
 	}
 
-	editor = os.Getenv("EDITOR")
 	if editor == "" {
-		return
+		if emacsDefault {
+			return "emacs"
+		}
+		return "vi"
 	}
 
-	if emacsDefault {
-		return "emacs"
-	}
-
-	return "vi"
+	return
 }
