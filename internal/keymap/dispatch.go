@@ -241,6 +241,13 @@ func (m *Engine) handleEscape(main bool) (bind inputrc.Bind, cmd func(), pref bo
 
 		core.PopForce(m.keys)
 
+	case !main && m.Local() == MenuSelect:
+		// Escape cancels a completion menu and restores any virtually
+		// inserted candidate instead of committing it to the real line.
+		bind = inputrc.Bind{Action: "abort"}
+
+		core.PopForce(m.keys)
+
 	case !main:
 		// When using the local keymap, we simply drop any prefixed
 		// or matched bind, so that the key will be matched against

@@ -41,6 +41,12 @@ func (rl *Shell) completeWord() {
 		rl.startMenuComplete(rl.commandCompletion)
 
 		if rl.Config.GetBool("menu-complete-display-prefix") {
+			if rl.completer.RequiresConfirmation() {
+				// Keep an explicit-confirmation candidate virtual so Escape can
+				// restore the original input and Enter can commit without submit.
+				rl.completer.Select(1, 0)
+				return
+			}
 			// Insert the prefix shared by all candidates, then display the
 			// menu without selecting one (GNU menu-complete-display-prefix).
 			rl.completer.InsertCommonPrefix()
