@@ -1,6 +1,8 @@
 package keymap
 
 import (
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/reeflective/readline/inputrc"
@@ -97,5 +99,84 @@ func TestMatchBindResolvesDeterministically(t *testing.T) {
 		if got != want {
 			t.Fatalf("matchBind(%q) is nondeterministic: got %+v, first saw %+v", probe, got, want)
 		}
+	}
+}
+
+// matchBindSorted is the reference resolution matchBind must reproduce: scan
+// the sequences sorted by length then lexically, the last exact match winning.
+func matchBindSorted(keys []byte, binds map[string]inputrc.Bind) (inputrc.Bind, int) {
+	sequences := make([]string, 0, len(binds))
+	for sequence := range binds {
+		sequences = append(sequences, sequence)
+	}
+
+	sort.Slice(sequences, func(i, j int) bool {
+		if len(sequences[i]) == len(sequences[j]) {
+			return sequences[i] < sequences[j]
+		}
+
+		return len(sequences[i]) < len(sequences[j])
+	})
+
+	var match inputrc.Bind
+
+	prefixed := 0
+
+	for _, sequence := range sequences {
+		seq := strutil.ConvertMeta([]rune(sequence))
+
+		if len(keys) < len(seq) && strings.HasPrefix(seq, string(keys)) {
+			prefixed++
+		}
+
+		if string(keys) == seq {
+			match = binds[sequence]
+		}
+	}
+
+	return match, prefixed
+}
+
+// TestMatchBindMatchesSortedResolution checks matchBind against the sorted
+// reference for every prefix of every bound sequence (converted or not), in
+// every builtin keymap, including the colliding sequences.
+func TestMatchBindMatchesSortedResolution(t *testing.T) {
+	eng := &Engine{}
+
+	for name, binds := range builtinBindMaps(t) {
+		inputs := map[string]bool{"": true, "a": true, "\x1b": true}
+
+		for sequence := range binds {
+			for _, seq := range []string{sequence, strutil.ConvertMeta([]rune(sequence))} {
+				for i := 1; i <= len(seq); i++ {
+					inputs[seq[:i]] = true
+				}
+			}
+		}
+
+		for input := range inputs {
+			if input == "" {
+				continue
+			}
+
+			want, wantPrefixed := matchBindSorted([]byte(input), binds)
+			got, gotPrefixed := eng.matchBind([]byte(input), binds)
+
+			if got != want || len(gotPrefixed) != wantPrefixed {
+				t.Fatalf("keymap %s, input %q: got %+v with %d prefixed, want %+v with %d", name, input, got, len(gotPrefixed), want, wantPrefixed)
+			}
+		}
+	}
+}
+
+// BenchmarkMatchBindSelfInsert measures dispatching one printable key in the
+// emacs keymap, the per-keystroke cost of typing.
+func BenchmarkMatchBindSelfInsert(b *testing.B) {
+	_, cfg := NewEngine(&core.Keys{}, &core.Iterations{})
+	binds := cfg.Binds[string(Emacs)]
+	eng := &Engine{}
+
+	for b.Loop() {
+		eng.matchBind([]byte("a"), binds)
 	}
 }
