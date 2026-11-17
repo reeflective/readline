@@ -41,6 +41,10 @@ type Prompt struct {
 	cursor  *core.Cursor
 	keymaps *keymap.Engine
 	opts    *inputrc.Config
+
+	// primaryPrints counts primary prompt prints: each one may start the
+	// input line at a new screen position.
+	primaryPrints int
 }
 
 // NewPrompt is a required constructor to initialize the prompt system.
@@ -93,9 +97,13 @@ func (p *Prompt) Tooltip(prompt func(word string) string) {
 	}
 }
 
+// PrimaryPrints reports how many times the primary prompt was printed.
+func (p *Prompt) PrimaryPrints() int { return p.primaryPrints }
+
 // PrimaryPrint prints the primary prompt string, excluding
 // the last line if the primary prompt spans on several lines.
 func (p *Prompt) PrimaryPrint() {
+	p.primaryPrints++
 	p.refreshing = false
 
 	if p.primaryF == nil {
