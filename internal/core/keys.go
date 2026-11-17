@@ -22,7 +22,7 @@ const (
 // custom io.Readers, such as the one used on Windows.
 var Stdin io.ReadCloser = os.Stdin
 
-var rxRcvCursorPos = regexp.MustCompile(`\x1b\[([0-9]+);([0-9]+)R`)
+var rxRcvCursorPos = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`\x1b\[([0-9]+);([0-9]+)R`) })
 
 // errInputWake is returned by the input read when it was interrupted by an
 // async refresh request (RequestRefresh) rather than by actual key input.
@@ -404,13 +404,13 @@ func (k *Keys) Feed(begin bool, keys ...rune) {
 }
 
 func (k *Keys) extractCursorPos(keys []byte) (cursor, remain []byte) {
-	if !rxRcvCursorPos.Match(keys) {
+	if !rxRcvCursorPos().Match(keys) {
 		return cursor, keys
 	}
 
-	allCursors := rxRcvCursorPos.FindAll(keys, -1)
+	allCursors := rxRcvCursorPos().FindAll(keys, -1)
 	cursor = allCursors[len(allCursors)-1]
-	remain = rxRcvCursorPos.ReplaceAll(keys, nil)
+	remain = rxRcvCursorPos().ReplaceAll(keys, nil)
 
 	return
 }

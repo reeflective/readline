@@ -78,7 +78,7 @@ func (k *Keys) GetCursorPos() (x, y int) {
 			continue
 		}
 
-		match = rxRcvCursorPos.FindAllStringSubmatch(string(cursorSeq), 1)
+		match = rxRcvCursorPos().FindAllStringSubmatch(string(cursorSeq), 1)
 
 		break
 	}
