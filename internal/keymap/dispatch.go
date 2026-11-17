@@ -1,12 +1,10 @@
 package keymap
 
 import (
-	"sort"
-	"strings"
+	"unicode/utf8"
 
 	"github.com/reeflective/readline/inputrc"
 	"github.com/reeflective/readline/internal/core"
-	"github.com/reeflective/readline/internal/strutil"
 )
 
 // MatchLocal incrementally attempts to match cached input keys against the local keymap.
@@ -176,40 +174,76 @@ func (m *Engine) dispatchKeys(binds map[string]inputrc.Bind) (bind inputrc.Bind,
 	return m.active, prefix, read, matched
 }
 
+// matchBind returns the bind whose sequence equals keys, and the binds whose
+// sequences extend keys. Sequences are compared after metafied keys are
+// converted to their escape form, so distinct sequences can collide: the
+// longest, then lexically greatest, sequence wins, deterministically despite
+// map iteration order. This runs for every input byte, so it makes a single
+// pass over the binds, without sorting or converting them.
 func (m *Engine) matchBind(keys []byte, binds map[string]inputrc.Bind) (inputrc.Bind, []inputrc.Bind) {
 	var match inputrc.Bind
 	var prefixed []inputrc.Bind
 
-	// Make a sorted list with all keys in the binds map.
-	sequences := make([]string, 0, len(binds))
-	for sequence := range binds {
-		sequences = append(sequences, sequence)
-	}
+	winner, found := "", false
 
-	// Sort the list of sequences by alphabetical order and length.
-	sort.Slice(sequences, func(i, j int) bool {
-		if len(sequences[i]) == len(sequences[j]) {
-			return sequences[i] < sequences[j]
+	for sequence, bind := range binds {
+		equal, extends := matchConverted(sequence, keys)
+
+		if extends {
+			prefixed = append(prefixed, bind)
 		}
 
-		return len(sequences[i]) < len(sequences[j])
-	})
-
-	// Iterate over the sorted list of sequences and find all binds
-	// that match the sequence either by prefix or exactly.
-	for _, sequence := range sequences {
-		seq := strutil.ConvertMeta([]rune(sequence))
-
-		if len(string(keys)) < len(seq) && strings.HasPrefix(seq, string(keys)) {
-			prefixed = append(prefixed, binds[sequence])
-		}
-
-		if string(keys) == seq {
-			match = binds[sequence]
+		if equal && (!found || sequenceAfter(sequence, winner)) {
+			match, winner, found = bind, sequence, true
 		}
 	}
 
 	return match, prefixed
+}
+
+// sequenceAfter reports whether sequence a sorts after b: by length, then
+// lexically.
+func sequenceAfter(a, b string) bool {
+	if len(a) != len(b) {
+		return len(a) > len(b)
+	}
+
+	return a > b
+}
+
+// matchConverted compares keys with strutil.ConvertMeta(sequence), the
+// sequence with each metafied key replaced by escape and its unmeta form,
+// without building it: equal reports the same bytes, extends that keys is a
+// strict prefix of the converted sequence.
+func matchConverted(sequence string, keys []byte) (equal, extends bool) {
+	var buf [1 + utf8.UTFMax]byte
+
+	read := 0
+
+	for _, char := range sequence {
+		var part []byte
+
+		if inputrc.IsMeta(char) {
+			buf[0] = byte(inputrc.Esc)
+			part = buf[:1+utf8.EncodeRune(buf[1:], inputrc.Demeta(char))]
+		} else {
+			part = buf[:utf8.EncodeRune(buf[:], char)]
+		}
+
+		for _, b := range part {
+			if read == len(keys) {
+				return false, true
+			}
+
+			if keys[read] != b {
+				return false, false
+			}
+
+			read++
+		}
+	}
+
+	return read == len(keys), false
 }
 
 func (m *Engine) resolve(bind inputrc.Bind) func() {
