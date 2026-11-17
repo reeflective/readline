@@ -155,6 +155,43 @@ func TestCursorProbeEnabledByDefault(t *testing.T) {
 	}
 }
 
+// TestCursorProbeOncePerLine verifies the probed input-line start is reused
+// while typing: keystrokes on the same prompt send no further "ESC[6n" query,
+// so typing never waits on a terminal round trip (an SSH round trip remotely).
+func TestCursorProbeOncePerLine(t *testing.T) {
+	c := newConsole(t, "PROMPT> ", 80, 24)
+	c.waitForScreen("PROMPT>")
+
+	deadline := time.Now().Add(3 * time.Second)
+	for c.probeQueries() == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	before := c.probeQueries()
+
+	// Type one key at a time, waiting for each redraw, as a user would.
+	typed := ""
+	for _, key := range "hello probe" {
+		typed += string(key)
+		c.send(string(key))
+		c.waitForScreen("PROMPT> " + typed)
+	}
+
+	if got := c.probeQueries() - before; got != 0 {
+		t.Fatalf("expected no cursor-position queries while typing, got %d", got)
+	}
+
+	// Typing past the right edge wraps the line without moving its start.
+	c.send(strings.Repeat("x", 80))
+	c.waitForScreen(strings.Repeat("x", 60))
+	c.send("\r")
+
+	screen := c.waitForScreen("[LINE:hello probe")
+	if !strings.Contains(screen, "PROMPT> hello probe") {
+		t.Fatalf("prompt and line start moved after wrapping:\n%s", screen)
+	}
+}
+
 // TestRenderWithCursorProbeDisabled verifies the cursor-position-probe option:
 // when turned off, the shell sends no "ESC[6n" query and renders correctly from
 // the printed prompt width alone — even against a terminal that would have lied
@@ -296,4 +333,26 @@ func TestRenderRightEdgeWrapAtBottomKeepsInputVisiblePerKey(t *testing.T) {
 	c.waitUntil(func(screen string) bool {
 		return strings.Contains(compactScreen(screen), "[LINE:"+typed+"]")
 	})
+}
+
+// TestInterruptEchoAfterLine verifies that Ctrl-C echoes ^C after the whole
+// input line, wherever the cursor is, and that the line is left intact.
+func TestInterruptEchoAfterLine(t *testing.T) {
+	for name, keys := range map[string]string{
+		"end of line": "",
+		"mid-line":    "\x1b[D\x1b[D",
+	} {
+		t.Run(name, func(t *testing.T) {
+			c := newConsole(t, "PROMPT> ", 80, 24)
+			c.waitForScreen("PROMPT>")
+			c.send("abc")
+			c.waitForScreen("PROMPT> abc")
+			c.send(keys + "\x03")
+
+			screen := c.waitForScreen("[ERR:")
+			if !strings.Contains(screen, "PROMPT> abc^C") {
+				t.Fatalf("expected ^C echoed after the line:\n%s", screen)
+			}
+		})
+	}
 }

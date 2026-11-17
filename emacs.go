@@ -1312,16 +1312,18 @@ func (rl *Shell) abort() {
 		return
 	}
 
+	echo := ""
+
 	if rl.Config.GetBool("echo-control-characters") {
 		key := rl.Keys.Caller()
 		if key[0] == rune(inputrc.Unescape(`\C-C`)[0]) {
 			quoted, _ := strutil.Quote(key[0])
-			fmt.Print(string(quoted))
+			echo = string(quoted)
 		}
 	}
 
 	// If no line was active,
-	rl.Display.AcceptLine()
+	rl.Display.AcceptLineEcho(echo)
 	rl.History.Accept(false, false, ErrInterrupt)
 }
 

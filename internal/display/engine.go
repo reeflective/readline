@@ -8,6 +8,7 @@ import (
 	"github.com/reeflective/readline/internal/completion"
 	"github.com/reeflective/readline/internal/core"
 	"github.com/reeflective/readline/internal/history"
+	"github.com/reeflective/readline/internal/strutil"
 	"github.com/reeflective/readline/internal/term"
 	"github.com/reeflective/readline/internal/ui"
 )
@@ -31,6 +32,16 @@ type Engine struct {
 	hintRows       int
 	compRows       int
 	primaryPrinted bool
+
+	// The cursor-position probe locates the input line's start. It is cached
+	// for one prompt print and terminal size, and dropped after helpers render
+	// (they may scroll), so typing does not cost a terminal round trip per key.
+	probed       bool
+	probedCols   int
+	probedRows   int
+	probedPrompt int
+	probedWidth  int
+	probedHeight int
 
 	// commentRegex is the compiled comment-highlight pattern. It is rebuilt
 	// only when the comment-begin option changes, not on every refresh.
@@ -144,6 +155,13 @@ func (e *Engine) ResetHelpers() {
 // hints, completions and some right prompts, the shell will put the
 // display at the start of the line immediately following the line.
 func (e *Engine) AcceptLine() {
+	e.AcceptLineEcho("")
+}
+
+// AcceptLineEcho is AcceptLine, also printing echo (for example "^C" for an
+// interrupt) right after the line. Text printed at the cursor beforehand
+// would be cleared, and would leave the cursor off its recorded position.
+func (e *Engine) AcceptLineEcho(echo string) {
 	term.BeginBuffer()
 	defer term.EndBuffer()
 
@@ -156,9 +174,10 @@ func (e *Engine) AcceptLine() {
 	term.MoveCursorDown(e.lineRows)
 	term.MoveCursorForwards(e.lineCol)
 	term.WriteString(term.ClearScreenBelow)
+	term.WriteString(echo)
 
 	// Reprint the right-side prompt if it's not a tooltip one.
-	e.prompt.RightPrint(e.lineCol, false)
+	e.prompt.RightPrint(e.lineCol+strutil.RealLength(echo), false)
 
 	// Go below this non-suggested line and clear everything.
 	term.MoveCursorBackwards(term.GetWidth())
@@ -223,7 +242,7 @@ func (e *Engine) computeCoordinates(suggested bool) {
 	// turn the cursor-position-probe option off; we then fall back to a position
 	// derived from the printed prompt width.
 	if e.opts.GetBool("cursor-position-probe") {
-		e.startCols, e.startRows = e.keys.GetCursorPos()
+		e.startCols, e.startRows = e.probeCursor()
 	} else {
 		e.startCols, e.startRows = -1, -1
 	}
@@ -268,3 +287,19 @@ func (e *Engine) AvailableHelperLines() int {
 
 	return compLines
 }
+
+// probeCursor returns the cached input-line start, querying the terminal
+// only when the line may have moved since the last query.
+func (e *Engine) probeCursor() (int, int) {
+	width, height := term.GetWidth(), term.GetLength()
+	if e.probed && e.probedPrompt == e.prompt.PrimaryPrints() && e.probedWidth == width && e.probedHeight == height {
+		return e.probedCols, e.probedRows
+	}
+	e.probedCols, e.probedRows = e.keys.GetCursorPos()
+	e.probedPrompt, e.probedWidth, e.probedHeight = e.prompt.PrimaryPrints(), width, height
+	e.probed = e.probedCols > 0 && e.probedRows > 0
+	return e.probedCols, e.probedRows
+}
+
+// invalidateProbe forces the next refresh to query the cursor position.
+func (e *Engine) invalidateProbe() { e.probed = false }
