@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Base text effects.
@@ -102,7 +103,7 @@ func Trim(input string, maxPrintableLength int) string {
 	}
 
 	// Find all escape sequences in the input
-	escapeIndices := re.FindAllStringIndex(input, -1)
+	escapeIndices := re().FindAllStringIndex(input, -1)
 
 	// Iterate over escape sequences to find the
 	// last escape index within maxPrintableLength
@@ -205,7 +206,8 @@ func DisableEffects() {
 
 const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 
-var re = regexp.MustCompile(ansi)
+// re compiles on first use rather than at package init (Kame patch).
+var re = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(ansi) })
 
 // Strip removes all ANSI escaped color sequences in a string.
 func Strip(str string) string {
@@ -217,5 +219,5 @@ func Strip(str string) string {
 		return str
 	}
 
-	return re.ReplaceAllString(str, "")
+	return re().ReplaceAllString(str, "")
 }

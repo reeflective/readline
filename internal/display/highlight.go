@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/reeflective/readline/internal/color"
 	"github.com/reeflective/readline/internal/core"
@@ -13,7 +14,7 @@ import (
 
 // ansiEscapeRegex matches SGR color escape sequences embedded in a line. It is
 // compiled once at package load: getHighlights runs on every display refresh.
-var ansiEscapeRegex = regexp.MustCompile(`\x1b\[[0-9;]+m`)
+var ansiEscapeRegex = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`\x1b\[[0-9;]+m`) })
 
 // highlightLine applies visual/selection highlighting to a line.
 // The provided line might already have been highlighted by a user-provided
@@ -113,7 +114,7 @@ func (e *Engine) getHighlights(line []rune, sorted []core.Selection) map[int][]r
 
 	// Find any highlighting already applied on the line,
 	// and keep the indexes so that we can skip those.
-	colors := ansiEscapeRegex.FindAllStringIndex(string(line), -1)
+	colors := ansiEscapeRegex().FindAllStringIndex(string(line), -1)
 
 	// marks that started highlighting, but not done yet.
 	regions := make([]core.Selection, 0)

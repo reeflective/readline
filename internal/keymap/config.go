@@ -11,28 +11,30 @@ import (
 )
 
 // readline global options specific to this library.
-var readlineOptions = map[string]interface{}{
-	// General edition
-	"autopairs": false,
+func readlineOptions() map[string]interface{} {
+	return map[string]interface{}{
+		// General edition
+		"autopairs": false,
 
-	// Completion
-	"autocomplete":               false,
-	"completion-list-separator":  "--",
-	"completion-selection-style": "\x1b[1;30m",
+		// Completion
+		"autocomplete":               false,
+		"completion-list-separator":  "--",
+		"completion-selection-style": "\x1b[1;30m",
 
-	// Prompt & General UI
-	"transient-prompt":          false,
-	"usage-hint-always":         false,
-	"history-autosuggest":       false,
-	"multiline-column":          true,
-	"multiline-column-numbered": false,
+		// Prompt & General UI
+		"transient-prompt":          false,
+		"usage-hint-always":         false,
+		"history-autosuggest":       false,
+		"multiline-column":          true,
+		"multiline-column-numbered": false,
 
-	// Terminal
-	// cursor-position-probe controls whether the display engine queries the
-	// terminal for the cursor position ("ESC[6n"). Disable it in environments
-	// that don't reliably answer (PTY test harnesses, minimal emulators,
-	// constrained CI); the engine then falls back to the printed prompt width.
-	"cursor-position-probe": true,
+		// Terminal
+		// cursor-position-probe controls whether the display engine queries the
+		// terminal for the cursor position ("ESC[6n"). Disable it in environments
+		// that don't reliably answer (PTY test harnesses, minimal emulators,
+		// constrained CI); the engine then falls back to the printed prompt width.
+		"cursor-position-probe": true,
+	}
 }
 
 // ReloadConfig parses all valid .inputrc configurations and immediately
@@ -89,7 +91,7 @@ func (m *Engine) ReloadConfig(opts ...inputrc.Option) (err error) {
 // loadBuiltinOptions loads some options specific to
 // this library, if they are not loaded already.
 func (m *Engine) loadBuiltinOptions() {
-	for name, value := range readlineOptions {
+	for name, value := range readlineOptions() {
 		if val := m.config.Get(name); val == nil {
 			_ = m.config.Set(name, value)
 		}
@@ -101,26 +103,27 @@ func (m *Engine) loadBuiltinOptions() {
 // reference commands or keymaps only implemented/used in this library.
 func (m *Engine) loadBuiltinBinds() {
 	// Emacs specials
-	for seq, bind := range emacsKeys {
+	for seq, bind := range emacsKeys() {
 		m.config.Binds[string(Emacs)][seq] = bind
 	}
 
 	// Vim main keymaps
-	for seq, bind := range vicmdKeys {
+	for seq, bind := range vicmdKeys() {
 		m.config.Binds[string(ViCommand)][seq] = bind
 		m.config.Binds[string(ViMove)][seq] = bind
 		m.config.Binds[string(Vi)][seq] = bind
 	}
 
-	for seq, bind := range viinsKeys {
+	for seq, bind := range viinsKeys() {
 		m.config.Binds[string(ViInsert)][seq] = bind
 	}
 
 	// Vim local keymaps
-	m.config.Binds[string(Visual)] = visualKeys
-	m.config.Binds[string(ViOpp)] = vioppKeys
-	m.config.Binds[string(MenuSelect)] = menuselectKeys
-	m.config.Binds[string(Isearch)] = menuselectKeys
+	m.config.Binds[string(Visual)] = visualKeys()
+	m.config.Binds[string(ViOpp)] = vioppKeys()
+	menuselect := menuselectKeys()
+	m.config.Binds[string(MenuSelect)] = menuselect
+	m.config.Binds[string(Isearch)] = menuselect
 
 	// Default TTY binds
 	for _, keymap := range m.config.Binds {
