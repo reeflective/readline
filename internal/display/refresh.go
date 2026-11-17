@@ -15,6 +15,8 @@ import (
 // Refresh recomputes and redisplays the entire readline interface, except
 // the first lines of the primary prompt when the latter is a multiline one.
 func (e *Engine) Refresh() {
+	e.stale = false
+
 	// Buffer the whole frame and flush once, so the terminal never shows a
 	// partial repaint and we issue a single write instead of dozens.
 	term.BeginBuffer()

@@ -32,6 +32,10 @@ type Engine struct {
 	compRows       int
 	primaryPrinted bool
 
+	// stale is set when a refresh was deferred because more input keys were
+	// already available: the screen then lags the line until the next refresh.
+	stale bool
+
 	// commentRegex is the compiled comment-highlight pattern. It is rebuilt
 	// only when the comment-begin option changes, not on every refresh.
 	commentToken string
@@ -139,11 +143,28 @@ func (e *Engine) ResetHelpers() {
 	e.completer.ClearMenu(true)
 }
 
+// Defer skips a refresh because more input keys are already available; the
+// next Refresh, or Sync, brings the screen up to date.
+func (e *Engine) Defer() {
+	e.stale = true
+}
+
+// Sync refreshes the display if a refresh was deferred, so that output
+// written next at the cursor follows the current line.
+func (e *Engine) Sync() {
+	if e.stale {
+		e.Refresh()
+	}
+}
+
 // AcceptLine redraws the current UI when the line has been accepted
 // and returned to the caller. After clearing various things such as
 // hints, completions and some right prompts, the shell will put the
 // display at the start of the line immediately following the line.
 func (e *Engine) AcceptLine() {
+	// The accepted line stays on screen: show it whole.
+	e.Sync()
+
 	term.BeginBuffer()
 	defer term.EndBuffer()
 

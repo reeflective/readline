@@ -1312,6 +1312,10 @@ func (rl *Shell) abort() {
 		return
 	}
 
+	// Echo the control character after the whole line, not after a
+	// redraw deferred by typed-ahead keys.
+	rl.Display.Sync()
+
 	if rl.Config.GetBool("echo-control-characters") {
 		key := rl.Keys.Caller()
 		if key[0] == rune(inputrc.Unescape(`\C-C`)[0]) {

@@ -297,3 +297,52 @@ func TestRenderRightEdgeWrapAtBottomKeepsInputVisiblePerKey(t *testing.T) {
 		return strings.Contains(compactScreen(screen), "[LINE:"+typed+"]")
 	})
 }
+
+// TestTypeaheadBurstSingleRefresh verifies that keys already read when the
+// shell is about to redraw are dispatched first: a burst of input (typed
+// ahead, or pasted without bracketed paste mode) costs one redraw, not one
+// per key, and the screen still ends up showing the whole line.
+func TestTypeaheadBurstSingleRefresh(t *testing.T) {
+	c := newConsole(t, "PROMPT> ", 120, 24)
+	c.waitForScreen("PROMPT>")
+
+	burst := strings.Repeat("abcdefghij", 10)
+	before := c.frames()
+
+	c.send(burst)
+	c.waitForScreen("PROMPT> " + burst)
+
+	// One read normally carries the whole burst; allow a few if the PTY
+	// splits it, but never one frame per key.
+	if got := c.frames() - before; got > 5 {
+		t.Fatalf("expected a burst of %d keys to redraw a few times at most, got %d frames", len(burst), got)
+	}
+}
+
+// TestTypeaheadAcceptShowsWholeLine verifies that a burst ending in Enter
+// leaves the whole accepted line on screen, though its redraws were deferred.
+func TestTypeaheadAcceptShowsWholeLine(t *testing.T) {
+	c := newConsole(t, "PROMPT> ", 120, 24)
+	c.waitForScreen("PROMPT>")
+
+	c.send("typed ahead and accepted\r")
+
+	screen := c.waitForScreen("[LINE:typed ahead and accepted]")
+	if !strings.Contains(screen, "PROMPT> typed ahead and accepted") {
+		t.Fatalf("accepted line not shown whole above the result:\n%s", screen)
+	}
+}
+
+// TestTypeaheadInterruptShowsWholeLine verifies that a burst ending in Ctrl-C
+// echoes ^C after the whole line, not after a deferred, partial redraw.
+func TestTypeaheadInterruptShowsWholeLine(t *testing.T) {
+	c := newConsole(t, "PROMPT> ", 120, 24)
+	c.waitForScreen("PROMPT>")
+
+	c.send("typed ahead then interrupted\x03")
+
+	screen := c.waitForScreen("[ERR:")
+	if !strings.Contains(screen, "PROMPT> typed ahead then interrupted^C") {
+		t.Fatalf("interrupted line not shown whole before ^C:\n%s", screen)
+	}
+}

@@ -186,6 +186,7 @@ type console struct {
 	mu         sync.Mutex // guards term (writer + reads), probeCount and DSR replies
 	done       chan struct{}
 	probeCount int // number of "ESC[6n" cursor-position queries observed
+	frameCount int // number of refresh frames (each starts by hiding the cursor)
 
 	// probeReply, if non-nil, computes the DSR reply bytes for an "ESC[6n"
 	// cursor-position query, letting tests simulate a misbehaving terminal.
@@ -318,6 +319,7 @@ func (c *console) readLoop() {
 
 			c.mu.Lock()
 			_, _ = c.term.Write(chunk)
+			c.frameCount += bytes.Count(chunk, []byte("\x1b[?25l"))
 			c.mu.Unlock()
 
 			// Respond to "ESC[6n" cursor-position reports. The prompt bytes
@@ -376,6 +378,14 @@ func (c *console) probeQueries() int {
 	defer c.mu.Unlock()
 
 	return c.probeCount
+}
+
+// frames returns how many refresh frames the child has drawn so far.
+func (c *console) frames() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.frameCount
 }
 
 // screen returns the current rendered contents of the virtual terminal.

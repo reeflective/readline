@@ -101,7 +101,14 @@ func (rl *Shell) Readline() (string, error) {
 
 		// Since we always update helpers after being asked to read
 		// for user input again, we do it before actually reading it.
-		rl.Display.Refresh()
+		// Keys already read (typed ahead, or a paste without bracketed
+		// paste mode) are dispatched first, so a burst of input costs one
+		// redraw instead of one per key.
+		if rl.Keys.Pending() {
+			rl.Display.Defer()
+		} else {
+			rl.Display.Refresh()
+		}
 
 		// Block and wait for available user input keys.
 		// These might be read on stdin, or already available because

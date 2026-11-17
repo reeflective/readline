@@ -129,6 +129,15 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 	}
 }
 
+// Pending reports whether keys are available to dispatch without reading
+// input, that is, whether WaitAvailableKeys would return at once.
+func (k *Keys) Pending() bool {
+	k.mutex.RLock()
+	defer k.mutex.RUnlock()
+
+	return len(k.macroKeys) > 0 || len(k.buf) > 0 && !k.mustWait
+}
+
 // Empty reports whether there are no keys available to dispatch: neither
 // buffered input keys nor macro-fed keys. The main loop uses this to detect a
 // bare async-refresh wake (which returns from WaitAvailableKeys with no keys).
